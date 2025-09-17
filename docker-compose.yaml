@@ -20,6 +20,13 @@ services:
       - DB_PASSWORD=password
       - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
       - JWT_EXPIRES_IN=86400
+      - REFRESH_TOKEN_EXPIRES_IN=604800
+      - SMTP_HOST=mailpit
+      - SMTP_PORT=1025
+      - SMTP_USERNAME=
+      - SMTP_PASSWORD=
+      - SMTP_FROM_EMAIL=noreply@rustaxum.com
+      - SMTP_FROM_NAME=RustAxum
       - LOG_LEVEL=info
       - PORT=3000
     depends_on:
@@ -78,6 +85,19 @@ services:
       - ADMINER_DESIGN=nette
     depends_on:
       - db
+    restart: unless-stopped
+    networks:
+      - rustaxum_network
+
+  # Mailpit for email testing
+  mailpit:
+    image: axllent/mailpit:v1.10
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI port
+    environment:
+      - MP_SMTP_AUTH_ACCEPT_ANY=1
+      - MP_SMTP_AUTH_ALLOW_INSECURE=1
     restart: unless-stopped
     networks:
       - rustaxum_network

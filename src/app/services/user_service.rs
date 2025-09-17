@@ -78,6 +78,18 @@ impl UserService {
         Ok(())
     }
 
+    pub async fn update_refresh_token(id: Ulid, token: Option<String>, expires_at: Option<DateTime<Utc>>) -> Result<()> {
+        // TODO: Implement database update
+        // UPDATE users SET refresh_token = $1, refresh_token_expires_at = $2, updated_at = NOW() WHERE id = $3
+        Ok(())
+    }
+
+    pub async fn find_by_refresh_token(token: &str) -> Result<Option<User>> {
+        // TODO: Implement database query
+        // SELECT * FROM users WHERE refresh_token = $1
+        Ok(None)
+    }
+
     pub async fn delete_user(id: Ulid) -> Result<()> {
         // TODO: Implement database deletion
         // DELETE FROM users WHERE id = $1

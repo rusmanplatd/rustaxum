@@ -8,7 +8,7 @@ use ulid::Ulid;
 
 use crate::app::models::user::{
     CreateUser, LoginRequest, ForgotPasswordRequest,
-    ResetPasswordRequest, ChangePasswordRequest
+    ResetPasswordRequest, ChangePasswordRequest, RefreshTokenRequest
 };
 use crate::app::services::auth_service::{AuthService, AuthResponse, MessageResponse};
 use crate::app::utils::token_utils::TokenUtils;
@@ -203,6 +203,63 @@ pub async fn revoke_token(headers: HeaderMap) -> impl IntoResponse {
     };
 
     match AuthService::revoke_token(token, user_id, Some("Manual revocation".to_string())).await {
+        Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response()
+        }
+    }
+}
+
+pub async fn refresh_token(Json(payload): Json<RefreshTokenRequest>) -> impl IntoResponse {
+    match AuthService::refresh_token(payload).await {
+        Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response()
+        }
+    }
+}
+
+pub async fn revoke_all_tokens(headers: HeaderMap) -> impl IntoResponse {
+    let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
+
+    let token = match TokenUtils::extract_token_from_header(auth_header) {
+        Ok(token) => token,
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
+        }
+    };
+
+    // Decode token to get user ID
+    let claims = match AuthService::decode_token(token, "jwt-secret") {
+        Ok(claims) => claims,
+        Err(e) => {
+            let error = ErrorResponse {
+                error: "Invalid token".to_string(),
+            };
+            return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
+        }
+    };
+
+    let user_id = match Ulid::from_string(&claims.sub) {
+        Ok(id) => id,
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "Invalid user ID in token".to_string(),
+            };
+            return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
+        }
+    };
+
+    match AuthService::revoke_all_tokens(user_id).await {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {

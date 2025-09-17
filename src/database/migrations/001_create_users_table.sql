@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS users (
     email_verified_at TIMESTAMP,
     password VARCHAR(255) NOT NULL,
     remember_token VARCHAR(100),
+    refresh_token VARCHAR(255),
+    refresh_token_expires_at TIMESTAMP,
     password_reset_token VARCHAR(255),
     password_reset_expires_at TIMESTAMP,
     last_login_at TIMESTAMP,

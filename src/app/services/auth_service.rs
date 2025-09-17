@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use chrono::{Duration, Utc, DateTime};
 use ulid::Ulid;
 
-use crate::app::models::user::{User, CreateUser, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest, UserResponse};
+use crate::app::models::user::{User, CreateUser, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest, RefreshTokenRequest, UserResponse};
 use crate::app::models::token_blacklist::TokenBlacklist;
 use crate::app::utils::password_validator::PasswordValidator;
 use crate::app::utils::token_utils::TokenUtils;
@@ -22,9 +22,11 @@ pub struct Claims {
 
 #[derive(Debug, Serialize)]
 pub struct AuthResponse {
-    pub token: String,
+    pub access_token: String,
+    pub refresh_token: String,
     pub user: UserResponse,
     pub expires_at: DateTime<Utc>,
+    pub refresh_expires_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize)]
@@ -49,9 +51,9 @@ impl AuthService {
         Ok(is_valid)
     }
 
-    pub fn generate_token(user_id: &str, secret: &str) -> Result<String> {
+    pub fn generate_access_token(user_id: &str, secret: &str, expires_in_seconds: u64) -> Result<String> {
         let now = Utc::now();
-        let expiration = now + Duration::hours(24);
+        let expiration = now + Duration::seconds(expires_in_seconds as i64);
         let jti = Ulid::new().to_string();
 
         let claims = Claims {
@@ -68,6 +70,10 @@ impl AuthService {
         )?;
 
         Ok(token)
+    }
+
+    pub fn generate_refresh_token() -> String {
+        Ulid::new().to_string()
     }
 
     pub fn decode_token(token: &str, secret: &str) -> Result<Claims> {
@@ -96,17 +102,29 @@ impl AuthService {
         let user = User::new(data.name, data.email, hashed_password);
         let created_user = UserService::create_user_record(user).await?;
 
-        // Generate token
-        let token = Self::generate_token(&created_user.id.to_string(), "jwt-secret")?;
-        let expires_at = Utc::now() + Duration::hours(24);
+        // Generate tokens
+        let access_token = Self::generate_access_token(&created_user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
+        let refresh_token = Self::generate_refresh_token();
+        let expires_at = Utc::now() + Duration::seconds(86400);
+        let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
+
+        // Store refresh token
+        UserService::update_refresh_token(created_user.id, Some(refresh_token.clone()), Some(refresh_expires_at)).await?;
 
         // Update last login
         UserService::update_last_login(created_user.id).await?;
 
+        // Send welcome email
+        if let Err(e) = EmailService::send_welcome_email(&created_user.email, &created_user.name).await {
+            tracing::warn!("Failed to send welcome email: {}", e);
+        }
+
         Ok(AuthResponse {
-            token,
+            access_token,
+            refresh_token,
             user: created_user.to_response(),
             expires_at,
+            refresh_expires_at,
         })
     }
 
@@ -139,18 +157,25 @@ impl AuthService {
             UserService::reset_failed_attempts(user.id).await?;
         }
 
-        // Generate token
-        let token = Self::generate_token(&user.id.to_string(), "jwt-secret")?;
-        let expires_at = Utc::now() + Duration::hours(24);
+        // Generate tokens
+        let access_token = Self::generate_access_token(&user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
+        let refresh_token = Self::generate_refresh_token();
+        let expires_at = Utc::now() + Duration::seconds(86400);
+        let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
+
+        // Store refresh token
+        UserService::update_refresh_token(user.id, Some(refresh_token.clone()), Some(refresh_expires_at)).await?;
 
         // Update last login
         UserService::update_last_login(user.id).await?;
         user.last_login_at = Some(Utc::now());
 
         Ok(AuthResponse {
-            token,
+            access_token,
+            refresh_token,
             user: user.to_response(),
             expires_at,
+            refresh_expires_at,
         })
     }
 
@@ -245,6 +270,48 @@ impl AuthService {
 
         Ok(MessageResponse {
             message: "Token revoked successfully.".to_string(),
+        })
+    }
+
+    pub async fn refresh_token(data: RefreshTokenRequest) -> Result<AuthResponse> {
+        // Find user by refresh token
+        let user = UserService::find_by_refresh_token(&data.refresh_token).await?
+            .ok_or_else(|| anyhow::anyhow!("Invalid refresh token"))?;
+
+        // Verify refresh token is still valid
+        if !user.is_refresh_token_valid(&data.refresh_token) {
+            // Clear invalid refresh token
+            UserService::update_refresh_token(user.id, None, None).await?;
+            bail!("Invalid or expired refresh token");
+        }
+
+        // Generate new tokens
+        let access_token = Self::generate_access_token(&user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
+        let refresh_token = Self::generate_refresh_token();
+        let expires_at = Utc::now() + Duration::seconds(86400);
+        let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
+
+        // Store new refresh token (this invalidates the old one)
+        UserService::update_refresh_token(user.id, Some(refresh_token.clone()), Some(refresh_expires_at)).await?;
+
+        Ok(AuthResponse {
+            access_token,
+            refresh_token,
+            user: user.to_response(),
+            expires_at,
+            refresh_expires_at,
+        })
+    }
+
+    pub async fn revoke_all_tokens(user_id: Ulid) -> Result<MessageResponse> {
+        // Clear refresh token
+        UserService::update_refresh_token(user_id, None, None).await?;
+
+        // Note: Access tokens can't be revoked directly since they're stateless JWTs
+        // In a production system, you might want to maintain a blacklist or use shorter-lived tokens
+
+        Ok(MessageResponse {
+            message: "All tokens revoked successfully.".to_string(),
         })
     }
 

@@ -11,6 +11,8 @@ pub struct User {
     pub email_verified_at: Option<DateTime<Utc>>,
     pub password: String,
     pub remember_token: Option<String>,
+    pub refresh_token: Option<String>,
+    pub refresh_token_expires_at: Option<DateTime<Utc>>,
     pub password_reset_token: Option<String>,
     pub password_reset_expires_at: Option<DateTime<Utc>>,
     pub last_login_at: Option<DateTime<Utc>>,
@@ -58,6 +60,11 @@ pub struct ChangePasswordRequest {
     pub password_confirmation: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct RefreshTokenRequest {
+    pub refresh_token: String,
+}
+
 #[derive(Debug, Serialize)]
 pub struct UserResponse {
     pub id: String,
@@ -79,6 +86,8 @@ impl User {
             email_verified_at: None,
             password,
             remember_token: None,
+            refresh_token: None,
+            refresh_token_expires_at: None,
             password_reset_token: None,
             password_reset_expires_at: None,
             last_login_at: None,
@@ -112,6 +121,14 @@ impl User {
     pub fn is_password_reset_valid(&self, token: &str) -> bool {
         if let (Some(reset_token), Some(expires_at)) = (&self.password_reset_token, &self.password_reset_expires_at) {
             reset_token == token && Utc::now() < *expires_at
+        } else {
+            false
+        }
+    }
+
+    pub fn is_refresh_token_valid(&self, token: &str) -> bool {
+        if let (Some(refresh_token), Some(expires_at)) = (&self.refresh_token, &self.refresh_token_expires_at) {
+            refresh_token == token && Utc::now() < *expires_at
         } else {
             false
         }

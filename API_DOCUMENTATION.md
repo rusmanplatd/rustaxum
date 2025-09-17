@@ -38,7 +38,8 @@ Register a new user account.
 **Response (201 Created):**
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
   "user": {
     "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
     "name": "John Doe",
@@ -48,7 +49,8 @@ Register a new user account.
     "created_at": "2024-01-01T10:00:00Z",
     "updated_at": "2024-01-01T10:00:00Z"
   },
-  "expires_at": "2024-01-02T10:00:00Z"
+  "expires_at": "2024-01-02T10:00:00Z",
+  "refresh_expires_at": "2024-01-08T10:00:00Z"
 }
 ```
 
@@ -69,7 +71,8 @@ Authenticate a user and receive a JWT token.
 **Response (200 OK):**
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
   "user": {
     "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
     "name": "John Doe",
@@ -79,7 +82,8 @@ Authenticate a user and receive a JWT token.
     "created_at": "2024-01-01T10:00:00Z",
     "updated_at": "2024-01-01T10:00:00Z"
   },
-  "expires_at": "2024-01-02T10:00:00Z"
+  "expires_at": "2024-01-02T10:00:00Z",
+  "refresh_expires_at": "2024-01-08T10:00:00Z"
 }
 ```
 
@@ -170,6 +174,38 @@ Authorization: Bearer <your-jwt-token>
 }
 ```
 
+### Refresh Token
+
+**POST** `/auth/refresh-token`
+
+Refresh an expired access token using a valid refresh token.
+
+**Request Body:**
+```json
+{
+  "refresh_token": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "01ARZ3NDEKTSV4RRFFQ69G5FB0",
+  "user": {
+    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "email_verified_at": null,
+    "last_login_at": "2024-01-01T10:00:00Z",
+    "created_at": "2024-01-01T10:00:00Z",
+    "updated_at": "2024-01-01T10:00:00Z"
+  },
+  "expires_at": "2024-01-02T10:00:00Z",
+  "refresh_expires_at": "2024-01-08T10:00:00Z"
+}
+```
+
 ### Revoke Token
 
 **DELETE** `/auth/revoke-token`
@@ -185,6 +221,24 @@ Authorization: Bearer <your-jwt-token>
 ```json
 {
   "message": "Token revoked successfully."
+}
+```
+
+### Revoke All Tokens
+
+**DELETE** `/auth/revoke-all-tokens`
+
+Revoke all tokens for the authenticated user (clears refresh token).
+
+**Headers:**
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "All tokens revoked successfully."
 }
 ```
 
@@ -262,15 +316,35 @@ Accounts are temporarily locked after 5 failed login attempts for 30 minutes.
 
 ## Token Management
 
-- JWT tokens expire after 24 hours
-- Revoked tokens are stored in a blacklist
+- **Access tokens** (JWT) expire after 24 hours
+- **Refresh tokens** expire after 7 days
+- Refresh tokens are single-use and generate new token pairs
+- Revoked access tokens are stored in a blacklist
 - Expired blacklist entries are periodically cleaned up
+- When a refresh token is used, the old one is invalidated
 
 ## Email Notifications
 
-The system sends email notifications for:
-- Password reset requests
-- Welcome messages for new users
-- Password change confirmations
+The system sends HTML email notifications for:
+- **Password reset requests** - with secure reset links
+- **Welcome messages** - for new user registrations
+- **Password change confirmations** - security notifications
 
-*Note: Email sending is currently logged to console. Implement actual SMTP configuration for production use.*
+### Email Configuration
+
+**Development (Mailpit):**
+- SMTP Server: `mailpit:1025` (in Docker)
+- Web UI: http://localhost:8025
+- No authentication required
+
+**Production:**
+- Configure SMTP settings in environment variables
+- Supports TLS/SSL authentication
+- Customizable sender name and email
+
+### Accessing Emails (Development)
+
+When running with Docker Compose, all emails are captured by Mailpit:
+1. Start the application: `docker-compose up -d`
+2. Access Mailpit web interface: http://localhost:8025
+3. View all sent emails in the web UI

@@ -10,6 +10,14 @@ pub struct Config {
     pub database_url: String,
     pub jwt_secret: String,
     pub jwt_expires_in: u64,
+    pub refresh_token_expires_in: u64,
+    pub smtp_host: String,
+    pub smtp_port: u16,
+    pub smtp_username: String,
+    pub smtp_password: String,
+    pub smtp_from_email: String,
+    pub smtp_from_name: String,
+    pub smtp_use_tls: bool,
     pub log_level: String,
     pub port: u16,
 }
@@ -32,6 +40,25 @@ impl Config {
                 .unwrap_or_else(|_| "86400".to_string())
                 .parse()
                 .unwrap_or(86400),
+            refresh_token_expires_in: env::var("REFRESH_TOKEN_EXPIRES_IN")
+                .unwrap_or_else(|_| "604800".to_string())
+                .parse()
+                .unwrap_or(604800),
+            smtp_host: env::var("SMTP_HOST").unwrap_or_else(|_| "localhost".to_string()),
+            smtp_port: env::var("SMTP_PORT")
+                .unwrap_or_else(|_| "1025".to_string())
+                .parse()
+                .unwrap_or(1025),
+            smtp_username: env::var("SMTP_USERNAME").unwrap_or_else(|_| "".to_string()),
+            smtp_password: env::var("SMTP_PASSWORD").unwrap_or_else(|_| "".to_string()),
+            smtp_from_email: env::var("SMTP_FROM_EMAIL")
+                .unwrap_or_else(|_| "noreply@rustaxum.com".to_string()),
+            smtp_from_name: env::var("SMTP_FROM_NAME")
+                .unwrap_or_else(|_| "RustAxum".to_string()),
+            smtp_use_tls: env::var("SMTP_USE_TLS")
+                .unwrap_or_else(|_| "false".to_string())
+                .parse()
+                .unwrap_or(false),
             log_level: env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string()),
             port: env::var("PORT")
                 .unwrap_or_else(|_| "3000".to_string())

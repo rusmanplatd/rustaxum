@@ -51,6 +51,7 @@ tests/                     # Test files
 2. **The application will be available at**:
    - API: `http://localhost:3000`
    - Database Admin (Adminer): `http://localhost:8080`
+   - Email Testing (Mailpit): `http://localhost:8025`
 
 3. **Stop the application**:
    ```bash
@@ -113,6 +114,7 @@ The `docker-compose.yaml` includes:
 - **db**: PostgreSQL 16 database
 - **redis**: Redis for caching/sessions (optional)
 - **adminer**: Web-based database administration tool
+- **mailpit**: Email testing tool for development
 
 ### Docker Commands
 
