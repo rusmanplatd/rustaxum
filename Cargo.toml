@@ -19,3 +19,6 @@ dotenv = "0.15"
 anyhow = "1.0"
 bcrypt = "0.15"
 jsonwebtoken = "9.3.1"
+uuid = { version = "1.0", features = ["v4"] }
+sha2 = "0.10"
+lettre = "0.11"
