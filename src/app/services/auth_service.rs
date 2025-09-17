@@ -4,6 +4,7 @@ use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Validation}
 use serde::{Deserialize, Serialize};
 use chrono::{Duration, Utc, DateTime};
 use ulid::Ulid;
+use sqlx::PgPool;
 
 use crate::app::models::user::{User, CreateUser, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest, RefreshTokenRequest, UserResponse};
 use crate::app::models::token_blacklist::TokenBlacklist;
@@ -86,12 +87,12 @@ impl AuthService {
         Ok(token_data.claims)
     }
 
-    pub async fn register(data: CreateUser) -> Result<AuthResponse> {
+    pub async fn register(pool: &PgPool, data: CreateUser) -> Result<AuthResponse> {
         // Validate password
         PasswordValidator::validate(&data.password)?;
 
         // Check if user already exists
-        if let Some(_) = UserService::find_by_email(&data.email).await? {
+        if let Some(_) = UserService::find_by_email(pool, &data.email).await? {
             bail!("User with this email already exists");
         }
 
@@ -100,7 +101,7 @@ impl AuthService {
 
         // Create user
         let user = User::new(data.name, data.email, hashed_password);
-        let created_user = UserService::create_user_record(user).await?;
+        let created_user = UserService::create_user_record(pool, user).await?;
 
         // Generate tokens
         let access_token = Self::generate_access_token(&created_user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
@@ -109,10 +110,10 @@ impl AuthService {
         let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
 
         // Store refresh token
-        UserService::update_refresh_token(created_user.id, Some(refresh_token.clone()), Some(refresh_expires_at)).await?;
+        UserService::update_refresh_token(pool, created_user.id, Some(refresh_token.clone()), Some(refresh_expires_at)).await?;
 
         // Update last login
-        UserService::update_last_login(created_user.id).await?;
+        UserService::update_last_login(pool, created_user.id).await?;
 
         // Send welcome email
         if let Err(e) = EmailService::send_welcome_email(&created_user.email, &created_user.name).await {
@@ -128,9 +129,9 @@ impl AuthService {
         })
     }
 
-    pub async fn login(data: LoginRequest) -> Result<AuthResponse> {
+    pub async fn login(pool: &PgPool, data: LoginRequest) -> Result<AuthResponse> {
         // Find user by email
-        let mut user = UserService::find_by_email(&data.email).await?
+        let mut user = UserService::find_by_email(pool, &data.email).await?
             .ok_or_else(|| anyhow::anyhow!("Invalid credentials"))?;
 
         // Check if account is locked
@@ -148,13 +149,13 @@ impl AuthService {
                 user.locked_until = Some(Utc::now() + Duration::minutes(LOCKOUT_DURATION_MINUTES));
             }
 
-            UserService::update_failed_attempts(user.id, user.failed_login_attempts, user.locked_until).await?;
+            UserService::update_failed_attempts(pool, user.id, user.failed_login_attempts, user.locked_until).await?;
             bail!("Invalid credentials");
         }
 
         // Reset failed attempts on successful login
         if user.failed_login_attempts > 0 {
-            UserService::reset_failed_attempts(user.id).await?;
+            UserService::reset_failed_attempts(pool, user.id).await?;
         }
 
         // Generate tokens
@@ -164,10 +165,10 @@ impl AuthService {
         let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
 
         // Store refresh token
-        UserService::update_refresh_token(user.id, Some(refresh_token.clone()), Some(refresh_expires_at)).await?;
+        UserService::update_refresh_token(pool, user.id, Some(refresh_token.clone()), Some(refresh_expires_at)).await?;
 
         // Update last login
-        UserService::update_last_login(user.id).await?;
+        UserService::update_last_login(pool, user.id).await?;
         user.last_login_at = Some(Utc::now());
 
         Ok(AuthResponse {
@@ -179,9 +180,9 @@ impl AuthService {
         })
     }
 
-    pub async fn forgot_password(data: ForgotPasswordRequest) -> Result<MessageResponse> {
+    pub async fn forgot_password(pool: &PgPool, data: ForgotPasswordRequest) -> Result<MessageResponse> {
         // Find user by email
-        let user = UserService::find_by_email(&data.email).await?;
+        let user = UserService::find_by_email(pool, &data.email).await?;
 
         if let Some(mut user) = user {
             // Generate reset token
@@ -192,7 +193,7 @@ impl AuthService {
             user.password_reset_token = Some(reset_token.clone());
             user.password_reset_expires_at = Some(expires_at);
 
-            UserService::update_password_reset_token(user.id, Some(reset_token.clone()), Some(expires_at)).await?;
+            UserService::update_password_reset_token(pool, user.id, Some(reset_token.clone()), Some(expires_at)).await?;
 
             // Send reset email
             EmailService::send_password_reset_email(&user.email, &user.name, &reset_token).await?;
@@ -204,13 +205,13 @@ impl AuthService {
         })
     }
 
-    pub async fn reset_password(data: ResetPasswordRequest) -> Result<MessageResponse> {
+    pub async fn reset_password(pool: &PgPool, data: ResetPasswordRequest) -> Result<MessageResponse> {
         // Validate password
         PasswordValidator::validate(&data.password)?;
         PasswordValidator::validate_confirmation(&data.password, &data.password_confirmation)?;
 
         // Find user by reset token
-        let user = UserService::find_by_reset_token(&data.token).await?
+        let user = UserService::find_by_reset_token(pool, &data.token).await?
             .ok_or_else(|| anyhow::anyhow!("Invalid or expired reset token"))?;
 
         // Verify token is still valid
@@ -222,21 +223,21 @@ impl AuthService {
         let hashed_password = Self::hash_password(&data.password)?;
 
         // Update user password and clear reset token
-        UserService::update_password(user.id, hashed_password).await?;
-        UserService::update_password_reset_token(user.id, None, None).await?;
+        UserService::update_password(pool, user.id, hashed_password).await?;
+        UserService::update_password_reset_token(pool, user.id, None, None).await?;
 
         Ok(MessageResponse {
             message: "Password has been reset successfully.".to_string(),
         })
     }
 
-    pub async fn change_password(user_id: Ulid, data: ChangePasswordRequest) -> Result<MessageResponse> {
+    pub async fn change_password(pool: &PgPool, user_id: Ulid, data: ChangePasswordRequest) -> Result<MessageResponse> {
         // Validate new password
         PasswordValidator::validate(&data.new_password)?;
         PasswordValidator::validate_confirmation(&data.new_password, &data.password_confirmation)?;
 
         // Find user
-        let user = UserService::find_by_id(user_id).await?
+        let user = UserService::find_by_id(pool, user_id).await?
             .ok_or_else(|| anyhow::anyhow!("User not found"))?;
 
         // Verify current password
@@ -248,14 +249,14 @@ impl AuthService {
         let hashed_password = Self::hash_password(&data.new_password)?;
 
         // Update password
-        UserService::update_password(user.id, hashed_password).await?;
+        UserService::update_password(pool, user.id, hashed_password).await?;
 
         Ok(MessageResponse {
             message: "Password changed successfully.".to_string(),
         })
     }
 
-    pub async fn revoke_token(token: &str, user_id: Ulid, reason: Option<String>) -> Result<MessageResponse> {
+    pub async fn revoke_token(pool: &PgPool, token: &str, user_id: Ulid, reason: Option<String>) -> Result<MessageResponse> {
         // Decode token to get expiration
         let claims = Self::decode_token(token, "jwt-secret")?;
         let expires_at = DateTime::from_timestamp(claims.exp as i64, 0)
@@ -266,22 +267,22 @@ impl AuthService {
 
         // Add to blacklist
         let blacklist_entry = TokenBlacklist::new(token_hash, user_id, expires_at, reason);
-        UserService::blacklist_token(blacklist_entry).await?;
+        UserService::blacklist_token(pool, blacklist_entry).await?;
 
         Ok(MessageResponse {
             message: "Token revoked successfully.".to_string(),
         })
     }
 
-    pub async fn refresh_token(data: RefreshTokenRequest) -> Result<AuthResponse> {
+    pub async fn refresh_token(pool: &PgPool, data: RefreshTokenRequest) -> Result<AuthResponse> {
         // Find user by refresh token
-        let user = UserService::find_by_refresh_token(&data.refresh_token).await?
+        let user = UserService::find_by_refresh_token(pool, &data.refresh_token).await?
             .ok_or_else(|| anyhow::anyhow!("Invalid refresh token"))?;
 
         // Verify refresh token is still valid
         if !user.is_refresh_token_valid(&data.refresh_token) {
             // Clear invalid refresh token
-            UserService::update_refresh_token(user.id, None, None).await?;
+            UserService::update_refresh_token(pool, user.id, None, None).await?;
             bail!("Invalid or expired refresh token");
         }
 
@@ -292,7 +293,7 @@ impl AuthService {
         let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
 
         // Store new refresh token (this invalidates the old one)
-        UserService::update_refresh_token(user.id, Some(refresh_token.clone()), Some(refresh_expires_at)).await?;
+        UserService::update_refresh_token(pool, user.id, Some(refresh_token.clone()), Some(refresh_expires_at)).await?;
 
         Ok(AuthResponse {
             access_token,
@@ -303,9 +304,9 @@ impl AuthService {
         })
     }
 
-    pub async fn revoke_all_tokens(user_id: Ulid) -> Result<MessageResponse> {
+    pub async fn revoke_all_tokens(pool: &PgPool, user_id: Ulid) -> Result<MessageResponse> {
         // Clear refresh token
-        UserService::update_refresh_token(user_id, None, None).await?;
+        UserService::update_refresh_token(pool, user_id, None, None).await?;
 
         // Note: Access tokens can't be revoked directly since they're stateless JWTs
         // In a production system, you might want to maintain a blacklist or use shorter-lived tokens
@@ -315,8 +316,8 @@ impl AuthService {
         })
     }
 
-    pub async fn is_token_blacklisted(token: &str) -> Result<bool> {
+    pub async fn is_token_blacklisted(pool: &PgPool, token: &str) -> Result<bool> {
         let token_hash = TokenUtils::hash_token(token);
-        UserService::is_token_blacklisted(&token_hash).await
+        UserService::is_token_blacklisted(pool, &token_hash).await
     }
 }

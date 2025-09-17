@@ -1,10 +1,11 @@
 use axum::{
-    extract::{Json, Path},
+    extract::{Json, Path, State},
     http::{StatusCode, HeaderMap},
     response::{IntoResponse, Json as ResponseJson},
 };
 use serde::Serialize;
 use ulid::Ulid;
+use sqlx::PgPool;
 
 use crate::app::models::user::{
     CreateUser, LoginRequest, ForgotPasswordRequest,
@@ -18,8 +19,8 @@ struct ErrorResponse {
     error: String,
 }
 
-pub async fn register(Json(payload): Json<CreateUser>) -> impl IntoResponse {
-    match AuthService::register(payload).await {
+pub async fn register(State(pool): State<PgPool>, Json(payload): Json<CreateUser>) -> impl IntoResponse {
+    match AuthService::register(&pool, payload).await {
         Ok(response) => (StatusCode::CREATED, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -30,8 +31,8 @@ pub async fn register(Json(payload): Json<CreateUser>) -> impl IntoResponse {
     }
 }
 
-pub async fn login(Json(payload): Json<LoginRequest>) -> impl IntoResponse {
-    match AuthService::login(payload).await {
+pub async fn login(State(pool): State<PgPool>, Json(payload): Json<LoginRequest>) -> impl IntoResponse {
+    match AuthService::login(&pool, payload).await {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -42,8 +43,8 @@ pub async fn login(Json(payload): Json<LoginRequest>) -> impl IntoResponse {
     }
 }
 
-pub async fn forgot_password(Json(payload): Json<ForgotPasswordRequest>) -> impl IntoResponse {
-    match AuthService::forgot_password(payload).await {
+pub async fn forgot_password(State(pool): State<PgPool>, Json(payload): Json<ForgotPasswordRequest>) -> impl IntoResponse {
+    match AuthService::forgot_password(&pool, payload).await {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -54,8 +55,8 @@ pub async fn forgot_password(Json(payload): Json<ForgotPasswordRequest>) -> impl
     }
 }
 
-pub async fn reset_password(Json(payload): Json<ResetPasswordRequest>) -> impl IntoResponse {
-    match AuthService::reset_password(payload).await {
+pub async fn reset_password(State(pool): State<PgPool>, Json(payload): Json<ResetPasswordRequest>) -> impl IntoResponse {
+    match AuthService::reset_password(&pool, payload).await {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -67,6 +68,7 @@ pub async fn reset_password(Json(payload): Json<ResetPasswordRequest>) -> impl I
 }
 
 pub async fn change_password(
+    State(pool): State<PgPool>,
     headers: HeaderMap,
     Json(payload): Json<ChangePasswordRequest>,
 ) -> impl IntoResponse {
@@ -105,14 +107,14 @@ pub async fn change_password(
     };
 
     // Check if token is blacklisted
-    if let Ok(true) = AuthService::is_token_blacklisted(token).await {
+    if let Ok(true) = AuthService::is_token_blacklisted(&pool, token).await {
         let error = ErrorResponse {
             error: "Token has been revoked".to_string(),
         };
         return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
     }
 
-    match AuthService::change_password(user_id, payload).await {
+    match AuthService::change_password(&pool, user_id, payload).await {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -123,7 +125,7 @@ pub async fn change_password(
     }
 }
 
-pub async fn logout(headers: HeaderMap) -> impl IntoResponse {
+pub async fn logout(State(pool): State<PgPool>, headers: HeaderMap) -> impl IntoResponse {
     let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
 
     let token = match TokenUtils::extract_token_from_header(auth_header) {
@@ -157,7 +159,7 @@ pub async fn logout(headers: HeaderMap) -> impl IntoResponse {
         }
     };
 
-    match AuthService::revoke_token(token, user_id, Some("Logout".to_string())).await {
+    match AuthService::revoke_token(&pool, token, user_id, Some("Logout".to_string())).await {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -168,7 +170,7 @@ pub async fn logout(headers: HeaderMap) -> impl IntoResponse {
     }
 }
 
-pub async fn revoke_token(headers: HeaderMap) -> impl IntoResponse {
+pub async fn revoke_token(State(pool): State<PgPool>, headers: HeaderMap) -> impl IntoResponse {
     let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
 
     let token = match TokenUtils::extract_token_from_header(auth_header) {
@@ -202,7 +204,7 @@ pub async fn revoke_token(headers: HeaderMap) -> impl IntoResponse {
         }
     };
 
-    match AuthService::revoke_token(token, user_id, Some("Manual revocation".to_string())).await {
+    match AuthService::revoke_token(&pool, token, user_id, Some("Manual revocation".to_string())).await {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -213,8 +215,8 @@ pub async fn revoke_token(headers: HeaderMap) -> impl IntoResponse {
     }
 }
 
-pub async fn refresh_token(Json(payload): Json<RefreshTokenRequest>) -> impl IntoResponse {
-    match AuthService::refresh_token(payload).await {
+pub async fn refresh_token(State(pool): State<PgPool>, Json(payload): Json<RefreshTokenRequest>) -> impl IntoResponse {
+    match AuthService::refresh_token(&pool, payload).await {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -225,7 +227,7 @@ pub async fn refresh_token(Json(payload): Json<RefreshTokenRequest>) -> impl Int
     }
 }
 
-pub async fn revoke_all_tokens(headers: HeaderMap) -> impl IntoResponse {
+pub async fn revoke_all_tokens(State(pool): State<PgPool>, headers: HeaderMap) -> impl IntoResponse {
     let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
 
     let token = match TokenUtils::extract_token_from_header(auth_header) {
@@ -259,7 +261,7 @@ pub async fn revoke_all_tokens(headers: HeaderMap) -> impl IntoResponse {
         }
     };
 
-    match AuthService::revoke_all_tokens(user_id).await {
+    match AuthService::revoke_all_tokens(&pool, user_id).await {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {

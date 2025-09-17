@@ -2,10 +2,11 @@ use axum::{
     routing::{get, post, put, delete},
     Router,
 };
+use sqlx::PgPool;
 
 use crate::app::controllers::{auth_controller, user_controller};
 
-pub fn routes() -> Router {
+pub fn routes() -> Router<PgPool> {
     Router::new()
         // Authentication routes
         .route("/api/auth/register", post(auth_controller::register))

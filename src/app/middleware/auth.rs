@@ -1,11 +1,30 @@
 use axum::{
-    extract::Request,
+    extract::{Request, State},
     http::{HeaderMap, StatusCode},
     middleware::Next,
     response::Response,
 };
+use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
+use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
+use sha2::{Digest, Sha256};
 
-pub async fn auth_middleware(headers: HeaderMap, request: Request, next: Next) -> Result<Response, StatusCode> {
+use crate::app::services::user_service::UserService;
+use crate::config::Config;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Claims {
+    pub sub: String,
+    pub exp: usize,
+    pub iat: usize,
+}
+
+pub async fn auth_middleware(
+    State(pool): State<PgPool>,
+    headers: HeaderMap,
+    request: Request,
+    next: Next,
+) -> Result<Response, StatusCode> {
     let auth_header = headers
         .get("Authorization")
         .and_then(|header| header.to_str().ok());
@@ -13,7 +32,7 @@ pub async fn auth_middleware(headers: HeaderMap, request: Request, next: Next) -
     match auth_header {
         Some(header) if header.starts_with("Bearer ") => {
             let token = &header[7..];
-            if is_valid_token(token) {
+            if is_valid_token(&pool, token).await {
                 Ok(next.run(request).await)
             } else {
                 Err(StatusCode::UNAUTHORIZED)
@@ -23,7 +42,32 @@ pub async fn auth_middleware(headers: HeaderMap, request: Request, next: Next) -
     }
 }
 
-fn is_valid_token(_token: &str) -> bool {
-    // TODO: Implement actual JWT token validation
-    true
+async fn is_valid_token(pool: &PgPool, token: &str) -> bool {
+    // Load config for JWT secret
+    let config = match Config::from_env() {
+        Ok(config) => config,
+        Err(_) => return false,
+    };
+
+    // Decode JWT token
+    let validation = Validation::new(Algorithm::HS256);
+    let decoded = match decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(config.jwt_secret.as_ref()),
+        &validation,
+    ) {
+        Ok(decoded) => decoded,
+        Err(_) => return false,
+    };
+
+    // Create token hash for blacklist check
+    let mut hasher = Sha256::new();
+    hasher.update(token.as_bytes());
+    let token_hash = format!("{:x}", hasher.finalize());
+
+    // Check if token is blacklisted
+    match UserService::is_token_blacklisted(pool, &token_hash).await {
+        Ok(is_blacklisted) => !is_blacklisted,
+        Err(_) => false,
+    }
 }

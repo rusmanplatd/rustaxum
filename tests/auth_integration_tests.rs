@@ -5,21 +5,30 @@ use axum::{
 use axum_test::TestServer;
 use serde_json::Value;
 use serial_test::serial;
+use sqlx::PgPool;
 
 use rustaxum::app::models::user::{CreateUser, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest, RefreshTokenRequest};
 use rustaxum::routes::api;
+use rustaxum::database;
+use rustaxum::config::Config;
 
-fn setup_test_server() -> TestServer {
+async fn setup_test_server() -> TestServer {
+    // For testing, we'll skip database setup and create a minimal router
+    // This is a simplified approach for now
     let app = Router::new()
-        .merge(api::routes());
+        .merge(api::routes())
+        .with_state(PgPool::connect("postgresql://test:test@localhost:5432/test_db").await.unwrap_or_else(|_| {
+            // If database connection fails, skip these tests
+            panic!("Database connection required for integration tests")
+        }));
 
-    TestServer::new(app).unwrap()
+    TestServer::new(app.into_make_service()).unwrap()
 }
 
 #[tokio::test]
 #[serial]
 async fn test_auth_endpoints_respond() {
-    let server = setup_test_server();
+    let server = setup_test_server().await;
 
     // Test registration endpoint exists
     let user_data = CreateUser {
@@ -76,7 +85,7 @@ async fn test_auth_endpoints_respond() {
 #[tokio::test]
 #[serial]
 async fn test_protected_endpoints_require_auth() {
-    let server = setup_test_server();
+    let server = setup_test_server().await;
 
     // Test change password requires auth
     let change_data = ChangePasswordRequest {
@@ -117,7 +126,7 @@ async fn test_protected_endpoints_require_auth() {
 #[tokio::test]
 #[serial]
 async fn test_invalid_json_returns_bad_request() {
-    let server = setup_test_server();
+    let server = setup_test_server().await;
 
     let response = server
         .post("/api/auth/register")
@@ -130,7 +139,7 @@ async fn test_invalid_json_returns_bad_request() {
 #[tokio::test]
 #[serial]
 async fn test_weak_password_validation() {
-    let server = setup_test_server();
+    let server = setup_test_server().await;
 
     let user_data = CreateUser {
         name: "Test User".to_string(),
@@ -153,7 +162,7 @@ async fn test_weak_password_validation() {
 #[tokio::test]
 #[serial]
 async fn test_missing_password_complexity() {
-    let server = setup_test_server();
+    let server = setup_test_server().await;
 
     // Test password without uppercase
     let user_data = CreateUser {
