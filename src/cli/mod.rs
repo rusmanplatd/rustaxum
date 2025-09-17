@@ -23,6 +23,22 @@ pub enum Commands {
         #[arg(long)]
         fresh: bool,
     },
+    /// Rollback database migrations
+    #[command(name = "migrate:rollback")]
+    MigrateRollback {
+        /// Number of migration batches to rollback
+        #[arg(long, default_value = "1")]
+        step: i32,
+    },
+    /// Reset all migrations (rollback all)
+    #[command(name = "migrate:reset")]
+    MigrateReset,
+    /// Reset and re-run all migrations
+    #[command(name = "migrate:refresh")]
+    MigrateRefresh,
+    /// Show migration status
+    #[command(name = "migrate:status")]
+    MigrateStatus,
     /// Start the development server
     Serve {
         #[arg(short, long, default_value = "3000")]
@@ -69,6 +85,10 @@ pub async fn run_cli(cli: Cli) -> Result<()> {
     match cli.command {
         Commands::Make(make_cmd) => commands::make::handle_make_command(make_cmd).await,
         Commands::Migrate { fresh } => commands::migrate::handle_migrate_command(fresh).await,
+        Commands::MigrateRollback { step } => commands::migrate::handle_migrate_rollback_command(step).await,
+        Commands::MigrateReset => commands::migrate::handle_migrate_reset_command().await,
+        Commands::MigrateRefresh => commands::migrate::handle_migrate_refresh_command().await,
+        Commands::MigrateStatus => commands::migrate::handle_migrate_status_command().await,
         Commands::Serve { port, host } => commands::serve::handle_serve_command(host, port).await,
     }
 }

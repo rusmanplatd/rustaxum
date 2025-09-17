@@ -1,3 +1,5 @@
+pub mod migration_runner;
+
 use sqlx::{PgPool, postgres::PgPoolOptions};
 use anyhow::Result;
 use crate::config::Config;

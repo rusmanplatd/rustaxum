@@ -1,5 +1,5 @@
 use axum::{
-    http::{header::AUTHORIZATION, StatusCode},
+    http::{StatusCode},
     Router,
 };
 use axum_test::TestServer;
@@ -7,10 +7,8 @@ use serde_json::Value;
 use serial_test::serial;
 use sqlx::PgPool;
 
-use rustaxum::app::models::user::{CreateUser, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest, RefreshTokenRequest};
+use rustaxum::app::models::user::{CreateUser, LoginRequest, ForgotPasswordRequest, ChangePasswordRequest, RefreshTokenRequest};
 use rustaxum::routes::api;
-use rustaxum::database;
-use rustaxum::config::Config;
 
 async fn setup_test_server() -> TestServer {
     // For testing, we'll skip database setup and create a minimal router
