@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - APP_NAME=RustAxum
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=http://localhost:3000
+      - DATABASE_URL=postgresql://rustaxum:password@db:5432/rustaxum
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=rustaxum
+      - DB_USERNAME=rustaxum
+      - DB_PASSWORD=password
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - JWT_EXPIRES_IN=86400
+      - LOG_LEVEL=info
+      - PORT=3000
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - app_storage:/app/storage
+    networks:
+      - rustaxum_network
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=rustaxum
+      - POSTGRES_USER=rustaxum
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./src/database/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rustaxum -d rustaxum"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - rustaxum_network
+
+  # Optional: Redis for caching/sessions
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - rustaxum_network
+
+  # Optional: Adminer for database management
+  adminer:
+    image: adminer:4.8.1
+    ports:
+      - "8080:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=db
+      - ADMINER_DESIGN=nette
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - rustaxum_network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  app_storage:
+    driver: local
+
+networks:
+  rustaxum_network:
+    driver: bridge
