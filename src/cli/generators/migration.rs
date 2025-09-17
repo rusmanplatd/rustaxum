@@ -4,7 +4,7 @@ use std::path::Path;
 use chrono::Utc;
 
 pub async fn generate_migration(name: &str) -> Result<()> {
-    let timestamp = Utc::now().format("%Y%m%d%H%M%S").to_string();
+    let timestamp = Utc::now().format("%Y%m%d_%H%M%S").to_string();
     let migration_name = format!("{}_{}.sql", timestamp, name);
     let migrations_dir = "src/database/migrations";
     let file_path = format!("{}/{}", migrations_dir, migration_name);

@@ -8,6 +8,7 @@ pub mod database;
 pub mod mail;
 pub mod auth;
 pub mod logging;
+pub mod storage;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -16,6 +17,7 @@ pub struct Config {
     pub mail: mail::MailConfig,
     pub auth: auth::AuthConfig,
     pub logging: logging::LoggingConfig,
+    pub storage: storage::StorageConfig,
 }
 
 impl Config {
@@ -28,6 +30,7 @@ impl Config {
             mail: mail::MailConfig::from_env()?,
             auth: auth::AuthConfig::from_env()?,
             logging: logging::LoggingConfig::from_env()?,
+            storage: storage::StorageConfig::from_env()?,
         })
     }
 

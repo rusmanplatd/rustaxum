@@ -3,6 +3,7 @@ pub mod config;
 pub mod routes;
 pub mod database;
 pub mod cli;
+pub mod storage;
 
 use axum::Router;
 use tower::ServiceBuilder;
