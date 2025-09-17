@@ -3,6 +3,10 @@ name = "rustaxum"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "rustaxum"
+path = "src/lib.rs"
+
 [dependencies]
 axum = "0.8"
 tokio = { version = "1.0", features = ["full"] }
@@ -22,3 +26,9 @@ jsonwebtoken = "9.3.1"
 uuid = { version = "1.0", features = ["v4"] }
 sha2 = "0.10"
 lettre = { version = "0.11", features = ["tokio1-native-tls"] }
+
+[dev-dependencies]
+axum-test = "15.0"
+tokio-test = "0.4"
+mockall = "0.13"
+serial_test = "3.1"

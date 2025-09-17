@@ -1,10 +1,4 @@
-mod app;
-mod config;
-mod routes;
-
-use axum::Router;
-use tower::ServiceBuilder;
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use rustaxum::{create_app, config};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -29,17 +23,4 @@ async fn main() -> anyhow::Result<()> {
     axum::serve(listener, app).await?;
 
     Ok(())
-}
-
-async fn create_app() -> anyhow::Result<Router> {
-    let app = Router::new()
-        .merge(routes::api::routes())
-        .merge(routes::web::routes())
-        .layer(
-            ServiceBuilder::new()
-                .layer(TraceLayer::new_for_http())
-                .layer(CorsLayer::permissive()),
-        );
-
-    Ok(app)
 }
