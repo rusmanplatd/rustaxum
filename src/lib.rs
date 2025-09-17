@@ -5,6 +5,9 @@ pub mod database;
 pub mod cli;
 pub mod storage;
 
+// Re-export validation for convenient access
+pub use app::validation;
+
 use axum::Router;
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
