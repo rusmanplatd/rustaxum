@@ -2,6 +2,7 @@ pub mod app;
 pub mod config;
 pub mod routes;
 pub mod database;
+pub mod cli;
 
 use axum::Router;
 use tower::ServiceBuilder;

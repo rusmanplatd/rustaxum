@@ -35,6 +35,24 @@ docker-compose down
 docker-compose down -v
 ```
 
+### Artisan CLI (Laravel-like Commands)
+```bash
+# Generate components using the artisan CLI
+cargo run --bin artisan -- make controller PostController --resource
+cargo run --bin artisan -- make model Post --migration
+cargo run --bin artisan -- make service PostService
+cargo run --bin artisan -- make middleware AuthMiddleware
+cargo run --bin artisan -- make migration create_posts_table
+
+# Run database migrations
+cargo run --bin artisan -- migrate
+
+# Start development server
+cargo run --bin artisan -- serve --port 3000
+```
+
+See `ARTISAN.md` for comprehensive CLI documentation.
+
 ### Testing
 Currently no test framework is configured. When adding tests, follow Rust conventions with `cargo test`.
 
@@ -72,7 +90,14 @@ This is a Laravel-inspired Rust web framework built with Axum, following familia
 
 ### Development Patterns
 
-**Adding New Features**:
+**Adding New Features** (using Artisan CLI):
+1. `cargo run --bin artisan -- make model ModelName --migration`
+2. `cargo run --bin artisan -- make service ModelService`
+3. `cargo run --bin artisan -- make controller ModelController --resource`
+4. Add routes in appropriate route file
+5. `cargo run --bin artisan -- migrate`
+
+**Manual approach** (if not using Artisan):
 1. Create model in `src/app/models/`
 2. Create service for business logic in `src/app/services/`
 3. Create controller in `src/app/controllers/`
