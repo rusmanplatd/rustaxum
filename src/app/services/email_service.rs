@@ -9,20 +9,20 @@ pub struct EmailService;
 
 impl EmailService {
     async fn get_mailer() -> Result<AsyncSmtpTransport<lettre::Tokio1Executor>> {
-        let config = Config::from_env()?;
+        let config = Config::load()?;
 
-        let mut transport = AsyncSmtpTransport::<lettre::Tokio1Executor>::builder_dangerous(&config.smtp_host)
-            .port(config.smtp_port);
+        let mut transport = AsyncSmtpTransport::<lettre::Tokio1Executor>::builder_dangerous(&config.mail.host)
+            .port(config.mail.port);
 
         // Add authentication if credentials are provided
-        if !config.smtp_username.is_empty() {
-            let creds = Credentials::new(config.smtp_username, config.smtp_password);
+        if !config.mail.username.is_empty() {
+            let creds = Credentials::new(config.mail.username.clone(), config.mail.password.clone());
             transport = transport.credentials(creds);
         }
 
         // Configure TLS if enabled
-        if config.smtp_use_tls {
-            let tls_params = TlsParameters::new(config.smtp_host.clone())?;
+        if config.mail.use_tls() {
+            let tls_params = TlsParameters::new(config.mail.host.clone())?;
             transport = transport.tls(Tls::Required(tls_params));
         } else {
             transport = transport.tls(Tls::None);
@@ -32,9 +32,9 @@ impl EmailService {
     }
 
     pub async fn send_password_reset_email(to_email: &str, name: &str, reset_token: &str) -> Result<()> {
-        let config = Config::from_env()?;
+        let config = Config::load()?;
 
-        let reset_url = format!("{}/reset-password?token={}", config.app_url, reset_token);
+        let reset_url = format!("{}/reset-password?token={}", config.app.url, reset_token);
 
         let email_body = format!(
             r#"<!DOCTYPE html>
@@ -75,7 +75,7 @@ impl EmailService {
         );
 
         let email = Message::builder()
-            .from(format!("{} <{}>", config.smtp_from_name, config.smtp_from_email).parse()?)
+            .from(format!("{} <{}>", config.mail.from_name, config.mail.from_address).parse()?)
             .to(format!("{} <{}>", name, to_email).parse()?)
             .subject("Password Reset Request - RustAxum")
             .header(lettre::message::header::ContentType::TEXT_HTML)
@@ -96,7 +96,7 @@ impl EmailService {
     }
 
     pub async fn send_welcome_email(to_email: &str, name: &str) -> Result<()> {
-        let config = Config::from_env()?;
+        let config = Config::load()?;
 
         let email_body = format!(
             r#"<!DOCTYPE html>
@@ -137,7 +137,7 @@ impl EmailService {
         );
 
         let email = Message::builder()
-            .from(format!("{} <{}>", config.smtp_from_name, config.smtp_from_email).parse()?)
+            .from(format!("{} <{}>", config.mail.from_name, config.mail.from_address).parse()?)
             .to(format!("{} <{}>", name, to_email).parse()?)
             .subject("Welcome to RustAxum!")
             .header(lettre::message::header::ContentType::TEXT_HTML)
@@ -158,7 +158,7 @@ impl EmailService {
     }
 
     pub async fn send_password_changed_notification(to_email: &str, name: &str) -> Result<()> {
-        let config = Config::from_env()?;
+        let config = Config::load()?;
 
         let email_body = format!(
             r#"<!DOCTYPE html>
@@ -200,7 +200,7 @@ impl EmailService {
         );
 
         let email = Message::builder()
-            .from(format!("{} <{}>", config.smtp_from_name, config.smtp_from_email).parse()?)
+            .from(format!("{} <{}>", config.mail.from_name, config.mail.from_address).parse()?)
             .to(format!("{} <{}>", name, to_email).parse()?)
             .subject("Password Changed - RustAxum")
             .header(lettre::message::header::ContentType::TEXT_HTML)

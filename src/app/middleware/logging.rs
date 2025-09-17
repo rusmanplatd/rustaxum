@@ -1,5 +1,4 @@
 use tower_http::trace::TraceLayer;
-use tracing::Level;
 
 pub fn logging_layer() -> TraceLayer<
     tower_http::classify::SharedClassifier<tower_http::classify::ServerErrorsAsFailures>,

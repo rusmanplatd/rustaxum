@@ -2,7 +2,6 @@ use sqlx::{PgPool, Row};
 use anyhow::{Result, anyhow};
 use std::fs;
 use std::path::Path;
-use chrono::Utc;
 use crate::app::models::migration::Migration;
 
 pub struct MigrationRunner {

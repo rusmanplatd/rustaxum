@@ -6,8 +6,12 @@ use crate::config::Config;
 
 pub async fn create_pool(config: &Config) -> Result<PgPool> {
     let pool = PgPoolOptions::new()
-        .max_connections(10)
-        .connect(&config.database_url)
+        .max_connections(config.database.pool_max_connections)
+        .min_connections(config.database.pool_min_connections)
+        .acquire_timeout(std::time::Duration::from_secs(config.database.pool_acquire_timeout_seconds))
+        .idle_timeout(std::time::Duration::from_secs(config.database.pool_idle_timeout_seconds))
+        .max_lifetime(std::time::Duration::from_secs(config.database.pool_max_lifetime_seconds))
+        .connect(&config.database.url)
         .await?;
 
     Ok(pool)

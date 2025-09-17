@@ -44,7 +44,7 @@ pub async fn auth_middleware(
 
 async fn is_valid_token(pool: &PgPool, token: &str) -> bool {
     // Load config for JWT secret
-    let config = match Config::from_env() {
+    let config = match Config::load() {
         Ok(config) => config,
         Err(_) => return false,
     };
@@ -53,7 +53,7 @@ async fn is_valid_token(pool: &PgPool, token: &str) -> bool {
     let validation = Validation::new(Algorithm::HS256);
     let decoded = match decode::<Claims>(
         token,
-        &DecodingKey::from_secret(config.jwt_secret.as_ref()),
+        &DecodingKey::from_secret(config.auth.jwt_secret.as_ref()),
         &validation,
     ) {
         Ok(decoded) => decoded,

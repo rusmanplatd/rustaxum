@@ -11,7 +11,7 @@ use crate::app::models::user::{
     CreateUser, LoginRequest, ForgotPasswordRequest,
     ResetPasswordRequest, ChangePasswordRequest, RefreshTokenRequest
 };
-use crate::app::services::auth_service::{AuthService, AuthResponse, MessageResponse};
+use crate::app::services::auth_service::AuthService;
 use crate::app::utils::token_utils::TokenUtils;
 
 #[derive(Serialize)]

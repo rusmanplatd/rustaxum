@@ -7,10 +7,9 @@ pub mod cli;
 use axum::Router;
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
-use sqlx::PgPool;
 
 pub async fn create_app() -> anyhow::Result<Router> {
-    let config = config::Config::from_env()?;
+    let config = config::Config::load()?;
 
     // Create database pool
     let pool = database::create_pool(&config).await?;
