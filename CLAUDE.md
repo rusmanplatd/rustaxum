@@ -54,7 +54,15 @@ cargo run --bin artisan -- serve --port 3000
 See `ARTISAN.md` for comprehensive CLI documentation.
 
 ### Testing
-Currently no test framework is configured. When adding tests, follow Rust conventions with `cargo test`.
+```bash
+# Run tests
+cargo test
+
+# Run tests with coverage
+cargo test --verbose
+```
+
+Test dependencies are configured in Cargo.toml: `axum-test`, `tokio-test`, `mockall`, and `serial_test`.
 
 ## Architecture Overview
 
@@ -113,13 +121,17 @@ This is a Laravel-inspired Rust web framework built with Axum, following familia
 When running with Docker Compose:
 - Application: http://localhost:3000
 - Database Admin (Adminer): http://localhost:8080
+- Email Testing (Mailpit): http://localhost:8025
 - PostgreSQL: localhost:5432
 - Redis: localhost:6379
 
 ## Important Files
 
 - `src/main.rs`: Application entry point, server setup, middleware configuration
+- `src/lib.rs`: Library entry point with `create_app()` function
 - `src/config/mod.rs`: Environment configuration management
 - `src/routes/api.rs` and `src/routes/web.rs`: Route definitions
+- `src/cli/main.rs`: Artisan CLI entry point
 - `docker-compose.yaml`: Full development stack configuration
 - `.env.example`: Environment variable template
+- `ARTISAN.md`: Comprehensive CLI documentation
