@@ -42,7 +42,7 @@ impl S3Filesystem {
         let mut config_builder = Config::builder()
             .region(Region::new(region.clone()))
             .credentials_provider(credentials)
-            .behavior_version(BehaviorVersion::v2024_03_28());
+            .behavior_version(BehaviorVersion::v2025_08_07());
 
         // For MinIO or custom S3-compatible endpoints
         if let Some(endpoint_url) = endpoint {
@@ -135,24 +135,20 @@ impl S3Filesystem {
                 })?;
 
             // Process objects (files)
-            if let Some(contents) = response.contents() {
-                for object in contents {
-                    if let Some(key) = object.key() {
-                        if !key.ends_with('/') && key != prefix {
-                            files.push(self.strip_prefix(key));
-                        }
+            for object in response.contents() {
+                if let Some(key) = object.key() {
+                    if !key.ends_with('/') && key != prefix {
+                        files.push(self.strip_prefix(key));
                     }
                 }
             }
 
             // Process common prefixes (directories)
-            if let Some(common_prefixes) = response.common_prefixes() {
-                for prefix_obj in common_prefixes {
-                    if let Some(prefix_key) = prefix_obj.prefix() {
-                        let dir_name = self.strip_prefix(prefix_key.trim_end_matches('/'));
-                        if !dir_name.is_empty() {
-                            directories.push(dir_name);
-                        }
+            for prefix_obj in response.common_prefixes() {
+                if let Some(prefix_key) = prefix_obj.prefix() {
+                    let dir_name = self.strip_prefix(prefix_key.trim_end_matches('/'));
+                    if !dir_name.is_empty() {
+                        directories.push(dir_name);
                     }
                 }
             }

@@ -105,12 +105,12 @@ impl LocalFilesystem {
 
 #[async_trait]
 impl Filesystem for LocalFilesystem {
-    async fn exists<P: AsRef<Path> + Send>(&self, path: P) -> Result<bool> {
+    async fn exists(&self, path: &str) -> Result<bool> {
         let full_path = self.resolve_path(path);
         Ok(full_path.exists())
     }
 
-    async fn get<P: AsRef<Path> + Send>(&self, path: P) -> Result<Vec<u8>> {
+    async fn get(&self, path: &str) -> Result<Vec<u8>> {
         let full_path = self.resolve_path(path);
 
         if !full_path.exists() {
@@ -123,27 +123,27 @@ impl Filesystem for LocalFilesystem {
         Ok(contents)
     }
 
-    async fn put<P: AsRef<Path> + Send>(&self, path: P, contents: &[u8]) -> Result<()> {
+    async fn put(&self, path: &str, contents: &[u8]) -> Result<()> {
         let full_path = self.resolve_path(path);
         self.ensure_directory_exists(&full_path).await?;
         fs::write(&full_path, contents).await?;
         Ok(())
     }
 
-    async fn put_file_as<P: AsRef<Path> + Send, F: AsRef<Path> + Send>(
+    async fn put_file_as(
         &self,
-        path: P,
-        file: F,
+        path: &str,
+        file: &str,
         name: Option<String>
     ) -> Result<String> {
-        let source_path = file.as_ref();
+        let source_path = Path::new(file);
         let dest_name = name.unwrap_or_else(|| {
             source_path.file_name()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_else(|| "file".to_string())
         });
 
-        let dest_path = path.as_ref().join(&dest_name);
+        let dest_path = Path::new(path).join(&dest_name);
         let full_dest_path = self.resolve_path(&dest_path);
 
         self.ensure_directory_exists(&full_dest_path).await?;
@@ -152,7 +152,7 @@ impl Filesystem for LocalFilesystem {
         Ok(dest_path.to_string_lossy().to_string())
     }
 
-    async fn prepend<P: AsRef<Path> + Send>(&self, path: P, data: &[u8]) -> Result<()> {
+    async fn prepend(&self, path: &str, data: &[u8]) -> Result<()> {
         let full_path = self.resolve_path(path);
 
         let existing_content = if full_path.exists() {
@@ -169,7 +169,7 @@ impl Filesystem for LocalFilesystem {
         Ok(())
     }
 
-    async fn append<P: AsRef<Path> + Send>(&self, path: P, data: &[u8]) -> Result<()> {
+    async fn append(&self, path: &str, data: &[u8]) -> Result<()> {
         let full_path = self.resolve_path(path);
         self.ensure_directory_exists(&full_path).await?;
 
@@ -183,7 +183,7 @@ impl Filesystem for LocalFilesystem {
         Ok(())
     }
 
-    async fn delete<P: AsRef<Path> + Send>(&self, path: P) -> Result<()> {
+    async fn delete(&self, path: &str) -> Result<()> {
         let full_path = self.resolve_path(path);
 
         if !full_path.exists() {
@@ -196,7 +196,7 @@ impl Filesystem for LocalFilesystem {
         Ok(())
     }
 
-    async fn copy<P: AsRef<Path> + Send>(&self, from: P, to: P) -> Result<()> {
+    async fn copy(&self, from: &str, to: &str) -> Result<()> {
         let from_path = self.resolve_path(from);
         let to_path = self.resolve_path(to);
 
@@ -211,7 +211,7 @@ impl Filesystem for LocalFilesystem {
         Ok(())
     }
 
-    async fn move_file<P: AsRef<Path> + Send>(&self, from: P, to: P) -> Result<()> {
+    async fn move_file(&self, from: &str, to: &str) -> Result<()> {
         let from_path = self.resolve_path(from);
         let to_path = self.resolve_path(to);
 
@@ -226,7 +226,7 @@ impl Filesystem for LocalFilesystem {
         Ok(())
     }
 
-    async fn size<P: AsRef<Path> + Send>(&self, path: P) -> Result<u64> {
+    async fn size(&self, path: &str) -> Result<u64> {
         let full_path = self.resolve_path(path);
 
         if !full_path.exists() {
@@ -239,7 +239,7 @@ impl Filesystem for LocalFilesystem {
         Ok(metadata.len())
     }
 
-    async fn last_modified<P: AsRef<Path> + Send>(&self, path: P) -> Result<DateTime<Utc>> {
+    async fn last_modified(&self, path: &str) -> Result<DateTime<Utc>> {
         let full_path = self.resolve_path(path);
 
         if !full_path.exists() {
@@ -254,29 +254,29 @@ impl Filesystem for LocalFilesystem {
         Ok(datetime)
     }
 
-    async fn files<P: AsRef<Path> + Send>(&self, directory: P) -> Result<Vec<String>> {
+    async fn files(&self, directory: &str) -> Result<Vec<String>> {
         self.list_entries(directory, true, false).await
     }
 
-    async fn all_files<P: AsRef<Path> + Send>(&self, directory: P) -> Result<Vec<String>> {
+    async fn all_files(&self, directory: &str) -> Result<Vec<String>> {
         self.list_entries(directory, true, true).await
     }
 
-    async fn directories<P: AsRef<Path> + Send>(&self, directory: P) -> Result<Vec<String>> {
+    async fn directories(&self, directory: &str) -> Result<Vec<String>> {
         self.list_entries(directory, false, false).await
     }
 
-    async fn all_directories<P: AsRef<Path> + Send>(&self, directory: P) -> Result<Vec<String>> {
+    async fn all_directories(&self, directory: &str) -> Result<Vec<String>> {
         self.list_entries(directory, false, true).await
     }
 
-    async fn make_directory<P: AsRef<Path> + Send>(&self, path: P) -> Result<()> {
+    async fn make_directory(&self, path: &str) -> Result<()> {
         let full_path = self.resolve_path(path);
         fs::create_dir_all(&full_path).await?;
         Ok(())
     }
 
-    async fn delete_directory<P: AsRef<Path> + Send>(&self, directory: P) -> Result<()> {
+    async fn delete_directory(&self, directory: &str) -> Result<()> {
         let full_path = self.resolve_path(directory);
 
         if !full_path.exists() {
@@ -289,18 +289,17 @@ impl Filesystem for LocalFilesystem {
         Ok(())
     }
 
-    async fn url<P: AsRef<Path> + Send>(&self, path: P) -> Result<Option<String>> {
+    async fn url(&self, path: &str) -> Result<Option<String>> {
         if let Some(ref prefix) = self.url_prefix {
-            let path_str = path.as_ref().to_string_lossy();
-            Ok(Some(format!("{}/{}", prefix.trim_end_matches('/'), path_str.trim_start_matches('/'))))
+            Ok(Some(format!("{}/{}", prefix.trim_end_matches('/'), path.trim_start_matches('/'))))
         } else {
             Ok(None)
         }
     }
 
-    async fn temporary_url<P: AsRef<Path> + Send>(
+    async fn temporary_url(
         &self,
-        path: P,
+        path: &str,
         _expires_at: DateTime<Utc>
     ) -> Result<String> {
         // For local filesystem, temporary URLs are the same as regular URLs
@@ -312,8 +311,8 @@ impl Filesystem for LocalFilesystem {
         })
     }
 
-    async fn get_info<P: AsRef<Path> + Send>(&self, path: P) -> Result<FileInfo> {
-        let full_path = self.resolve_path(&path);
+    async fn get_info(&self, path: &str) -> Result<FileInfo> {
+        let full_path = self.resolve_path(path);
 
         if !full_path.exists() {
             return Err(FilesystemError::FileNotFound {
@@ -323,22 +322,21 @@ impl Filesystem for LocalFilesystem {
 
         let metadata = fs::metadata(&full_path).await?;
         let modified: DateTime<Utc> = metadata.modified()?.into();
-        let path_str = path.as_ref().to_string_lossy().to_string();
 
         if metadata.is_file() {
-            Ok(FileInfo::new(path_str, metadata.len(), modified))
+            Ok(FileInfo::new(path.to_string(), metadata.len(), modified))
         } else {
-            Ok(FileInfo::directory(path_str, modified))
+            Ok(FileInfo::directory(path.to_string(), modified))
         }
     }
 
-    async fn set_visibility<P: AsRef<Path> + Send>(&self, _path: P, _visibility: &str) -> Result<()> {
+    async fn set_visibility(&self, _path: &str, _visibility: &str) -> Result<()> {
         // Local filesystem doesn't support visibility in the same way as cloud storage
         // This could be extended to set file permissions
         Ok(())
     }
 
-    async fn get_visibility<P: AsRef<Path> + Send>(&self, _path: P) -> Result<String> {
+    async fn get_visibility(&self, _path: &str) -> Result<String> {
         Ok(self.visibility.clone())
     }
 

@@ -317,7 +317,7 @@ impl StorageManager {
 // Helper functions that create a new manager each time
 pub async fn disk(name: &str) -> Result<FilesystemDriver> {
     let mut manager = StorageManager::new().await?;
-    let disk = manager.disk(name).await?;
+    let _disk = manager.disk(name).await?;
 
     // We need to return an owned value, so we recreate the disk
     let disk_config = manager.config.get_disk(name).ok_or_else(|| {

@@ -129,7 +129,7 @@ fn update_requests_mod(file_name: &str, request_name: &str) -> Result<()> {
     let lines: Vec<&str> = existing_content.lines().collect();
     let mut new_lines = Vec::new();
     let mut found_mod_section = false;
-    let mut found_use_section = false;
+    let mut _found_use_section = false;
 
     // Add module declaration in the right place
     for line in &lines {
@@ -144,7 +144,7 @@ fn update_requests_mod(file_name: &str, request_name: &str) -> Result<()> {
         }
 
         if line.starts_with("pub use ") {
-            found_use_section = true;
+            _found_use_section = true;
         }
 
         new_lines.push(line);

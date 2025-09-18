@@ -197,7 +197,7 @@ impl CacheManager {
                     let url = store_config.get_url();
                     let prefix = store_config.prefix.clone();
 
-                    let mut cache = RedisCache::new(&url, prefix).await.map_err(|e| {
+                    let cache = RedisCache::new(&url, prefix).await.map_err(|e| {
                         CacheError::Config {
                             message: format!("Failed to create Redis cache: {}", e),
                         }

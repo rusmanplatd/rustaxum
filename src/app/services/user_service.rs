@@ -9,7 +9,7 @@ use crate::app::models::token_blacklist::TokenBlacklist;
 pub struct UserService;
 
 impl UserService {
-    pub async fn create_user(pool: &PgPool, data: CreateUser) -> Result<User> {
+    pub async fn create_user(_pool: &PgPool, data: CreateUser) -> Result<User> {
         let user = User::new(data.name, data.email, data.password);
         Ok(user)
     }

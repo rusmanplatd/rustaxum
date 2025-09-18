@@ -88,7 +88,7 @@ pub async fn change_password(
     // Decode token to get user ID
     let claims = match AuthService::decode_token(token, "jwt-secret") {
         Ok(claims) => claims,
-        Err(e) => {
+        Err(_e) => {
             let error = ErrorResponse {
                 error: "Invalid token".to_string(),
             };
@@ -141,7 +141,7 @@ pub async fn logout(State(pool): State<PgPool>, headers: HeaderMap) -> impl Into
     // Decode token to get user ID
     let claims = match AuthService::decode_token(token, "jwt-secret") {
         Ok(claims) => claims,
-        Err(e) => {
+        Err(_e) => {
             let error = ErrorResponse {
                 error: "Invalid token".to_string(),
             };
@@ -186,7 +186,7 @@ pub async fn revoke_token(State(pool): State<PgPool>, headers: HeaderMap) -> imp
     // Decode token to get user ID
     let claims = match AuthService::decode_token(token, "jwt-secret") {
         Ok(claims) => claims,
-        Err(e) => {
+        Err(_e) => {
             let error = ErrorResponse {
                 error: "Invalid token".to_string(),
             };
@@ -243,7 +243,7 @@ pub async fn revoke_all_tokens(State(pool): State<PgPool>, headers: HeaderMap) -
     // Decode token to get user ID
     let claims = match AuthService::decode_token(token, "jwt-secret") {
         Ok(claims) => claims,
-        Err(e) => {
+        Err(_e) => {
             let error = ErrorResponse {
                 error: "Invalid token".to_string(),
             };

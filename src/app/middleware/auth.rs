@@ -51,7 +51,7 @@ async fn is_valid_token(pool: &PgPool, token: &str) -> bool {
 
     // Decode JWT token
     let validation = Validation::new(Algorithm::HS256);
-    let decoded = match decode::<Claims>(
+    let _decoded = match decode::<Claims>(
         token,
         &DecodingKey::from_secret(config.auth.jwt_secret.as_ref()),
         &validation,
