@@ -184,6 +184,7 @@ println!("Is directory: {}", info.is_directory);
 Stores files on the local filesystem.
 
 **Configuration:**
+
 - `driver`: "local"
 - `root`: Base directory path
 - `visibility`: "private" or "public"
@@ -194,6 +195,7 @@ Stores files on the local filesystem.
 Works with Amazon S3, MinIO, Cloudflare R2, and other S3-compatible services.
 
 **S3 Configuration:**
+
 - `driver`: "s3"
 - `bucket`: S3 bucket name
 - `region`: AWS region
@@ -203,11 +205,13 @@ Works with Amazon S3, MinIO, Cloudflare R2, and other S3-compatible services.
 - `url`: Custom URL prefix (optional)
 
 **MinIO Configuration (included in docker-compose):**
+
 - Uses the same S3 driver with MinIO-specific endpoint
 - Automatically configured when using `docker-compose up`
 - Access via `minio` disk name
 
 **Cloudflare R2 Configuration:**
+
 - Uses the same S3 driver with R2-specific endpoint
 - Region should be set to "auto" for R2
 - Access via `r2` disk name
@@ -217,6 +221,7 @@ Works with Amazon S3, MinIO, Cloudflare R2, and other S3-compatible services.
 Stores files on Google Cloud Storage.
 
 **Configuration:**
+
 - `driver`: "gcs"
 - `bucket`: GCS bucket name
 - `key`: GCP project ID
@@ -228,6 +233,7 @@ Stores files on Google Cloud Storage.
 Stores files on Azure Blob Storage.
 
 **Configuration:**
+
 - `driver`: "azure"
 - `bucket`: Azure container name
 - `key`: Storage account name
@@ -383,11 +389,13 @@ let manager = StorageManager::from_config(config).await;
 ## Quick Start with Docker
 
 1. **Start the services:**
+
    ```bash
    docker-compose up -d
    ```
 
 2. **Configure your environment:**
+
    ```bash
    # Use MinIO (included in docker-compose)
    FILESYSTEM_DISK=minio
@@ -397,11 +405,13 @@ let manager = StorageManager::from_config(config).await;
    ```
 
 3. **Access MinIO Console:**
+
    - Visit `http://localhost:9001`
    - Login with `rustaxum_access` / `rustaxum_secret_key_change_in_production`
    - View your `rustaxum-storage` bucket
 
 4. **Use in your application:**
+
    ```rust
    use rustaxum::storage;
 

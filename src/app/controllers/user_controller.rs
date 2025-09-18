@@ -1,40 +1,54 @@
 use axum::{
-    extract::Path,
+    extract::{Path, State, Query},
     http::StatusCode,
     response::{IntoResponse, Json},
 };
-use serde::Serialize;
+use sqlx::PgPool;
+use crate::query_builder::{QueryBuilder, QueryParams};
+use crate::app::models::user::User;
 
-#[derive(Serialize)]
-pub struct User {
-    id: String,
-    name: String,
-    email: String,
+pub async fn index(
+    State(pool): State<PgPool>,
+    Query(params): Query<QueryParams>,
+) -> impl IntoResponse {
+    let request = params.parse();
+    let query_builder = QueryBuilder::<User>::new(pool, request);
+
+    match query_builder.paginate().await {
+        Ok(result) => {
+            (StatusCode::OK, Json(serde_json::json!(result))).into_response()
+        },
+        Err(_) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+                "error": "Failed to fetch users"
+            }))).into_response()
+        }
+    }
 }
 
-pub async fn index() -> impl IntoResponse {
-    let users = vec![
-        User {
-            id: "01ARZ3NDEKTSV4RRFFQ69G5FAV".to_string(),
-            name: "John Doe".to_string(),
-            email: "john@example.com".to_string(),
+pub async fn show(
+    State(pool): State<PgPool>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let query = "SELECT * FROM users WHERE id = $1";
+
+    match sqlx::query_as::<_, User>(query)
+        .bind(&id)
+        .fetch_optional(&pool)
+        .await
+    {
+        Ok(Some(user)) => {
+            (StatusCode::OK, Json(serde_json::json!(user.to_response()))).into_response()
         },
-        User {
-            id: "01ARZ3NDEKTSV4RRFFQ69G5FB0".to_string(),
-            name: "Jane Smith".to_string(),
-            email: "jane@example.com".to_string(),
+        Ok(None) => {
+            (StatusCode::NOT_FOUND, Json(serde_json::json!({
+                "error": "User not found"
+            }))).into_response()
         },
-    ];
-
-    (StatusCode::OK, Json(users))
-}
-
-pub async fn show(Path(id): Path<String>) -> impl IntoResponse {
-    let user = User {
-        id,
-        name: "John Doe".to_string(),
-        email: "john@example.com".to_string(),
-    };
-
-    (StatusCode::OK, Json(user))
+        Err(_) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+                "error": "Failed to fetch user"
+            }))).into_response()
+        }
+    }
 }

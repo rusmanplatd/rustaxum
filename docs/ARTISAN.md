@@ -39,6 +39,7 @@ cargo run --bin artisan -- make controller PostController --resource
 ```
 
 **Resource controllers** include the following methods:
+
 - `index()` - List all resources
 - `store()` - Create a new resource
 - `show(id)` - Show a specific resource
@@ -56,6 +57,7 @@ cargo run --bin artisan -- make model Post --migration
 ```
 
 Generated models include:
+
 - Main struct with ULID primary key
 - Create/Update request structs
 - Response struct for API responses
@@ -70,6 +72,7 @@ cargo run --bin artisan -- make service UserService
 ```
 
 Services include basic CRUD operations:
+
 - `create()`
 - `find_by_id()`
 - `update()`
@@ -97,6 +100,7 @@ cargo run --bin artisan -- make migration drop_old_table
 ```
 
 The generator intelligently creates different migration templates based on the name:
+
 - `create_*_table` - Creates a new table with common columns
 - `add_*_to_*` - Adds columns to existing table
 - `drop_*_table` - Drops a table
@@ -136,26 +140,31 @@ cargo run --bin artisan -- serve --host 0.0.0.0 --port 8080
 ### Creating a Blog Post Feature
 
 1. **Generate the model with migration:**
+
    ```bash
    cargo run --bin artisan -- make model Post --migration
    ```
 
 2. **Generate the service:**
+
    ```bash
    cargo run --bin artisan -- make service PostService
    ```
 
 3. **Generate the resource controller:**
+
    ```bash
    cargo run --bin artisan -- make controller PostController --resource
    ```
 
 4. **Run the migration:**
+
    ```bash
    cargo run --bin artisan -- migrate
    ```
 
 5. **Start the development server:**
+
    ```bash
    cargo run --bin artisan -- serve
    ```
@@ -164,7 +173,7 @@ cargo run --bin artisan -- serve --host 0.0.0.0 --port 8080
 
 After running the above commands, you'll have:
 
-```
+```txt
 src/
 ├── app/
 │   ├── controllers/

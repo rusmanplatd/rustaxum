@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Row, postgres::PgRow};
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
+use crate::query_builder::{Queryable, SortDirection};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
@@ -160,5 +161,54 @@ impl FromRow<'_, PgRow> for User {
             created_at: row.try_get("created_at")?,
             updated_at: row.try_get("updated_at")?,
         })
+    }
+}
+
+impl Queryable for User {
+    fn table_name() -> &'static str {
+        "users"
+    }
+
+    fn allowed_filters() -> Vec<&'static str> {
+        vec![
+            "id",
+            "name",
+            "email",
+            "email_verified_at",
+            "last_login_at",
+            "failed_login_attempts",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn allowed_sorts() -> Vec<&'static str> {
+        vec![
+            "id",
+            "name",
+            "email",
+            "email_verified_at",
+            "last_login_at",
+            "failed_login_attempts",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn allowed_fields() -> Vec<&'static str> {
+        vec![
+            "id",
+            "name",
+            "email",
+            "email_verified_at",
+            "last_login_at",
+            "failed_login_attempts",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn default_sort() -> Option<(&'static str, SortDirection)> {
+        Some(("created_at", SortDirection::Desc))
     }
 }

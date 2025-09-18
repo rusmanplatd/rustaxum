@@ -6,7 +6,7 @@ This API provides a complete authentication system with user registration, login
 
 ## Base URL
 
-```
+```txt
 http://localhost:3000/api
 ```
 
@@ -14,7 +14,7 @@ http://localhost:3000/api
 
 Most endpoints require a valid JWT token in the Authorization header:
 
-```
+```txt
 Authorization: Bearer <your-jwt-token>
 ```
 
@@ -27,6 +27,7 @@ Authorization: Bearer <your-jwt-token>
 Register a new user account.
 
 **Request Body:**
+
 ```json
 {
   "name": "John Doe",
@@ -36,6 +37,7 @@ Register a new user account.
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -61,6 +63,7 @@ Register a new user account.
 Authenticate a user and receive a JWT token.
 
 **Request Body:**
+
 ```json
 {
   "email": "john@example.com",
@@ -69,6 +72,7 @@ Authenticate a user and receive a JWT token.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -94,6 +98,7 @@ Authenticate a user and receive a JWT token.
 Request a password reset token to be sent via email.
 
 **Request Body:**
+
 ```json
 {
   "email": "john@example.com"
@@ -101,6 +106,7 @@ Request a password reset token to be sent via email.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "message": "If an account with that email exists, we have sent a password reset link."
@@ -114,6 +120,7 @@ Request a password reset token to be sent via email.
 Reset password using the token received via email.
 
 **Request Body:**
+
 ```json
 {
   "token": "reset-token-from-email",
@@ -123,6 +130,7 @@ Reset password using the token received via email.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "message": "Password has been reset successfully."
@@ -141,6 +149,7 @@ Authorization: Bearer <your-jwt-token>
 ```
 
 **Request Body:**
+
 ```json
 {
   "current_password": "OldPassword123!",
@@ -150,6 +159,7 @@ Authorization: Bearer <your-jwt-token>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "message": "Password changed successfully."
@@ -163,11 +173,13 @@ Authorization: Bearer <your-jwt-token>
 Logout and revoke the current JWT token.
 
 **Headers:**
+
 ```
 Authorization: Bearer <your-jwt-token>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "message": "Token revoked successfully."
@@ -181,6 +193,7 @@ Authorization: Bearer <your-jwt-token>
 Refresh an expired access token using a valid refresh token.
 
 **Request Body:**
+
 ```json
 {
   "refresh_token": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
@@ -188,6 +201,7 @@ Refresh an expired access token using a valid refresh token.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -213,11 +227,13 @@ Refresh an expired access token using a valid refresh token.
 Manually revoke the current JWT token.
 
 **Headers:**
+
 ```
 Authorization: Bearer <your-jwt-token>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "message": "Token revoked successfully."
@@ -231,11 +247,13 @@ Authorization: Bearer <your-jwt-token>
 Revoke all tokens for the authenticated user (clears refresh token).
 
 **Headers:**
-```
+
+```txt
 Authorization: Bearer <your-jwt-token>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "message": "All tokens revoked successfully."
@@ -249,11 +267,13 @@ Authorization: Bearer <your-jwt-token>
 Get a list of all users (requires authentication).
 
 **Headers:**
-```
+
+```txt
 Authorization: Bearer <your-jwt-token>
 ```
 
 **Response (200 OK):**
+
 ```json
 [
   {
@@ -276,11 +296,13 @@ Authorization: Bearer <your-jwt-token>
 Get a specific user by their ID (requires authentication).
 
 **Headers:**
+
 ```
 Authorization: Bearer <your-jwt-token>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
@@ -294,6 +316,7 @@ Authorization: Bearer <your-jwt-token>
 All endpoints may return error responses in the following format:
 
 **400 Bad Request / 401 Unauthorized / 404 Not Found:**
+
 ```json
 {
   "error": "Error message describing what went wrong"
@@ -326,6 +349,7 @@ Accounts are temporarily locked after 5 failed login attempts for 30 minutes.
 ## Email Notifications
 
 The system sends HTML email notifications for:
+
 - **Password reset requests** - with secure reset links
 - **Welcome messages** - for new user registrations
 - **Password change confirmations** - security notifications
@@ -333,11 +357,13 @@ The system sends HTML email notifications for:
 ### Email Configuration
 
 **Development (Mailpit):**
+
 - SMTP Server: `mailpit:1025` (in Docker)
 - Web UI: http://localhost:8025
 - No authentication required
 
 **Production:**
+
 - Configure SMTP settings in environment variables
 - Supports TLS/SSL authentication
 - Customizable sender name and email
@@ -345,6 +371,7 @@ The system sends HTML email notifications for:
 ### Accessing Emails (Development)
 
 When running with Docker Compose, all emails are captured by Mailpit:
+
 1. Start the application: `docker-compose up -d`
 2. Access Mailpit web interface: http://localhost:8025
 3. View all sent emails in the web UI
