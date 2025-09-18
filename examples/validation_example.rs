@@ -17,10 +17,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let result = validate!(user_data, {
-        "name" => "required|string|min:2|max:50",
-        "email" => "required|email",
-        "age" => "required|integer|min:18|max:120",
-        "website" => "nullable|url"
+        "name" => ["required", "string", "min:2", "max:50"],
+        "email" => ["required", "email"],
+        "age" => ["required", "integer", "min:18", "max:120"],
+        "website" => ["nullable", "url"]
     });
 
     match result {
@@ -42,9 +42,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let result = validate!(invalid_data, {
-        "username" => "required|string|min:3|max:30",
-        "email" => "required|email",
-        "password" => "required|string|min:8"
+        "username" => ["required", "string", "min:3", "max:30"],
+        "email" => ["required", "email"],
+        "password" => ["required", "string", "min:8"]
     }, {
         "username.min" => "Username must be at least 3 characters long",
         "email.email" => "Please provide a valid email address",
@@ -73,11 +73,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let result = ValidatorBuilder::from_json(registration_data)
-        .rules_from_string("name", "required|string|min:2|max:100")
-        .rules_from_string("email", "required|email|max:255")
-        .rules_from_string("password", "required|string|min:8|confirmed")
-        .rules_from_string("terms", "required|boolean")
-        .rules_from_string("age", "required|integer|min:18|max:120")
+        .rules_from_array("name", vec!["required", "string", "min:2", "max:100"])
+        .rules_from_array("email", vec!["required", "email", "max:255"])
+        .rules_from_array("password", vec!["required", "string", "min:8", "confirmed"])
+        .rules_from_array("terms", vec!["required", "boolean"])
+        .rules_from_array("age", vec!["required", "integer", "min:18", "max:120"])
         .message("terms.required", "You must accept the terms and conditions")
         .validate();
 
@@ -170,15 +170,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let result = validate!(flat_data, {
-        "user_name" => "required|string|min:2|max:100",
-        "user_email" => "required|email",
-        "product_name" => "required|string|min:3|max:200",
-        "product_price" => "required|numeric|min:0|max:9999.99",
-        "product_category" => "required|string|in:electronics,clothing,books,home",
-        "product_tags" => "required|array|min:1|max:10",
-        "created_at" => "required|date",
-        "notifications" => "required|boolean",
-        "theme" => "required|string|in:light,dark,auto"
+        "user_name" => ["required", "string", "min:2", "max:100"],
+        "user_email" => ["required", "email"],
+        "product_name" => ["required", "string", "min:3", "max:200"],
+        "product_price" => ["required", "numeric", "min:0", "max:9999.99"],
+        "product_category" => ["required", "string", "in:electronics,clothing,books,home"],
+        "product_tags" => ["required", "array", "min:1", "max:10"],
+        "created_at" => ["required", "date"],
+        "notifications" => ["required", "boolean"],
+        "theme" => ["required", "string", "in:light,dark,auto"]
     });
 
     match result {
@@ -234,19 +234,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let result = validate!(advanced_data, {
-        "email" => "required|email|not_regex:^admin|root",
-        "verification_code" => "required|digits:4",
-        "ip_address" => "required|ipv4",
-        "mac_address" => "required|mac_address",
-        "terms_accepted" => "required|accepted",
-        "tags" => "required|array|array_min:1|array_max:10|distinct",
-        "user_id" => "required|uuid",
-        "timezone" => "required|timezone",
-        "profile_image" => "required|image|dimensions",
-        "quantity" => "required|integer|multiple_of:5",
-        "website" => "required|url|starts_with:https://",
-        "bio" => "required|string|min:10|max:500|filled",
-        "admin_field" => "prohibited"
+        "email" => ["required", "email", "not_regex:^admin|root"],
+        "verification_code" => ["required", "digits:4"],
+        "ip_address" => ["required", "ipv4"],
+        "mac_address" => ["required", "mac_address"],
+        "terms_accepted" => ["required", "accepted"],
+        "tags" => ["required", "array", "array_min:1", "array_max:10", "distinct"],
+        "user_id" => ["required", "uuid"],
+        "timezone" => ["required", "timezone"],
+        "profile_image" => ["required", "image", "dimensions"],
+        "quantity" => ["required", "integer", "multiple_of:5"],
+        "website" => ["required", "url", "starts_with:https://"],
+        "bio" => ["required", "string", "min:10", "max:500", "filled"],
+        "admin_field" => ["prohibited"]
     });
 
     match result {
@@ -271,11 +271,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let result = validate!(conditional_data, {
-        "company_name" => "required_if:account_type,business",
-        "tax_id" => "required_if:account_type,business|digits_between:9,12",
-        "personal_name" => "required_if:account_type,personal",
-        "contact_email" => "required|email",
-        "backup_email" => "required_with:contact_email"
+        "company_name" => ["required_if:account_type,business"],
+        "tax_id" => ["required_if:account_type,business", "digits_between:9,12"],
+        "personal_name" => ["required_if:account_type,personal"],
+        "contact_email" => ["required", "email"],
+        "backup_email" => ["required_with:contact_email"]
     });
 
     match result {
@@ -316,9 +316,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let result = validate!(flat_file_data, {
-        "avatar" => "required|image|mimes:jpg,png,gif|dimensions",
-        "document" => "required|file|mimes:pdf,doc,docx",
-        "attachments" => "required|array|array_min:1|array_max:5"
+        "avatar" => ["required", "image", "mimes:jpg,png,gif", "dimensions"],
+        "document" => ["required", "file", "mimes:pdf,doc,docx"],
+        "attachments" => ["required", "array", "array_min:1", "array_max:5"]
     });
 
     match result {
@@ -342,10 +342,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let result = ValidatorBuilder::from_json(international_data)
-        .rules_from_string("phone", "required|string")
-        .rules_from_string("locale", "required|string|regex:^[a-z]{2}_[A-Z]{2}$")
-        .rules_from_string("currency", "required|string|size:3|alpha")
-        .rules_from_string("country_code", "required|string|size:2|alpha")
+        .rules_from_array("phone", vec!["required", "string"])
+        .rules_from_array("locale", vec!["required", "string", "regex:^[a-z]{2}_[A-Z]{2}$"])
+        .rules_from_array("currency", vec!["required", "string", "size:3", "alpha"])
+        .rules_from_array("country_code", vec!["required", "string", "size:2", "alpha"])
         .message("locale.regex", "Locale must be in format: language_COUNTRY (e.g., en_US)")
         .validate();
 
@@ -363,7 +363,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🎉 Laravel-like validation system successfully demonstrated!");
     println!("\n📊 **Validation Rules Summary:**");
     println!("✅ 50+ validation rules implemented");
-    println!("✅ Laravel-compatible syntax with pipe separation");
+    println!("✅ Laravel-inspired syntax with array format");
     println!("✅ Custom error messages support");
     println!("✅ Conditional validation rules");
     println!("✅ File and MIME type validation");

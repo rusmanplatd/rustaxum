@@ -73,6 +73,12 @@ impl ValidatorBuilder {
         self
     }
 
+    pub fn rules_from_array<T: AsRef<str>>(mut self, field: impl Into<String>, rules_array: Vec<T>) -> Self {
+        let rules = crate::app::utils::validation_macros::parse_rules(rules_array);
+        self.rules.insert(field.into(), rules);
+        self
+    }
+
     pub fn message(mut self, key: impl Into<String>, message: impl Into<String>) -> Self {
         self.custom_messages.insert(key.into(), message.into());
         self
@@ -101,66 +107,66 @@ impl CommonValidators {
     /// Validate user registration data
     pub fn user_registration(data: Value) -> Result<(), ValidationErrors> {
         validate!(data, {
-            "name" => "required|string|min:2|max:255",
-            "email" => "required|email|max:255",
-            "password" => "required|string|min:8|max:128|confirmed"
+            "name" => ["required", "string", "min:2", "max:255"],
+            "email" => ["required", "email", "max:255"],
+            "password" => ["required", "string", "min:8", "max:128", "confirmed"]
         })
     }
 
     /// Validate user login data
     pub fn user_login(data: Value) -> Result<(), ValidationErrors> {
         validate!(data, {
-            "email" => "required|email",
-            "password" => "required|string"
+            "email" => ["required", "email"],
+            "password" => ["required", "string"]
         })
     }
 
     /// Validate user profile update data
     pub fn user_profile_update(data: Value) -> Result<(), ValidationErrors> {
         validate!(data, {
-            "name" => "string|min:2|max:255",
-            "email" => "email|max:255",
-            "bio" => "string|max:1000",
-            "website" => "url",
-            "age" => "integer|min:13|max:120"
+            "name" => ["string", "min:2", "max:255"],
+            "email" => ["email", "max:255"],
+            "bio" => ["string", "max:1000"],
+            "website" => ["url"],
+            "age" => ["integer", "min:13", "max:120"]
         })
     }
 
     /// Validate password change data
     pub fn password_change(data: Value) -> Result<(), ValidationErrors> {
         validate!(data, {
-            "current_password" => "required|string",
-            "password" => "required|string|min:8|max:128|confirmed"
+            "current_password" => ["required", "string"],
+            "password" => ["required", "string", "min:8", "max:128", "confirmed"]
         })
     }
 
     /// Validate API pagination parameters
     pub fn pagination(data: Value) -> Result<(), ValidationErrors> {
         validate!(data, {
-            "page" => "integer|min:1",
-            "per_page" => "integer|min:1|max:100",
-            "sort" => "string|in:asc,desc",
-            "order_by" => "string|alpha_dash"
+            "page" => ["integer", "min:1"],
+            "per_page" => ["integer", "min:1", "max:100"],
+            "sort" => ["string", "in:asc,desc"],
+            "order_by" => ["string", "alpha_dash"]
         })
     }
 
     /// Validate contact form data
     pub fn contact_form(data: Value) -> Result<(), ValidationErrors> {
         validate!(data, {
-            "name" => "required|string|min:2|max:255",
-            "email" => "required|email|max:255",
-            "subject" => "required|string|min:5|max:255",
-            "message" => "required|string|min:10|max:5000"
+            "name" => ["required", "string", "min:2", "max:255"],
+            "email" => ["required", "email", "max:255"],
+            "subject" => ["required", "string", "min:5", "max:255"],
+            "message" => ["required", "string", "min:10", "max:5000"]
         })
     }
 
     /// Validate file upload metadata
     pub fn file_upload(data: Value) -> Result<(), ValidationErrors> {
         validate!(data, {
-            "filename" => "required|string|max:255",
-            "mime_type" => "required|string|max:127",
-            "size" => "required|integer|min:1|max:52428800", // 50MB max
-            "description" => "string|max:1000"
+            "filename" => ["required", "string", "max:255"],
+            "mime_type" => ["required", "string", "max:127"],
+            "size" => ["required", "integer", "min:1", "max:52428800"], // 50MB max
+            "description" => ["string", "max:1000"]
         })
     }
 }
@@ -463,27 +469,27 @@ impl Validatable for UserValidation {
     fn validate(&self) -> Result<(), ValidationErrors> {
         let data = serde_json::to_value(self).unwrap();
         validate!(data, {
-            "name" => "string|min:2|max:255",
-            "email" => "email|max:255",
-            "age" => "integer|min:13|max:120"
+            "name" => ["string", "min:2", "max:255"],
+            "email" => ["email", "max:255"],
+            "age" => ["integer", "min:13", "max:120"]
         })
     }
 
     fn validate_for_creation(&self) -> Result<(), ValidationErrors> {
         let data = serde_json::to_value(self).unwrap();
         validate!(data, {
-            "name" => "required|string|min:2|max:255",
-            "email" => "required|email|max:255",
-            "password" => "required|string|min:8|confirmed"
+            "name" => ["required", "string", "min:2", "max:255"],
+            "email" => ["required", "email", "max:255"],
+            "password" => ["required", "string", "min:8", "confirmed"]
         })
     }
 
     fn validate_for_update(&self) -> Result<(), ValidationErrors> {
         let data = serde_json::to_value(self).unwrap();
         validate!(data, {
-            "name" => "string|min:2|max:255",
-            "email" => "email|max:255",
-            "password" => "string|min:8|confirmed"
+            "name" => ["string", "min:2", "max:255"],
+            "email" => ["email", "max:255"],
+            "password" => ["string", "min:8", "confirmed"]
         })
     }
 }
@@ -501,8 +507,8 @@ mod tests {
         });
 
         let result = ValidatorBuilder::from_json(data)
-            .rules_from_string("name", "required|string|min:2")
-            .rules_from_string("email", "required|email")
+            .rules_from_array("name", vec!["required", "string", "min:2"])
+            .rules_from_array("email", vec!["required", "email"])
             .message("name.required", "Name is required")
             .validate();
 

@@ -7,7 +7,7 @@ use crate::app::utils::validator::{Rule, Validator};
 use std::collections::HashMap;
 use serde_json::Value;
 
-/// Macro for creating validation rules in a Laravel-like syntax
+/// Macro for creating validation rules in array format
 ///
 /// # Examples
 ///
@@ -15,21 +15,21 @@ use serde_json::Value;
 /// use crate::validation_rules;
 ///
 /// let rules = validation_rules! {
-///     "name" => "required|string|min:2|max:50",
-///     "email" => "required|email",
-///     "age" => "required|integer|min:18|max:120",
-///     "password" => "required|string|min:8|confirmed",
-///     "tags" => "array",
-///     "website" => "nullable|url"
+///     "name" => ["required", "string", "min:2", "max:50"],
+///     "email" => ["required", "email"],
+///     "age" => ["required", "integer", "min:18", "max:120"],
+///     "password" => ["required", "string", "min:8", "confirmed"],
+///     "tags" => ["array"],
+///     "website" => ["nullable", "url"]
 /// };
 /// ```
 #[macro_export]
 macro_rules! validation_rules {
-    ($($field:expr => $rules:expr),* $(,)?) => {
+    ($($field:expr => [$($rule:expr),* $(,)?]),* $(,)?) => {
         {
             let mut rules_map: std::collections::HashMap<String, Vec<$crate::app::utils::validator::Rule>> = std::collections::HashMap::new();
             $(
-                rules_map.insert($field.to_string(), $crate::app::utils::validation_macros::parse_rule_string($rules));
+                rules_map.insert($field.to_string(), $crate::app::utils::validation_macros::parse_rules(vec![$($rule),*]));
             )*
             rules_map
         }
@@ -62,7 +62,7 @@ macro_rules! validation_messages {
     };
 }
 
-/// Macro for quick validator creation and validation
+/// Macro for quick validator creation and validation using array format
 ///
 /// # Examples
 ///
@@ -77,15 +77,15 @@ macro_rules! validation_messages {
 /// });
 ///
 /// let result = validate!(data, {
-///     "name" => "required|string|min:2",
-///     "email" => "required|email",
-///     "age" => "required|integer|min:18"
+///     "name" => ["required", "string", "min:2"],
+///     "email" => ["required", "email"],
+///     "age" => ["required", "integer", "min:18"]
 /// });
 ///
 /// // With custom messages
 /// let result = validate!(data, {
-///     "name" => "required|string|min:2",
-///     "email" => "required|email"
+///     "name" => ["required", "string", "min:2"],
+///     "email" => ["required", "email"]
 /// }, {
 ///     "name.required" => "Name is required",
 ///     "email.email" => "Valid email required"
@@ -93,19 +93,19 @@ macro_rules! validation_messages {
 /// ```
 #[macro_export]
 macro_rules! validate {
-    ($data:expr, { $($field:expr => $rules:expr),* $(,)? }) => {
+    ($data:expr, { $($field:expr => [$($rule:expr),* $(,)?]),* $(,)? }) => {
         {
             let data_map = $crate::app::utils::validation_macros::json_to_hashmap($data);
-            let rules = validation_rules! { $($field => $rules),* };
+            let rules = validation_rules! { $($field => [$($rule),*]),* };
             let validator = $crate::app::utils::validator::Validator::make(data_map, rules);
             validator.validate()
         }
     };
 
-    ($data:expr, { $($field:expr => $rules:expr),* $(,)? }, { $($msg_key:expr => $msg_value:expr),* $(,)? }) => {
+    ($data:expr, { $($field:expr => [$($rule:expr),* $(,)?]),* $(,)? }, { $($msg_key:expr => $msg_value:expr),* $(,)? }) => {
         {
             let data_map = $crate::app::utils::validation_macros::json_to_hashmap($data);
-            let rules = validation_rules! { $($field => $rules),* };
+            let rules = validation_rules! { $($field => [$($rule),*]),* };
             let messages = validation_messages! { $($msg_key => $msg_value),* };
             let mut validator = $crate::app::utils::validator::Validator::make(data_map, rules);
             validator.messages(messages);
@@ -141,13 +141,41 @@ macro_rules! validator {
     };
 }
 
-/// Parse a rule string into a vector of Rule structs
+/// Parse validation rules from an array format
+///
+/// # Examples
+///
+/// ```rust
+/// let rules = parse_rules(vec!["required", "string", "min:2", "max:50"]);
+/// ```
+pub fn parse_rules<T: AsRef<str>>(rules: Vec<T>) -> Vec<Rule> {
+    rules
+        .into_iter()
+        .map(|rule| {
+            let rule_str = rule.as_ref();
+            if rule_str.contains(':') {
+                let parts: Vec<&str> = rule_str.splitn(2, ':').collect();
+                let rule_name = parts[0];
+                let params: Vec<String> = parts[1]
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .collect();
+                Rule::with_params(rule_name, params)
+            } else {
+                Rule::new(rule_str.trim())
+            }
+        })
+        .collect()
+}
+
+/// Parse a rule string into a vector of Rule structs (deprecated - use parse_rules with array instead)
 ///
 /// # Examples
 ///
 /// ```rust
 /// let rules = parse_rule_string("required|string|min:2|max:50");
 /// ```
+#[deprecated(note = "Use parse_rules with array format instead")]
 pub fn parse_rule_string(rule_str: &str) -> Vec<Rule> {
     rule_str
         .split('|')
@@ -178,12 +206,19 @@ pub fn json_to_hashmap(value: Value) -> HashMap<String, Value> {
 /// Extension trait for Validator to add fluent API methods
 pub trait ValidatorExt {
     fn rules(&mut self, field: &str, rules: &str) -> &mut Self;
+    fn rules_array<T: AsRef<str>>(&mut self, field: &str, rules: Vec<T>) -> &mut Self;
     fn message(&mut self, key: &str, message: &str) -> &mut Self;
 }
 
 impl ValidatorExt for Validator {
     fn rules(&mut self, field: &str, rules: &str) -> &mut Self {
         let parsed_rules = parse_rule_string(rules);
+        self.rules(field, parsed_rules);
+        self
+    }
+
+    fn rules_array<T: AsRef<str>>(&mut self, field: &str, rules: Vec<T>) -> &mut Self {
+        let parsed_rules = parse_rules(rules);
         self.rules(field, parsed_rules);
         self
     }
@@ -200,6 +235,28 @@ impl ValidatorExt for Validator {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn test_parse_rules() {
+        let rules = parse_rules(vec!["required", "string", "min:2", "max:50"]);
+        assert_eq!(rules.len(), 4);
+        assert_eq!(rules[0].name, "required");
+        assert_eq!(rules[1].name, "string");
+        assert_eq!(rules[2].name, "min");
+        assert_eq!(rules[2].parameters, vec!["2"]);
+        assert_eq!(rules[3].name, "max");
+        assert_eq!(rules[3].parameters, vec!["50"]);
+    }
+
+    #[test]
+    fn test_parse_rules_with_multiple_params() {
+        let rules = parse_rules(vec!["between:1,10", "in:active,inactive,pending"]);
+        assert_eq!(rules.len(), 2);
+        assert_eq!(rules[0].name, "between");
+        assert_eq!(rules[0].parameters, vec!["1", "10"]);
+        assert_eq!(rules[1].name, "in");
+        assert_eq!(rules[1].parameters, vec!["active", "inactive", "pending"]);
+    }
 
     #[test]
     fn test_parse_rule_string() {
@@ -241,9 +298,9 @@ mod tests {
     #[test]
     fn test_validation_rules_macro() {
         let rules = validation_rules! {
-            "name" => "required|string|min:2",
-            "email" => "required|email",
-            "age" => "integer|min:18"
+            "name" => ["required", "string", "min:2"],
+            "email" => ["required", "email"],
+            "age" => ["integer", "min:18"]
         };
 
         assert_eq!(rules.len(), 3);
@@ -279,9 +336,9 @@ mod tests {
         });
 
         let result = validate!(data, {
-            "name" => "required|string|min:2",
-            "email" => "required|email",
-            "age" => "required|integer|min:18"
+            "name" => ["required", "string", "min:2"],
+            "email" => ["required", "email"],
+            "age" => ["required", "integer", "min:18"]
         });
 
         assert!(result.is_ok());
@@ -295,8 +352,8 @@ mod tests {
         });
 
         let result = validate!(data, {
-            "name" => "required|string|min:2",
-            "email" => "required|email"
+            "name" => ["required", "string", "min:2"],
+            "email" => ["required", "email"]
         }, {
             "name.required" => "Custom name required message",
             "email.email" => "Custom email format message"
@@ -313,8 +370,8 @@ mod tests {
         });
 
         let mut validator = validator!(data);
-        let parsed_rules1 = parse_rule_string("required|string|min:2");
-        let parsed_rules2 = parse_rule_string("required|email");
+        let parsed_rules1 = parse_rules(vec!["required", "string", "min:2"]);
+        let parsed_rules2 = parse_rules(vec!["required", "email"]);
         validator
             .rules("name", parsed_rules1)
             .rules("email", parsed_rules2);

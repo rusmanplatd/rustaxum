@@ -37,10 +37,10 @@ pub use crate::app::utils::validation_helpers::{
 
 // Re-export validation macros module for advanced usage
 pub use crate::app::utils::validation_macros::{
-    parse_rule_string, json_to_hashmap, ValidatorExt,
+    parse_rule_string, parse_rules, json_to_hashmap, ValidatorExt,
 };
 
-/// Quick validation function for common use cases
+/// Quick validation function for common use cases using array format
 ///
 /// # Examples
 ///
@@ -54,13 +54,46 @@ pub use crate::app::utils::validation_macros::{
 /// });
 ///
 /// let rules = vec![
-///     ("name", "required|string|min:2"),
-///     ("email", "required|email"),
+///     ("name", vec!["required", "string", "min:2"]),
+///     ("email", vec!["required", "email"]),
 /// ];
 ///
 /// let result = quick_validate(data, rules);
 /// ```
-pub fn quick_validate(
+pub fn quick_validate<T: AsRef<str>>(
+    data: serde_json::Value,
+    rules: Vec<(&str, Vec<T>)>,
+) -> Result<(), ValidationErrors> {
+    let mut validator = validator!(data);
+    for (field, rule_array) in rules {
+        let parsed_rules = parse_rules(rule_array);
+        validator.rules(field, parsed_rules);
+    }
+    validator.validate()
+}
+
+/// Quick validation function for common use cases using string format (deprecated)
+///
+/// # Examples
+///
+/// ```rust
+/// use rustaxum::validation::quick_validate_string;
+/// use serde_json::json;
+///
+/// let data = json!({
+///     "name": "John Doe",
+///     "email": "john@example.com"
+/// });
+///
+/// let rules = vec![
+///     ("name", "required|string|min:2"),
+///     ("email", "required|email"),
+/// ];
+///
+/// let result = quick_validate_string(data, rules);
+/// ```
+#[deprecated(note = "Use quick_validate with array format instead")]
+pub fn quick_validate_string(
     data: serde_json::Value,
     rules: Vec<(&str, &str)>,
 ) -> Result<(), ValidationErrors> {
@@ -124,8 +157,8 @@ mod tests {
         });
 
         let rules = vec![
-            ("name", "required|string|min:2"),
-            ("email", "required|email"),
+            ("name", vec!["required", "string", "min:2"]),
+            ("email", vec!["required", "email"]),
         ];
 
         let result = quick_validate(data, rules);
