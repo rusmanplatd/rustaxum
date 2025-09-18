@@ -5,6 +5,7 @@ pub mod database;
 pub mod cli;
 pub mod storage;
 pub mod query_builder;
+pub mod cache;
 
 // Re-export validation for convenient access
 pub use app::validation;

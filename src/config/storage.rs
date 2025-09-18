@@ -99,7 +99,7 @@ impl StorageConfig {
                 url: env::var("R2_URL").ok(),
                 endpoint: env::var("R2_ENDPOINT").ok(),
                 bucket: env::var("R2_BUCKET").ok(),
-                region: env::var("R2_REGION").or_else(|_| Ok("auto".to_string())).ok(),
+                region: env::var("R2_REGION").or_else(|_| Ok::<String, std::env::VarError>("auto".to_string())).ok(),
                 key: env::var("R2_ACCESS_KEY").ok(),
                 secret: env::var("R2_SECRET_KEY").ok(),
             });
