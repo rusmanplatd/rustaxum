@@ -7,11 +7,11 @@ use aws_sdk_s3::operation::get_object::GetObjectError;
 use aws_sdk_s3::operation::head_object::HeadObjectError;
 use aws_sdk_s3::primitives::ByteStream;
 use chrono::{DateTime, Utc};
-use std::time::{SystemTime, UNIX_EPOCH};
-use tokio_util::io::ReaderStream;
+use std::time::SystemTime;
 
 use crate::storage::filesystem::{FileInfo, Filesystem, FilesystemError};
 
+#[derive(Debug)]
 pub struct S3Filesystem {
     client: Client,
     bucket: String,

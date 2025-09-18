@@ -7,6 +7,7 @@ use tokio::io::AsyncWriteExt;
 
 use crate::storage::filesystem::{FileInfo, Filesystem, FilesystemError};
 
+#[derive(Debug)]
 pub struct LocalFilesystem {
     root: PathBuf,
     url_prefix: Option<String>,

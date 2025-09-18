@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

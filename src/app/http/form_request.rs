@@ -129,17 +129,17 @@ where
 #[macro_export]
 macro_rules! impl_form_request_extractor {
     ($name:ty) => {
-        #[async_trait::async_trait]
         impl<S> axum::extract::FromRequest<S> for $name
         where
             S: Send + Sync,
         {
             type Rejection = $crate::app::http::form_request::ValidationErrorResponse;
 
-            async fn from_request(
+            fn from_request(
                 req: axum::extract::Request,
                 state: &S,
-            ) -> Result<Self, Self::Rejection> {
+            ) -> impl std::future::Future<Output = Result<Self, Self::Rejection>> + Send {
+                async move {
                 let axum::Json(mut payload): axum::Json<$name> = axum::Json::from_request(req, state)
                     .await
                     .map_err(|_| $crate::app::http::form_request::ValidationErrorResponse {
@@ -171,6 +171,7 @@ macro_rules! impl_form_request_extractor {
                 }
 
                 Ok(payload)
+                }
             }
         }
     };
