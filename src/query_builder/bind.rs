@@ -79,28 +79,33 @@ impl ParameterBinder {
             .collect()
     }
 
-    pub fn bind_all<'q>(&self, query: sqlx::query::Query<'q, Postgres, sqlx::postgres::PgArguments>) -> sqlx::query::Query<'q, Postgres, sqlx::postgres::PgArguments> {
-        let mut args = sqlx::postgres::PgArguments::default();
-
+    pub fn bind_all<'q>(&'q self, mut query: sqlx::query::Query<'q, Postgres, sqlx::postgres::PgArguments>) -> sqlx::query::Query<'q, Postgres, sqlx::postgres::PgArguments> {
         for param in &self.parameters {
-            param.bind_to_arguments(&mut args);
+            match param {
+                SqlValue::String(s) => { query = query.bind(s); },
+                SqlValue::Integer(i) => { query = query.bind(i); },
+                SqlValue::Float(f) => { query = query.bind(f); },
+                SqlValue::Boolean(b) => { query = query.bind(b); },
+                SqlValue::Null => { query = query.bind(None::<String>); },
+            }
         }
-
-        // Replace the arguments in the query
-        query.bind_all_parameters(args)
+        query
     }
 
-    pub fn bind_all_as<'q, T>(&self, query: sqlx::query::QueryAs<'q, Postgres, T, sqlx::postgres::PgArguments>) -> sqlx::query::QueryAs<'q, Postgres, T, sqlx::postgres::PgArguments>
+    pub fn bind_all_as<'q, T>(&'q self, mut query: sqlx::query::QueryAs<'q, Postgres, T, sqlx::postgres::PgArguments>) -> sqlx::query::QueryAs<'q, Postgres, T, sqlx::postgres::PgArguments>
     where
         T: for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> + Send + Unpin,
     {
-        let mut args = sqlx::postgres::PgArguments::default();
-
         for param in &self.parameters {
-            param.bind_to_arguments(&mut args);
+            match param {
+                SqlValue::String(s) => { query = query.bind(s); },
+                SqlValue::Integer(i) => { query = query.bind(i); },
+                SqlValue::Float(f) => { query = query.bind(f); },
+                SqlValue::Boolean(b) => { query = query.bind(b); },
+                SqlValue::Null => { query = query.bind(None::<String>); },
+            }
         }
-
-        query.bind_all_parameters(args)
+        query
     }
 
     pub fn parameter_count(&self) -> usize {
@@ -129,9 +134,8 @@ pub trait QueryBinderExt<'q> {
 
 impl<'q> QueryBinderExt<'q> for sqlx::query::Query<'q, Postgres, sqlx::postgres::PgArguments> {
     fn bind_all_parameters(self, _args: sqlx::postgres::PgArguments) -> Self {
-        // Unfortunately, we need to work with the existing API
-        // TODO: This is a placeholder that would need sqlx internal access
-        // For now, we'll fall back to the existing bind pattern
+        // SQLx doesn't provide direct access to replace arguments in a query
+        // This trait is kept for compatibility but the SmartBind trait should be used instead
         self
     }
 }
@@ -141,9 +145,8 @@ where
     T: for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> + Send + Unpin,
 {
     fn bind_all_parameters(self, _args: sqlx::postgres::PgArguments) -> Self {
-        // Unfortunately, we need to work with the existing API
-        // TODO: This is a placeholder that would need sqlx internal access
-        // For now, we'll fall back to the existing bind pattern
+        // SQLx doesn't provide direct access to replace arguments in a query
+        // This trait is kept for compatibility but the SmartBind trait should be used instead
         self
     }
 }
