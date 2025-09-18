@@ -31,7 +31,7 @@ impl LoggingConfig {
             path: Some(env::var("LOG_PATH").unwrap_or_else(|_| "storage/logs/app.log".to_string())),
             max_files: None,
             max_file_size: Some(env::var("LOG_MAX_FILE_SIZE").unwrap_or_else(|_| "10MB".to_string())),
-            format: Some(env::var("LOG_FORMAT").unwrap_or_else(|_| "default".to_string())),
+            format: Some(env::var("LOG_FORMAT").unwrap_or_else(|_| "json".to_string())),
             date_format: Some(env::var("LOG_DATE_FORMAT").unwrap_or_else(|_| "%Y-%m-%d %H:%M:%S".to_string())),
         });
 
@@ -45,7 +45,7 @@ impl LoggingConfig {
                 .parse()
                 .unwrap_or(7)),
             max_file_size: Some(env::var("LOG_MAX_FILE_SIZE").unwrap_or_else(|_| "10MB".to_string())),
-            format: Some(env::var("LOG_FORMAT").unwrap_or_else(|_| "default".to_string())),
+            format: Some(env::var("LOG_FORMAT").unwrap_or_else(|_| "json".to_string())),
             date_format: Some(env::var("LOG_DATE_FORMAT").unwrap_or_else(|_| "%Y-%m-%d %H:%M:%S".to_string())),
         });
 
@@ -56,7 +56,7 @@ impl LoggingConfig {
             path: None,
             max_files: None,
             max_file_size: None,
-            format: Some(env::var("LOG_FORMAT").unwrap_or_else(|_| "default".to_string())),
+            format: Some(env::var("LOG_FORMAT").unwrap_or_else(|_| "json".to_string())),
             date_format: Some(env::var("LOG_DATE_FORMAT").unwrap_or_else(|_| "%Y-%m-%d %H:%M:%S".to_string())),
         });
 
@@ -67,7 +67,7 @@ impl LoggingConfig {
             path: None,
             max_files: None,
             max_file_size: None,
-            format: Some(env::var("LOG_FORMAT").unwrap_or_else(|_| "default".to_string())),
+            format: Some(env::var("LOG_FORMAT").unwrap_or_else(|_| "json".to_string())),
             date_format: Some(env::var("LOG_DATE_FORMAT").unwrap_or_else(|_| "%Y-%m-%d %H:%M:%S".to_string())),
         });
 

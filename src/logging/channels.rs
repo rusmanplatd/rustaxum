@@ -126,7 +126,7 @@ impl ChannelManager {
             },
             "stack" => {
                 // For stack channel, we'll create stderr + daily by default
-                let stderr_channel = Box::new(StderrChannel {
+                let stderr_channel: Box<dyn Channel + Send + Sync> = Box::new(StderrChannel {
                     writer: Box::new(StderrWriter::new()),
                     formatter: Box::new(DefaultFormatter::new(
                         config.date_format.as_deref().unwrap_or("%Y-%m-%d %H:%M:%S")
@@ -134,7 +134,7 @@ impl ChannelManager {
                     level: config.level.clone(),
                 });
 
-                let daily_channel = Box::new(DailyChannel {
+                let daily_channel: Box<dyn Channel + Send + Sync> = Box::new(DailyChannel {
                     writer: Box::new(DailyFileWriter::new(
                         "storage/logs/app",
                         7

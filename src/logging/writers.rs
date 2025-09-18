@@ -167,3 +167,15 @@ impl Writer for StderrWriter {
         Ok(())
     }
 }
+
+// Safe because FileWriter only contains a PathBuf which is Send + Sync
+unsafe impl Send for FileWriter {}
+unsafe impl Sync for FileWriter {}
+
+// Safe because DailyFileWriter contains only Send + Sync types
+unsafe impl Send for DailyFileWriter {}
+unsafe impl Sync for DailyFileWriter {}
+
+// Safe because StderrWriter has no fields
+unsafe impl Send for StderrWriter {}
+unsafe impl Sync for StderrWriter {}

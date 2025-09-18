@@ -1,11 +1,11 @@
-use std::sync::OnceLock;
+use std::sync::{OnceLock, Mutex};
 use std::collections::HashMap;
 use anyhow::Result;
 use serde_json::Value;
 use crate::config::logging::LoggingConfig;
 use crate::logging::channels::{Channel, ChannelManager};
 
-static LOG_MANAGER: OnceLock<LogManager> = OnceLock::new();
+static LOG_MANAGER: OnceLock<Mutex<LogManager>> = OnceLock::new();
 
 pub struct LogManager {
     config: LoggingConfig,
@@ -42,6 +42,20 @@ impl LogManager {
         let default_name = self.config.default.clone();
         self.channel(&default_name)
     }
+
+    pub fn log(&mut self, level: &str, message: &str, context: Option<HashMap<String, Value>>) -> Result<()> {
+        if let Ok(channel) = self.default_channel() {
+            channel.log(level, message, context)?;
+        }
+        Ok(())
+    }
+
+    pub fn log_to_channel(&mut self, channel_name: &str, level: &str, message: &str, context: Option<HashMap<String, Value>>) -> Result<()> {
+        if let Ok(channel) = self.channel(channel_name) {
+            channel.log(level, message, context)?;
+        }
+        Ok(())
+    }
 }
 
 pub struct Log;
@@ -49,7 +63,7 @@ pub struct Log;
 impl Log {
     pub fn init(config: LoggingConfig) -> Result<()> {
         let manager = LogManager::new(config)?;
-        LOG_MANAGER.set(manager).map_err(|_| anyhow::anyhow!("Log manager already initialized"))?;
+        LOG_MANAGER.set(Mutex::new(manager)).map_err(|_| anyhow::anyhow!("Log manager already initialized"))?;
         Ok(())
     }
 
@@ -122,7 +136,21 @@ impl Log {
     }
 
     fn log(level: &str, message: &str, context: Option<HashMap<String, Value>>) {
-        // For now, fallback to tracing until we can access the manager mutably
+        if let Some(manager_mutex) = LOG_MANAGER.get() {
+            if let Ok(mut manager) = manager_mutex.lock() {
+                if let Err(_) = manager.log(level, message, context.clone()) {
+                    // Fallback to tracing if our logging fails
+                    Self::fallback_log(level, message, context);
+                }
+                return;
+            }
+        }
+
+        // Fallback to tracing if manager not available
+        Self::fallback_log(level, message, context);
+    }
+
+    fn fallback_log(level: &str, message: &str, context: Option<HashMap<String, Value>>) {
         match level {
             "emergency" | "alert" | "critical" | "error" => tracing::error!("{}", message),
             "warning" => tracing::warn!("{}", message),
@@ -211,7 +239,21 @@ impl ChannelLogger {
     }
 
     fn log(&self, level: &str, message: &str, context: Option<HashMap<String, Value>>) {
-        // For now, fallback to tracing with channel info
+        if let Some(manager_mutex) = LOG_MANAGER.get() {
+            if let Ok(mut manager) = manager_mutex.lock() {
+                if let Err(_) = manager.log_to_channel(&self.channel_name, level, message, context.clone()) {
+                    // Fallback to tracing if our logging fails
+                    self.fallback_log(level, message, context);
+                }
+                return;
+            }
+        }
+
+        // Fallback to tracing if manager not available
+        self.fallback_log(level, message, context);
+    }
+
+    fn fallback_log(&self, level: &str, message: &str, context: Option<HashMap<String, Value>>) {
         let channel_message = format!("[{}] {}", self.channel_name, message);
         match level {
             "emergency" | "alert" | "critical" | "error" => tracing::error!("{}", channel_message),

@@ -69,3 +69,11 @@ impl Formatter for JsonFormatter {
         Ok(format!("{}\n", json_str))
     }
 }
+
+// Safe because DefaultFormatter only contains a String which is Send + Sync
+unsafe impl Send for DefaultFormatter {}
+unsafe impl Sync for DefaultFormatter {}
+
+// Safe because JsonFormatter only contains a String which is Send + Sync
+unsafe impl Send for JsonFormatter {}
+unsafe impl Sync for JsonFormatter {}
