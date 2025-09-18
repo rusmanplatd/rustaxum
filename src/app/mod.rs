@@ -1,4 +1,5 @@
 pub mod controllers;
+pub mod http;
 pub mod middleware;
 pub mod models;
 pub mod services;

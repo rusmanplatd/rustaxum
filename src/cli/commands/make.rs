@@ -18,5 +18,8 @@ pub async fn handle_make_command(command: MakeCommands) -> Result<()> {
         MakeCommands::Migration { name } => {
             generators::migration::generate_migration(&name).await
         },
+        MakeCommands::Request { name } => {
+            generators::request::generate_request(&name).await
+        },
     }
 }

@@ -79,6 +79,11 @@ pub enum MakeCommands {
         /// Name of the migration (e.g., create_users_table)
         name: String,
     },
+    /// Generate a new form request
+    Request {
+        /// Name of the request (e.g., CreateUserRequest)
+        name: String,
+    },
 }
 
 pub async fn run_cli(cli: Cli) -> Result<()> {
