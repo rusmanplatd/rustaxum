@@ -254,11 +254,11 @@ impl MigrationRunner {
     }
 
     fn load_migration_files(&self) -> Result<Vec<MigrationFile>> {
-        let mut migrations = Vec::new();
+        let mut migrations = std::collections::HashMap::new();
         let path = Path::new(&self.migrations_path);
 
         if !path.exists() {
-            return Ok(migrations);
+            return Ok(Vec::new());
         }
 
         for entry in fs::read_dir(path)? {
@@ -268,26 +268,43 @@ impl MigrationRunner {
             if let Some(extension) = file_path.extension() {
                 if extension == "sql" {
                     if let Some(filename) = file_path.file_name() {
-                        let filename = filename.to_string_lossy().to_string();
-                        let name = filename.trim_end_matches(".sql").to_string();
+                        let filename_str = filename.to_string_lossy().to_string();
 
-                        let content = fs::read_to_string(&file_path)?;
-                        let (up_sql, down_sql) = self.parse_migration_content(&content);
+                        if filename_str.ends_with(".up.sql") {
+                            let name = filename_str.trim_end_matches(".up.sql").to_string();
+                            let content = fs::read_to_string(&file_path)?;
 
-                        migrations.push(MigrationFile {
-                            filename,
-                            name,
-                            up_sql,
-                            down_sql,
-                        });
+                            let migration = migrations.entry(name.clone()).or_insert_with(|| MigrationFile {
+                                filename: format!("{}.up.sql", name),
+                                name: name.clone(),
+                                up_sql: String::new(),
+                                down_sql: None,
+                            });
+                            migration.up_sql = content.trim().to_string();
+                        } else if filename_str.ends_with(".down.sql") {
+                            let name = filename_str.trim_end_matches(".down.sql").to_string();
+                            let content = fs::read_to_string(&file_path)?;
+
+                            let migration = migrations.entry(name.clone()).or_insert_with(|| MigrationFile {
+                                filename: format!("{}.up.sql", name),
+                                name: name.clone(),
+                                up_sql: String::new(),
+                                down_sql: None,
+                            });
+                            migration.down_sql = Some(content.trim().to_string());
+                        }
                     }
                 }
             }
         }
 
-        // Sort migrations by filename to ensure proper order
-        migrations.sort_by(|a, b| a.filename.cmp(&b.filename));
-        Ok(migrations)
+        let mut migration_list: Vec<MigrationFile> = migrations.into_values()
+            .filter(|m| !m.up_sql.is_empty()) // Only include migrations that have up SQL
+            .collect();
+
+        // Sort migrations by name to ensure proper order
+        migration_list.sort_by(|a, b| a.name.cmp(&b.name));
+        Ok(migration_list)
     }
 
     fn load_migration_file(&self, migration_name: &str) -> Result<Option<MigrationFile>> {
@@ -295,24 +312,6 @@ impl MigrationRunner {
         Ok(migrations.into_iter().find(|m| m.name == migration_name))
     }
 
-    fn parse_migration_content(&self, content: &str) -> (String, Option<String>) {
-        // Look for -- DOWN or -- down marker to separate up and down migrations
-        let down_markers = ["-- DOWN", "-- down", "-- Down"];
-
-        for marker in &down_markers {
-            if let Some(pos) = content.find(marker) {
-                let up_sql = content[..pos].trim().to_string();
-                let down_sql = content[pos + marker.len()..].trim().to_string();
-
-                if !down_sql.is_empty() {
-                    return (up_sql, Some(down_sql));
-                }
-            }
-        }
-
-        // No down migration found, return just up migration
-        (content.trim().to_string(), None)
-    }
 
     async fn execute_sql_statements(&self, sql: &str, migration_name: &str) -> Result<()> {
         // Split SQL by semicolons and execute each statement separately
