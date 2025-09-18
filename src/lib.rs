@@ -22,7 +22,7 @@ pub async fn create_app() -> anyhow::Result<Router> {
     let pool = database::create_pool(&config).await?;
 
     // Run migrations
-    database::run_migrations(&pool).await?;
+    // database::run_migrations(&pool).await?; // Temporarily disabled - already applied
 
     let app = Router::new()
         .merge(routes::api::routes())
