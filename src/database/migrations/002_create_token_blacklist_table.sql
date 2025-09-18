@@ -1,19 +1,18 @@
--- Create token blacklist table for JWT revocation
-CREATE TABLE IF NOT EXISTS token_blacklist (
+-- Create token_blacklist table
+CREATE TABLE token_blacklist (
     id TEXT PRIMARY KEY,
-    token_hash VARCHAR(255) NOT NULL UNIQUE,
+    token_hash VARCHAR NOT NULL UNIQUE,
     user_id TEXT NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    revoked_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    reason VARCHAR(100),
+    expires_at TIMESTAMPTZ NOT NULL,
+    revoked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reason VARCHAR,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Create index on token_hash for faster lookups
-CREATE INDEX IF NOT EXISTS idx_token_blacklist_hash ON token_blacklist(token_hash);
-
--- Create index on user_id for faster lookups
-CREATE INDEX IF NOT EXISTS idx_token_blacklist_user_id ON token_blacklist(user_id);
-
--- Create index on expires_at for cleanup
-CREATE INDEX IF NOT EXISTS idx_token_blacklist_expires_at ON token_blacklist(expires_at);
+-- Add indexes
+CREATE INDEX idx_token_blacklist_token_hash ON token_blacklist (token_hash);
+CREATE INDEX idx_token_blacklist_user_id ON token_blacklist (user_id);
+CREATE INDEX idx_token_blacklist_expires_at ON token_blacklist (expires_at);
+CREATE INDEX idx_token_blacklist_created_at ON token_blacklist (created_at);
