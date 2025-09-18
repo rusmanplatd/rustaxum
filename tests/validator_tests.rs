@@ -4,6 +4,9 @@ use rustaxum::app::utils::validation_helpers::*;
 use std::collections::HashMap;
 use serde_json::{json, Value};
 
+// Import helper function from validation_macros
+use rustaxum::app::utils::validation_macros::json_to_hashmap;
+
 #[cfg(test)]
 mod validator_core_tests {
     use super::*;
@@ -1002,5 +1005,173 @@ mod integration_tests {
         assert_eq!(messages.len(), 2);
         assert!(messages.contains_key("name"));
         assert!(messages.contains_key("email"));
+    }
+}
+
+#[cfg(test)]
+mod nested_validation_tests {
+    use super::*;
+
+    #[test]
+    fn test_nested_object_validation() {
+        let data = json!({
+            "user": {
+                "name": "John Doe",
+                "email": "john@example.com",
+                "profile": {
+                    "bio": "Software developer",
+                    "age": 25
+                }
+            }
+        });
+
+        let data_map = json_to_hashmap(data);
+        let mut validator = Validator::new(data_map);
+        validator
+            .rules("user.name", vec![required(), string(), min(2)])
+            .rules("user.email", vec![required(), email()])
+            .rules("user.profile.bio", vec![nullable(), string(), max(1000)])
+            .rules("user.profile.age", vec![required(), integer(), min(18)]);
+
+        let result = validator.validate();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_nested_array_validation() {
+        let data = json!({
+            "items": [
+                {"name": "Item 1", "price": 10.99, "active": true},
+                {"name": "Item 2", "price": 25.50, "active": false}
+            ]
+        });
+
+        let data_map = json_to_hashmap(data);
+        let mut validator = Validator::new(data_map);
+        validator
+            .rules("items", vec![required(), array()])
+            .rules("items.*", vec![required()])
+            .rules("items.*.name", vec![required(), string(), min(1)])
+            .rules("items.*.price", vec![required(), numeric(), min(0)])
+            .rules("items.*.active", vec![required(), boolean()]);
+
+        let result = validator.validate();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_mixed_nested_validation() {
+        let data = json!({
+            "user": {
+                "name": "John Doe",
+                "addresses": [
+                    {
+                        "type": "home",
+                        "street": "123 Main St",
+                        "city": "Anytown",
+                        "zip": "12345"
+                    },
+                    {
+                        "type": "work",
+                        "street": "456 Office Blvd",
+                        "city": "Business City",
+                        "zip": "67890"
+                    }
+                ]
+            },
+            "tags": ["important", "user"]
+        });
+
+        let data_map = json_to_hashmap(data);
+        let mut validator = Validator::new(data_map);
+        validator
+            .rules("user.name", vec![required(), string(), min(2)])
+            .rules("user.addresses", vec![required(), array(), min(1)])
+            .rules("user.addresses.*", vec![required()])
+            .rules("user.addresses.*.type", vec![required(), string(), in_list(vec!["home", "work", "other"])])
+            .rules("user.addresses.*.street", vec![required(), string()])
+            .rules("user.addresses.*.city", vec![required(), string()])
+            .rules("user.addresses.*.zip", vec![required(), string(), size(5)])
+            .rules("tags", vec![array()])
+            .rules("tags.*", vec![string(), max(50)]);
+
+        let result = validator.validate();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_nested_validation_with_errors() {
+        let data = json!({
+            "user": {
+                "name": "",
+                "email": "invalid-email",
+                "profile": {
+                    "age": 15  // Too young
+                }
+            },
+            "items": [
+                {"name": "", "price": -5.0},  // Invalid name and negative price
+                {"name": "Valid Item"}        // Missing price
+            ]
+        });
+
+        let data_map = json_to_hashmap(data);
+        let mut validator = Validator::new(data_map);
+        validator
+            .rules("user.name", vec![required(), string(), min(2)])
+            .rules("user.email", vec![required(), email()])
+            .rules("user.profile.age", vec![required(), integer(), min(18)])
+            .rules("items.*", vec![required()])
+            .rules("items.*.name", vec![required(), string(), min(1)])
+            .rules("items.*.price", vec![required(), numeric(), min(0)]);
+
+        let result = validator.validate();
+        assert!(result.is_err());
+
+        if let Err(errors) = result {
+            assert!(errors.has_errors());
+            // Should have multiple validation errors for different nested fields
+            let messages = errors.get_messages();
+            assert!(messages.len() > 0);
+        }
+    }
+
+    #[test]
+    fn test_deeply_nested_validation() {
+        let data = json!({
+            "company": {
+                "departments": [
+                    {
+                        "name": "Engineering",
+                        "employees": [
+                            {
+                                "name": "John Doe",
+                                "position": "Senior Developer",
+                                "skills": ["rust", "python", "javascript"]
+                            },
+                            {
+                                "name": "Jane Smith",
+                                "position": "Tech Lead",
+                                "skills": ["management", "architecture"]
+                            }
+                        ]
+                    }
+                ]
+            }
+        });
+
+        let data_map = json_to_hashmap(data);
+        let mut validator = Validator::new(data_map);
+        validator
+            .rules("company.departments", vec![required(), array(), min(1)])
+            .rules("company.departments.*.name", vec![required(), string()])
+            .rules("company.departments.*.employees", vec![required(), array()])
+            .rules("company.departments.*.employees.*.name", vec![required(), string(), min(2)])
+            .rules("company.departments.*.employees.*.position", vec![required(), string()])
+            .rules("company.departments.*.employees.*.skills", vec![required(), array()])
+            .rules("company.departments.*.employees.*.skills.*", vec![string(), max(50)]);
+
+        let result = validator.validate();
+        assert!(result.is_ok());
     }
 }

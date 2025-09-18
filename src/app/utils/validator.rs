@@ -123,11 +123,15 @@ impl Validator {
         let mut errors = ValidationErrors::new();
 
         for (field, rules) in &self.rules {
-            let value = self.data.get(field);
-
-            for rule in rules {
-                if let Err(error) = self.validate_rule(field, value, rule) {
-                    errors.add(error);
+            // Handle nested field validation
+            if field.contains('.') || field.contains('*') {
+                self.validate_nested_field(field, rules, &mut errors);
+            } else {
+                let value = self.data.get(field);
+                for rule in rules {
+                    if let Err(error) = self.validate_rule(field, value, rule) {
+                        errors.add(error);
+                    }
                 }
             }
         }
@@ -237,6 +241,167 @@ impl Validator {
     fn error_message(&self, field: &str, rule: &str, default: &str) -> String {
         self.get_custom_message(field, rule)
             .unwrap_or_else(|| default.replace(":attribute", field))
+    }
+
+    fn validate_nested_field(&self, field_pattern: &str, rules: &[Rule], errors: &mut ValidationErrors) {
+        if field_pattern.contains('*') {
+            self.validate_array_pattern(field_pattern, rules, errors);
+        } else {
+            self.validate_dot_notation_field(field_pattern, rules, errors);
+        }
+    }
+
+    fn validate_dot_notation_field(&self, field_path: &str, rules: &[Rule], errors: &mut ValidationErrors) {
+        let value = self.get_nested_value(field_path);
+        for rule in rules {
+            if let Err(error) = self.validate_rule(field_path, value.as_ref(), rule) {
+                errors.add(error);
+            }
+        }
+    }
+
+    fn validate_array_pattern(&self, pattern: &str, rules: &[Rule], errors: &mut ValidationErrors) {
+        // For wildcard patterns, we need to validate against the actual expanded fields
+        if pattern.ends_with("*") {
+            let prefix = pattern.trim_end_matches(".*").trim_end_matches('*');
+
+            // Get the array or object at the prefix
+            let base_value = if prefix.is_empty() {
+                // Pattern is just "*" - validate top-level fields
+                Value::Object(serde_json::Map::from_iter(
+                    self.data.iter().map(|(k, v)| (k.clone(), v.clone()))
+                ))
+            } else {
+                self.get_nested_value(prefix).unwrap_or(Value::Null)
+            };
+
+            match base_value {
+                Value::Array(arr) => {
+                    // Validate each array element
+                    for (index, item) in arr.iter().enumerate() {
+                        let field_name = if prefix.is_empty() {
+                            index.to_string()
+                        } else {
+                            format!("{}.{}", prefix, index)
+                        };
+
+                        for rule in rules {
+                            if let Err(error) = self.validate_rule(&field_name, Some(item), rule) {
+                                errors.add(error);
+                            }
+                        }
+                    }
+                },
+                Value::Object(obj) => {
+                    // Validate each object field
+                    for (key, value) in obj.iter() {
+                        let field_name = if prefix.is_empty() {
+                            key.clone()
+                        } else {
+                            format!("{}.{}", prefix, key)
+                        };
+
+                        for rule in rules {
+                            if let Err(error) = self.validate_rule(&field_name, Some(value), rule) {
+                                errors.add(error);
+                            }
+                        }
+                    }
+                },
+                _ => {
+                    // Not an array or object, validation fails
+                    for rule in rules {
+                        if let Err(error) = self.validate_rule(pattern, None, rule) {
+                            errors.add(error);
+                        }
+                    }
+                }
+            }
+        } else {
+            // Handle specific wildcard patterns like "items.*.name"
+            self.validate_nested_wildcard_field(pattern, rules, errors);
+        }
+    }
+
+    fn validate_nested_wildcard_field(&self, pattern: &str, rules: &[Rule], errors: &mut ValidationErrors) {
+        let parts: Vec<&str> = pattern.split('.').collect();
+        let mut wildcard_index = None;
+
+        // Find the wildcard position
+        for (i, part) in parts.iter().enumerate() {
+            if *part == "*" {
+                wildcard_index = Some(i);
+                break;
+            }
+        }
+
+        if let Some(wildcard_pos) = wildcard_index {
+            // Get the array path before the wildcard
+            let array_path = parts[..wildcard_pos].join(".");
+            let remaining_path = parts[wildcard_pos + 1..].join(".");
+
+            if let Some(array_value) = self.get_nested_value(&array_path) {
+                if let Value::Array(arr) = array_value {
+                    for (index, item) in arr.iter().enumerate() {
+                        let field_name = if remaining_path.is_empty() {
+                            format!("{}.{}", array_path, index)
+                        } else {
+                            format!("{}.{}.{}", array_path, index, remaining_path)
+                        };
+
+                        let value_to_validate = if remaining_path.is_empty() {
+                            Some(item)
+                        } else {
+                            // Get the nested field within the array item
+                            if let Value::Object(obj) = item {
+                                obj.get(&remaining_path)
+                            } else {
+                                None
+                            }
+                        };
+
+                        for rule in rules {
+                            if let Err(error) = self.validate_rule(&field_name, value_to_validate, rule) {
+                                errors.add(error);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn get_nested_value(&self, path: &str) -> Option<Value> {
+        let parts: Vec<&str> = path.split('.').collect();
+        let mut current = Value::Object(serde_json::Map::from_iter(
+            self.data.iter().map(|(k, v)| (k.clone(), v.clone()))
+        ));
+
+        for part in parts {
+            match &current {
+                Value::Object(obj) => {
+                    if let Some(value) = obj.get(part) {
+                        current = value.clone();
+                    } else {
+                        return None;
+                    }
+                },
+                Value::Array(arr) => {
+                    if let Ok(index) = part.parse::<usize>() {
+                        if let Some(value) = arr.get(index) {
+                            current = value.clone();
+                        } else {
+                            return None;
+                        }
+                    } else {
+                        return None;
+                    }
+                },
+                _ => return None,
+            }
+        }
+
+        Some(current)
     }
 
     fn validate_required(&self, field: &str, value: Option<&Value>) -> Result<(), ValidationError> {
@@ -2050,4 +2215,86 @@ pub fn before_or_equal(date: impl ToString) -> Rule {
 
 pub fn date_equals(date: impl ToString) -> Rule {
     Rule::with_params("date_equals", vec![date.to_string()])
+}
+
+// Nested validation helpers
+
+/// Helper function to create nested object validation rules
+/// Example: nested_object("user.profile", vec![required(), string()])
+pub fn nested_object(path: impl ToString, rules: Vec<Rule>) -> HashMap<String, Vec<Rule>> {
+    let mut result = HashMap::new();
+    result.insert(path.to_string(), rules);
+    result
+}
+
+/// Helper function to create nested array validation rules with wildcard
+/// Example: nested_array("items.*", vec![required(), string()])
+pub fn nested_array(path: impl ToString, rules: Vec<Rule>) -> HashMap<String, Vec<Rule>> {
+    let mut result = HashMap::new();
+    let pattern = if path.to_string().ends_with(".*") {
+        path.to_string()
+    } else {
+        format!("{}.*", path.to_string())
+    };
+    result.insert(pattern, rules);
+    result
+}
+
+/// Helper function to create nested array field validation rules
+/// Example: nested_array_field("items.*.name", vec![required(), string()])
+pub fn nested_array_field(path: impl ToString, rules: Vec<Rule>) -> HashMap<String, Vec<Rule>> {
+    let mut result = HashMap::new();
+    result.insert(path.to_string(), rules);
+    result
+}
+
+/// Helper function to create multiple nested validation rules at once
+/// Example:
+/// ```
+/// nested_rules! {
+///     "user.name" => vec![required(), string()],
+///     "user.profile.bio" => vec![nullable(), string(), max(1000)],
+///     "items.*" => vec![required()],
+///     "items.*.name" => vec![required(), string()],
+///     "items.*.price" => vec![required(), numeric(), min(0)]
+/// }
+/// ```
+#[macro_export]
+macro_rules! nested_rules {
+    ($($path:literal => $rules:expr),* $(,)?) => {{
+        let mut rules_map = std::collections::HashMap::new();
+        $(
+            rules_map.insert($path.to_string(), $rules);
+        )*
+        rules_map
+    }};
+}
+
+/// Trait extension for Validator to add convenient nested validation methods
+pub trait ValidatorExt {
+    fn nested_rules(&mut self, path: impl ToString, rules: Vec<Rule>) -> &mut Self;
+    fn array_rules(&mut self, path: impl ToString, rules: Vec<Rule>) -> &mut Self;
+    fn array_field_rules(&mut self, path: impl ToString, rules: Vec<Rule>) -> &mut Self;
+}
+
+impl ValidatorExt for Validator {
+    fn nested_rules(&mut self, path: impl ToString, rules: Vec<Rule>) -> &mut Self {
+        self.rules(path.to_string(), rules);
+        self
+    }
+
+    fn array_rules(&mut self, path: impl ToString, rules: Vec<Rule>) -> &mut Self {
+        let pattern = if path.to_string().ends_with(".*") {
+            path.to_string()
+        } else {
+            format!("{}.*", path.to_string())
+        };
+        self.rules(pattern, rules);
+        self
+    }
+
+    fn array_field_rules(&mut self, path: impl ToString, rules: Vec<Rule>) -> &mut Self {
+        self.rules(path.to_string(), rules);
+        self
+    }
 }

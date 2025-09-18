@@ -203,10 +203,93 @@ pub fn json_to_hashmap(value: Value) -> HashMap<String, Value> {
     }
 }
 
+/// Macro for creating nested validation rules
+///
+/// # Examples
+///
+/// ```rust
+/// use crate::nested_validation_rules;
+///
+/// let rules = nested_validation_rules! {
+///     "user.name" => ["required", "string", "min:2"],
+///     "user.profile.bio" => ["nullable", "string", "max:1000"],
+///     "items.*" => ["required"],
+///     "items.*.name" => ["required", "string"],
+///     "items.*.price" => ["required", "numeric", "min:0"],
+///     "tags.*" => ["string", "max:50"]
+/// };
+/// ```
+#[macro_export]
+macro_rules! nested_validation_rules {
+    ($($field:expr => [$($rule:expr),* $(,)?]),* $(,)?) => {
+        {
+            let mut rules_map: std::collections::HashMap<String, Vec<$crate::app::utils::validator::Rule>> = std::collections::HashMap::new();
+            $(
+                rules_map.insert($field.to_string(), $crate::app::utils::validation_macros::parse_rules(vec![$($rule),*]));
+            )*
+            rules_map
+        }
+    };
+}
+
+/// Macro for validating nested data structures
+///
+/// # Examples
+///
+/// ```rust
+/// use crate::validate_nested;
+/// use serde_json::json;
+///
+/// let data = json!({
+///     "user": {
+///         "name": "John Doe",
+///         "profile": {
+///             "bio": "Software developer"
+///         }
+///     },
+///     "items": [
+///         {"name": "Item 1", "price": 10.99},
+///         {"name": "Item 2", "price": 25.50}
+///     ]
+/// });
+///
+/// let result = validate_nested!(data, {
+///     "user.name" => ["required", "string", "min:2"],
+///     "user.profile.bio" => ["nullable", "string", "max:1000"],
+///     "items.*" => ["required"],
+///     "items.*.name" => ["required", "string"],
+///     "items.*.price" => ["required", "numeric", "min:0"]
+/// });
+/// ```
+#[macro_export]
+macro_rules! validate_nested {
+    ($data:expr, { $($field:expr => [$($rule:expr),* $(,)?]),* $(,)? }) => {
+        {
+            let data_map = $crate::app::utils::validation_macros::json_to_nested_hashmap($data);
+            let rules = nested_validation_rules! { $($field => [$($rule),*]),* };
+            let validator = $crate::app::utils::validator::Validator::make(data_map, rules);
+            validator.validate()
+        }
+    };
+
+    ($data:expr, { $($field:expr => [$($rule:expr),* $(,)?]),* $(,)? }, { $($msg_key:expr => $msg_value:expr),* $(,)? }) => {
+        {
+            let data_map = $crate::app::utils::validation_macros::json_to_nested_hashmap($data);
+            let rules = nested_validation_rules! { $($field => [$($rule),*]),* };
+            let messages = validation_messages! { $($msg_key => $msg_value),* };
+            let mut validator = $crate::app::utils::validator::Validator::make(data_map, rules);
+            validator.messages(messages);
+            validator.validate()
+        }
+    };
+}
+
 /// Extension trait for Validator to add fluent API methods
 pub trait ValidatorExt {
     fn rules(&mut self, field: &str, rules: &str) -> &mut Self;
     fn rules_array<T: AsRef<str>>(&mut self, field: &str, rules: Vec<T>) -> &mut Self;
+    fn nested_rules(&mut self, field: &str, rules: &str) -> &mut Self;
+    fn nested_rules_array<T: AsRef<str>>(&mut self, field: &str, rules: Vec<T>) -> &mut Self;
     fn message(&mut self, key: &str, message: &str) -> &mut Self;
 }
 
@@ -223,11 +306,74 @@ impl ValidatorExt for Validator {
         self
     }
 
+    fn nested_rules(&mut self, field: &str, rules: &str) -> &mut Self {
+        let parsed_rules = parse_rule_string(rules);
+        self.rules(field, parsed_rules);
+        self
+    }
+
+    fn nested_rules_array<T: AsRef<str>>(&mut self, field: &str, rules: Vec<T>) -> &mut Self {
+        let parsed_rules = parse_rules(rules);
+        self.rules(field, parsed_rules);
+        self
+    }
+
     fn message(&mut self, key: &str, message: &str) -> &mut Self {
         let mut messages = HashMap::new();
         messages.insert(key.to_string(), message.to_string());
         self.messages(messages);
         self
+    }
+}
+
+/// Convert serde_json::Value to HashMap<String, Value> with nested structure flattening for validation
+pub fn json_to_nested_hashmap(value: Value) -> HashMap<String, Value> {
+    let mut result = HashMap::new();
+    flatten_json_recursive("", &value, &mut result);
+    result
+}
+
+/// Recursively flatten JSON structure for nested validation
+fn flatten_json_recursive(prefix: &str, value: &Value, result: &mut HashMap<String, Value>) {
+    match value {
+        Value::Object(map) => {
+            // Add the object itself
+            if !prefix.is_empty() {
+                result.insert(prefix.to_string(), value.clone());
+            }
+
+            // Add flattened fields
+            for (key, val) in map {
+                let new_prefix = if prefix.is_empty() {
+                    key.clone()
+                } else {
+                    format!("{}.{}", prefix, key)
+                };
+                flatten_json_recursive(&new_prefix, val, result);
+            }
+        },
+        Value::Array(arr) => {
+            // Add the array itself
+            if !prefix.is_empty() {
+                result.insert(prefix.to_string(), value.clone());
+            }
+
+            // Add indexed elements and flattened structure
+            for (index, item) in arr.iter().enumerate() {
+                let new_prefix = if prefix.is_empty() {
+                    index.to_string()
+                } else {
+                    format!("{}.{}", prefix, index)
+                };
+                flatten_json_recursive(&new_prefix, item, result);
+            }
+        },
+        _ => {
+            // Add leaf values
+            if !prefix.is_empty() {
+                result.insert(prefix.to_string(), value.clone());
+            }
+        }
     }
 }
 

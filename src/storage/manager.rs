@@ -2,15 +2,13 @@ use anyhow::Result;
 use std::collections::HashMap;
 
 use crate::config::{storage::StorageConfig, Config};
-use crate::storage::drivers::{LocalFilesystem, S3Filesystem, GcsFilesystem, AzureFilesystem};
+use crate::storage::drivers::{LocalFilesystem, S3Filesystem};
 use crate::storage::filesystem::{Filesystem, FilesystemError};
 
 #[derive(Debug)]
 pub enum FilesystemDriver {
     Local(LocalFilesystem),
     S3(S3Filesystem),
-    Gcs(GcsFilesystem),
-    Azure(AzureFilesystem),
 }
 
 impl FilesystemDriver {
@@ -18,8 +16,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.exists(path).await,
             FilesystemDriver::S3(fs) => fs.exists(path).await,
-            FilesystemDriver::Gcs(fs) => fs.exists(path).await,
-            FilesystemDriver::Azure(fs) => fs.exists(path).await,
         }
     }
 
@@ -27,8 +23,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.get(path).await,
             FilesystemDriver::S3(fs) => fs.get(path).await,
-            FilesystemDriver::Gcs(fs) => fs.get(path).await,
-            FilesystemDriver::Azure(fs) => fs.get(path).await,
         }
     }
 
@@ -36,8 +30,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.put(path, contents).await,
             FilesystemDriver::S3(fs) => fs.put(path, contents).await,
-            FilesystemDriver::Gcs(fs) => fs.put(path, contents).await,
-            FilesystemDriver::Azure(fs) => fs.put(path, contents).await,
         }
     }
 
@@ -45,8 +37,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.put_file_as(path, file, name).await,
             FilesystemDriver::S3(fs) => fs.put_file_as(path, file, name).await,
-            FilesystemDriver::Gcs(fs) => fs.put_file_as(path, file, name).await,
-            FilesystemDriver::Azure(fs) => fs.put_file_as(path, file, name).await,
         }
     }
 
@@ -54,8 +44,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.prepend(path, data).await,
             FilesystemDriver::S3(fs) => fs.prepend(path, data).await,
-            FilesystemDriver::Gcs(fs) => fs.prepend(path, data).await,
-            FilesystemDriver::Azure(fs) => fs.prepend(path, data).await,
         }
     }
 
@@ -63,8 +51,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.append(path, data).await,
             FilesystemDriver::S3(fs) => fs.append(path, data).await,
-            FilesystemDriver::Gcs(fs) => fs.append(path, data).await,
-            FilesystemDriver::Azure(fs) => fs.append(path, data).await,
         }
     }
 
@@ -72,8 +58,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.delete(path).await,
             FilesystemDriver::S3(fs) => fs.delete(path).await,
-            FilesystemDriver::Gcs(fs) => fs.delete(path).await,
-            FilesystemDriver::Azure(fs) => fs.delete(path).await,
         }
     }
 
@@ -81,8 +65,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.copy(from, to).await,
             FilesystemDriver::S3(fs) => fs.copy(from, to).await,
-            FilesystemDriver::Gcs(fs) => fs.copy(from, to).await,
-            FilesystemDriver::Azure(fs) => fs.copy(from, to).await,
         }
     }
 
@@ -90,8 +72,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.move_file(from, to).await,
             FilesystemDriver::S3(fs) => fs.move_file(from, to).await,
-            FilesystemDriver::Gcs(fs) => fs.move_file(from, to).await,
-            FilesystemDriver::Azure(fs) => fs.move_file(from, to).await,
         }
     }
 
@@ -99,8 +79,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.size(path).await,
             FilesystemDriver::S3(fs) => fs.size(path).await,
-            FilesystemDriver::Gcs(fs) => fs.size(path).await,
-            FilesystemDriver::Azure(fs) => fs.size(path).await,
         }
     }
 
@@ -108,8 +86,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.last_modified(path).await,
             FilesystemDriver::S3(fs) => fs.last_modified(path).await,
-            FilesystemDriver::Gcs(fs) => fs.last_modified(path).await,
-            FilesystemDriver::Azure(fs) => fs.last_modified(path).await,
         }
     }
 
@@ -117,8 +93,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.files(directory).await,
             FilesystemDriver::S3(fs) => fs.files(directory).await,
-            FilesystemDriver::Gcs(fs) => fs.files(directory).await,
-            FilesystemDriver::Azure(fs) => fs.files(directory).await,
         }
     }
 
@@ -126,8 +100,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.all_files(directory).await,
             FilesystemDriver::S3(fs) => fs.all_files(directory).await,
-            FilesystemDriver::Gcs(fs) => fs.all_files(directory).await,
-            FilesystemDriver::Azure(fs) => fs.all_files(directory).await,
         }
     }
 
@@ -135,8 +107,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.directories(directory).await,
             FilesystemDriver::S3(fs) => fs.directories(directory).await,
-            FilesystemDriver::Gcs(fs) => fs.directories(directory).await,
-            FilesystemDriver::Azure(fs) => fs.directories(directory).await,
         }
     }
 
@@ -144,8 +114,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.all_directories(directory).await,
             FilesystemDriver::S3(fs) => fs.all_directories(directory).await,
-            FilesystemDriver::Gcs(fs) => fs.all_directories(directory).await,
-            FilesystemDriver::Azure(fs) => fs.all_directories(directory).await,
         }
     }
 
@@ -153,8 +121,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.make_directory(path).await,
             FilesystemDriver::S3(fs) => fs.make_directory(path).await,
-            FilesystemDriver::Gcs(fs) => fs.make_directory(path).await,
-            FilesystemDriver::Azure(fs) => fs.make_directory(path).await,
         }
     }
 
@@ -162,8 +128,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.delete_directory(directory).await,
             FilesystemDriver::S3(fs) => fs.delete_directory(directory).await,
-            FilesystemDriver::Gcs(fs) => fs.delete_directory(directory).await,
-            FilesystemDriver::Azure(fs) => fs.delete_directory(directory).await,
         }
     }
 
@@ -171,8 +135,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.url(path).await,
             FilesystemDriver::S3(fs) => fs.url(path).await,
-            FilesystemDriver::Gcs(fs) => fs.url(path).await,
-            FilesystemDriver::Azure(fs) => fs.url(path).await,
         }
     }
 
@@ -180,8 +142,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.temporary_url(path, expires_at).await,
             FilesystemDriver::S3(fs) => fs.temporary_url(path, expires_at).await,
-            FilesystemDriver::Gcs(fs) => fs.temporary_url(path, expires_at).await,
-            FilesystemDriver::Azure(fs) => fs.temporary_url(path, expires_at).await,
         }
     }
 
@@ -189,8 +149,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.get_info(path).await,
             FilesystemDriver::S3(fs) => fs.get_info(path).await,
-            FilesystemDriver::Gcs(fs) => fs.get_info(path).await,
-            FilesystemDriver::Azure(fs) => fs.get_info(path).await,
         }
     }
 
@@ -198,8 +156,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.set_visibility(path, visibility).await,
             FilesystemDriver::S3(fs) => fs.set_visibility(path, visibility).await,
-            FilesystemDriver::Gcs(fs) => fs.set_visibility(path, visibility).await,
-            FilesystemDriver::Azure(fs) => fs.set_visibility(path, visibility).await,
         }
     }
 
@@ -207,8 +163,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.get_visibility(path).await,
             FilesystemDriver::S3(fs) => fs.get_visibility(path).await,
-            FilesystemDriver::Gcs(fs) => fs.get_visibility(path).await,
-            FilesystemDriver::Azure(fs) => fs.get_visibility(path).await,
         }
     }
 
@@ -216,8 +170,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.name(),
             FilesystemDriver::S3(fs) => fs.name(),
-            FilesystemDriver::Gcs(fs) => fs.name(),
-            FilesystemDriver::Azure(fs) => fs.name(),
         }
     }
 
@@ -225,8 +177,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.is_local(),
             FilesystemDriver::S3(fs) => fs.is_local(),
-            FilesystemDriver::Gcs(fs) => fs.is_local(),
-            FilesystemDriver::Azure(fs) => fs.is_local(),
         }
     }
 
@@ -234,8 +184,6 @@ impl FilesystemDriver {
         match self {
             FilesystemDriver::Local(fs) => fs.is_cloud(),
             FilesystemDriver::S3(fs) => fs.is_cloud(),
-            FilesystemDriver::Gcs(fs) => fs.is_cloud(),
-            FilesystemDriver::Azure(fs) => fs.is_cloud(),
         }
     }
 }
@@ -325,62 +273,6 @@ impl StorageManager {
                     };
 
                     FilesystemDriver::S3(fs)
-                }
-                "gcs" => {
-                    let project_id = disk_config.key.as_ref()
-                        .ok_or_else(|| FilesystemError::Config {
-                            message: "GCS project ID is required".to_string(),
-                        })?;
-                    let bucket = disk_config.bucket.as_ref()
-                        .ok_or_else(|| FilesystemError::Config {
-                            message: "GCS bucket is required".to_string(),
-                        })?;
-
-                    let fs = GcsFilesystem::new(
-                        project_id.clone(),
-                        bucket.clone(),
-                        disk_config.secret.clone(), // Service account key JSON
-                        disk_config.root.clone(),
-                        disk_config.url.clone(),
-                    ).await.map_err(|e| FilesystemError::Config {
-                        message: format!("Failed to create GCS filesystem: {}", e),
-                    })?;
-
-                    let fs = if let Some(visibility) = &disk_config.visibility {
-                        fs.with_visibility(visibility.clone())
-                    } else {
-                        fs
-                    };
-
-                    FilesystemDriver::Gcs(fs)
-                }
-                "azure" => {
-                    let account_name = disk_config.key.as_ref()
-                        .ok_or_else(|| FilesystemError::Config {
-                            message: "Azure storage account name is required".to_string(),
-                        })?;
-                    let container = disk_config.bucket.as_ref()
-                        .ok_or_else(|| FilesystemError::Config {
-                            message: "Azure container name is required".to_string(),
-                        })?;
-
-                    let fs = AzureFilesystem::new(
-                        account_name.clone(),
-                        disk_config.secret.clone(), // Access key
-                        container.clone(),
-                        disk_config.root.clone(),
-                        disk_config.url.clone(),
-                    ).await.map_err(|e| FilesystemError::Config {
-                        message: format!("Failed to create Azure filesystem: {}", e),
-                    })?;
-
-                    let fs = if let Some(visibility) = &disk_config.visibility {
-                        fs.with_visibility(visibility.clone())
-                    } else {
-                        fs
-                    };
-
-                    FilesystemDriver::Azure(fs)
                 }
                 driver => {
                     return Err(FilesystemError::Config {
@@ -482,62 +374,6 @@ pub async fn disk(name: &str) -> Result<FilesystemDriver> {
             };
 
             FilesystemDriver::S3(fs)
-        }
-        "gcs" => {
-            let project_id = disk_config.key.as_ref()
-                .ok_or_else(|| FilesystemError::Config {
-                    message: "GCS project ID is required".to_string(),
-                })?;
-            let bucket = disk_config.bucket.as_ref()
-                .ok_or_else(|| FilesystemError::Config {
-                    message: "GCS bucket is required".to_string(),
-                })?;
-
-            let fs = GcsFilesystem::new(
-                project_id.clone(),
-                bucket.clone(),
-                disk_config.secret.clone(),
-                disk_config.root.clone(),
-                disk_config.url.clone(),
-            ).await.map_err(|e| FilesystemError::Config {
-                message: format!("Failed to create GCS filesystem: {}", e),
-            })?;
-
-            let fs = if let Some(visibility) = &disk_config.visibility {
-                fs.with_visibility(visibility.clone())
-            } else {
-                fs
-            };
-
-            FilesystemDriver::Gcs(fs)
-        }
-        "azure" => {
-            let account_name = disk_config.key.as_ref()
-                .ok_or_else(|| FilesystemError::Config {
-                    message: "Azure storage account name is required".to_string(),
-                })?;
-            let container = disk_config.bucket.as_ref()
-                .ok_or_else(|| FilesystemError::Config {
-                    message: "Azure container name is required".to_string(),
-                })?;
-
-            let fs = AzureFilesystem::new(
-                account_name.clone(),
-                disk_config.secret.clone(),
-                container.clone(),
-                disk_config.root.clone(),
-                disk_config.url.clone(),
-            ).await.map_err(|e| FilesystemError::Config {
-                message: format!("Failed to create Azure filesystem: {}", e),
-            })?;
-
-            let fs = if let Some(visibility) = &disk_config.visibility {
-                fs.with_visibility(visibility.clone())
-            } else {
-                fs
-            };
-
-            FilesystemDriver::Azure(fs)
         }
         driver => {
             return Err(FilesystemError::Config {

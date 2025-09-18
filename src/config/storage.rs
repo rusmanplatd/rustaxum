@@ -105,38 +105,6 @@ impl StorageConfig {
             });
         }
 
-        // Google Cloud Storage disk configuration
-        if env::var("GCS_PROJECT_ID").is_ok() {
-            disks.insert("gcs".to_string(), DiskConfig {
-                driver: "gcs".to_string(),
-                root: env::var("GCS_ROOT").ok(),
-                visibility: Some("private".to_string()),
-                throw: Some(false),
-                url: env::var("GCS_URL").ok(),
-                endpoint: None,
-                bucket: env::var("GCS_BUCKET").ok(),
-                region: env::var("GCS_REGION").ok(),
-                key: env::var("GCS_PROJECT_ID").ok(),
-                secret: env::var("GCS_SERVICE_ACCOUNT_KEY").ok(),
-            });
-        }
-
-        // Azure Blob Storage disk configuration
-        if env::var("AZURE_STORAGE_ACCOUNT").is_ok() {
-            disks.insert("azure".to_string(), DiskConfig {
-                driver: "azure".to_string(),
-                root: env::var("AZURE_ROOT").ok(),
-                visibility: Some("private".to_string()),
-                throw: Some(false),
-                url: env::var("AZURE_URL").ok(),
-                endpoint: None,
-                bucket: env::var("AZURE_CONTAINER").ok(),
-                region: None,
-                key: env::var("AZURE_STORAGE_ACCOUNT").ok(),
-                secret: env::var("AZURE_STORAGE_KEY").ok(),
-            });
-        }
-
         Ok(StorageConfig {
             default,
             disks,
