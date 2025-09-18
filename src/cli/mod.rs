@@ -46,6 +46,9 @@ pub enum Commands {
         #[arg(long, default_value = "127.0.0.1")]
         host: String,
     },
+    /// OAuth2/Passport commands
+    #[command(subcommand)]
+    Passport(PassportCommands),
 }
 
 #[derive(Subcommand)]
@@ -86,6 +89,89 @@ pub enum MakeCommands {
     },
 }
 
+#[derive(Subcommand)]
+pub enum PassportCommands {
+    /// Install OAuth2/Passport
+    Install,
+    /// Create an OAuth2 client
+    #[command(name = "client")]
+    CreateClient {
+        /// Name of the client
+        #[arg(long)]
+        name: String,
+        /// Redirect URIs (comma separated)
+        #[arg(long)]
+        redirect_uris: String,
+        /// Create a personal access client
+        #[arg(long)]
+        personal: bool,
+        /// Create a password grant client
+        #[arg(long)]
+        password: bool,
+    },
+    /// List OAuth2 clients
+    #[command(name = "client:list")]
+    ListClients,
+    /// Revoke an OAuth2 client
+    #[command(name = "client:revoke")]
+    RevokeClient {
+        /// Client ID to revoke
+        client_id: String,
+    },
+    /// Delete an OAuth2 client
+    #[command(name = "client:delete")]
+    DeleteClient {
+        /// Client ID to delete
+        client_id: String,
+    },
+    /// Regenerate client secret
+    #[command(name = "client:secret")]
+    RegenerateSecret {
+        /// Client ID
+        client_id: String,
+    },
+    /// Create a scope
+    #[command(name = "scope:create")]
+    CreateScope {
+        /// Name of the scope
+        name: String,
+        /// Description of the scope
+        #[arg(long)]
+        description: Option<String>,
+        /// Make this a default scope
+        #[arg(long)]
+        default: bool,
+    },
+    /// List scopes
+    #[command(name = "scope:list")]
+    ListScopes,
+    /// Delete a scope
+    #[command(name = "scope:delete")]
+    DeleteScope {
+        /// Scope name or ID
+        scope: String,
+    },
+    /// List access tokens
+    #[command(name = "token:list")]
+    ListTokens {
+        /// User ID to filter by
+        #[arg(long)]
+        user_id: Option<String>,
+    },
+    /// Revoke an access token
+    #[command(name = "token:revoke")]
+    RevokeToken {
+        /// Token ID
+        token_id: String,
+    },
+    /// Revoke all tokens for a user
+    #[command(name = "token:revoke-all")]
+    RevokeAllUserTokens {
+        /// User ID
+        user_id: String,
+    },
+}
+
 pub async fn run_cli(cli: Cli) -> Result<()> {
     match cli.command {
         Commands::Make(make_cmd) => commands::make::handle_make_command(make_cmd).await,
@@ -95,5 +181,6 @@ pub async fn run_cli(cli: Cli) -> Result<()> {
         Commands::MigrateRefresh => commands::migrate::handle_migrate_refresh_command().await,
         Commands::MigrateStatus => commands::migrate::handle_migrate_status_command().await,
         Commands::Serve { port, host } => commands::serve::handle_serve_command(host, port).await,
+        Commands::Passport(passport_cmd) => commands::passport::handle_passport_command(passport_cmd).await,
     }
 }

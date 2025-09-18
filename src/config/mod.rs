@@ -10,6 +10,7 @@ pub mod auth;
 pub mod logging;
 pub mod storage;
 pub mod cache;
+pub mod oauth;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -20,6 +21,7 @@ pub struct Config {
     pub logging: logging::LoggingConfig,
     pub storage: storage::StorageConfig,
     pub cache: cache::CacheConfig,
+    pub oauth: oauth::OAuthConfig,
 }
 
 impl Config {
@@ -34,6 +36,7 @@ impl Config {
             logging: logging::LoggingConfig::from_env()?,
             storage: storage::StorageConfig::from_env()?,
             cache: cache::CacheConfig::from_env()?,
+            oauth: oauth::OAuthConfig::from_env()?,
         })
     }
 

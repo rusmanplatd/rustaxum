@@ -54,6 +54,12 @@ azure_storage_blobs = "0.21"
 azure_core = "0.28"
 url = "2.5"
 base64 = "0.22"
+# OAuth2 dependencies
+oauth2 = "4.4"
+rand = "0.8"
+pkcs8 = { version = "0.10", features = ["pem"] }
+rsa = "0.9"
+urlencoding = "2.1"
 
 [dev-dependencies]
 axum-test = "15.0"

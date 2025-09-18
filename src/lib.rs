@@ -27,6 +27,7 @@ pub async fn create_app() -> anyhow::Result<Router> {
     let app = Router::new()
         .merge(routes::api::routes())
         .merge(routes::web::routes())
+        .merge(routes::oauth::oauth_routes())
         .with_state(pool)
         .layer(
             ServiceBuilder::new()
