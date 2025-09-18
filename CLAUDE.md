@@ -49,9 +49,25 @@ cargo run --bin artisan -- make model Post --migration
 cargo run --bin artisan -- make service PostService
 cargo run --bin artisan -- make middleware AuthMiddleware
 cargo run --bin artisan -- make migration create_posts_table
+cargo run --bin artisan -- make seeder UserSeeder
 
 # Run database migrations
 cargo run --bin artisan -- migrate
+
+# Run migrations with seeding
+cargo run --bin artisan -- migrate --seed
+
+# Fresh migrations with seeding
+cargo run --bin artisan -- migrate --fresh --seed
+
+# Refresh migrations with seeding
+cargo run --bin artisan -- migrate:refresh --seed
+
+# Database seeding commands
+cargo run --bin artisan -- db:seed                    # Run all seeders
+cargo run --bin artisan -- db:seed --class DatabaseSeeder  # Run specific seeder
+cargo run --bin artisan -- db:seed --fresh            # Reset DB and seed
+cargo run --bin artisan -- db:seed:list               # List available seeders
 
 # Start development server
 cargo run --bin artisan -- serve --port 3000

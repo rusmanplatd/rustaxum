@@ -21,5 +21,8 @@ pub async fn handle_make_command(command: MakeCommands) -> Result<()> {
         MakeCommands::Request { name } => {
             generators::request::generate_request(&name).await
         },
+        MakeCommands::Seeder { name } => {
+            generators::seeder::generate_seeder(&name).await
+        },
     }
 }

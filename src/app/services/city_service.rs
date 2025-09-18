@@ -2,7 +2,6 @@ use anyhow::Result;
 use ulid::Ulid;
 use sqlx::PgPool;
 use rust_decimal::Decimal;
-use crate::query_builder::QueryBuilder;
 
 use crate::app::models::city::{City, CreateCity, UpdateCity};
 

@@ -4,3 +4,4 @@ pub mod service;
 pub mod middleware;
 pub mod migration;
 pub mod request;
+pub mod seeder;

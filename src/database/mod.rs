@@ -1,4 +1,6 @@
 pub mod migration_runner;
+pub mod seeder;
+pub mod seeders;
 
 use sqlx::{PgPool, postgres::PgPoolOptions};
 use anyhow::Result;
@@ -24,3 +26,4 @@ pub async fn run_migrations(pool: &PgPool) -> Result<()> {
 
     Ok(())
 }
+

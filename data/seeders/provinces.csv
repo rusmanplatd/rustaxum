@@ -1,0 +1,33 @@
+country_iso,name,code
+US,California,CA
+US,Texas,TX
+US,Florida,FL
+US,New York,NY
+US,Illinois,IL
+CA,Ontario,ON
+CA,Quebec,QC
+CA,British Columbia,BC
+CA,Alberta,AB
+CA,Manitoba,MB
+GB,England,ENG
+GB,Scotland,SCT
+GB,Wales,WAL
+GB,Northern Ireland,NIR
+DE,Bavaria,BY
+DE,North Rhine-Westphalia,NW
+DE,Baden-Württemberg,BW
+FR,Île-de-France,IDF
+FR,Provence-Alpes-Côte d'Azur,PAC
+FR,Nouvelle-Aquitaine,NAQ
+JP,Tokyo,13
+JP,Osaka,27
+JP,Kyoto,26
+AU,New South Wales,NSW
+AU,Victoria,VIC
+AU,Queensland,QLD
+IN,Maharashtra,MH
+IN,Karnataka,KA
+IN,Tamil Nadu,TN
+BR,São Paulo,SP
+BR,Rio de Janeiro,RJ
+BR,Minas Gerais,MG

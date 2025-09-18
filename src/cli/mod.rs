@@ -22,6 +22,9 @@ pub enum Commands {
     Migrate {
         #[arg(long)]
         fresh: bool,
+        /// Run seeders after migrations
+        #[arg(long)]
+        seed: bool,
     },
     /// Rollback database migrations
     #[command(name = "migrate:rollback")]
@@ -35,10 +38,27 @@ pub enum Commands {
     MigrateReset,
     /// Reset and re-run all migrations
     #[command(name = "migrate:refresh")]
-    MigrateRefresh,
+    MigrateRefresh {
+        /// Run seeders after migrations
+        #[arg(long)]
+        seed: bool,
+    },
     /// Show migration status
     #[command(name = "migrate:status")]
     MigrateStatus,
+    /// Run database seeders
+    #[command(name = "db:seed")]
+    DbSeed {
+        /// Specific seeder class to run
+        #[arg(long)]
+        class: Option<String>,
+        /// Drop all tables and re-run migrations before seeding
+        #[arg(long)]
+        fresh: bool,
+    },
+    /// List all available seeders
+    #[command(name = "db:seed:list")]
+    DbSeedList,
     /// Start the development server
     Serve {
         #[arg(short, long, default_value = "3000")]
@@ -85,6 +105,11 @@ pub enum MakeCommands {
     /// Generate a new form request
     Request {
         /// Name of the request (e.g., CreateUserRequest)
+        name: String,
+    },
+    /// Generate a new seeder
+    Seeder {
+        /// Name of the seeder (e.g., UserSeeder)
         name: String,
     },
 }
@@ -175,11 +200,13 @@ pub enum PassportCommands {
 pub async fn run_cli(cli: Cli) -> Result<()> {
     match cli.command {
         Commands::Make(make_cmd) => commands::make::handle_make_command(make_cmd).await,
-        Commands::Migrate { fresh } => commands::migrate::handle_migrate_command(fresh).await,
+        Commands::Migrate { fresh, seed } => commands::migrate::handle_migrate_command(fresh, seed).await,
         Commands::MigrateRollback { step } => commands::migrate::handle_migrate_rollback_command(step).await,
         Commands::MigrateReset => commands::migrate::handle_migrate_reset_command().await,
-        Commands::MigrateRefresh => commands::migrate::handle_migrate_refresh_command().await,
+        Commands::MigrateRefresh { seed } => commands::migrate::handle_migrate_refresh_command(seed).await,
         Commands::MigrateStatus => commands::migrate::handle_migrate_status_command().await,
+        Commands::DbSeed { class, fresh } => commands::seed::handle_seed_command(class, fresh).await,
+        Commands::DbSeedList => commands::seed::handle_seed_list_command().await,
         Commands::Serve { port, host } => commands::serve::handle_serve_command(host, port).await,
         Commands::Passport(passport_cmd) => commands::passport::handle_passport_command(passport_cmd).await,
     }

@@ -1,7 +1,6 @@
 use anyhow::Result;
 use ulid::Ulid;
 use sqlx::PgPool;
-use crate::query_builder::QueryBuilder;
 
 use crate::app::models::country::{Country, CreateCountry, UpdateCountry};
 
