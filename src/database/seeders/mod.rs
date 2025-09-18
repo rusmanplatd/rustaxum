@@ -5,3 +5,4 @@ pub mod countryseeder;
 pub mod provinceseeder;
 pub mod cityseeder;
 pub mod testseeder;
+pub mod rolepermissionseeder;

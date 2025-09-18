@@ -6,3 +6,5 @@ pub mod oauth;
 pub mod country_service;
 pub mod province_service;
 pub mod city_service;
+pub mod role_service;
+pub mod permission_service;

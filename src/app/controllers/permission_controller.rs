@@ -1,0 +1,371 @@
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::{IntoResponse, Json},
+};
+use sqlx::PgPool;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use ulid::Ulid;
+use crate::app::models::permission::{Permission, CreatePermission, UpdatePermission};
+use crate::app::services::permission_service::PermissionService;
+
+#[derive(Deserialize)]
+pub struct CreatePermissionRequest {
+    pub name: String,
+    pub guard_name: Option<String>,
+    pub resource: Option<String>,
+    pub action: String,
+}
+
+#[derive(Deserialize)]
+pub struct UpdatePermissionRequest {
+    pub name: Option<String>,
+    pub guard_name: Option<String>,
+    pub resource: Option<String>,
+    pub action: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct ListPermissionsQuery {
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+    pub resource: Option<String>,
+    pub action: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct AssignPermissionRequest {
+    pub role_id: String,
+}
+
+#[derive(Serialize)]
+pub struct PermissionListResponse {
+    pub data: Vec<PermissionData>,
+    pub meta: Meta,
+}
+
+#[derive(Serialize)]
+pub struct PermissionData {
+    pub id: String,
+    pub name: String,
+    pub guard_name: String,
+    pub resource: Option<String>,
+    pub action: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Serialize)]
+pub struct Meta {
+    pub total: i64,
+    pub limit: i64,
+    pub offset: i64,
+}
+
+impl From<Permission> for PermissionData {
+    fn from(permission: Permission) -> Self {
+        Self {
+            id: permission.id.to_string(),
+            name: permission.name,
+            guard_name: permission.guard_name,
+            resource: permission.resource,
+            action: permission.action,
+            created_at: permission.created_at.to_rfc3339(),
+            updated_at: permission.updated_at.to_rfc3339(),
+        }
+    }
+}
+
+pub async fn index(
+    State(pool): State<PgPool>,
+    Query(params): Query<ListPermissionsQuery>
+) -> impl IntoResponse {
+    let limit = params.limit.unwrap_or(20);
+    let offset = params.offset.unwrap_or(0);
+
+    match PermissionService::list(&pool, limit, offset).await {
+        Ok(permissions) => {
+            let permission_data: Vec<PermissionData> = permissions.into_iter().map(PermissionData::from).collect();
+            let response = PermissionListResponse {
+                data: permission_data,
+                meta: Meta {
+                    total: 0, // TODO: Implement count query
+                    limit,
+                    offset,
+                },
+            };
+            (StatusCode::OK, Json(response)).into_response()
+        }
+        Err(e) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+                "error": "Failed to fetch permissions",
+                "message": e.to_string()
+            }))).into_response()
+        }
+    }
+}
+
+pub async fn store(
+    State(pool): State<PgPool>,
+    Json(payload): Json<CreatePermissionRequest>
+) -> impl IntoResponse {
+    let create_permission = CreatePermission {
+        name: payload.name,
+        guard_name: payload.guard_name,
+        resource: payload.resource,
+        action: payload.action,
+    };
+
+    match PermissionService::create(&pool, create_permission).await {
+        Ok(permission) => {
+            let permission_data = PermissionData::from(permission);
+            (StatusCode::CREATED, Json(json!({
+                "data": permission_data,
+                "message": "Permission created successfully"
+            }))).into_response()
+        }
+        Err(e) => {
+            (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Failed to create permission",
+                "message": e.to_string()
+            }))).into_response()
+        }
+    }
+}
+
+pub async fn show(
+    State(pool): State<PgPool>,
+    Path(id): Path<String>
+) -> impl IntoResponse {
+    let permission_id = match Ulid::from_string(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Invalid permission ID format"
+            }))).into_response();
+        }
+    };
+
+    match PermissionService::find_by_id(&pool, permission_id).await {
+        Ok(Some(permission)) => {
+            let permission_data = PermissionData::from(permission);
+            (StatusCode::OK, Json(json!({
+                "data": permission_data,
+                "message": "Permission retrieved successfully"
+            }))).into_response()
+        }
+        Ok(None) => {
+            (StatusCode::NOT_FOUND, Json(json!({
+                "error": "Permission not found"
+            }))).into_response()
+        }
+        Err(e) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+                "error": "Failed to fetch permission",
+                "message": e.to_string()
+            }))).into_response()
+        }
+    }
+}
+
+pub async fn update(
+    State(pool): State<PgPool>,
+    Path(id): Path<String>,
+    Json(payload): Json<UpdatePermissionRequest>
+) -> impl IntoResponse {
+    let permission_id = match Ulid::from_string(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Invalid permission ID format"
+            }))).into_response();
+        }
+    };
+
+    let update_permission = UpdatePermission {
+        name: payload.name,
+        guard_name: payload.guard_name,
+        resource: payload.resource,
+        action: payload.action,
+    };
+
+    match PermissionService::update(&pool, permission_id, update_permission).await {
+        Ok(permission) => {
+            let permission_data = PermissionData::from(permission);
+            (StatusCode::OK, Json(json!({
+                "data": permission_data,
+                "message": "Permission updated successfully"
+            }))).into_response()
+        }
+        Err(e) => {
+            (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Failed to update permission",
+                "message": e.to_string()
+            }))).into_response()
+        }
+    }
+}
+
+pub async fn destroy(
+    State(pool): State<PgPool>,
+    Path(id): Path<String>
+) -> impl IntoResponse {
+    let permission_id = match Ulid::from_string(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Invalid permission ID format"
+            }))).into_response();
+        }
+    };
+
+    match PermissionService::delete(&pool, permission_id).await {
+        Ok(_) => {
+            (StatusCode::OK, Json(json!({
+                "message": "Permission deleted successfully"
+            }))).into_response()
+        }
+        Err(e) => {
+            (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Failed to delete permission",
+                "message": e.to_string()
+            }))).into_response()
+        }
+    }
+}
+
+pub async fn assign_to_role(
+    State(pool): State<PgPool>,
+    Path(id): Path<String>,
+    Json(payload): Json<AssignPermissionRequest>
+) -> impl IntoResponse {
+    let permission_id = match Ulid::from_string(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Invalid permission ID format"
+            }))).into_response();
+        }
+    };
+
+    let role_id = match Ulid::from_string(&payload.role_id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Invalid role ID format"
+            }))).into_response();
+        }
+    };
+
+    match PermissionService::assign_to_role(&pool, role_id, permission_id).await {
+        Ok(_) => {
+            (StatusCode::OK, Json(json!({
+                "message": "Permission assigned to role successfully"
+            }))).into_response()
+        }
+        Err(e) => {
+            (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Failed to assign permission to role",
+                "message": e.to_string()
+            }))).into_response()
+        }
+    }
+}
+
+pub async fn remove_from_role(
+    State(pool): State<PgPool>,
+    Path((id, role_id)): Path<(String, String)>
+) -> impl IntoResponse {
+    let permission_id = match Ulid::from_string(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Invalid permission ID format"
+            }))).into_response();
+        }
+    };
+
+    let role_id = match Ulid::from_string(&role_id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Invalid role ID format"
+            }))).into_response();
+        }
+    };
+
+    match PermissionService::remove_from_role(&pool, role_id, permission_id).await {
+        Ok(_) => {
+            (StatusCode::OK, Json(json!({
+                "message": "Permission removed from role successfully"
+            }))).into_response()
+        }
+        Err(e) => {
+            (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Failed to remove permission from role",
+                "message": e.to_string()
+            }))).into_response()
+        }
+    }
+}
+
+pub async fn get_role_permissions(
+    State(pool): State<PgPool>,
+    Path(role_id): Path<String>
+) -> impl IntoResponse {
+    let role_id = match Ulid::from_string(&role_id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Invalid role ID format"
+            }))).into_response();
+        }
+    };
+
+    match PermissionService::get_role_permissions(&pool, role_id, None).await {
+        Ok(permissions) => {
+            let permission_data: Vec<PermissionData> = permissions.into_iter().map(PermissionData::from).collect();
+            (StatusCode::OK, Json(json!({
+                "data": permission_data,
+                "message": "Role permissions retrieved successfully"
+            }))).into_response()
+        }
+        Err(e) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+                "error": "Failed to fetch role permissions",
+                "message": e.to_string()
+            }))).into_response()
+        }
+    }
+}
+
+pub async fn get_user_permissions(
+    State(pool): State<PgPool>,
+    Path(user_id): Path<String>
+) -> impl IntoResponse {
+    let user_id = match Ulid::from_string(&user_id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Invalid user ID format"
+            }))).into_response();
+        }
+    };
+
+    match PermissionService::get_user_permissions(&pool, user_id, None).await {
+        Ok(permissions) => {
+            let permission_data: Vec<PermissionData> = permissions.into_iter().map(PermissionData::from).collect();
+            (StatusCode::OK, Json(json!({
+                "data": permission_data,
+                "message": "User permissions retrieved successfully"
+            }))).into_response()
+        }
+        Err(e) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+                "error": "Failed to fetch user permissions",
+                "message": e.to_string()
+            }))).into_response()
+        }
+    }
+}
