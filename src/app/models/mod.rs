@@ -14,3 +14,4 @@ pub mod policy;
 pub mod policyrule;
 pub mod subject;
 pub mod resource;
+pub mod post;

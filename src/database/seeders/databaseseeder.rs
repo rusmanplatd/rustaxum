@@ -5,6 +5,9 @@ use crate::database::seeders::{
     countryseeder::Countryseeder,
     provinceseeder::Provinceseeder,
     cityseeder::Cityseeder,
+    userseeder::UserSeeder,
+    rolepermissionseeder::RolePermissionSeeder,
+    abacseeder::AbacSeeder,
 };
 
 pub struct Databaseseeder;
@@ -15,13 +18,13 @@ impl Seeder for Databaseseeder {
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("Runs all geographic data seeders in the correct order")
+        Some("Runs all seeders including users, RBAC, and ABAC data")
     }
 
     async fn run(&self, pool: &PgPool) -> Result<()> {
         println!("Running all database seeders...");
 
-        // Run seeders in order (countries -> provinces -> cities) - directly instantiate to avoid recursion
+        // Run geographic data seeders first
         println!("\n🌱 Running CountrySeeder...");
         let country_seeder = Countryseeder;
         country_seeder.run(pool).await?;
@@ -34,7 +37,22 @@ impl Seeder for Databaseseeder {
         let city_seeder = Cityseeder;
         city_seeder.run(pool).await?;
 
-        println!("\n✅ All geographic data seeding completed successfully!");
+        // Run user seeder
+        println!("\n🌱 Running UserSeeder...");
+        let user_seeder = UserSeeder;
+        user_seeder.run(pool).await?;
+
+        // Run RBAC seeder (roles and permissions)
+        println!("\n🌱 Running RolePermissionSeeder...");
+        let rbac_seeder = RolePermissionSeeder;
+        rbac_seeder.run(pool).await?;
+
+        // Run ABAC seeder (attributes and policies)
+        println!("\n🌱 Running AbacSeeder...");
+        let abac_seeder = AbacSeeder;
+        abac_seeder.run(pool).await?;
+
+        println!("\n✅ All database seeding completed successfully!");
         Ok(())
     }
 }
