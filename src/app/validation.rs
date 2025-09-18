@@ -37,7 +37,7 @@ pub use crate::app::utils::validation_helpers::{
 
 // Re-export validation macros module for advanced usage
 pub use crate::app::utils::validation_macros::{
-    parse_rule_string, parse_rules, json_to_hashmap, ValidatorExt,
+    parse_rules, json_to_hashmap, ValidatorExt,
 };
 
 /// Quick validation function for common use cases using array format
@@ -99,7 +99,8 @@ pub fn quick_validate_string(
 ) -> Result<(), ValidationErrors> {
     let mut validator = validator!(data);
     for (field, rule_string) in rules {
-        let parsed_rules = parse_rule_string(rule_string);
+        let rule_array: Vec<&str> = rule_string.split('|').collect();
+        let parsed_rules = parse_rules(rule_array);
         validator.rules(field, parsed_rules);
     }
     validator.validate()

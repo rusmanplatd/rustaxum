@@ -68,7 +68,8 @@ impl ValidatorBuilder {
     }
 
     pub fn rules_from_string(mut self, field: impl Into<String>, rule_string: &str) -> Self {
-        let rules = crate::app::utils::validation_macros::parse_rule_string(rule_string);
+        let rule_array: Vec<&str> = rule_string.split('|').collect();
+        let rules = crate::app::utils::validation_macros::parse_rules(rule_array);
         self.rules.insert(field.into(), rules);
         self
     }

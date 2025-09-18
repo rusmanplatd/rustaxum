@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use regex::Regex;
 use serde_json::Value;
+use sqlx::PgPool;
 
 #[derive(Debug, Clone)]
 pub struct ValidationError {
@@ -90,6 +91,7 @@ pub struct Validator {
     data: HashMap<String, Value>,
     rules: HashMap<String, Vec<Rule>>,
     custom_messages: HashMap<String, String>,
+    db_pool: Option<PgPool>,
 }
 
 impl Validator {
@@ -98,6 +100,7 @@ impl Validator {
             data,
             rules: HashMap::new(),
             custom_messages: HashMap::new(),
+            db_pool: None,
         }
     }
 
@@ -106,6 +109,7 @@ impl Validator {
             data,
             rules,
             custom_messages: HashMap::new(),
+            db_pool: None,
         }
     }
 
@@ -119,17 +123,61 @@ impl Validator {
         self
     }
 
+    pub fn with_database(mut self, pool: PgPool) -> Self {
+        self.db_pool = Some(pool);
+        self
+    }
+
+    pub fn set_database(&mut self, pool: PgPool) -> &mut Self {
+        self.db_pool = Some(pool);
+        self
+    }
+
     pub fn validate(&self) -> Result<(), ValidationErrors> {
+        // For sync validation, we use tokio runtime if available, otherwise skip DB validations
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            handle.block_on(self.validate_async())
+        } else {
+            // Fallback to sync validation without database rules
+            self.validate_without_db()
+        }
+    }
+
+    fn validate_without_db(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+
+        for (field, rules) in &self.rules {
+            let value = self.data.get(field);
+            for rule in rules {
+                // Skip database-dependent rules in sync validation
+                if matches!(rule.name.as_str(), "unique" | "exists") {
+                    continue;
+                }
+
+                if let Err(error) = self.validate_rule_sync(field, value, rule) {
+                    errors.add(error);
+                }
+            }
+        }
+
+        if errors.has_errors() {
+            Err(errors)
+        } else {
+            Ok(())
+        }
+    }
+
+    pub async fn validate_async(&self) -> Result<(), ValidationErrors> {
         let mut errors = ValidationErrors::new();
 
         for (field, rules) in &self.rules {
             // Handle nested field validation
             if field.contains('.') || field.contains('*') {
-                self.validate_nested_field(field, rules, &mut errors);
+                self.validate_nested_field(field, rules, &mut errors).await;
             } else {
                 let value = self.data.get(field);
                 for rule in rules {
-                    if let Err(error) = self.validate_rule(field, value, rule) {
+                    if let Err(error) = self.validate_rule(field, value, rule).await {
                         errors.add(error);
                     }
                 }
@@ -143,7 +191,7 @@ impl Validator {
         }
     }
 
-    fn validate_rule(&self, field: &str, value: Option<&Value>, rule: &Rule) -> Result<(), ValidationError> {
+    fn validate_rule_sync(&self, field: &str, value: Option<&Value>, rule: &Rule) -> Result<(), ValidationError> {
         match rule.name.as_str() {
             "required" => self.validate_required(field, value),
             "string" => self.validate_string(field, value),
@@ -165,8 +213,87 @@ impl Validator {
             "confirmed" => self.validate_confirmed(field, value),
             "same" => self.validate_same(field, value, &rule.parameters),
             "different" => self.validate_different(field, value, &rule.parameters),
-            "unique" => self.validate_unique(field, value, &rule.parameters),
-            "exists" => self.validate_exists(field, value, &rule.parameters),
+            "unique" | "exists" => Err(ValidationError::new(field, &rule.name, "Database validation requires async validation.")),
+            "date" => self.validate_date(field, value),
+            "date_format" => self.validate_date_format(field, value, &rule.parameters),
+            "before" => self.validate_before(field, value, &rule.parameters),
+            "after" => self.validate_after(field, value, &rule.parameters),
+            "json" => self.validate_json(field, value),
+            "array" => self.validate_array(field, value),
+            "nullable" => Ok(()), // Always passes
+            "accepted" => self.validate_accepted(field, value),
+            "active_url" => self.validate_active_url(field, value),
+            "bail" => Ok(()), // Implemented at validator level
+            "digits" => self.validate_digits(field, value, &rule.parameters),
+            "digits_between" => self.validate_digits_between(field, value, &rule.parameters),
+            "distinct" => self.validate_distinct(field, value),
+            "ends_with" => self.validate_ends_with(field, value, &rule.parameters),
+            "starts_with" => self.validate_starts_with(field, value, &rule.parameters),
+            "filled" => self.validate_filled(field, value),
+            "gt" => self.validate_gt(field, value, &rule.parameters),
+            "gte" => self.validate_gte(field, value, &rule.parameters),
+            "lt" => self.validate_lt(field, value, &rule.parameters),
+            "lte" => self.validate_lte(field, value, &rule.parameters),
+            "ip" => self.validate_ip(field, value),
+            "ipv4" => self.validate_ipv4(field, value),
+            "ipv6" => self.validate_ipv6(field, value),
+            "mac_address" => self.validate_mac_address(field, value),
+            "multiple_of" => self.validate_multiple_of(field, value, &rule.parameters),
+            "not_regex" => self.validate_not_regex(field, value, &rule.parameters),
+            "present" => self.validate_present(field, value),
+            "prohibited" => self.validate_prohibited(field, value),
+            "prohibited_if" => self.validate_prohibited_if(field, value, &rule.parameters),
+            "prohibited_unless" => self.validate_prohibited_unless(field, value, &rule.parameters),
+            "required_if" => self.validate_required_if(field, value, &rule.parameters),
+            "required_unless" => self.validate_required_unless(field, value, &rule.parameters),
+            "required_with" => self.validate_required_with(field, value, &rule.parameters),
+            "required_with_all" => self.validate_required_with_all(field, value, &rule.parameters),
+            "required_without" => self.validate_required_without(field, value, &rule.parameters),
+            "required_without_all" => self.validate_required_without_all(field, value, &rule.parameters),
+            "sometimes" => Ok(()), // Conditional validation, implemented at validator level
+            "timezone" => self.validate_timezone(field, value),
+            "uuid" => self.validate_uuid(field, value),
+            // File validation rules
+            "file" => self.validate_file(field, value),
+            "image" => self.validate_image(field, value),
+            "mimes" => self.validate_mimes(field, value, &rule.parameters),
+            "mimetypes" => self.validate_mimetypes(field, value, &rule.parameters),
+            "dimensions" => self.validate_dimensions(field, value, &rule.parameters),
+            // Array validation rules
+            "array_max" => self.validate_array_max(field, value, &rule.parameters),
+            "array_min" => self.validate_array_min(field, value, &rule.parameters),
+            // Date validation rules
+            "after_or_equal" => self.validate_after_or_equal(field, value, &rule.parameters),
+            "before_or_equal" => self.validate_before_or_equal(field, value, &rule.parameters),
+            "date_equals" => self.validate_date_equals(field, value, &rule.parameters),
+            _ => Err(ValidationError::new(field, &rule.name, format!("Unknown validation rule: {}", rule.name))),
+        }
+    }
+
+    async fn validate_rule(&self, field: &str, value: Option<&Value>, rule: &Rule) -> Result<(), ValidationError> {
+        match rule.name.as_str() {
+            "required" => self.validate_required(field, value),
+            "string" => self.validate_string(field, value),
+            "numeric" => self.validate_numeric(field, value),
+            "integer" => self.validate_integer(field, value),
+            "boolean" => self.validate_boolean(field, value),
+            "email" => self.validate_email(field, value),
+            "url" => self.validate_url(field, value),
+            "min" => self.validate_min(field, value, &rule.parameters),
+            "max" => self.validate_max(field, value, &rule.parameters),
+            "between" => self.validate_between(field, value, &rule.parameters),
+            "size" => self.validate_size(field, value, &rule.parameters),
+            "in" => self.validate_in(field, value, &rule.parameters),
+            "not_in" => self.validate_not_in(field, value, &rule.parameters),
+            "alpha" => self.validate_alpha(field, value),
+            "alpha_num" => self.validate_alpha_num(field, value),
+            "alpha_dash" => self.validate_alpha_dash(field, value),
+            "regex" => self.validate_regex(field, value, &rule.parameters),
+            "confirmed" => self.validate_confirmed(field, value),
+            "same" => self.validate_same(field, value, &rule.parameters),
+            "different" => self.validate_different(field, value, &rule.parameters),
+            "unique" => self.validate_unique(field, value, &rule.parameters).await,
+            "exists" => self.validate_exists(field, value, &rule.parameters).await,
             "date" => self.validate_date(field, value),
             "date_format" => self.validate_date_format(field, value, &rule.parameters),
             "before" => self.validate_before(field, value, &rule.parameters),
@@ -243,24 +370,25 @@ impl Validator {
             .unwrap_or_else(|| default.replace(":attribute", field))
     }
 
-    fn validate_nested_field(&self, field_pattern: &str, rules: &[Rule], errors: &mut ValidationErrors) {
+
+    async fn validate_nested_field(&self, field_pattern: &str, rules: &[Rule], errors: &mut ValidationErrors) {
         if field_pattern.contains('*') {
-            self.validate_array_pattern(field_pattern, rules, errors);
+            self.validate_array_pattern(field_pattern, rules, errors).await;
         } else {
-            self.validate_dot_notation_field(field_pattern, rules, errors);
+            self.validate_dot_notation_field(field_pattern, rules, errors).await;
         }
     }
 
-    fn validate_dot_notation_field(&self, field_path: &str, rules: &[Rule], errors: &mut ValidationErrors) {
+    async fn validate_dot_notation_field(&self, field_path: &str, rules: &[Rule], errors: &mut ValidationErrors) {
         let value = self.get_nested_value(field_path);
         for rule in rules {
-            if let Err(error) = self.validate_rule(field_path, value.as_ref(), rule) {
+            if let Err(error) = self.validate_rule(field_path, value.as_ref(), rule).await {
                 errors.add(error);
             }
         }
     }
 
-    fn validate_array_pattern(&self, pattern: &str, rules: &[Rule], errors: &mut ValidationErrors) {
+    async fn validate_array_pattern(&self, pattern: &str, rules: &[Rule], errors: &mut ValidationErrors) {
         // For wildcard patterns, we need to validate against the actual expanded fields
         if pattern.ends_with("*") {
             let prefix = pattern.trim_end_matches(".*").trim_end_matches('*');
@@ -286,7 +414,7 @@ impl Validator {
                         };
 
                         for rule in rules {
-                            if let Err(error) = self.validate_rule(&field_name, Some(item), rule) {
+                            if let Err(error) = self.validate_rule(&field_name, Some(item), rule).await {
                                 errors.add(error);
                             }
                         }
@@ -302,7 +430,7 @@ impl Validator {
                         };
 
                         for rule in rules {
-                            if let Err(error) = self.validate_rule(&field_name, Some(value), rule) {
+                            if let Err(error) = self.validate_rule(&field_name, Some(value), rule).await {
                                 errors.add(error);
                             }
                         }
@@ -311,7 +439,7 @@ impl Validator {
                 _ => {
                     // Not an array or object, validation fails
                     for rule in rules {
-                        if let Err(error) = self.validate_rule(pattern, None, rule) {
+                        if let Err(error) = self.validate_rule(pattern, None, rule).await {
                             errors.add(error);
                         }
                     }
@@ -319,11 +447,11 @@ impl Validator {
             }
         } else {
             // Handle specific wildcard patterns like "items.*.name"
-            self.validate_nested_wildcard_field(pattern, rules, errors);
+            self.validate_nested_wildcard_field(pattern, rules, errors).await;
         }
     }
 
-    fn validate_nested_wildcard_field(&self, pattern: &str, rules: &[Rule], errors: &mut ValidationErrors) {
+    async fn validate_nested_wildcard_field(&self, pattern: &str, rules: &[Rule], errors: &mut ValidationErrors) {
         let parts: Vec<&str> = pattern.split('.').collect();
         let mut wildcard_index = None;
 
@@ -361,7 +489,7 @@ impl Validator {
                         };
 
                         for rule in rules {
-                            if let Err(error) = self.validate_rule(&field_name, value_to_validate, rule) {
+                            if let Err(error) = self.validate_rule(&field_name, value_to_validate, rule).await {
                                 errors.add(error);
                             }
                         }
@@ -875,16 +1003,125 @@ impl Validator {
         Ok(())
     }
 
-    fn validate_unique(&self, _field: &str, _value: Option<&Value>, _params: &[String]) -> Result<(), ValidationError> {
-        // This would require database access to implement properly
-        // For now, we'll just return Ok() as a placeholder
-        Ok(())
+    async fn validate_unique(&self, field: &str, value: Option<&Value>, params: &[String]) -> Result<(), ValidationError> {
+        if params.is_empty() {
+            return Err(ValidationError::new(field, "unique", "Unique rule requires a table parameter."));
+        }
+
+        let Some(pool) = &self.db_pool else {
+            return Err(ValidationError::new(field, "unique", "Database connection required for unique validation."));
+        };
+
+        let Some(val) = value else {
+            return Ok(()); // If value is None, validation passes (use required rule for presence validation)
+        };
+
+        let table = &params[0];
+        let column = params.get(1).map(|s| s.as_str()).unwrap_or(field);
+        let except_id = params.get(2);
+
+        let val_str = match val {
+            Value::String(s) => s.clone(),
+            Value::Number(n) => n.to_string(),
+            Value::Bool(b) => b.to_string(),
+            _ => return Err(ValidationError::new(
+                field,
+                "unique",
+                self.error_message(field, "unique", "The :attribute must be a valid value for uniqueness check.")
+            )),
+        };
+
+        let mut query = format!("SELECT EXISTS(SELECT 1 FROM {} WHERE {} = $1", table, column);
+
+        if let Some(_except_id) = except_id {
+            query.push_str(" AND id != $2");
+        }
+
+        query.push(')');
+
+        let mut query_builder = sqlx::query_scalar::<_, bool>(&query).bind(&val_str);
+
+        if let Some(except_id) = except_id {
+            query_builder = query_builder.bind(except_id);
+        }
+
+        match query_builder.fetch_one(pool).await {
+            Ok(exists) => {
+                if exists {
+                    Err(ValidationError::new(
+                        field,
+                        "unique",
+                        self.error_message(field, "unique", "The :attribute has already been taken.")
+                    ))
+                } else {
+                    Ok(())
+                }
+            }
+            Err(e) => {
+                tracing::error!("Database error in unique validation: {}", e);
+                Err(ValidationError::new(
+                    field,
+                    "unique",
+                    self.error_message(field, "unique", "Database error during unique validation.")
+                ))
+            }
+        }
     }
 
-    fn validate_exists(&self, _field: &str, _value: Option<&Value>, _params: &[String]) -> Result<(), ValidationError> {
-        // This would require database access to implement properly
-        // For now, we'll just return Ok() as a placeholder
-        Ok(())
+    async fn validate_exists(&self, field: &str, value: Option<&Value>, params: &[String]) -> Result<(), ValidationError> {
+        if params.is_empty() {
+            return Err(ValidationError::new(field, "exists", "Exists rule requires a table parameter."));
+        }
+
+        let Some(pool) = &self.db_pool else {
+            return Err(ValidationError::new(field, "exists", "Database connection required for exists validation."));
+        };
+
+        let Some(val) = value else {
+            return Ok(()); // If value is None, validation passes (use required rule for presence validation)
+        };
+
+        let table = &params[0];
+        let column = params.get(1).map(|s| s.as_str()).unwrap_or(field);
+
+        let val_str = match val {
+            Value::String(s) => s.clone(),
+            Value::Number(n) => n.to_string(),
+            Value::Bool(b) => b.to_string(),
+            _ => return Err(ValidationError::new(
+                field,
+                "exists",
+                self.error_message(field, "exists", "The :attribute must be a valid value for existence check.")
+            )),
+        };
+
+        let query = format!("SELECT EXISTS(SELECT 1 FROM {} WHERE {} = $1)", table, column);
+
+        match sqlx::query_scalar::<_, bool>(&query)
+            .bind(&val_str)
+            .fetch_one(pool)
+            .await
+        {
+            Ok(exists) => {
+                if exists {
+                    Ok(())
+                } else {
+                    Err(ValidationError::new(
+                        field,
+                        "exists",
+                        self.error_message(field, "exists", "The selected :attribute is invalid.")
+                    ))
+                }
+            }
+            Err(e) => {
+                tracing::error!("Database error in exists validation: {}", e);
+                Err(ValidationError::new(
+                    field,
+                    "exists",
+                    self.error_message(field, "exists", "Database error during exists validation.")
+                ))
+            }
+        }
     }
 
     fn validate_date(&self, field: &str, value: Option<&Value>) -> Result<(), ValidationError> {

@@ -295,7 +295,8 @@ pub trait ValidatorExt {
 
 impl ValidatorExt for Validator {
     fn rules(&mut self, field: &str, rules: &str) -> &mut Self {
-        let parsed_rules = parse_rule_string(rules);
+        let rule_array: Vec<&str> = rules.split('|').collect();
+        let parsed_rules = parse_rules(rule_array);
         self.rules(field, parsed_rules);
         self
     }
@@ -307,7 +308,8 @@ impl ValidatorExt for Validator {
     }
 
     fn nested_rules(&mut self, field: &str, rules: &str) -> &mut Self {
-        let parsed_rules = parse_rule_string(rules);
+        let rule_array: Vec<&str> = rules.split('|').collect();
+        let parsed_rules = parse_rules(rule_array);
         self.rules(field, parsed_rules);
         self
     }
