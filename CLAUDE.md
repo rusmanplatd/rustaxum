@@ -4,6 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Commands
 
+# Naming Rules (Laravel Naming Conventions)
+- **Follow Laravel naming exactly**: Use identical class names, method names, and conventions
+- **NO marketing adjectives**: Never use "advanced", "enhanced", "complete", "improved", "better", "superior", "features", "optimized", "premium", or similar terms in code names
+- **Laravel naming patterns**: Follow Laravel's exact naming patterns for consistency
+- **Method signatures**: Match Laravel method signatures exactly, including parameter names and types
+
 ### Building and Running
 ```bash
 # Build the project

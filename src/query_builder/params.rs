@@ -16,6 +16,9 @@ pub struct QueryParams {
     pub fields: Option<String>,
 
     #[serde(default)]
+    pub include: Option<String>,
+
+    #[serde(default)]
     pub page: Option<u64>,
 
     #[serde(default)]
@@ -28,6 +31,7 @@ impl Default for QueryParams {
             filter: HashMap::new(),
             sort: Vec::new(),
             fields: None,
+            include: None,
             page: None,
             per_page: Some(15),
         }
@@ -38,7 +42,7 @@ impl QueryParams {
     /// Parse query parameters into a QueryBuilderRequest
     pub fn parse(&self) -> QueryBuilderRequest {
         // Extract filters (remove reserved query params)
-        let reserved_keys = vec!["sort", "fields", "page", "per_page"];
+        let reserved_keys = vec!["sort", "fields", "include", "page", "per_page"];
         let filters: HashMap<String, String> = self.filter
             .iter()
             .filter(|(key, _)| !reserved_keys.contains(&key.as_str()))
@@ -53,10 +57,20 @@ impl QueryParams {
                 .collect()
         });
 
+        // Parse includes
+        let includes = self.include.as_ref().map(|i| {
+            i.split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect()
+        });
+
         QueryBuilderRequest {
             filters,
+            filter_groups: None, // Filter groups typically come from POST requests
             sorts: self.sort.clone(),
             fields,
+            includes,
             page: self.page,
             per_page: self.per_page.or(Some(15)),
         }

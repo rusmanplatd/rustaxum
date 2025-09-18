@@ -3,6 +3,11 @@ pub mod filter;
 pub mod sort;
 pub mod select;
 pub mod params;
+pub mod includes;
+pub mod filter_group;
+pub mod bind;
+pub mod scopes;
+pub mod cache;
 
 use serde::Serialize;
 use sqlx::{FromRow, postgres::PgRow};
@@ -13,6 +18,9 @@ pub use filter::{Filter, FilterOperator};
 pub use sort::{Sort, SortDirection};
 pub use select::FieldSelector;
 pub use params::QueryParams;
+pub use includes::{IncludeSelector, Relatable, Relationship, RelationshipType, WithRelationships};
+pub use filter_group::{FilterGroup, FilterCondition, FilterGroupBuilder, SimpleFilter};
+pub use scopes::{Scopeable, CommonScopes, ScopeResolver, ScopedQueryBuilder};
 
 /// Trait for models that can be queried with the QueryBuilder
 pub trait Queryable: for<'r> FromRow<'r, PgRow> + Send + Unpin + Serialize {
@@ -38,8 +46,10 @@ pub trait Queryable: for<'r> FromRow<'r, PgRow> + Send + Unpin + Serialize {
 #[derive(Debug, Clone)]
 pub struct QueryBuilderRequest {
     pub filters: HashMap<String, String>,
+    pub filter_groups: Option<filter_group::FilterGroup>,
     pub sorts: Vec<String>,
     pub fields: Option<Vec<String>>,
+    pub includes: Option<Vec<String>>,
     pub page: Option<u64>,
     pub per_page: Option<u64>,
 }
@@ -48,8 +58,10 @@ impl Default for QueryBuilderRequest {
     fn default() -> Self {
         Self {
             filters: HashMap::new(),
+            filter_groups: None,
             sorts: Vec::new(),
             fields: None,
+            includes: None,
             page: None,
             per_page: Some(15), // Default pagination
         }

@@ -1,9 +1,9 @@
-use sqlx::{PgPool, Row};
+use sqlx::{PgPool, Row, Column};
 use anyhow::Result;
 
 use super::{
     Queryable, QueryBuilderRequest, PaginatedResponse, PaginationMeta,
-    Filter, Sort, FieldSelector
+    Filter, Sort, FieldSelector, Relatable, IncludeSelector, WithRelationships
 };
 
 /// Main QueryBuilder implementation
@@ -77,6 +77,60 @@ where
         Ok(PaginatedResponse { data, meta })
     }
 
+    /// Execute the query and return paginated results with relationships
+    pub async fn paginate_with_relationships(&self) -> Result<PaginatedResponse<WithRelationships<T>>>
+    where
+        T: Relatable,
+    {
+        let page = self.request.page.unwrap_or(1);
+        let per_page = self.request.per_page.unwrap_or(15);
+
+        // Build the base query
+        let (select_clause, where_clause, order_clause, params) = self.build_query_parts()?;
+
+        // Count total records
+        let count_query = format!(
+            "SELECT COUNT(*) as total FROM {} {}",
+            T::table_name(),
+            where_clause
+        );
+
+        let total: i64 = sqlx::query(&count_query)
+            .bind_all(params.clone())
+            .fetch_one(&self.pool)
+            .await?
+            .try_get("total")?;
+
+        // Build paginated query
+        let offset = (page - 1) * per_page;
+        let query = format!(
+            "SELECT {} FROM {} {} {} LIMIT $? OFFSET $?",
+            select_clause,
+            T::table_name(),
+            where_clause,
+            order_clause
+        );
+
+        let mut query_builder = sqlx::query_as::<_, T>(&query);
+
+        // Bind parameters
+        for param in params {
+            query_builder = query_builder.bind(param);
+        }
+
+        // Add limit and offset
+        query_builder = query_builder.bind(per_page as i64).bind(offset as i64);
+
+        let data = query_builder.fetch_all(&self.pool).await?;
+
+        // Load relationships if requested
+        let data_with_relationships = self.load_relationships(data).await?;
+
+        let meta = PaginationMeta::new(page, per_page, total as u64);
+
+        Ok(PaginatedResponse { data: data_with_relationships, meta })
+    }
+
     /// Execute the query and return all results (without pagination)
     pub async fn get(&self) -> Result<Vec<T>> {
         let (select_clause, where_clause, order_clause, params) = self.build_query_parts()?;
@@ -126,12 +180,13 @@ where
 
     /// Build WHERE clause and return parameters
     fn build_where_clause(&self) -> Result<(String, Vec<String>)> {
-        let mut filters = Vec::new();
+        let mut filter_clauses = Vec::new();
         let mut params = Vec::new();
         let mut param_index = 0;
 
         let allowed_filters: std::collections::HashSet<&str> = T::allowed_filters().into_iter().collect();
 
+        // Handle simple filters
         for (key, value) in &self.request.filters {
             if let Some(filter) = Filter::from_query_param(key, value) {
                 // Check if field is allowed
@@ -140,17 +195,26 @@ where
                 }
 
                 let sql = filter.to_sql(&mut param_index);
-                filters.push(sql);
+                filter_clauses.push(sql);
 
                 // Add parameter values
                 params.extend(filter.get_sql_values());
             }
         }
 
-        let where_clause = if filters.is_empty() {
+        // Handle filter groups
+        if let Some(filter_group) = &self.request.filter_groups {
+            let (group_sql, mut group_params) = filter_group.to_sql(&mut param_index, &allowed_filters);
+            if !group_sql.is_empty() {
+                filter_clauses.push(group_sql);
+                params.append(&mut group_params);
+            }
+        }
+
+        let where_clause = if filter_clauses.is_empty() {
             String::new()
         } else {
-            format!("WHERE {}", filters.join(" AND "))
+            format!("WHERE {}", filter_clauses.join(" AND "))
         };
 
         Ok((where_clause, params))
@@ -183,6 +247,81 @@ where
             let sort_clauses: Vec<String> = sorts.iter().map(|s| s.to_sql()).collect();
             format!("ORDER BY {}", sort_clauses.join(", "))
         }
+    }
+
+    /// Load relationships for the given data
+    async fn load_relationships(&self, data: Vec<T>) -> Result<Vec<WithRelationships<T>>>
+    where
+        T: Relatable,
+    {
+        if data.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let mut result = Vec::new();
+
+        // Convert includes to IncludeSelector if provided
+        if let Some(includes) = &self.request.includes {
+            let allowed_includes: Vec<String> = T::allowed_includes().iter().map(|s| s.to_string()).collect();
+            let include_selector = IncludeSelector::new(includes.clone(), allowed_includes);
+            let relationships = T::relationships();
+
+            // Build eager load queries
+            let eager_queries = include_selector.build_eager_load_queries(&data, &relationships);
+
+            // Execute eager load queries and collect results
+            let mut relationship_data = std::collections::HashMap::new();
+
+            for query in eager_queries {
+                let rows = sqlx::query(&query.sql)
+                    .bind_all(query.parameters)
+                    .fetch_all(&self.pool)
+                    .await?;
+
+                // Convert rows to JSON values for storage
+                let mut json_rows = Vec::new();
+                for row in rows {
+                    let mut json_obj = serde_json::Map::new();
+
+                    // Extract all columns from the row
+                    for (i, column) in row.columns().iter().enumerate() {
+                        let name = column.name();
+                        if let Ok(value) = row.try_get::<String, _>(i) {
+                            json_obj.insert(name.to_string(), serde_json::Value::String(value));
+                        } else if let Ok(value) = row.try_get::<i64, _>(i) {
+                            json_obj.insert(name.to_string(), serde_json::Value::Number(serde_json::Number::from(value)));
+                        } else if let Ok(value) = row.try_get::<bool, _>(i) {
+                            json_obj.insert(name.to_string(), serde_json::Value::Bool(value));
+                        }
+                        // Add more type conversions as needed
+                    }
+                    json_rows.push(serde_json::Value::Object(json_obj));
+                }
+
+                relationship_data.insert(query.relationship_name, json_rows);
+            }
+
+            // Build response with relationships
+            for model in data {
+                let mut with_rels = WithRelationships::new(model);
+
+                // Add loaded relationships
+                for (rel_name, rel_data) in &relationship_data {
+                    if include_selector.should_include(rel_name) {
+                        with_rels = with_rels.with_relationship(rel_name.clone(), serde_json::Value::Array(rel_data.clone()));
+                    }
+                }
+
+                result.push(with_rels);
+            }
+        } else {
+            // No includes requested, just wrap models
+            for model in data {
+                result.push(WithRelationships::new(model));
+            }
+        }
+
+        Ok(result)
     }
 }
 
