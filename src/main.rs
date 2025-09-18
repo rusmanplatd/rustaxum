@@ -1,14 +1,21 @@
-use rustaxum::{create_app, config};
+use rustaxum::{create_app, config, logging::Log};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let config = config::Config::load()?;
 
+    // Initialize Laravel-style logging
+    Log::init(config.logging.clone())?;
+
     let log_level = if config.app.debug {
-        format!("rustaxum=debug,tower_http=debug,{}", config.logging.level)
+        format!("rustaxum=debug,tower_http=debug,info")
     } else {
-        config.logging.level.clone()
+        if let Some(channel) = config.logging.get_default_channel() {
+            channel.level.clone()
+        } else {
+            "info".to_string()
+        }
     };
 
     tracing_subscriber::registry()

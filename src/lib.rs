@@ -6,11 +6,12 @@ pub mod cli;
 pub mod storage;
 pub mod query_builder;
 pub mod cache;
+pub mod logging;
 
 // Re-export validation for convenient access
 pub use app::validation;
 
-use axum::Router;
+use axum::{Router, middleware};
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
@@ -29,6 +30,7 @@ pub async fn create_app() -> anyhow::Result<Router> {
         .with_state(pool)
         .layer(
             ServiceBuilder::new()
+                .layer(middleware::from_fn(app::middleware::logging::request_logging_middleware))
                 .layer(TraceLayer::new_for_http())
                 .layer(CorsLayer::permissive()),
         );
