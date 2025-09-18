@@ -9,7 +9,7 @@ pub mod bind;
 pub mod scopes;
 pub mod cache;
 
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use sqlx::{FromRow, postgres::PgRow};
 use std::collections::HashMap;
 
@@ -21,6 +21,20 @@ pub use params::QueryParams;
 pub use includes::{IncludeSelector, Relatable, Relationship, RelationshipType, WithRelationships};
 pub use filter_group::{FilterGroup, FilterCondition, FilterGroupBuilder, SimpleFilter};
 pub use scopes::{Scopeable, CommonScopes, ScopeResolver, ScopedQueryBuilder};
+
+/// Pagination type for controlling how pagination works
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum PaginationType {
+    Offset,
+    Cursor,
+}
+
+impl Default for PaginationType {
+    fn default() -> Self {
+        Self::Cursor
+    }
+}
 
 /// Trait for models that can be queried with the QueryBuilder
 pub trait Queryable: for<'r> FromRow<'r, PgRow> + Send + Unpin + Serialize {
@@ -52,6 +66,8 @@ pub struct QueryBuilderRequest {
     pub includes: Option<Vec<String>>,
     pub page: Option<u64>,
     pub per_page: Option<u64>,
+    pub pagination_type: PaginationType,
+    pub cursor: Option<String>,
 }
 
 impl Default for QueryBuilderRequest {
@@ -64,6 +80,8 @@ impl Default for QueryBuilderRequest {
             includes: None,
             page: None,
             per_page: Some(15), // Default pagination
+            pagination_type: PaginationType::default(),
+            cursor: None,
         }
     }
 }
@@ -83,10 +101,17 @@ pub struct PaginationMeta {
     pub last_page: u64,
     pub from: Option<u64>,
     pub to: Option<u64>,
+    pub pagination_type: PaginationType,
+    pub next_cursor: Option<String>,
+    pub prev_cursor: Option<String>,
 }
 
 impl PaginationMeta {
     pub fn new(current_page: u64, per_page: u64, total: u64) -> Self {
+        Self::offset_pagination(current_page, per_page, total)
+    }
+
+    pub fn offset_pagination(current_page: u64, per_page: u64, total: u64) -> Self {
         let last_page = if total == 0 { 1 } else { (total as f64 / per_page as f64).ceil() as u64 };
         let from = if total == 0 { None } else { Some((current_page - 1) * per_page + 1) };
         let to = if total == 0 { None } else { Some(std::cmp::min(current_page * per_page, total)) };
@@ -98,6 +123,23 @@ impl PaginationMeta {
             last_page,
             from,
             to,
+            pagination_type: PaginationType::Offset,
+            next_cursor: None,
+            prev_cursor: None,
+        }
+    }
+
+    pub fn cursor_pagination(per_page: u64, _has_more: bool, next_cursor: Option<String>, prev_cursor: Option<String>) -> Self {
+        Self {
+            current_page: 1, // Not applicable for cursor pagination
+            per_page,
+            total: 0, // Not applicable for cursor pagination
+            last_page: 1, // Not applicable for cursor pagination
+            from: None,
+            to: None,
+            pagination_type: PaginationType::Cursor,
+            next_cursor,
+            prev_cursor,
         }
     }
 }

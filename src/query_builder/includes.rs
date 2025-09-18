@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use serde::Serialize;
 
+use super::filter::FilterOperator;
+
 /// Trait for models that support relationship loading
 pub trait Relatable {
     /// Get the allowed relationship names that can be included
@@ -17,6 +19,15 @@ pub struct Relationship {
     pub local_key: String,
     pub related_table: String,
     pub relationship_type: RelationshipType,
+    pub constraints: Vec<RelationshipConstraint>,
+}
+
+/// Constraint for relationship queries
+#[derive(Debug, Clone)]
+pub struct RelationshipConstraint {
+    pub field: String,
+    pub operator: FilterOperator,
+    pub value: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -24,7 +35,47 @@ pub enum RelationshipType {
     HasOne,
     HasMany,
     BelongsTo,
-    BelongsToMany { pivot_table: String, foreign_pivot_key: String, related_pivot_key: String },
+    BelongsToMany {
+        pivot_table: String,
+        foreign_pivot_key: String,
+        related_pivot_key: String
+    },
+    HasOneThrough {
+        through_table: String,
+        first_key: String,
+        second_key: String,
+        local_key: String,
+        second_local_key: String,
+    },
+    HasManyThrough {
+        through_table: String,
+        first_key: String,
+        second_key: String,
+        local_key: String,
+        second_local_key: String,
+    },
+    MorphTo {
+        morph_type: String,
+        morph_id: String,
+    },
+    MorphOne {
+        morph_type: String,
+        morph_id: String,
+        morph_name: String,
+    },
+    MorphMany {
+        morph_type: String,
+        morph_id: String,
+        morph_name: String,
+    },
+    MorphToMany {
+        pivot_table: String,
+        foreign_pivot_key: String,
+        related_pivot_key: String,
+        morph_type: String,
+        morph_id: String,
+        morph_name: String,
+    },
 }
 
 impl Relationship {
@@ -34,6 +85,7 @@ impl Relationship {
             local_key: local_key.to_string(),
             related_table: related_table.to_string(),
             relationship_type: RelationshipType::HasOne,
+            constraints: Vec::new(),
         }
     }
 
@@ -43,6 +95,7 @@ impl Relationship {
             local_key: local_key.to_string(),
             related_table: related_table.to_string(),
             relationship_type: RelationshipType::HasMany,
+            constraints: Vec::new(),
         }
     }
 
@@ -52,6 +105,7 @@ impl Relationship {
             local_key: local_key.to_string(),
             related_table: related_table.to_string(),
             relationship_type: RelationshipType::BelongsTo,
+            constraints: Vec::new(),
         }
     }
 
@@ -72,7 +126,227 @@ impl Relationship {
                 foreign_pivot_key: foreign_pivot_key.to_string(),
                 related_pivot_key: related_pivot_key.to_string(),
             },
+            constraints: Vec::new(),
         }
+    }
+
+    pub fn has_one_through(
+        foreign_key: &str,
+        local_key: &str,
+        related_table: &str,
+        through_table: &str,
+        first_key: &str,
+        second_key: &str,
+        second_local_key: &str,
+    ) -> Self {
+        Self {
+            foreign_key: foreign_key.to_string(),
+            local_key: local_key.to_string(),
+            related_table: related_table.to_string(),
+            relationship_type: RelationshipType::HasOneThrough {
+                through_table: through_table.to_string(),
+                first_key: first_key.to_string(),
+                second_key: second_key.to_string(),
+                local_key: local_key.to_string(),
+                second_local_key: second_local_key.to_string(),
+            },
+            constraints: Vec::new(),
+        }
+    }
+
+    pub fn has_many_through(
+        foreign_key: &str,
+        local_key: &str,
+        related_table: &str,
+        through_table: &str,
+        first_key: &str,
+        second_key: &str,
+        second_local_key: &str,
+    ) -> Self {
+        Self {
+            foreign_key: foreign_key.to_string(),
+            local_key: local_key.to_string(),
+            related_table: related_table.to_string(),
+            relationship_type: RelationshipType::HasManyThrough {
+                through_table: through_table.to_string(),
+                first_key: first_key.to_string(),
+                second_key: second_key.to_string(),
+                local_key: local_key.to_string(),
+                second_local_key: second_local_key.to_string(),
+            },
+            constraints: Vec::new(),
+        }
+    }
+
+    pub fn morph_to(foreign_key: &str, morph_type: &str, morph_id: &str) -> Self {
+        Self {
+            foreign_key: foreign_key.to_string(),
+            local_key: "".to_string(),
+            related_table: "".to_string(),
+            relationship_type: RelationshipType::MorphTo {
+                morph_type: morph_type.to_string(),
+                morph_id: morph_id.to_string(),
+            },
+            constraints: Vec::new(),
+        }
+    }
+
+    pub fn morph_one(
+        foreign_key: &str,
+        local_key: &str,
+        related_table: &str,
+        morph_name: &str,
+        morph_type: &str,
+        morph_id: &str,
+    ) -> Self {
+        Self {
+            foreign_key: foreign_key.to_string(),
+            local_key: local_key.to_string(),
+            related_table: related_table.to_string(),
+            relationship_type: RelationshipType::MorphOne {
+                morph_type: morph_type.to_string(),
+                morph_id: morph_id.to_string(),
+                morph_name: morph_name.to_string(),
+            },
+            constraints: Vec::new(),
+        }
+    }
+
+    pub fn morph_many(
+        foreign_key: &str,
+        local_key: &str,
+        related_table: &str,
+        morph_name: &str,
+        morph_type: &str,
+        morph_id: &str,
+    ) -> Self {
+        Self {
+            foreign_key: foreign_key.to_string(),
+            local_key: local_key.to_string(),
+            related_table: related_table.to_string(),
+            relationship_type: RelationshipType::MorphMany {
+                morph_type: morph_type.to_string(),
+                morph_id: morph_id.to_string(),
+                morph_name: morph_name.to_string(),
+            },
+            constraints: Vec::new(),
+        }
+    }
+
+    pub fn morph_to_many(
+        foreign_key: &str,
+        local_key: &str,
+        related_table: &str,
+        pivot_table: &str,
+        foreign_pivot_key: &str,
+        related_pivot_key: &str,
+        morph_name: &str,
+        morph_type: &str,
+        morph_id: &str,
+    ) -> Self {
+        Self {
+            foreign_key: foreign_key.to_string(),
+            local_key: local_key.to_string(),
+            related_table: related_table.to_string(),
+            relationship_type: RelationshipType::MorphToMany {
+                pivot_table: pivot_table.to_string(),
+                foreign_pivot_key: foreign_pivot_key.to_string(),
+                related_pivot_key: related_pivot_key.to_string(),
+                morph_type: morph_type.to_string(),
+                morph_id: morph_id.to_string(),
+                morph_name: morph_name.to_string(),
+            },
+            constraints: Vec::new(),
+        }
+    }
+
+    /// Add a constraint to this relationship
+    pub fn with_constraint(mut self, field: &str, operator: FilterOperator, value: &str) -> Self {
+        self.constraints.push(RelationshipConstraint {
+            field: field.to_string(),
+            operator,
+            value: value.to_string(),
+        });
+        self
+    }
+
+    /// Add multiple constraints to this relationship
+    pub fn with_constraints(mut self, constraints: Vec<RelationshipConstraint>) -> Self {
+        self.constraints.extend(constraints);
+        self
+    }
+
+    /// Generate WHERE clause for relationship constraints
+    pub fn build_constraint_clause(&self) -> (String, Vec<String>) {
+        if self.constraints.is_empty() {
+            return (String::new(), Vec::new());
+        }
+
+        let mut clauses = Vec::new();
+        let mut params = Vec::new();
+
+        for constraint in &self.constraints {
+            match constraint.operator {
+                FilterOperator::Eq => {
+                    clauses.push(format!("{} = ?", constraint.field));
+                    params.push(constraint.value.clone());
+                },
+                FilterOperator::Ne => {
+                    clauses.push(format!("{} != ?", constraint.field));
+                    params.push(constraint.value.clone());
+                },
+                FilterOperator::Gt => {
+                    clauses.push(format!("{} > ?", constraint.field));
+                    params.push(constraint.value.clone());
+                },
+                FilterOperator::Gte => {
+                    clauses.push(format!("{} >= ?", constraint.field));
+                    params.push(constraint.value.clone());
+                },
+                FilterOperator::Lt => {
+                    clauses.push(format!("{} < ?", constraint.field));
+                    params.push(constraint.value.clone());
+                },
+                FilterOperator::Lte => {
+                    clauses.push(format!("{} <= ?", constraint.field));
+                    params.push(constraint.value.clone());
+                },
+                FilterOperator::Like => {
+                    clauses.push(format!("{} LIKE ?", constraint.field));
+                    params.push(format!("%{}%", constraint.value));
+                },
+                FilterOperator::NotLike => {
+                    clauses.push(format!("{} NOT LIKE ?", constraint.field));
+                    params.push(format!("%{}%", constraint.value));
+                },
+                FilterOperator::In => {
+                    let values: Vec<&str> = constraint.value.split(',').collect();
+                    let placeholders = values.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+                    clauses.push(format!("{} IN ({})", constraint.field, placeholders));
+                    params.extend(values.iter().map(|v| v.trim().to_string()));
+                },
+                FilterOperator::NotIn => {
+                    let values: Vec<&str> = constraint.value.split(',').collect();
+                    let placeholders = values.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+                    clauses.push(format!("{} NOT IN ({})", constraint.field, placeholders));
+                    params.extend(values.iter().map(|v| v.trim().to_string()));
+                },
+                FilterOperator::IsNull => {
+                    clauses.push(format!("{} IS NULL", constraint.field));
+                },
+                FilterOperator::IsNotNull => {
+                    clauses.push(format!("{} IS NOT NULL", constraint.field));
+                },
+            }
+        }
+
+        let clause = if clauses.is_empty() {
+            String::new()
+        } else {
+            format!(" AND {}", clauses.join(" AND "))
+        };
+
+        (clause, params)
     }
 }
 
@@ -121,30 +395,129 @@ impl IncludeSelector {
                 let local_values = self.extract_values_from_results(main_results, &relationship.local_key);
 
                 if !local_values.is_empty() {
+                    // Build constraint clause for this relationship
+                    let (constraint_clause, constraint_params) = relationship.build_constraint_clause();
+
                     let query = match &relationship.relationship_type {
                         RelationshipType::HasOne | RelationshipType::HasMany => {
+                            let mut all_params = local_values.clone();
+                            all_params.extend(constraint_params.clone());
+
                             EagerLoadQuery {
                                 relationship_name: include.clone(),
                                 sql: format!(
-                                    "SELECT * FROM {} WHERE {} IN ({})",
+                                    "SELECT * FROM {} WHERE {} IN ({}){}",
                                     relationship.related_table,
                                     relationship.foreign_key,
-                                    local_values.iter().map(|_| "?").collect::<Vec<_>>().join(", ")
+                                    local_values.iter().map(|_| "?").collect::<Vec<_>>().join(", "),
+                                    constraint_clause
                                 ),
-                                parameters: local_values.clone(),
+                                parameters: all_params,
                                 relationship_type: relationship.relationship_type.clone(),
                                 local_key: relationship.local_key.clone(),
                                 foreign_key: relationship.foreign_key.clone(),
                             }
                         },
                         RelationshipType::BelongsTo => {
+                            let mut all_params = local_values.clone();
+                            all_params.extend(constraint_params.clone());
+
                             EagerLoadQuery {
                                 relationship_name: include.clone(),
                                 sql: format!(
-                                    "SELECT * FROM {} WHERE {} IN ({})",
+                                    "SELECT * FROM {} WHERE {} IN ({}){}",
                                     relationship.related_table,
                                     relationship.local_key,
-                                    local_values.iter().map(|_| "?").collect::<Vec<_>>().join(", ")
+                                    local_values.iter().map(|_| "?").collect::<Vec<_>>().join(", "),
+                                    constraint_clause
+                                ),
+                                parameters: all_params,
+                                relationship_type: relationship.relationship_type.clone(),
+                                local_key: relationship.local_key.clone(),
+                                foreign_key: relationship.foreign_key.clone(),
+                            }
+                        },
+                        RelationshipType::BelongsToMany { pivot_table, foreign_pivot_key, related_pivot_key } => {
+                            let mut all_params = local_values.clone();
+                            all_params.extend(constraint_params.clone());
+
+                            EagerLoadQuery {
+                                relationship_name: include.clone(),
+                                sql: format!(
+                                    "SELECT r.*, p.{} as pivot_local_key FROM {} r
+                                     INNER JOIN {} p ON r.{} = p.{}
+                                     WHERE p.{} IN ({}){}",
+                                    foreign_pivot_key,
+                                    relationship.related_table,
+                                    pivot_table,
+                                    relationship.local_key,
+                                    related_pivot_key,
+                                    foreign_pivot_key,
+                                    local_values.iter().map(|_| "?").collect::<Vec<_>>().join(", "),
+                                    constraint_clause
+                                ),
+                                parameters: all_params,
+                                relationship_type: relationship.relationship_type.clone(),
+                                local_key: relationship.local_key.clone(),
+                                foreign_key: relationship.foreign_key.clone(),
+                            }
+                        },
+                        RelationshipType::HasOneThrough { through_table, first_key, second_key, local_key: _, second_local_key } => {
+                            let mut all_params = local_values.clone();
+                            all_params.extend(constraint_params.clone());
+
+                            EagerLoadQuery {
+                                relationship_name: include.clone(),
+                                sql: format!(
+                                    "SELECT r.* FROM {} r
+                                     INNER JOIN {} t ON t.{} = r.{}
+                                     WHERE t.{} IN ({}){}",
+                                    relationship.related_table,
+                                    through_table,
+                                    second_local_key,
+                                    second_key,
+                                    first_key,
+                                    local_values.iter().map(|_| "?").collect::<Vec<_>>().join(", "),
+                                    constraint_clause
+                                ),
+                                parameters: all_params,
+                                relationship_type: relationship.relationship_type.clone(),
+                                local_key: relationship.local_key.clone(),
+                                foreign_key: relationship.foreign_key.clone(),
+                            }
+                        },
+                        RelationshipType::HasManyThrough { through_table, first_key, second_key, local_key: _, second_local_key } => {
+                            let mut all_params = local_values.clone();
+                            all_params.extend(constraint_params.clone());
+
+                            EagerLoadQuery {
+                                relationship_name: include.clone(),
+                                sql: format!(
+                                    "SELECT r.* FROM {} r
+                                     INNER JOIN {} t ON t.{} = r.{}
+                                     WHERE t.{} IN ({}){}",
+                                    relationship.related_table,
+                                    through_table,
+                                    second_local_key,
+                                    second_key,
+                                    first_key,
+                                    local_values.iter().map(|_| "?").collect::<Vec<_>>().join(", "),
+                                    constraint_clause
+                                ),
+                                parameters: all_params,
+                                relationship_type: relationship.relationship_type.clone(),
+                                local_key: relationship.local_key.clone(),
+                                foreign_key: relationship.foreign_key.clone(),
+                            }
+                        },
+                        RelationshipType::MorphTo { morph_type, morph_id: _ } => {
+                            // For MorphTo, we need to handle multiple potential tables
+                            // This is more complex and would require additional logic
+                            EagerLoadQuery {
+                                relationship_name: include.clone(),
+                                sql: format!(
+                                    "-- MorphTo relationship requires dynamic table resolution based on {} field",
+                                    morph_type
                                 ),
                                 parameters: local_values.clone(),
                                 relationship_type: relationship.relationship_type.clone(),
@@ -152,22 +525,70 @@ impl IncludeSelector {
                                 foreign_key: relationship.foreign_key.clone(),
                             }
                         },
-                        RelationshipType::BelongsToMany { pivot_table, foreign_pivot_key, related_pivot_key } => {
+                        RelationshipType::MorphOne { morph_type, morph_id, morph_name } => {
+                            let mut all_params = vec![morph_name.clone()];
+                            all_params.extend(local_values.clone());
+                            all_params.extend(constraint_params.clone());
+
+                            EagerLoadQuery {
+                                relationship_name: include.clone(),
+                                sql: format!(
+                                    "SELECT * FROM {} WHERE {} = ? AND {} IN ({}){}",
+                                    relationship.related_table,
+                                    morph_type,
+                                    morph_id,
+                                    local_values.iter().map(|_| "?").collect::<Vec<_>>().join(", "),
+                                    constraint_clause
+                                ),
+                                parameters: all_params,
+                                relationship_type: relationship.relationship_type.clone(),
+                                local_key: relationship.local_key.clone(),
+                                foreign_key: relationship.foreign_key.clone(),
+                            }
+                        },
+                        RelationshipType::MorphMany { morph_type, morph_id, morph_name } => {
+                            let mut all_params = vec![morph_name.clone()];
+                            all_params.extend(local_values.clone());
+                            all_params.extend(constraint_params.clone());
+
+                            EagerLoadQuery {
+                                relationship_name: include.clone(),
+                                sql: format!(
+                                    "SELECT * FROM {} WHERE {} = ? AND {} IN ({}){}",
+                                    relationship.related_table,
+                                    morph_type,
+                                    morph_id,
+                                    local_values.iter().map(|_| "?").collect::<Vec<_>>().join(", "),
+                                    constraint_clause
+                                ),
+                                parameters: all_params,
+                                relationship_type: relationship.relationship_type.clone(),
+                                local_key: relationship.local_key.clone(),
+                                foreign_key: relationship.foreign_key.clone(),
+                            }
+                        },
+                        RelationshipType::MorphToMany { pivot_table, foreign_pivot_key, related_pivot_key, morph_type, morph_id, morph_name } => {
+                            let mut all_params = vec![morph_name.clone()];
+                            all_params.extend(local_values.clone());
+                            all_params.extend(constraint_params.clone());
+
                             EagerLoadQuery {
                                 relationship_name: include.clone(),
                                 sql: format!(
                                     "SELECT r.*, p.{} as pivot_local_key FROM {} r
                                      INNER JOIN {} p ON r.{} = p.{}
-                                     WHERE p.{} IN ({})",
+                                     WHERE p.{} = ? AND p.{} IN ({}){}",
                                     foreign_pivot_key,
                                     relationship.related_table,
                                     pivot_table,
                                     relationship.local_key,
                                     related_pivot_key,
-                                    foreign_pivot_key,
-                                    local_values.iter().map(|_| "?").collect::<Vec<_>>().join(", ")
+                                    morph_type,
+                                    morph_id,
+                                    local_values.iter().map(|_| "?").collect::<Vec<_>>().join(", "),
+                                    constraint_clause
                                 ),
-                                parameters: local_values.clone(),
+                                parameters: all_params,
                                 relationship_type: relationship.relationship_type.clone(),
                                 local_key: relationship.local_key.clone(),
                                 foreign_key: relationship.foreign_key.clone(),
@@ -263,5 +684,102 @@ mod tests {
         assert_eq!(rel.local_key, "id");
         assert_eq!(rel.related_table, "posts");
         assert_eq!(rel.relationship_type, RelationshipType::HasMany);
+        assert!(rel.constraints.is_empty());
+    }
+
+    #[test]
+    fn test_relationship_with_constraints() {
+        use super::FilterOperator;
+
+        let rel = Relationship::has_many("user_id", "id", "posts")
+            .with_constraint("status", FilterOperator::Eq, "published")
+            .with_constraint("created_at", FilterOperator::Gte, "2023-01-01");
+
+        assert_eq!(rel.constraints.len(), 2);
+        assert_eq!(rel.constraints[0].field, "status");
+        assert_eq!(rel.constraints[0].operator, FilterOperator::Eq);
+        assert_eq!(rel.constraints[0].value, "published");
+    }
+
+    #[test]
+    fn test_has_one_through_relationship() {
+        let rel = Relationship::has_one_through(
+            "id",
+            "id",
+            "profiles",
+            "posts",
+            "user_id",
+            "user_id",
+            "id"
+        );
+
+        match rel.relationship_type {
+            RelationshipType::HasOneThrough { through_table, first_key, second_key, .. } => {
+                assert_eq!(through_table, "posts");
+                assert_eq!(first_key, "user_id");
+                assert_eq!(second_key, "user_id");
+            },
+            _ => panic!("Expected HasOneThrough relationship"),
+        }
+    }
+
+    #[test]
+    fn test_morph_many_relationship() {
+        let rel = Relationship::morph_many(
+            "id",
+            "id",
+            "comments",
+            "Post",
+            "commentable_type",
+            "commentable_id"
+        );
+
+        match rel.relationship_type {
+            RelationshipType::MorphMany { morph_type, morph_id, morph_name } => {
+                assert_eq!(morph_type, "commentable_type");
+                assert_eq!(morph_id, "commentable_id");
+                assert_eq!(morph_name, "Post");
+            },
+            _ => panic!("Expected MorphMany relationship"),
+        }
+    }
+
+    #[test]
+    fn test_belongs_to_many_relationship() {
+        let rel = Relationship::belongs_to_many(
+            "id",
+            "id",
+            "roles",
+            "user_roles",
+            "user_id",
+            "role_id"
+        );
+
+        match rel.relationship_type {
+            RelationshipType::BelongsToMany { pivot_table, foreign_pivot_key, related_pivot_key } => {
+                assert_eq!(pivot_table, "user_roles");
+                assert_eq!(foreign_pivot_key, "user_id");
+                assert_eq!(related_pivot_key, "role_id");
+            },
+            _ => panic!("Expected BelongsToMany relationship"),
+        }
+    }
+
+    #[test]
+    fn test_constraint_clause_generation() {
+        use super::FilterOperator;
+
+        let rel = Relationship::has_many("user_id", "id", "posts")
+            .with_constraint("status", FilterOperator::Eq, "published")
+            .with_constraint("views", FilterOperator::Gt, "100");
+
+        let (clause, params) = rel.build_constraint_clause();
+
+        assert!(!clause.is_empty());
+        assert!(clause.contains("status = ?"));
+        assert!(clause.contains("views > ?"));
+        assert_eq!(params.len(), 2);
+        assert!(params.contains(&"published".to_string()));
+        assert!(params.contains(&"100".to_string()));
     }
 }

@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use std::collections::HashMap;
 
-use super::QueryBuilderRequest;
+use super::{QueryBuilderRequest, PaginationType};
 
 /// Query parameters structure for parsing URL query strings
 #[derive(Debug, Deserialize)]
@@ -23,6 +23,12 @@ pub struct QueryParams {
 
     #[serde(default)]
     pub per_page: Option<u64>,
+
+    #[serde(default)]
+    pub pagination_type: Option<PaginationType>,
+
+    #[serde(default)]
+    pub cursor: Option<String>,
 }
 
 impl Default for QueryParams {
@@ -34,6 +40,8 @@ impl Default for QueryParams {
             include: None,
             page: None,
             per_page: Some(15),
+            pagination_type: None,
+            cursor: None,
         }
     }
 }
@@ -42,7 +50,7 @@ impl QueryParams {
     /// Parse query parameters into a QueryBuilderRequest
     pub fn parse(&self) -> QueryBuilderRequest {
         // Extract filters (remove reserved query params)
-        let reserved_keys = vec!["sort", "fields", "include", "page", "per_page"];
+        let reserved_keys = vec!["sort", "fields", "include", "page", "per_page", "pagination_type", "cursor"];
         let filters: HashMap<String, String> = self.filter
             .iter()
             .filter(|(key, _)| !reserved_keys.contains(&key.as_str()))
@@ -73,6 +81,8 @@ impl QueryParams {
             includes,
             page: self.page,
             per_page: self.per_page.or(Some(15)),
+            pagination_type: self.pagination_type.clone().unwrap_or_default(),
+            cursor: self.cursor.clone(),
         }
     }
 }
