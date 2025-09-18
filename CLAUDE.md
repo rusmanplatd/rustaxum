@@ -44,12 +44,37 @@ docker-compose down -v
 ### Artisan CLI (Laravel-like Commands)
 ```bash
 # Generate components using the artisan CLI
+
+# Core Components
 cargo run --bin artisan -- make controller PostController --resource
 cargo run --bin artisan -- make model Post --migration
 cargo run --bin artisan -- make service PostService
 cargo run --bin artisan -- make middleware AuthMiddleware
 cargo run --bin artisan -- make migration create_posts_table
 cargo run --bin artisan -- make seeder UserSeeder
+cargo run --bin artisan -- make request CreatePostRequest
+
+# API Resources
+cargo run --bin artisan -- make resource UserResource
+cargo run --bin artisan -- make resource PostCollection --collection
+
+# Communication & Events
+cargo run --bin artisan -- make mail OrderShipped --markdown
+cargo run --bin artisan -- make notification InvoicePaid --markdown
+cargo run --bin artisan -- make event UserRegistered
+cargo run --bin artisan -- make listener SendWelcomeEmail --event UserRegistered --queued
+
+# Jobs & Background Processing
+cargo run --bin artisan -- make job ProcessPayment
+cargo run --bin artisan -- make job SendEmail --sync
+
+# Authorization & Validation
+cargo run --bin artisan -- make policy PostPolicy --model Post
+cargo run --bin artisan -- make rule UppercaseRule
+
+# Testing
+cargo run --bin artisan -- make test UserServiceTest --unit
+cargo run --bin artisan -- make test PostControllerTest
 
 # Run database migrations
 cargo run --bin artisan -- migrate
@@ -93,11 +118,22 @@ This is a Laravel-inspired Rust web framework built with Axum, following familia
 ### Core Architecture Principles
 
 **Layered Architecture**: The application follows a clear separation of concerns with distinct layers:
+
 - **Routes** (`src/routes/`): Define URL patterns and map to controllers
 - **Controllers** (`src/app/controllers/`): Handle HTTP requests/responses, delegate to services
 - **Services** (`src/app/services/`): Contain business logic, interact with models
 - **Models** (`src/app/models/`): Data structures and database interactions
 - **Middleware** (`src/app/middleware/`): Cross-cutting concerns (auth, CORS, logging)
+- **Resources** (`src/app/resources/`): API response transformations and data presentation
+- **Requests** (`src/app/requests/`): Input validation and form request handling
+- **Mail** (`src/app/mail/`): Email composition and sending logic
+- **Notifications** (`src/app/notifications/`): Multi-channel notification system
+- **Jobs** (`src/app/jobs/`): Background task processing and queue management
+- **Events** (`src/app/events/`): Event broadcasting and application event handling
+- **Listeners** (`src/app/listeners/`): Event listeners and handlers
+- **Policies** (`src/app/policies/`): Authorization logic and access control
+- **Rules** (`src/app/rules/`): Custom validation rules and data validation
+- **Tests** (`tests/`): Unit and feature tests for application components
 
 **Configuration Management**: Environment-based configuration through `src/config/mod.rs` with the `Config` struct that loads from environment variables with sensible defaults.
 
@@ -113,14 +149,54 @@ This is a Laravel-inspired Rust web framework built with Axum, following familia
 **Authentication Flow**: JWT-based authentication with bcrypt password hashing. Auth logic is split between `auth_controller.rs` and `auth_service.rs`.
 
 **Middleware Stack**: Applied globally in `main.rs` using Tower's `ServiceBuilder`:
+
 - Tracing for request logging
 - Permissive CORS (can be customized in `src/app/middleware/cors.rs`)
 
 **Error Handling**: Uses `anyhow::Result` for error propagation throughout the application.
 
+### Artisan Make Commands
+
+The framework provides comprehensive Laravel-style generators:
+
+**Core Components**
+
+- `make:controller` - HTTP request handlers with optional `--resource` flag
+- `make:model` - Data models with optional `--migration` flag
+- `make:service` - Business logic services
+- `make:middleware` - HTTP middleware for cross-cutting concerns
+- `make:request` - Form request validation classes
+
+**API & Resources**
+
+- `make:resource` - API response transformers with optional `--collection` flag
+- `make:migration` - Database schema changes
+- `make:seeder` - Database seeding classes
+
+**Communication & Events**
+
+- `make:mail` - Email classes with optional `--markdown` templates
+- `make:notification` - Multi-channel notifications with optional `--markdown`
+- `make:event` - Application events for broadcasting
+- `make:listener` - Event handlers with `--event` and `--queued` options
+
+**Background Processing**
+
+- `make:job` - Background jobs with optional `--sync` flag for immediate execution
+
+**Authorization & Validation**
+
+- `make:policy` - Authorization policies with optional `--model` association
+- `make:rule` - Custom validation rules
+
+**Testing**
+
+- `make:test` - Test classes with `--unit` flag for unit vs feature tests
+
 ### Development Patterns
 
 **Adding New Features** (using Artisan CLI):
+
 1. `cargo run --bin artisan -- make model ModelName --migration`
 2. `cargo run --bin artisan -- make service ModelService`
 3. `cargo run --bin artisan -- make controller ModelController --resource`
@@ -128,6 +204,7 @@ This is a Laravel-inspired Rust web framework built with Axum, following familia
 5. `cargo run --bin artisan -- migrate`
 
 **Manual approach** (if not using Artisan):
+
 1. Create model in `src/app/models/`
 2. Create service for business logic in `src/app/services/`
 3. Create controller in `src/app/controllers/`
@@ -141,9 +218,10 @@ This is a Laravel-inspired Rust web framework built with Axum, following familia
 ## Service Access
 
 When running with Docker Compose:
-- Application: http://localhost:3000
-- Database Admin (Adminer): http://localhost:8080
-- Email Testing (Mailpit): http://localhost:8025
+
+- Application: <http://localhost:3000>
+- Database Admin (Adminer): <http://localhost:8080>
+- Email Testing (Mailpit): <http://localhost:8025>
 - PostgreSQL: localhost:5432
 - Redis: localhost:6379
 

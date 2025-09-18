@@ -112,6 +112,75 @@ pub enum MakeCommands {
         /// Name of the seeder (e.g., UserSeeder)
         name: String,
     },
+    /// Generate a new API resource
+    Resource {
+        /// Name of the resource (e.g., UserResource)
+        name: String,
+        /// Generate a resource collection
+        #[arg(long)]
+        collection: bool,
+    },
+    /// Generate a new mailable
+    Mail {
+        /// Name of the mail (e.g., OrderShipped)
+        name: String,
+        /// Generate a markdown template
+        #[arg(long)]
+        markdown: bool,
+    },
+    /// Generate a new notification
+    Notification {
+        /// Name of the notification (e.g., InvoicePaid)
+        name: String,
+        /// Generate markdown template
+        #[arg(long)]
+        markdown: bool,
+    },
+    /// Generate a new job
+    Job {
+        /// Name of the job (e.g., ProcessPayment)
+        name: String,
+        /// Mark job as sync
+        #[arg(long)]
+        sync: bool,
+    },
+    /// Generate a new event
+    Event {
+        /// Name of the event (e.g., OrderShipped)
+        name: String,
+    },
+    /// Generate a new event listener
+    Listener {
+        /// Name of the listener (e.g., SendShipmentNotification)
+        name: String,
+        /// Event to listen for
+        #[arg(long)]
+        event: Option<String>,
+        /// Mark listener as queued
+        #[arg(long)]
+        queued: bool,
+    },
+    /// Generate a new policy
+    Policy {
+        /// Name of the policy (e.g., PostPolicy)
+        name: String,
+        /// Model the policy applies to
+        #[arg(long)]
+        model: Option<String>,
+    },
+    /// Generate a new validation rule
+    Rule {
+        /// Name of the rule (e.g., Uppercase)
+        name: String,
+    },
+    /// Generate a new test
+    Test {
+        /// Name of the test (e.g., UserTest)
+        name: String,
+        /// Generate a unit test instead of feature test
+        #[arg(long)]
+        unit: bool,
+    },
 }
 
 #[derive(Subcommand)]
