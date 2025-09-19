@@ -2,33 +2,51 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Row, postgres::PgRow};
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
+use utoipa::ToSchema;
 use crate::query_builder::{Queryable, SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Country model representing a country entity
+/// Contains country information including name, ISO code, and phone code
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct Country {
+    /// Unique identifier for the country
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub id: Ulid,
+    /// Country name
+    #[schema(example = "United States")]
     pub name: String,
+    /// ISO country code (2-3 letters)
+    #[schema(example = "US")]
     pub iso_code: String,
+    /// Optional phone country code
+    #[schema(example = "+1")]
     pub phone_code: Option<String>,
+    /// Creation timestamp
+    #[schema(example = "2023-01-01T00:00:00Z")]
     pub created_at: DateTime<Utc>,
+    /// Last update timestamp
+    #[schema(example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Create country payload for service layer
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateCountry {
     pub name: String,
     pub iso_code: String,
     pub phone_code: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Update country payload for service layer
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateCountry {
     pub name: Option<String>,
     pub iso_code: Option<String>,
     pub phone_code: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+/// Country response payload for API endpoints
+#[derive(Debug, Serialize, ToSchema)]
 pub struct CountryResponse {
     pub id: String,
     pub name: String,

@@ -1,17 +1,26 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
+use utoipa::ToSchema;
 
 use crate::app::http::form_request::FormRequest;
 use crate::app::validation::{Rule, required, email, min, confirmed, string};
 use crate::impl_form_request_extractor;
 
 /// Register user form request
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct RegisterRequest {
+    /// User's full name
+    #[schema(example = "John Doe")]
     pub name: String,
+    /// User's email address
+    #[schema(example = "john@example.com")]
     pub email: String,
+    /// User's password (minimum 8 characters)
+    #[schema(example = "SecurePass123!")]
     pub password: String,
+    /// Password confirmation (must match password)
+    #[schema(example = "SecurePass123!")]
     pub password_confirmation: String,
 }
 
@@ -49,11 +58,17 @@ impl FormRequest for RegisterRequest {
 impl_form_request_extractor!(RegisterRequest);
 
 /// Login form request
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct LoginRequest {
+    /// User's email address
+    #[schema(example = "john@example.com")]
     pub email: String,
+    /// User's password
+    #[schema(example = "SecurePass123!")]
     pub password: String,
+    /// Remember me option for extended session
     #[serde(default)]
+    #[schema(example = true)]
     pub remember: bool,
 }
 
@@ -78,8 +93,10 @@ impl FormRequest for LoginRequest {
 impl_form_request_extractor!(LoginRequest);
 
 /// Forgot password form request
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct ForgotPasswordRequest {
+    /// User's email address to send reset link
+    #[schema(example = "john@example.com")]
     pub email: String,
 }
 
@@ -102,11 +119,19 @@ impl FormRequest for ForgotPasswordRequest {
 impl_form_request_extractor!(ForgotPasswordRequest);
 
 /// Reset password form request
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct ResetPasswordRequest {
+    /// Password reset token
+    #[schema(example = "abc123def456")]
     pub token: String,
+    /// User's email address
+    #[schema(example = "john@example.com")]
     pub email: String,
+    /// New password (minimum 8 characters)
+    #[schema(example = "NewSecurePass123!")]
     pub password: String,
+    /// Password confirmation (must match password)
+    #[schema(example = "NewSecurePass123!")]
     pub password_confirmation: String,
 }
 
@@ -137,10 +162,16 @@ impl FormRequest for ResetPasswordRequest {
 impl_form_request_extractor!(ResetPasswordRequest);
 
 /// Change password form request
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct ChangePasswordRequest {
+    /// Current password for verification
+    #[schema(example = "CurrentPass123!")]
     pub current_password: String,
+    /// New password (minimum 8 characters)
+    #[schema(example = "NewSecurePass123!")]
     pub password: String,
+    /// Password confirmation (must match password)
+    #[schema(example = "NewSecurePass123!")]
     pub password_confirmation: String,
 }
 

@@ -1,21 +1,32 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
+use utoipa::ToSchema;
 
 use crate::app::http::form_request::FormRequest;
 use crate::app::validation::{Rule, required, email, min, max, string, numeric, in_list};
 use crate::impl_form_request_extractor;
 
 /// Update user profile form request
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct UpdateUserRequest {
+    /// User's full name (2-100 characters)
+    #[schema(example = "John Doe")]
     pub name: String,
+    /// User's email address
+    #[schema(example = "john@example.com")]
     pub email: String,
+    /// User's biography (max 500 characters)
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "Software developer with 5 years experience")]
     pub bio: Option<String>,
+    /// User's phone number (10-15 digits)
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "+1234567890")]
     pub phone: Option<String>,
+    /// User's age (13-120)
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = 25)]
     pub age: Option<u32>,
 }
 
@@ -57,17 +68,27 @@ impl FormRequest for UpdateUserRequest {
 impl_form_request_extractor!(UpdateUserRequest);
 
 /// Search users form request
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct SearchUsersRequest {
+    /// Search query (2-100 characters)
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "john")]
     pub query: Option<String>,
+    /// Page number (default: 1)
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = 1)]
     pub page: Option<u32>,
+    /// Items per page (1-100, default: 15)
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = 15)]
     pub per_page: Option<u32>,
+    /// Sort field (name, email, created_at, updated_at)
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "created_at")]
     pub sort_by: Option<String>,
+    /// Sort direction (asc, desc)
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "desc")]
     pub sort_direction: Option<String>,
 }
 
@@ -115,11 +136,19 @@ impl FormRequest for SearchUsersRequest {
 impl_form_request_extractor!(SearchUsersRequest);
 
 /// Create contact form request
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct ContactFormRequest {
+    /// Contact name (2-100 characters)
+    #[schema(example = "John Doe")]
     pub name: String,
+    /// Contact email address
+    #[schema(example = "john@example.com")]
     pub email: String,
+    /// Message subject (5-200 characters)
+    #[schema(example = "Inquiry about your services")]
     pub subject: String,
+    /// Message content (10-2000 characters)
+    #[schema(example = "I would like to know more about your services...")]
     pub message: String,
 }
 

@@ -2,71 +2,110 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Row, postgres::PgRow};
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
+use utoipa::ToSchema;
 use crate::query_builder::{Queryable, SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// User model representing a registered user
+/// Contains authentication, profile, and security information
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct User {
+    /// Unique user identifier
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub id: Ulid,
+    /// User's full name
+    #[schema(example = "John Doe")]
     pub name: String,
+    /// User's email address
+    #[schema(example = "john.doe@example.com")]
     pub email: String,
+    /// Email verification timestamp
+    #[schema(example = "2023-01-01T00:00:00Z")]
     pub email_verified_at: Option<DateTime<Utc>>,
+    /// Hashed password (never exposed in responses)
+    #[schema(example = "$2b$12$...")]
     pub password: String,
+    /// Remember me token for persistent sessions
     pub remember_token: Option<String>,
+    /// JWT refresh token for authentication
     pub refresh_token: Option<String>,
+    /// Refresh token expiration timestamp
     pub refresh_token_expires_at: Option<DateTime<Utc>>,
+    /// Password reset token
     pub password_reset_token: Option<String>,
+    /// Password reset token expiration
     pub password_reset_expires_at: Option<DateTime<Utc>>,
+    /// Last successful login timestamp
+    #[schema(example = "2023-01-01T00:00:00Z")]
     pub last_login_at: Option<DateTime<Utc>>,
+    /// Number of consecutive failed login attempts
+    #[schema(example = 0)]
     pub failed_login_attempts: i32,
+    /// Account lock expiration timestamp
     pub locked_until: Option<DateTime<Utc>>,
+    /// User creation timestamp
+    #[schema(example = "2023-01-01T00:00:00Z")]
     pub created_at: DateTime<Utc>,
+    /// Last update timestamp
+    #[schema(example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Create user payload for service layer
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateUser {
     pub name: String,
     pub email: String,
     pub password: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Update user payload for service layer
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateUser {
     pub name: Option<String>,
     pub email: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Login request payload
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct LoginRequest {
+    /// User's email address
+    #[schema(example = "john.doe@example.com")]
     pub email: String,
+    /// User's password
+    #[schema(example = "password123")]
     pub password: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Forgot password request payload
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ForgotPasswordRequest {
     pub email: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Reset password request payload
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ResetPasswordRequest {
     pub token: String,
     pub password: String,
     pub password_confirmation: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Change password request payload
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ChangePasswordRequest {
     pub current_password: String,
     pub new_password: String,
     pub password_confirmation: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Refresh token request payload
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct RefreshTokenRequest {
     pub refresh_token: String,
 }
 
-#[derive(Debug, Serialize)]
+/// User response payload for API endpoints (excludes sensitive fields)
+#[derive(Debug, Serialize, ToSchema)]
 pub struct UserResponse {
     pub id: String,
     pub name: String,

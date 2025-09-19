@@ -1,15 +1,25 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
+use utoipa::ToSchema;
 
 use crate::app::http::form_request::FormRequest;
 use crate::app::utils::validator::{Rule, required, string, min, max, regex};
 use crate::impl_form_request_extractor;
 
-#[derive(Deserialize, Serialize)]
+/// Request payload for creating a new country
+/// Contains all required and optional fields for country creation
+/// @example {"name": "United States", "iso_code": "US", "phone_code": "+1"}
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct CreateCountryRequest {
+    /// Country name (2-100 characters)
+    #[schema(example = "United States")]
     pub name: String,
+    /// ISO country code (2-3 uppercase letters)
+    #[schema(example = "US")]
     pub iso_code: String,
+    /// Optional phone country code with + prefix
+    #[schema(example = "+1")]
     pub phone_code: Option<String>,
 }
 
@@ -51,10 +61,19 @@ impl FormRequest for CreateCountryRequest {
 
 impl_form_request_extractor!(CreateCountryRequest);
 
-#[derive(Deserialize, Serialize)]
+/// Request payload for updating an existing country
+/// All fields are optional for partial updates
+/// @example {"name": "United States of America"}
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct UpdateCountryRequest {
+    /// Country name (2-100 characters, optional)
+    #[schema(example = "United States of America")]
     pub name: Option<String>,
+    /// ISO country code (2-3 uppercase letters, optional)
+    #[schema(example = "USA")]
     pub iso_code: Option<String>,
+    /// Phone country code with + prefix (optional)
+    #[schema(example = "+1")]
     pub phone_code: Option<String>,
 }
 

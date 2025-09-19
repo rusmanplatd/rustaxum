@@ -2,17 +2,28 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
 use rust_decimal::Decimal;
+use utoipa::ToSchema;
 
 use crate::app::http::form_request::FormRequest;
 use crate::app::utils::validator::{Rule, required, string, min, max, uuid, numeric, between};
 use crate::impl_form_request_extractor;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct CreateCityRequest {
+    /// Province ID that this city belongs to
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub province_id: String,
+    /// City name (2-100 characters)
+    #[schema(example = "Los Angeles")]
     pub name: String,
+    /// Optional city code
+    #[schema(example = "LA")]
     pub code: Option<String>,
+    /// Latitude coordinate (-90 to 90)
+    #[schema(example = 34.0522, value_type = Option<f64>)]
     pub latitude: Option<Decimal>,
+    /// Longitude coordinate (-180 to 180)
+    #[schema(example = -118.2437, value_type = Option<f64>)]
     pub longitude: Option<Decimal>,
 }
 
@@ -57,12 +68,22 @@ impl FormRequest for CreateCityRequest {
 
 impl_form_request_extractor!(CreateCityRequest);
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct UpdateCityRequest {
+    /// Updated province ID
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub province_id: Option<String>,
+    /// Updated city name
+    #[schema(example = "Los Angeles")]
     pub name: Option<String>,
+    /// Updated city code
+    #[schema(example = "LA")]
     pub code: Option<String>,
+    /// Updated latitude coordinate
+    #[schema(example = 34.0522, value_type = Option<f64>)]
     pub latitude: Option<Decimal>,
+    /// Updated longitude coordinate
+    #[schema(example = -118.2437, value_type = Option<f64>)]
     pub longitude: Option<Decimal>,
 }
 

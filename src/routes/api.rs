@@ -4,7 +4,7 @@ use axum::{
 };
 use sqlx::PgPool;
 
-use crate::app::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, role_controller, permission_controller};
+use crate::app::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, role_controller, permission_controller, docs_controller};
 
 pub fn routes() -> Router<PgPool> {
     Router::new()
@@ -61,4 +61,8 @@ pub fn routes() -> Router<PgPool> {
         .route("/api/permissions/{id}/roles/{role_id}", delete(permission_controller::remove_from_role))
         .route("/api/roles/{role_id}/permissions", get(permission_controller::get_role_permissions))
         .route("/api/users/{user_id}/permissions", get(permission_controller::get_user_permissions))
+        // Documentation routes
+        .route("/api/docs", get(docs_controller::docs_info))
+        .route("/api/docs/openapi.json", get(docs_controller::openapi_json))
+        .route("/api/docs/openapi.yaml", get(docs_controller::openapi_yaml))
 }

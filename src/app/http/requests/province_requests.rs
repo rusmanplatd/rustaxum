@@ -1,15 +1,22 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
+use utoipa::ToSchema;
 
 use crate::app::http::form_request::FormRequest;
 use crate::app::utils::validator::{Rule, required, string, min, max, uuid};
 use crate::impl_form_request_extractor;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct CreateProvinceRequest {
+    /// Country ID that this province belongs to
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub country_id: String,
+    /// Province name (2-100 characters)
+    #[schema(example = "California")]
     pub name: String,
+    /// Optional province code
+    #[schema(example = "CA")]
     pub code: Option<String>,
 }
 
@@ -48,10 +55,16 @@ impl FormRequest for CreateProvinceRequest {
 
 impl_form_request_extractor!(CreateProvinceRequest);
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct UpdateProvinceRequest {
+    /// Updated country ID
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub country_id: Option<String>,
+    /// Updated province name
+    #[schema(example = "California")]
     pub name: Option<String>,
+    /// Updated province code
+    #[schema(example = "CA")]
     pub code: Option<String>,
 }
 
