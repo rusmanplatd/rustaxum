@@ -1,5 +1,5 @@
 use anyhow::Result;
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 use ulid::Ulid;
 use chrono::Utc;
 use serde_json::json;

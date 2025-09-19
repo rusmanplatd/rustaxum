@@ -28,7 +28,7 @@ impl SeederType {
             provinceseeder::Provinceseeder,
             cityseeder::Cityseeder,
             databaseseeder::Databaseseeder,
-            userseeder::Userseeder,
+            userseeder::UserSeeder,
         };
 
         match self {
@@ -49,7 +49,7 @@ impl SeederType {
                 seeder.run(pool).await
             }
             SeederType::User => {
-                let seeder = Userseeder;
+                let seeder = UserSeeder;
                 seeder.run(pool).await
             }
         }

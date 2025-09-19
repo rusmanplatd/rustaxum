@@ -94,18 +94,18 @@ impl Seeder for Cityseeder {
                 longitude,
             );
 
-            sqlx::query!(
+            sqlx::query(
                 "INSERT INTO cities (id, province_id, name, code, latitude, longitude, created_at, updated_at)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-                city.id.to_string(),
-                city.province_id.to_string(),
-                city.name,
-                city.code,
-                city.latitude,
-                city.longitude,
-                city.created_at,
-                city.updated_at
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
             )
+            .bind(city.id.to_string())
+            .bind(city.province_id.to_string())
+            .bind(city.name)
+            .bind(city.code)
+            .bind(city.latitude)
+            .bind(city.longitude)
+            .bind(city.created_at)
+            .bind(city.updated_at)
             .execute(pool)
             .await?;
 

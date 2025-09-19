@@ -68,16 +68,16 @@ impl Seeder for Provinceseeder {
                 Some(record.code.clone()),
             );
 
-            sqlx::query!(
+            sqlx::query(
                 "INSERT INTO provinces (id, country_id, name, code, created_at, updated_at)
-                 VALUES ($1, $2, $3, $4, $5, $6)",
-                province.id.to_string(),
-                province.country_id.to_string(),
-                province.name,
-                province.code,
-                province.created_at,
-                province.updated_at
+                 VALUES ($1, $2, $3, $4, $5, $6)"
             )
+            .bind(province.id.to_string())
+            .bind(province.country_id.to_string())
+            .bind(province.name)
+            .bind(province.code)
+            .bind(province.created_at)
+            .bind(province.updated_at)
             .execute(pool)
             .await?;
 

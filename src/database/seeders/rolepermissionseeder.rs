@@ -1,7 +1,7 @@
 use anyhow::Result;
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 use ulid::Ulid;
-use chrono::{Utc, NaiveDateTime};
+use chrono::Utc;
 use crate::database::seeder::Seeder;
 
 pub struct RolePermissionSeeder;

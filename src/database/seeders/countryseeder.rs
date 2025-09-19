@@ -54,16 +54,16 @@ impl Seeder for Countryseeder {
                 Some(record.phone_code),
             );
 
-            sqlx::query!(
+            sqlx::query(
                 "INSERT INTO countries (id, name, iso_code, phone_code, created_at, updated_at)
-                 VALUES ($1, $2, $3, $4, $5, $6)",
-                country.id.to_string(),
-                country.name,
-                country.iso_code,
-                country.phone_code,
-                country.created_at,
-                country.updated_at
+                 VALUES ($1, $2, $3, $4, $5, $6)"
             )
+            .bind(country.id.to_string())
+            .bind(country.name)
+            .bind(country.iso_code)
+            .bind(country.phone_code)
+            .bind(country.created_at)
+            .bind(country.updated_at)
             .execute(pool)
             .await?;
 
