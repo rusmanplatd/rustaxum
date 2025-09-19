@@ -20,9 +20,9 @@ impl DatabaseConfig {
     pub fn from_env() -> Result<Self> {
         let host = env::var("DB_HOST").unwrap_or_else(|_| "localhost".to_string());
         let port: u16 = env::var("DB_PORT")
-            .unwrap_or_else(|_| "5432".to_string())
+            .unwrap_or_else(|_| "5434".to_string())
             .parse()
-            .unwrap_or(5432);
+            .unwrap_or(5434);
         let database = env::var("DB_DATABASE").unwrap_or_else(|_| "rustaxum".to_string());
         let username = env::var("DB_USERNAME").unwrap_or_else(|_| "username".to_string());
         let password = env::var("DB_PASSWORD").unwrap_or_else(|_| "password".to_string());

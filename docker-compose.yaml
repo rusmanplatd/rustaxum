@@ -10,9 +10,9 @@ services:
       - APP_ENV=production
       - APP_DEBUG=false
       - APP_URL=http://localhost:3000
-      - DATABASE_URL=postgresql://rustaxum:password@db:5432/rustaxum
+      - DATABASE_URL=postgresql://rustaxum:password@db:5434/rustaxum
       - DB_HOST=db
-      - DB_PORT=5432
+      - DB_PORT=5434
       - DB_DATABASE=rustaxum
       - DB_USERNAME=rustaxum
       - DB_PASSWORD=password
@@ -62,7 +62,7 @@ services:
       - POSTGRES_USER=rustaxum
       - POSTGRES_PASSWORD=password
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./src/database/migrations:/docker-entrypoint-initdb.d

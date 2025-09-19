@@ -222,7 +222,7 @@ When running with Docker Compose:
 - Application: <http://localhost:3000>
 - Database Admin (Adminer): <http://localhost:8080>
 - Email Testing (Mailpit): <http://localhost:8025>
-- PostgreSQL: localhost:5432
+- PostgreSQL: localhost:5434
 - Redis: localhost:6379
 
 ## Important Files

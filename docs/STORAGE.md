@@ -245,7 +245,7 @@ Stores files on Azure Blob Storage.
 When using `docker-compose up`, the following storage services are available:
 
 - **MinIO**: S3-compatible object storage at `http://localhost:9000` (API) and `http://localhost:9001` (Console)
-- **PostgreSQL**: Database at `localhost:5432`
+- **PostgreSQL**: Database at `localhost:5434`
 - **Redis**: Cache/sessions at `localhost:6379`
 - **Mailpit**: Email testing at `http://localhost:8025`
 
