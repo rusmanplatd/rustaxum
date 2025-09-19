@@ -15,3 +15,7 @@ pub mod policyrule;
 pub mod subject;
 pub mod resource;
 pub mod post;
+pub mod organization;
+pub mod joblevel;
+pub mod jobposition;
+pub mod userorganization;

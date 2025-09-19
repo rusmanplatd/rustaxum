@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::app::models::User;
+use crate::app::models::user::User;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserResource {

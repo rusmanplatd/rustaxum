@@ -1,2 +1,2 @@
 pub mod user_resource;
-pub mod post_collection_resource;
+pub mod user_organization_resource;

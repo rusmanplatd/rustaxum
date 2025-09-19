@@ -8,3 +8,4 @@ pub mod province_service;
 pub mod city_service;
 pub mod role_service;
 pub mod permission_service;
+pub mod user_organization_authorization_service;

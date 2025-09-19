@@ -7,3 +7,5 @@ pub mod cityseeder;
 pub mod testseeder;
 pub mod rolepermissionseeder;
 pub mod abacseeder;
+pub mod organizationseeder;
+pub mod joblevelpositionseeder;

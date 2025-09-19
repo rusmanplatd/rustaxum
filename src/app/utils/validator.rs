@@ -253,6 +253,7 @@ impl Validator {
             "sometimes" => Ok(()), // Conditional validation, implemented at validator level
             "timezone" => self.validate_timezone(field, value),
             "uuid" => self.validate_uuid(field, value),
+            "ulid_format" => self.validate_ulid_format(field, value),
             // File validation rules
             "file" => self.validate_file(field, value),
             "image" => self.validate_image(field, value),
@@ -333,6 +334,7 @@ impl Validator {
             "sometimes" => Ok(()), // Conditional validation, implemented at validator level
             "timezone" => self.validate_timezone(field, value),
             "uuid" => self.validate_uuid(field, value),
+            "ulid_format" => self.validate_ulid_format(field, value),
             // File validation rules
             "file" => self.validate_file(field, value),
             "image" => self.validate_image(field, value),
@@ -1964,6 +1966,27 @@ impl Validator {
         Ok(())
     }
 
+    fn validate_ulid_format(&self, field: &str, value: Option<&Value>) -> Result<(), ValidationError> {
+        if let Some(Value::String(ulid_str)) = value {
+            // ULID format: 26 characters, base32 alphabet (0-9 A-Z excluding I, L, O, U)
+            let ulid_regex = Regex::new(r"^[0-9A-HJKMNP-TV-Z]{26}$").unwrap();
+            if !ulid_regex.is_match(ulid_str) {
+                return Err(ValidationError::new(
+                    field,
+                    "ulid_format",
+                    self.error_message(field, "ulid_format", "The :attribute must be a valid ULID.")
+                ));
+            }
+        } else if value.is_some() {
+            return Err(ValidationError::new(
+                field,
+                "ulid_format",
+                self.error_message(field, "ulid_format", "The :attribute must be a valid ULID.")
+            ));
+        }
+        Ok(())
+    }
+
     // File Validation Rules (basic implementations)
 
     fn validate_file(&self, field: &str, value: Option<&Value>) -> Result<(), ValidationError> {
@@ -2406,6 +2429,10 @@ pub fn timezone() -> Rule {
 
 pub fn uuid() -> Rule {
     Rule::new("uuid")
+}
+
+pub fn ulid_format() -> Rule {
+    Rule::new("ulid_format")
 }
 
 // File validation rules

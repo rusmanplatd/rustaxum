@@ -4,7 +4,7 @@ use axum::{
 };
 use sqlx::PgPool;
 
-use crate::app::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, role_controller, permission_controller, docs_controller};
+use crate::app::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, role_controller, permission_controller, docs_controller, user_organization_controller, job_level_controller, job_position_controller};
 
 pub fn routes() -> Router<PgPool> {
     Router::new()
@@ -61,6 +61,32 @@ pub fn routes() -> Router<PgPool> {
         .route("/api/permissions/{id}/roles/{role_id}", delete(permission_controller::remove_from_role))
         .route("/api/roles/{role_id}/permissions", get(permission_controller::get_role_permissions))
         .route("/api/users/{user_id}/permissions", get(permission_controller::get_user_permissions))
+        // User Organization routes
+        .route("/api/user-organizations", get(user_organization_controller::index))
+        .route("/api/user-organizations", post(user_organization_controller::store))
+        .route("/api/user-organizations/{id}", get(user_organization_controller::show))
+        .route("/api/user-organizations/{id}", put(user_organization_controller::update))
+        .route("/api/user-organizations/{id}", delete(user_organization_controller::destroy))
+        .route("/api/user-organizations/{id}/transfer", post(user_organization_controller::transfer))
+        .route("/api/user-organizations/{id}/activate", post(user_organization_controller::activate))
+        .route("/api/user-organizations/{id}/deactivate", post(user_organization_controller::deactivate))
+        // Job Level routes
+        .route("/api/job-levels", get(job_level_controller::index))
+        .route("/api/job-levels", post(job_level_controller::store))
+        .route("/api/job-levels/{id}", get(job_level_controller::show))
+        .route("/api/job-levels/{id}", put(job_level_controller::update))
+        .route("/api/job-levels/{id}", delete(job_level_controller::destroy))
+        .route("/api/job-levels/{id}/activate", post(job_level_controller::activate))
+        .route("/api/job-levels/{id}/deactivate", post(job_level_controller::deactivate))
+        // Job Position routes
+        .route("/api/job-positions", get(job_position_controller::index))
+        .route("/api/job-positions", post(job_position_controller::store))
+        .route("/api/job-positions/{id}", get(job_position_controller::show))
+        .route("/api/job-positions/{id}", put(job_position_controller::update))
+        .route("/api/job-positions/{id}", delete(job_position_controller::destroy))
+        .route("/api/job-positions/{id}/activate", post(job_position_controller::activate))
+        .route("/api/job-positions/{id}/deactivate", post(job_position_controller::deactivate))
+        .route("/api/job-levels/{job_level_id}/positions", get(job_position_controller::by_level))
         // Documentation routes
         .route("/api/docs", get(docs_controller::docs_info))
         .route("/api/docs/openapi.json", get(docs_controller::openapi_json))

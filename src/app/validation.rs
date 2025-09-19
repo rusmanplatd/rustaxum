@@ -17,7 +17,7 @@ pub use crate::app::utils::validator::{
     ip, ipv4, ipv6, mac_address, multiple_of, not_regex,
     present, prohibited, prohibited_if, prohibited_unless,
     required_if, required_unless, required_with, required_with_all,
-    required_without, required_without_all, sometimes, timezone, uuid,
+    required_without, required_without_all, sometimes, timezone, uuid, ulid_format,
     // File validation rules
     file, image, mimes, mimetypes, dimensions,
     // Array validation rules

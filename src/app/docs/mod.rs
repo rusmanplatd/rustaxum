@@ -7,11 +7,31 @@ use crate::app::models::country::{Country, CreateCountry, UpdateCountry, Country
 use crate::app::models::user::{User, CreateUser, UpdateUser, UserResponse, RefreshTokenRequest};
 use crate::app::models::province::{Province, CreateProvince, UpdateProvince, ProvinceResponse};
 use crate::app::models::city::{City, CreateCity, UpdateCity, CityResponse};
+use crate::app::models::userorganization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization, UserOrganizationResponse};
+use crate::app::models::organization::{Organization, CreateOrganization, UpdateOrganization, OrganizationResponse};
+use crate::app::models::joblevel::{JobLevel, CreateJobLevel, UpdateJobLevel, JobLevelResponse};
+use crate::app::models::jobposition::{JobPosition, CreateJobPosition, UpdateJobPosition, JobPositionResponse};
 use crate::app::http::requests::country_requests::{CreateCountryRequest, UpdateCountryRequest};
 use crate::app::http::requests::auth_requests::{RegisterRequest, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest};
 use crate::app::http::requests::user_requests::{UpdateUserRequest, SearchUsersRequest, ContactFormRequest};
 use crate::app::http::requests::province_requests::{CreateProvinceRequest, UpdateProvinceRequest};
 use crate::app::http::requests::city_requests::{CreateCityRequest, UpdateCityRequest};
+use crate::app::http::requests::user_organization_requests::{
+    CreateUserOrganizationRequest, UpdateUserOrganizationRequest, IndexUserOrganizationRequest,
+    TransferUserOrganizationRequest, AssignRoleRequest, RemoveRoleRequest
+};
+use crate::app::http::requests::job_level_requests::{
+    CreateJobLevelRequest, UpdateJobLevelRequest, IndexJobLevelRequest
+};
+use crate::app::http::requests::job_position_requests::{
+    CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest
+};
+use crate::app::resources::user_organization_resource::{
+    UserOrganizationResource, UserOrganizationResourceWithRelations, UserOrganizationCollection,
+    UserOrganizationSummaryResource, UserOrganizationActivityResource, OrganizationHierarchyResource,
+    UserBasicInfo, OrganizationBasicInfo, JobPositionBasicInfo, JobLevelBasicInfo, RoleBasicInfo,
+    PaginationMeta as UserOrgPaginationMeta, OrganizationTypeCount
+};
 
 /// Main OpenAPI documentation structure
 /// This generates the OpenAPI specification automatically from code annotations
@@ -52,6 +72,28 @@ use crate::app::http::requests::city_requests::{CreateCityRequest, UpdateCityReq
             City, CreateCity, UpdateCity, CityResponse,
             CreateCityRequest, UpdateCityRequest,
 
+            // User Organization models
+            UserOrganization, CreateUserOrganization, UpdateUserOrganization, UserOrganizationResponse,
+            CreateUserOrganizationRequest, UpdateUserOrganizationRequest, IndexUserOrganizationRequest,
+            TransferUserOrganizationRequest, AssignRoleRequest, RemoveRoleRequest,
+
+            // Organization models
+            Organization, CreateOrganization, UpdateOrganization, OrganizationResponse,
+
+            // Job Level models
+            JobLevel, CreateJobLevel, UpdateJobLevel, JobLevelResponse,
+            CreateJobLevelRequest, UpdateJobLevelRequest, IndexJobLevelRequest,
+
+            // Job Position models
+            JobPosition, CreateJobPosition, UpdateJobPosition, JobPositionResponse,
+            CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest,
+
+            // User Organization Resource models
+            UserOrganizationResource, UserOrganizationResourceWithRelations, UserOrganizationCollection,
+            UserOrganizationSummaryResource, UserOrganizationActivityResource, OrganizationHierarchyResource,
+            UserBasicInfo, OrganizationBasicInfo, JobPositionBasicInfo, JobLevelBasicInfo, RoleBasicInfo,
+            UserOrgPaginationMeta, OrganizationTypeCount,
+
             // Authentication requests
             RegisterRequest, LoginRequest, ForgotPasswordRequest,
             ResetPasswordRequest, ChangePasswordRequest,
@@ -64,6 +106,9 @@ use crate::app::http::requests::city_requests::{CreateCityRequest, UpdateCityReq
             PaginatedResponse<UserResponse>,
             PaginatedResponse<ProvinceResponse>,
             PaginatedResponse<CityResponse>,
+            PaginatedResponse<UserOrganizationResponse>,
+            PaginatedResponse<JobLevelResponse>,
+            PaginatedResponse<JobPositionResponse>,
         )
     ),
     tags(
@@ -72,6 +117,10 @@ use crate::app::http::requests::city_requests::{CreateCityRequest, UpdateCityReq
         (name = "Countries", description = "Country management operations - full CRUD with filtering and pagination"),
         (name = "Provinces", description = "Province management operations - linked to countries"),
         (name = "Cities", description = "City management operations - linked to provinces"),
+        (name = "User Organizations", description = "User-Organization relationship management with hierarchical access control, RBAC/ABAC authorization, and transfer operations"),
+        (name = "Organizations", description = "Hierarchical organization structure management (holding, subsidiary, divisions, departments, branches, etc.)"),
+        (name = "Job Levels", description = "Job level hierarchy management for career progression"),
+        (name = "Job Positions", description = "Job position management linked to job levels"),
         (name = "Roles", description = "Role-based access control operations"),
         (name = "Permissions", description = "Permission management operations"),
     )
