@@ -31,7 +31,7 @@ pub async fn create_app() -> anyhow::Result<Router> {
         .with_state(pool)
         .layer(
             ServiceBuilder::new()
-                .layer(middleware::from_fn(app::middleware::logging::request_logging_middleware))
+                .layer(middleware::from_fn(app::http::middleware::logging::request_logging_middleware))
                 .layer(TraceLayer::new_for_http())
                 .layer(CorsLayer::permissive()),
         );

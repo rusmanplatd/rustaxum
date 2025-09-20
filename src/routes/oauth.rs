@@ -4,7 +4,7 @@ use axum::{
 };
 use sqlx::PgPool;
 
-use crate::app::controllers::oauth::{
+use crate::app::http::controllers::oauth::{
     oauth_controller, client_controller, personal_access_token_controller
 };
 

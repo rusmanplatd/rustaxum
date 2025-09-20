@@ -12,7 +12,7 @@ use serde_json::json;
 use sqlx::PgPool;
 use tower::ServiceExt;
 
-use rustaxum::app::middleware::passport_middleware::{passport_middleware, AuthenticatedUser};
+use rustaxum::app::http::middleware::passport_middleware::{passport_middleware, AuthenticatedUser};
 
 async fn protected_handler() -> axum::Json<serde_json::Value> {
     axum::Json(json!({
@@ -142,7 +142,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_middleware_helper_functions() {
-        use rustaxum::app::middleware::passport_middleware::get_authenticated_user;
+        use rustaxum::app::http::middleware::passport_middleware::get_authenticated_user;
         use axum::http::request::Parts;
         use axum::extract::Request;
         use rustaxum::app::models::user::User;
