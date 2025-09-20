@@ -10,7 +10,7 @@ pub struct UserResource {
 impl UserResource {
     pub fn from_model(model: User) -> Self {
         Self {
-            id: model.id,
+            id: model.id.to_string(),
             // Map model fields to resource fields
         }
     }

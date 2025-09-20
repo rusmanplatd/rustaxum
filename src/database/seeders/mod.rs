@@ -4,7 +4,7 @@ pub mod databaseseeder;
 pub mod countryseeder;
 pub mod provinceseeder;
 pub mod cityseeder;
-pub mod testseeder;
+// pub mod testseeder;
 pub mod rolepermissionseeder;
 pub mod abacseeder;
 pub mod organizationseeder;

@@ -2,21 +2,44 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Row, postgres::PgRow};
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
+use utoipa::ToSchema;
+use crate::query_builder::{Queryable, SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Organization model representing an organizational entity
+/// Contains organizational information including hierarchy and metadata
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct Organization {
+    /// Unique identifier for the organization
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub id: Ulid,
+    /// Organization name
+    #[schema(example = "Engineering Department")]
     pub name: String,
+    /// Type of organization (department, division, company, etc.)
+    #[schema(example = "department")]
     pub organization_type: String,
+    /// Parent organization ID for hierarchical structure
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub parent_id: Option<Ulid>,
+    /// Optional organization code
+    #[schema(example = "ENG-001")]
     pub code: Option<String>,
+    /// Optional description of the organization
+    #[schema(example = "Software engineering and development department")]
     pub description: Option<String>,
+    /// Whether the organization is currently active
+    #[schema(example = true)]
     pub is_active: bool,
+    /// Creation timestamp
+    #[schema(example = "2023-01-01T00:00:00Z")]
     pub created_at: DateTime<Utc>,
+    /// Last update timestamp
+    #[schema(example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Create organization payload for service layer
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateOrganization {
     pub name: String,
     pub organization_type: String,
@@ -25,7 +48,8 @@ pub struct CreateOrganization {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Update organization payload for service layer
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateOrganization {
     pub name: Option<String>,
     pub organization_type: Option<String>,
@@ -35,7 +59,8 @@ pub struct UpdateOrganization {
     pub is_active: Option<bool>,
 }
 
-#[derive(Debug, Serialize)]
+/// Organization response payload for API endpoints
+#[derive(Debug, Serialize, ToSchema)]
 pub struct OrganizationResponse {
     pub id: String,
     pub name: String,
@@ -99,7 +124,7 @@ impl FromRow<'_, PgRow> for Organization {
         Ok(Organization {
             id,
             name: row.try_get("name")?,
-            organization_type: row.try_get("type")?,
+            organization_type: row.try_get("organization_type")?,
             parent_id,
             code: row.try_get("code")?,
             description: row.try_get("description")?,
@@ -107,5 +132,57 @@ impl FromRow<'_, PgRow> for Organization {
             created_at: row.try_get("created_at")?,
             updated_at: row.try_get("updated_at")?,
         })
+    }
+}
+
+impl Queryable for Organization {
+    fn table_name() -> &'static str {
+        "organizations"
+    }
+
+    fn allowed_filters() -> Vec<&'static str> {
+        vec![
+            "id",
+            "name",
+            "organization_type",
+            "parent_id",
+            "code",
+            "description",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn allowed_sorts() -> Vec<&'static str> {
+        vec![
+            "id",
+            "name",
+            "organization_type",
+            "parent_id",
+            "code",
+            "description",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn allowed_fields() -> Vec<&'static str> {
+        vec![
+            "id",
+            "name",
+            "organization_type",
+            "parent_id",
+            "code",
+            "description",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn default_sort() -> Option<(&'static str, SortDirection)> {
+        Some(("name", SortDirection::Asc))
     }
 }

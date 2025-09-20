@@ -1,26 +1,18 @@
 # Multi-stage build for optimized production image
-FROM rust:1.90 AS builder
+FROM rust:1.90-bookworm AS builder
 
 # Create app directory
 WORKDIR /app
 
-# Copy manifests
+# Copy manifests and source code
 COPY Cargo.toml Cargo.lock ./
-
-# Create a dummy main.rs to build dependencies
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-
-# Build dependencies (this will be cached)
-RUN cargo build --release && rm src/main.rs
-
-# Copy source code
 COPY src ./src
 
 # Build the application
-RUN touch src/main.rs && cargo build --release
+RUN cargo build --release
 
 # Runtime stage
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \

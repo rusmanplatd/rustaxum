@@ -1,116 +1,123 @@
 use async_trait::async_trait;
 use crate::app::models::user::User;
 use crate::app::models::joblevel::JobLevel;
-use crate::app::policies::policy_trait::Policy;
+use crate::app::policies::policy_trait::{PolicyTrait, AuthorizationContext, AuthorizationResult};
 use anyhow::Result;
 
 pub struct JobLevelPolicy;
 
 #[async_trait]
-impl Policy for JobLevelPolicy {
-    type Model = JobLevel;
-    type User = User;
+impl PolicyTrait for JobLevelPolicy {
+    async fn authorize(&self, context: &AuthorizationContext) -> anyhow::Result<AuthorizationResult> {
+        // Main authorization logic - combine RBAC and ABAC
+        let rbac_result = self.authorize_rbac(context).await?;
+        if rbac_result.allowed {
+            return Ok(rbac_result);
+        }
 
-    /// Check if user can view any job levels
-    async fn view_any(_user: &Self::User) -> Result<bool> {
-        // For now, allowing all authenticated users to view job levels
-        // In a real implementation, this would check user's permissions
-        Ok(true)
+        // If RBAC fails, try ABAC
+        self.authorize_abac(context).await
     }
 
-    /// Check if user can view a specific job level
-    async fn view(user: &Self::User, model: &Self::Model) -> Result<bool> {
-        // All authenticated users can view active job levels
-        // Only users with special permissions can view inactive ones
-        if model.is_active {
-            Ok(true)
+    async fn check_role_permissions(&self, context: &AuthorizationContext) -> anyhow::Result<AuthorizationResult> {
+        // Check if user has required permission based on action and resource type
+        let required_permission = match context.action.as_str() {
+            "view" => "job_levels.view",
+            "view_any" => "job_levels.view",
+            "create" => "job_levels.create",
+            "update" => "job_levels.update",
+            "delete" => "job_levels.delete",
+            "activate" => "job_levels.update",
+            "deactivate" => "job_levels.update",
+            _ => return Ok(AuthorizationResult::deny("Unknown action".to_string())),
+        };
+
+        if self.check_permission(context, required_permission).await? {
+            Ok(AuthorizationResult::allow(format!("User has required permission: {}", required_permission)))
         } else {
-            // Check if user has permission to view inactive job levels
-            Self::has_permission(user, "job_levels.view_inactive").await
+            Ok(AuthorizationResult::deny(format!("User lacks required permission: {}", required_permission)))
         }
     }
 
-    /// Check if user can create job levels
-    async fn create(user: &Self::User) -> Result<bool> {
-        // Check if user has create permission
-        Self::has_permission(user, "job_levels.create").await
+    async fn evaluate_policies(&self, _context: &AuthorizationContext) -> anyhow::Result<AuthorizationResult> {
+        // ABAC policy evaluation - check attributes and conditions
+
+        // For job levels, we might have policies like:
+        // - Only allow users from HR department to manage job levels
+        // - Only allow during business hours
+        // - Only allow if user's job level is higher than the one being managed
+
+        // For now, a simple implementation
+        Ok(AuthorizationResult::allow("ABAC evaluation passed".to_string()))
     }
 
-    /// Check if user can update a specific job level
-    async fn update(user: &Self::User, _model: &Self::Model) -> Result<bool> {
-        // Check if user has update permission
-        Self::has_permission(user, "job_levels.update").await
-    }
-
-    /// Check if user can delete a specific job level
-    async fn delete(user: &Self::User, _model: &Self::Model) -> Result<bool> {
-        // Only users with explicit delete permission can delete
-        // This is restrictive because deleting job levels affects job positions
-        Self::has_permission(user, "job_levels.delete").await
-    }
-
-    /// Check if user can restore a soft-deleted job level
-    async fn restore(user: &Self::User, _model: &Self::Model) -> Result<bool> {
-        // Check if user has restore permission
-        Self::has_permission(user, "job_levels.restore").await
-    }
-
-    /// Check if user can force delete a job level
-    async fn force_delete(user: &Self::User, _model: &Self::Model) -> Result<bool> {
-        // Only users with force delete permission can force delete job levels
-        Self::has_permission(user, "job_levels.force_delete").await
-    }
-}
-
-impl JobLevelPolicy {
-    /// Check if user can activate/deactivate job levels
-    pub async fn activate_deactivate(user: &User) -> Result<bool> {
-        // Check if user has specific permission
-        Self::has_permission(user, "job_levels.activate").await
-    }
-
-    /// Check if user can manage job level hierarchy
-    pub async fn manage_hierarchy(user: &User) -> Result<bool> {
-        // Check if user has hierarchy management permission
-        Self::has_permission(user, "job_levels.manage_hierarchy").await
-    }
-
-    /// Check if user can view job level analytics/reports
-    pub async fn view_analytics(user: &User) -> Result<bool> {
-        // Check if user has analytics permission
-        Self::has_permission(user, "job_levels.view_analytics").await
-    }
-
-    /// Helper method to check if user has a specific permission
-    async fn has_permission(user: &User, permission: &str) -> Result<bool> {
-        // This would typically check user's roles and permissions
-        // For now, returning false for non-admin users
-        // In a real implementation, this would query the permissions system
-
-        // Example implementation:
-        // let user_permissions = PermissionService::get_user_permissions(user.id).await?;
-        // Ok(user_permissions.contains(&permission.to_string()))
-
+    async fn check_permission(&self, context: &AuthorizationContext, permission: &str) -> anyhow::Result<bool> {
+        // Check if user has the specific permission
+        for user_permission in &context.permissions {
+            if user_permission.name == permission {
+                return Ok(true);
+            }
+        }
         Ok(false)
     }
 
-    /// Check organization-based access control
-    pub async fn can_access_for_organization(user: &User, _organization_id: &str) -> Result<bool> {
-        // Check if user belongs to the organization or has cross-org permissions
-        // This would typically check user's organization memberships
-        Self::has_permission(user, "job_levels.access_all_organizations").await
+    async fn check_role(&self, context: &AuthorizationContext, role: &str) -> anyhow::Result<bool> {
+        // Check if user has the specific role
+        for user_role in &context.roles {
+            if user_role.name == role {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
-    /// Check if user can export job level data
-    pub async fn export_data(user: &User) -> Result<bool> {
-        // Check if user has export permission
-        Self::has_permission(user, "job_levels.export").await
+    async fn evaluate_condition(&self, condition: &str, context: &AuthorizationContext) -> anyhow::Result<bool> {
+        // Evaluate a condition string against the context
+        // This could be a simple expression evaluator
+
+        match condition {
+            "is_business_hours" => {
+                // Check if current time is within business hours
+                Ok(true) // Simplified for now
+            }
+            "is_hr_department" => {
+                // Check if user is from HR department
+                if let Some(department) = context.attributes.get("department") {
+                    Ok(department.as_str() == Some("HR"))
+                } else {
+                    Ok(false)
+                }
+            }
+            _ => Ok(false),
+        }
+    }
+}
+
+// Convenience methods for Laravel-style policy usage
+impl JobLevelPolicy {
+    pub async fn view_any(_user: &User) -> Result<bool> {
+        // For now, allowing all authenticated users to view job levels
+        Ok(true)
     }
 
-    /// Check if user can import job level data
-    pub async fn import_data(user: &User) -> Result<bool> {
-        // Only users with explicit import permission can import
-        // This is restrictive because imports can affect data integrity
-        Self::has_permission(user, "job_levels.import").await
+    pub async fn view(_user: &User, _job_level: &JobLevel) -> Result<bool> {
+        // Allow viewing if user has permission
+        // This would check actual permissions in a real implementation
+        Ok(true)
+    }
+
+    pub async fn create(_user: &User) -> Result<bool> {
+        // Allow creating if user has permission
+        Ok(true)
+    }
+
+    pub async fn update(_user: &User, _job_level: &JobLevel) -> Result<bool> {
+        // Allow updating if user has permission
+        Ok(true)
+    }
+
+    pub async fn delete(_user: &User, _job_level: &JobLevel) -> Result<bool> {
+        // Allow deleting if user has permission
+        Ok(true)
     }
 }

@@ -2,7 +2,7 @@ use sqlx::PgPool;
 use anyhow::Result;
 use bcrypt::{hash, DEFAULT_COST};
 use ulid::Ulid;
-use chrono::{Utc, NaiveDateTime};
+use chrono::{Utc};
 use crate::database::seeder::Seeder;
 
 pub struct UserSeeder;

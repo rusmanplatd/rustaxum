@@ -7,6 +7,7 @@ pub mod province_controller;
 pub mod city_controller;
 pub mod role_controller;
 pub mod permission_controller;
+pub mod organization_controller;
 pub mod user_organization_controller;
 pub mod job_level_controller;
 pub mod job_position_controller;

@@ -127,7 +127,7 @@ impl FormRequest for UpdateJobLevelRequest {
 impl_form_request_extractor!(UpdateJobLevelRequest);
 
 /// Index/list job levels form request
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize, ToSchema, Clone)]
 pub struct IndexJobLevelRequest {
     /// Page number (default: 1)
     #[serde(skip_serializing_if = "Option::is_none")]

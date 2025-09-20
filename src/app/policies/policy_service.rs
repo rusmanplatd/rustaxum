@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use serde_json::Value;
 use sqlx::PgPool;
 use std::collections::HashMap;
@@ -183,7 +182,7 @@ impl PolicyService {
         })
     }
 
-    async fn get_applicable_policies(&self, context: &AuthorizationContext) -> anyhow::Result<Vec<Policy>> {
+    async fn get_applicable_policies(&self, _context: &AuthorizationContext) -> anyhow::Result<Vec<Policy>> {
         let policies = sqlx::query_as::<_, Policy>(
             r#"
             SELECT * FROM policies

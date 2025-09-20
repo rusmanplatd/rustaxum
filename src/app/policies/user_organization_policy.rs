@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use serde_json::{json, Value};
+use serde_json::{json};
 use std::collections::HashMap;
 use anyhow::Result;
 use ulid::Ulid;
@@ -141,7 +141,7 @@ impl UserOrganizationPolicy {
 
         // ABAC Check: Manager can view team members in same organization
         if self.rbac_authorizer.has_role(context, "manager").await {
-            if let Some(org_id) = context.attributes.get("organization_id") {
+            if let Some(_org_id) = context.attributes.get("organization_id") {
                 // In a real implementation, you'd check if the user is a manager in this organization
                 return Ok(AuthorizationResult::allow("Manager can view team members".to_string()));
             }
@@ -228,7 +228,7 @@ impl UserOrganizationPolicy {
         }
 
         // ABAC Check: Cannot delete relationships for critical roles
-        if let Some(job_position_id) = context.attributes.get("job_position_id") {
+        if let Some(_job_position_id) = context.attributes.get("job_position_id") {
             // In a real implementation, you'd check if this is a critical position
             // For now, we'll allow deletion for non-critical positions
         }

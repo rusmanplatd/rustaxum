@@ -1,8 +1,6 @@
 use async_trait::async_trait;
-use serde_json::Value;
-use std::collections::HashMap;
 use ulid::Ulid;
-use crate::app::models::{user::User, post::Post};
+use crate::app::models::{post::Post};
 use crate::app::policies::policy_trait::{
     PolicyTrait, AuthorizationContext, AuthorizationResult
 };
@@ -58,7 +56,7 @@ impl PostPolicy {
         Ok(false)
     }
 
-    pub async fn update(&self, context: &AuthorizationContext, post: &Post) -> anyhow::Result<bool> {
+    pub async fn update(&self, context: &AuthorizationContext, _post: &Post) -> anyhow::Result<bool> {
         if context.roles.iter().any(|r| r.name == "admin") {
             return Ok(true);
         }
@@ -82,7 +80,7 @@ impl PostPolicy {
         Ok(false)
     }
 
-    pub async fn delete(&self, context: &AuthorizationContext, post: &Post) -> anyhow::Result<bool> {
+    pub async fn delete(&self, context: &AuthorizationContext, _post: &Post) -> anyhow::Result<bool> {
         if context.roles.iter().any(|r| r.name == "admin") {
             return Ok(true);
         }
@@ -98,7 +96,7 @@ impl PostPolicy {
         Ok(false)
     }
 
-    pub async fn publish(&self, context: &AuthorizationContext, post: &Post) -> anyhow::Result<bool> {
+    pub async fn publish(&self, context: &AuthorizationContext, _post: &Post) -> anyhow::Result<bool> {
         if context.roles.iter().any(|r| r.name == "admin" || r.name == "publisher") {
             return Ok(true);
         }

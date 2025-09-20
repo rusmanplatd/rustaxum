@@ -7,12 +7,13 @@ use axum::{
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::ToSchema;
 
 use crate::app::utils::validator::{ValidationErrors, Validator, Rule};
 use crate::app::utils::validation_macros::ValidatorExt;
 
 /// Response format for validation errors
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ValidationErrorResponse {
     pub message: String,
     pub errors: HashMap<String, Vec<String>>,

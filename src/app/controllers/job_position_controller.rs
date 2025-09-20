@@ -1,16 +1,15 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     http::StatusCode,
     response::Json,
 };
 use serde_json::{json, Value};
-use utoipa::path;
 
 use crate::app::http::requests::job_position_requests::{
     CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest
 };
 use crate::app::services::job_position_service::JobPositionService;
-use crate::AppState;
+use sqlx::PgPool;
 
 /// List job positions with filtering, sorting and pagination
 #[utoipa::path(
@@ -35,8 +34,8 @@ use crate::AppState;
     )
 )]
 pub async fn index(
-    State(state): State<AppState>,
-    Query(mut request): Query<IndexJobPositionRequest>,
+    State(pool): State<PgPool>,
+    request: IndexJobPositionRequest,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers).await?;
@@ -44,20 +43,7 @@ pub async fn index(
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match request.validate().await {
-        Ok(_) => {}
-        Err(errors) => {
-            return Err((
-                StatusCode::UNPROCESSABLE_ENTITY,
-                Json(json!({
-                    "message": "The given data was invalid.",
-                    "errors": errors
-                })),
-            ));
-        }
-    }
-
-    match JobPositionService::index(&state.db, &request).await {
+    match JobPositionService::index(&pool, &request).await {
         Ok(response) => Ok(Json(json!(response))),
         Err(e) => {
             tracing::error!("Failed to fetch job positions: {}", e);
@@ -86,17 +72,17 @@ pub async fn index(
     )
 )]
 pub async fn show(
-    State(state): State<AppState>,
+    State(pool): State<PgPool>,
     Path(id): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers).await?;
-    // let job_position = JobPositionService::find(&state.db, &id).await?;
+    // let job_position = JobPositionService::find(&pool, &id).await?;
     // if !JobPositionPolicy::view(&user, &job_position).await? {
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match JobPositionService::show(&state.db, &id).await {
+    match JobPositionService::show(&pool, &id).await {
         Ok(job_position) => Ok(Json(json!(job_position))),
         Err(e) => {
             tracing::error!("Failed to fetch job position {}: {}", id, e);
@@ -130,8 +116,8 @@ pub async fn show(
     )
 )]
 pub async fn store(
-    State(state): State<AppState>,
-    Json(request): Json<CreateJobPositionRequest>,
+    State(pool): State<PgPool>,
+    request: CreateJobPositionRequest,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers).await?;
@@ -139,20 +125,7 @@ pub async fn store(
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match request.validate().await {
-        Ok(_) => {}
-        Err(errors) => {
-            return Err((
-                StatusCode::UNPROCESSABLE_ENTITY,
-                Json(json!({
-                    "message": "The given data was invalid.",
-                    "errors": errors
-                })),
-            ));
-        }
-    }
-
-    match JobPositionService::create(&state.db, &request).await {
+    match JobPositionService::create(&pool, &request).await {
         Ok(job_position) => Ok(Json(json!(job_position))),
         Err(e) => {
             tracing::error!("Failed to create job position: {}", e);
@@ -206,31 +179,18 @@ pub async fn store(
     )
 )]
 pub async fn update(
-    State(state): State<AppState>,
+    State(pool): State<PgPool>,
     Path(id): Path<String>,
-    Json(request): Json<UpdateJobPositionRequest>,
+    request: UpdateJobPositionRequest,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers).await?;
-    // let job_position = JobPositionService::find(&state.db, &id).await?;
+    // let job_position = JobPositionService::find(&pool, &id).await?;
     // if !JobPositionPolicy::update(&user, &job_position).await? {
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match request.validate().await {
-        Ok(_) => {}
-        Err(errors) => {
-            return Err((
-                StatusCode::UNPROCESSABLE_ENTITY,
-                Json(json!({
-                    "message": "The given data was invalid.",
-                    "errors": errors
-                })),
-            ));
-        }
-    }
-
-    match JobPositionService::update(&state.db, &id, &request).await {
+    match JobPositionService::update(&pool, &id, &request).await {
         Ok(job_position) => Ok(Json(json!(job_position))),
         Err(e) => {
             tracing::error!("Failed to update job position {}: {}", id, e);
@@ -288,17 +248,17 @@ pub async fn update(
     )
 )]
 pub async fn destroy(
-    State(state): State<AppState>,
+    State(pool): State<PgPool>,
     Path(id): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers).await?;
-    // let job_position = JobPositionService::find(&state.db, &id).await?;
+    // let job_position = JobPositionService::find(&pool, &id).await?;
     // if !JobPositionPolicy::delete(&user, &job_position).await? {
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match JobPositionService::delete(&state.db, &id).await {
+    match JobPositionService::delete(&pool, &id).await {
         Ok(_) => Ok(Json(json!({"message": "Job position deleted successfully"}))),
         Err(e) => {
             tracing::error!("Failed to delete job position {}: {}", id, e);
@@ -339,17 +299,17 @@ pub async fn destroy(
     )
 )]
 pub async fn activate(
-    State(state): State<AppState>,
+    State(pool): State<PgPool>,
     Path(id): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers).await?;
-    // let job_position = JobPositionService::find(&state.db, &id).await?;
+    // let job_position = JobPositionService::find(&pool, &id).await?;
     // if !JobPositionPolicy::update(&user, &job_position).await? {
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match JobPositionService::activate(&state.db, &id).await {
+    match JobPositionService::activate(&pool, &id).await {
         Ok(job_position) => Ok(Json(json!(job_position))),
         Err(e) => {
             tracing::error!("Failed to activate job position {}: {}", id, e);
@@ -385,17 +345,17 @@ pub async fn activate(
     )
 )]
 pub async fn deactivate(
-    State(state): State<AppState>,
+    State(pool): State<PgPool>,
     Path(id): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers).await?;
-    // let job_position = JobPositionService::find(&state.db, &id).await?;
+    // let job_position = JobPositionService::find(&pool, &id).await?;
     // if !JobPositionPolicy::update(&user, &job_position).await? {
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match JobPositionService::deactivate(&state.db, &id).await {
+    match JobPositionService::deactivate(&pool, &id).await {
         Ok(job_position) => Ok(Json(json!(job_position))),
         Err(e) => {
             tracing::error!("Failed to deactivate job position {}: {}", id, e);
@@ -432,9 +392,9 @@ pub async fn deactivate(
     )
 )]
 pub async fn by_level(
-    State(state): State<AppState>,
+    State(pool): State<PgPool>,
     Path(job_level_id): Path<String>,
-    Query(mut request): Query<JobPositionsByLevelRequest>,
+    mut request: JobPositionsByLevelRequest,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers).await?;
@@ -445,20 +405,7 @@ pub async fn by_level(
     // Set the job_level_id from the path parameter
     request.job_level_id = job_level_id;
 
-    match request.validate().await {
-        Ok(_) => {}
-        Err(errors) => {
-            return Err((
-                StatusCode::UNPROCESSABLE_ENTITY,
-                Json(json!({
-                    "message": "The given data was invalid.",
-                    "errors": errors
-                })),
-            ));
-        }
-    }
-
-    match JobPositionService::by_level(&state.db, &request).await {
+    match JobPositionService::by_level(&pool, &request).await {
         Ok(positions) => Ok(Json(json!(positions))),
         Err(e) => {
             tracing::error!("Failed to fetch job positions by level: {}", e);

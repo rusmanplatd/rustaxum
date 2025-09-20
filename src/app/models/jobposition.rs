@@ -2,20 +2,41 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Row, postgres::PgRow};
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
+use utoipa::ToSchema;
+use crate::query_builder::{Queryable, SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Job position model representing specific roles within job levels
+/// Contains position information and relationship to job level hierarchy
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct JobPosition {
+    /// Unique identifier for the job position
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub id: Ulid,
+    /// Job position name
+    #[schema(example = "Software Engineering Manager")]
     pub name: String,
+    /// Optional job position code
+    #[schema(example = "SEM")]
     pub code: Option<String>,
+    /// ID of the job level this position belongs to
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub job_level_id: Ulid,
+    /// Optional description of the job position
+    #[schema(example = "Manages software engineering teams and technical projects")]
     pub description: Option<String>,
+    /// Whether the job position is currently active
+    #[schema(example = true)]
     pub is_active: bool,
+    /// Creation timestamp
+    #[schema(example = "2023-01-01T00:00:00Z")]
     pub created_at: DateTime<Utc>,
+    /// Last update timestamp
+    #[schema(example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Create job position payload for service layer
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateJobPosition {
     pub name: String,
     pub code: Option<String>,
@@ -23,7 +44,8 @@ pub struct CreateJobPosition {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Update job position payload for service layer
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateJobPosition {
     pub name: Option<String>,
     pub code: Option<String>,
@@ -32,7 +54,8 @@ pub struct UpdateJobPosition {
     pub is_active: Option<bool>,
 }
 
-#[derive(Debug, Serialize)]
+/// Job position response payload for API endpoints
+#[derive(Debug, Serialize, ToSchema)]
 pub struct JobPositionResponse {
     pub id: String,
     pub name: String,
@@ -97,5 +120,54 @@ impl FromRow<'_, PgRow> for JobPosition {
             created_at: row.try_get("created_at")?,
             updated_at: row.try_get("updated_at")?,
         })
+    }
+}
+
+impl Queryable for JobPosition {
+    fn table_name() -> &'static str {
+        "job_positions"
+    }
+
+    fn allowed_filters() -> Vec<&'static str> {
+        vec![
+            "id",
+            "name",
+            "code",
+            "job_level_id",
+            "description",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn allowed_sorts() -> Vec<&'static str> {
+        vec![
+            "id",
+            "name",
+            "code",
+            "job_level_id",
+            "description",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn allowed_fields() -> Vec<&'static str> {
+        vec![
+            "id",
+            "name",
+            "code",
+            "job_level_id",
+            "description",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn default_sort() -> Option<(&'static str, SortDirection)> {
+        Some(("name", SortDirection::Asc))
     }
 }

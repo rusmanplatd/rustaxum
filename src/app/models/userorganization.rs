@@ -5,21 +5,44 @@ use chrono::{DateTime, Utc};
 use anyhow::Result;
 use std::collections::HashMap;
 use serde_json::{json, Value};
+use utoipa::ToSchema;
+use crate::query_builder::{Queryable, SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// User organization model representing the relationship between users and organizations
+/// Contains employment information, job position, and temporal data
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct UserOrganization {
+    /// Unique identifier for the user-organization relationship
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub id: Ulid,
+    /// ID of the user in this relationship
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub user_id: Ulid,
+    /// ID of the organization in this relationship
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub organization_id: Ulid,
+    /// ID of the job position held by the user
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub job_position_id: Ulid,
+    /// Whether this employment relationship is currently active
+    #[schema(example = true)]
     pub is_active: bool,
+    /// When the employment started
+    #[schema(example = "2023-01-01T00:00:00Z")]
     pub started_at: DateTime<Utc>,
+    /// When the employment ended (if applicable)
+    #[schema(example = "2024-01-01T00:00:00Z")]
     pub ended_at: Option<DateTime<Utc>>,
+    /// Creation timestamp
+    #[schema(example = "2023-01-01T00:00:00Z")]
     pub created_at: DateTime<Utc>,
+    /// Last update timestamp
+    #[schema(example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Create user organization payload for service layer
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateUserOrganization {
     pub user_id: String,
     pub organization_id: String,
@@ -27,7 +50,8 @@ pub struct CreateUserOrganization {
     pub started_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Update user organization payload for service layer
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateUserOrganization {
     pub organization_id: Option<String>,
     pub job_position_id: Option<String>,
@@ -36,7 +60,8 @@ pub struct UpdateUserOrganization {
     pub ended_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Serialize)]
+/// User organization response payload for API endpoints
+#[derive(Debug, Serialize, ToSchema)]
 pub struct UserOrganizationResponse {
     pub id: String,
     pub user_id: String,
@@ -379,5 +404,57 @@ impl FromRow<'_, PgRow> for UserOrganization {
             created_at: row.try_get("created_at")?,
             updated_at: row.try_get("updated_at")?,
         })
+    }
+}
+
+impl Queryable for UserOrganization {
+    fn table_name() -> &'static str {
+        "user_organizations"
+    }
+
+    fn allowed_filters() -> Vec<&'static str> {
+        vec![
+            "id",
+            "user_id",
+            "organization_id",
+            "job_position_id",
+            "is_active",
+            "started_at",
+            "ended_at",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn allowed_sorts() -> Vec<&'static str> {
+        vec![
+            "id",
+            "user_id",
+            "organization_id",
+            "job_position_id",
+            "is_active",
+            "started_at",
+            "ended_at",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn allowed_fields() -> Vec<&'static str> {
+        vec![
+            "id",
+            "user_id",
+            "organization_id",
+            "job_position_id",
+            "is_active",
+            "started_at",
+            "ended_at",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn default_sort() -> Option<(&'static str, SortDirection)> {
+        Some(("created_at", SortDirection::Desc))
     }
 }

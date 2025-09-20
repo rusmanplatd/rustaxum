@@ -6,9 +6,9 @@ use crate::app::models::{
     user::User,
     role::Role,
     permission::Permission,
-    attribute::Attribute,
-    policy::{Policy, PolicyEffect},
+    policy::{PolicyEffect},
 };
+
 
 #[derive(Debug, Clone)]
 pub struct AuthorizationContext {
@@ -106,7 +106,7 @@ impl RbacAuthorizer {
     }
 
     pub async fn check_resource_ownership(&self, context: &AuthorizationContext) -> bool {
-        if let Some(resource_id) = context.resource_id {
+        if let Some(_resource_id) = context.resource_id {
             if let Some(owner_id) = context.attributes.get("owner_id") {
                 if let Some(owner_ulid) = owner_id.as_str().and_then(|s| Ulid::from_string(s).ok()) {
                     return owner_ulid == context.user.id;
@@ -215,7 +215,7 @@ impl<'a> PolicyEvaluator<'a> {
                     }
                 }
                 ConditionClause::IsOwner => {
-                    if let Some(resource_id) = self.context.resource_id {
+                    if let Some(_resource_id) = self.context.resource_id {
                         if let Some(owner_id) = self.context.attributes.get("owner_id") {
                             if let Some(owner_ulid) = owner_id.as_str().and_then(|s| Ulid::from_string(s).ok()) {
                                 if owner_ulid != self.context.user.id {

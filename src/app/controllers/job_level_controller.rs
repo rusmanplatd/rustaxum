@@ -1,391 +1,436 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{State, Path, Query},
     http::StatusCode,
-    response::Json,
+    response::{IntoResponse, Json as ResponseJson},
 };
-use serde_json::{json, Value};
+use serde::Serialize;
+use ulid::Ulid;
+use sqlx::PgPool;
+use std::collections::HashMap;
 
-use crate::app::http::requests::job_level_requests::{
-    CreateJobLevelRequest, UpdateJobLevelRequest, IndexJobLevelRequest
-};
+use crate::app::models::joblevel::{CreateJobLevel, UpdateJobLevel};
 use crate::app::services::job_level_service::JobLevelService;
-use crate::AppState;
+use crate::app::http::requests::{CreateJobLevelRequest, UpdateJobLevelRequest};
 
-pub struct JobLevelController;
+#[derive(Serialize)]
+struct ErrorResponse {
+    error: String,
+}
 
+#[derive(Serialize)]
+struct MessageResponse {
+    message: String,
+}
+
+/// Get all job levels with optional filtering and pagination
+///
+/// Retrieve a list of all job levels with support for filtering and pagination.
+/// You can filter by any field and sort by any column.
+///
+/// # Query Parameters
+/// - `page`: Page number for pagination (default: 1)
+/// - `limit`: Number of items per page (default: 10, max: 100)
+/// - `sort`: Sort field (default: level)
+/// - `direction`: Sort direction - asc or desc (default: asc)
+/// - `filter[field]`: Filter by field value
+///
+/// # Example
+/// ```
+/// GET /api/job-levels?page=1&limit=10&sort=level&direction=asc&filter[is_active]=true
+/// ```
 #[utoipa::path(
     get,
     path = "/api/job-levels",
     tag = "Job Levels",
-    summary = "List job levels",
-    description = "Retrieve a paginated list of job levels with optional filtering by active status, level ranges, and sorting options",
+    summary = "List all job levels",
+    description = "Get all job levels with optional filtering, sorting, and pagination",
     params(
-        ("page" = Option<u32>, Query, description = "Page number (default: 1)"),
-        ("per_page" = Option<u32>, Query, description = "Items per page (1-100, default: 15)"),
-        ("sort_by" = Option<String>, Query, description = "Sort field: name, code, level, created_at, updated_at"),
-        ("sort_direction" = Option<String>, Query, description = "Sort direction: asc, desc"),
-        ("is_active" = Option<bool>, Query, description = "Filter by active status"),
-        ("min_level" = Option<i32>, Query, description = "Filter by minimum level (1-20)"),
-        ("max_level" = Option<i32>, Query, description = "Filter by maximum level (1-20)")
+        ("page" = Option<u32>, Query, description = "Page number for pagination"),
+        ("limit" = Option<u32>, Query, description = "Number of items per page (max 100)"),
+        ("sort" = Option<String>, Query, description = "Sort field"),
+        ("direction" = Option<String>, Query, description = "Sort direction (asc/desc)"),
     ),
     responses(
-        (status = 200, description = "Job levels retrieved successfully"),
-        (status = 422, description = "Validation error"),
-        (status = 500, description = "Internal server error")
+        (status = 200, description = "List of job levels", body = Vec<crate::app::models::joblevel::JobLevelResponse>),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
 pub async fn index(
-    State(state): State<AppState>,
-    Query(mut request): Query<IndexJobLevelRequest>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-        // Authorization check - uncomment when auth middleware is ready
-        // let user = auth::get_user(&state, &headers).await?;
-        // if !JobLevelPolicy::view_any(&user).await? {
-        //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
-        // }
-
-        match request.validate().await {
-            Ok(_) => {}
-            Err(errors) => {
-                return Err((
-                    StatusCode::UNPROCESSABLE_ENTITY,
-                    Json(json!({
-                        "message": "The given data was invalid.",
-                        "errors": errors
-                    })),
-                ));
-            }
+    State(pool): State<PgPool>,
+    Query(params): Query<HashMap<String, String>>,
+) -> impl IntoResponse {
+    match JobLevelService::list(&pool, params).await {
+        Ok(job_levels) => {
+            let responses: Vec<_> = job_levels.into_iter().map(|jl| jl.to_response()).collect();
+            (StatusCode::OK, ResponseJson(responses)).into_response()
         }
-
-        match JobLevelService::index(&state.db, &request).await {
-            Ok(response) => Ok(Json(json!(response))),
-            Err(e) => {
-                tracing::error!("Failed to fetch job levels: {}", e);
-                Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"error": "Failed to fetch job levels"})),
-                ))
-            }
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response()
         }
     }
+}
 
+/// Get a specific job level by ID
+///
+/// Retrieve detailed information about a specific job level using its unique identifier.
+/// The ID should be a valid ULID format.
+///
+/// # Path Parameters
+/// - `id`: The unique identifier of the job level (ULID format)
+///
+/// # Example
+/// ```
+/// GET /api/job-levels/01ARZ3NDEKTSV4RRFFQ69G5FAV
+/// ```
 #[utoipa::path(
     get,
     path = "/api/job-levels/{id}",
     tag = "Job Levels",
-    summary = "Get job level",
-    description = "Retrieve a specific job level by its ULID",
+    summary = "Get job level by ID",
+    description = "Retrieve a specific job level by its unique identifier",
     params(
-        ("id" = String, Path, description = "Job level ULID")
+        ("id" = String, Path, description = "Job level unique identifier (ULID format)")
     ),
     responses(
-        (status = 200, description = "Job level retrieved successfully"),
-        (status = 404, description = "Job level not found"),
-        (status = 500, description = "Internal server error")
+        (status = 200, description = "Job level details", body = crate::app::models::joblevel::JobLevelResponse),
+        (status = 400, description = "Invalid ID format", body = crate::app::docs::ErrorResponse),
+        (status = 404, description = "Job level not found", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn show(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-        // Authorization check - uncomment when auth middleware is ready
-        // let user = auth::get_user(&state, &headers).await?;
-        // let job_level = JobLevelService::find(&state.db, &id).await?;
-        // if !JobLevelPolicy::view(&user, &job_level).await? {
-        //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
-        // }
+pub async fn show(State(pool): State<PgPool>, Path(id): Path<String>) -> impl IntoResponse {
+    let job_level_id = match Ulid::from_string(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "Invalid ID format".to_string(),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+        }
+    };
 
-        match JobLevelService::show(&state.db, &id).await {
-            Ok(job_level) => Ok(Json(json!(job_level))),
-            Err(e) => {
-                tracing::error!("Failed to fetch job level {}: {}", id, e);
-                if e.to_string().contains("not found") {
-                    Err((
-                        StatusCode::NOT_FOUND,
-                        Json(json!({"error": "Job level not found"})),
-                    ))
-                } else {
-                    Err((
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({"error": "Failed to fetch job level"})),
-                    ))
-                }
-            }
+    match JobLevelService::find_by_id(&pool, job_level_id).await {
+        Ok(Some(job_level)) => (StatusCode::OK, ResponseJson(job_level.to_response())).into_response(),
+        Ok(None) => {
+            let error = ErrorResponse {
+                error: "Job level not found".to_string(),
+            };
+            (StatusCode::NOT_FOUND, ResponseJson(error)).into_response()
+        }
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response()
         }
     }
+}
 
+/// Create a new job level
+///
+/// Create a new job level with the provided information. All required fields must be provided
+/// and will be validated according to the business rules.
+///
+/// # Request Body
+/// The request must contain a valid CreateJobLevelRequest JSON payload with:
+/// - `name`: Job level name (2-100 characters)
+/// - `code`: Optional job level code (2-20 characters)
+/// - `level`: Numeric level ranking (1-20)
+/// - `description`: Optional description (max 500 characters)
+///
+/// # Example
+/// ```json
+/// {
+///   "name": "Senior Manager",
+///   "code": "SM",
+///   "level": 5,
+///   "description": "Senior management position with team leadership responsibilities"
+/// }
+/// ```
 #[utoipa::path(
     post,
     path = "/api/job-levels",
     tag = "Job Levels",
-    summary = "Create job level",
-    description = "Create a new job level with name, code, level number, and optional description",
-    request_body = CreateJobLevelRequest,
+    summary = "Create new job level",
+    description = "Create a new job level with the provided information",
+    request_body = crate::app::http::requests::CreateJobLevelRequest,
     responses(
-        (status = 201, description = "Job level created successfully"),
-        (status = 422, description = "Validation error"),
-        (status = 500, description = "Internal server error")
+        (status = 201, description = "Job level created successfully", body = crate::app::models::joblevel::JobLevelResponse),
+        (status = 400, description = "Validation error or bad request", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn store(
-    State(state): State<AppState>,
-    Json(request): Json<CreateJobLevelRequest>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-        // Authorization check - uncomment when auth middleware is ready
-        // let user = auth::get_user(&state, &headers).await?;
-        // if !JobLevelPolicy::create(&user).await? {
-        //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
-        // }
+pub async fn store(State(pool): State<PgPool>, request: CreateJobLevelRequest) -> impl IntoResponse {
+    let payload = CreateJobLevel {
+        name: request.name,
+        code: request.code,
+        level: request.level,
+        description: request.description,
+    };
 
-        match request.validate().await {
-            Ok(_) => {}
-            Err(errors) => {
-                return Err((
-                    StatusCode::UNPROCESSABLE_ENTITY,
-                    Json(json!({
-                        "message": "The given data was invalid.",
-                        "errors": errors
-                    })),
-                ));
-            }
-        }
-
-        match JobLevelService::create(&state.db, &request).await {
-            Ok(job_level) => Ok(Json(json!(job_level))),
-            Err(e) => {
-                tracing::error!("Failed to create job level: {}", e);
-                if e.to_string().contains("duplicate") || e.to_string().contains("unique") {
-                    Err((
-                        StatusCode::UNPROCESSABLE_ENTITY,
-                        Json(json!({
-                            "message": "The given data was invalid.",
-                            "errors": {
-                                "level": ["A job level with this level number already exists"],
-                                "code": ["A job level with this code already exists"]
-                            }
-                        })),
-                    ))
-                } else {
-                    Err((
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({"error": "Failed to create job level"})),
-                    ))
-                }
-            }
+    match JobLevelService::create(&pool, payload).await {
+        Ok(job_level) => (StatusCode::CREATED, ResponseJson(job_level.to_response())).into_response(),
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response()
         }
     }
+}
 
+/// Update an existing job level
+///
+/// Update an existing job level with the provided information. All fields are optional
+/// for partial updates. Only provided fields will be updated.
+///
+/// # Path Parameters
+/// - `id`: The unique identifier of the job level to update (ULID format)
+///
+/// # Request Body
+/// The request should contain an UpdateJobLevelRequest JSON payload with optional fields:
+/// - `name`: Updated job level name (2-100 characters)
+/// - `code`: Updated job level code (2-20 characters)
+/// - `level`: Updated numeric level ranking (1-20)
+/// - `description`: Updated description (max 500 characters)
+/// - `is_active`: Updated active status
 #[utoipa::path(
     put,
     path = "/api/job-levels/{id}",
     tag = "Job Levels",
     summary = "Update job level",
-    description = "Update an existing job level's properties including name, code, level, description, and active status",
+    description = "Update an existing job level with the provided information",
     params(
-        ("id" = String, Path, description = "Job level ULID")
+        ("id" = String, Path, description = "Job level unique identifier (ULID format)")
     ),
-    request_body = UpdateJobLevelRequest,
+    request_body = crate::app::http::requests::UpdateJobLevelRequest,
     responses(
-        (status = 200, description = "Job level updated successfully"),
-        (status = 404, description = "Job level not found"),
-        (status = 422, description = "Validation error"),
-        (status = 500, description = "Internal server error")
+        (status = 200, description = "Job level updated successfully", body = crate::app::models::joblevel::JobLevelResponse),
+        (status = 400, description = "Invalid ID format or validation error", body = crate::app::docs::ErrorResponse),
+        (status = 404, description = "Job level not found", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
 pub async fn update(
-    State(state): State<AppState>,
+    State(pool): State<PgPool>,
     Path(id): Path<String>,
-    Json(request): Json<UpdateJobLevelRequest>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-        // Authorization check - uncomment when auth middleware is ready
-        // let user = auth::get_user(&state, &headers).await?;
-        // let job_level = JobLevelService::find(&state.db, &id).await?;
-        // if !JobLevelPolicy::update(&user, &job_level).await? {
-        //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
-        // }
-
-        match request.validate().await {
-            Ok(_) => {}
-            Err(errors) => {
-                return Err((
-                    StatusCode::UNPROCESSABLE_ENTITY,
-                    Json(json!({
-                        "message": "The given data was invalid.",
-                        "errors": errors
-                    })),
-                ));
-            }
+    request: UpdateJobLevelRequest,
+) -> impl IntoResponse {
+    let job_level_id = match Ulid::from_string(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "Invalid ID format".to_string(),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
         }
+    };
 
-        match JobLevelService::update(&state.db, &id, &request).await {
-            Ok(job_level) => Ok(Json(json!(job_level))),
-            Err(e) => {
-                tracing::error!("Failed to update job level {}: {}", id, e);
-                if e.to_string().contains("not found") {
-                    Err((
-                        StatusCode::NOT_FOUND,
-                        Json(json!({"error": "Job level not found"})),
-                    ))
-                } else if e.to_string().contains("duplicate") || e.to_string().contains("unique") {
-                    Err((
-                        StatusCode::UNPROCESSABLE_ENTITY,
-                        Json(json!({
-                            "message": "The given data was invalid.",
-                            "errors": {
-                                "level": ["A job level with this level number already exists"],
-                                "code": ["A job level with this code already exists"]
-                            }
-                        })),
-                    ))
-                } else {
-                    Err((
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({"error": "Failed to update job level"})),
-                    ))
-                }
-            }
+    let payload = UpdateJobLevel {
+        name: request.name,
+        code: request.code,
+        level: request.level,
+        description: request.description,
+        is_active: request.is_active,
+    };
+
+    match JobLevelService::update(&pool, job_level_id, payload).await {
+        Ok(job_level) => (StatusCode::OK, ResponseJson(job_level.to_response())).into_response(),
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response()
         }
     }
+}
 
+/// Delete a job level
+///
+/// Permanently delete a job level from the system. This action cannot be undone.
+///
+/// # Path Parameters
+/// - `id`: The unique identifier of the job level to delete (ULID format)
 #[utoipa::path(
     delete,
     path = "/api/job-levels/{id}",
     tag = "Job Levels",
     summary = "Delete job level",
-    description = "Delete a job level by its ULID. This will fail if there are job positions associated with this level.",
+    description = "Permanently delete a job level from the system",
     params(
-        ("id" = String, Path, description = "Job level ULID")
+        ("id" = String, Path, description = "Job level unique identifier (ULID format)")
     ),
     responses(
-        (status = 200, description = "Job level deleted successfully"),
-        (status = 404, description = "Job level not found"),
-        (status = 422, description = "Cannot delete job level with associated positions"),
-        (status = 500, description = "Internal server error")
+        (status = 200, description = "Job level deleted successfully", body = crate::app::docs::MessageResponse),
+        (status = 400, description = "Invalid ID format", body = crate::app::docs::ErrorResponse),
+        (status = 404, description = "Job level not found", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn destroy(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-        // Authorization check - uncomment when auth middleware is ready
-        // let user = auth::get_user(&state, &headers).await?;
-        // let job_level = JobLevelService::find(&state.db, &id).await?;
-        // if !JobLevelPolicy::delete(&user, &job_level).await? {
-        //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
-        // }
+pub async fn destroy(State(pool): State<PgPool>, Path(id): Path<String>) -> impl IntoResponse {
+    let job_level_id = match Ulid::from_string(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "Invalid ID format".to_string(),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+        }
+    };
 
-        match JobLevelService::delete(&state.db, &id).await {
-            Ok(_) => Ok(Json(json!({"message": "Job level deleted successfully"}))),
-            Err(e) => {
-                tracing::error!("Failed to delete job level {}: {}", id, e);
-                if e.to_string().contains("not found") {
-                    Err((
-                        StatusCode::NOT_FOUND,
-                        Json(json!({"error": "Job level not found"})),
-                    ))
-                } else if e.to_string().contains("foreign key") || e.to_string().contains("referenced") {
-                    Err((
-                        StatusCode::UNPROCESSABLE_ENTITY,
-                        Json(json!({"error": "Cannot delete job level with associated job positions"})),
-                    ))
-                } else {
-                    Err((
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({"error": "Failed to delete job level"})),
-                    ))
-                }
-            }
+    match JobLevelService::delete(&pool, job_level_id).await {
+        Ok(_) => {
+            let message = MessageResponse {
+                message: "Job level deleted successfully".to_string(),
+            };
+            (StatusCode::OK, ResponseJson(message)).into_response()
+        }
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response()
         }
     }
+}
 
+/// Activate a job level
+///
+/// Set a job level's active status to true.
+///
+/// # Path Parameters
+/// - `id`: The unique identifier of the job level to activate (ULID format)
 #[utoipa::path(
     post,
     path = "/api/job-levels/{id}/activate",
     tag = "Job Levels",
     summary = "Activate job level",
-    description = "Activate a job level by setting its is_active status to true",
+    description = "Set a job level's active status to true",
     params(
-        ("id" = String, Path, description = "Job level ULID")
+        ("id" = String, Path, description = "Job level unique identifier (ULID format)")
     ),
     responses(
-        (status = 200, description = "Job level activated successfully"),
-        (status = 404, description = "Job level not found"),
-        (status = 500, description = "Internal server error")
+        (status = 200, description = "Job level activated successfully", body = crate::app::models::joblevel::JobLevelResponse),
+        (status = 400, description = "Invalid ID format", body = crate::app::docs::ErrorResponse),
+        (status = 404, description = "Job level not found", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn activate(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-        // Authorization check - uncomment when auth middleware is ready
-        // let user = auth::get_user(&state, &headers).await?;
-        // let job_level = JobLevelService::find(&state.db, &id).await?;
-        // if !JobLevelPolicy::update(&user, &job_level).await? {
-        //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
-        // }
+pub async fn activate(State(pool): State<PgPool>, Path(id): Path<String>) -> impl IntoResponse {
+    let job_level_id = match Ulid::from_string(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "Invalid ID format".to_string(),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+        }
+    };
 
-        match JobLevelService::activate(&state.db, &id).await {
-            Ok(job_level) => Ok(Json(json!(job_level))),
-            Err(e) => {
-                tracing::error!("Failed to activate job level {}: {}", id, e);
-                if e.to_string().contains("not found") {
-                    Err((
-                        StatusCode::NOT_FOUND,
-                        Json(json!({"error": "Job level not found"})),
-                    ))
-                } else {
-                    Err((
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({"error": "Failed to activate job level"})),
-                    ))
+    // Get current job level and update its active status
+    match JobLevelService::find_by_id(&pool, job_level_id).await {
+        Ok(Some(_job_level)) => {
+            let payload = UpdateJobLevel {
+                name: None,
+                code: None,
+                level: None,
+                description: None,
+                is_active: Some(true),
+            };
+
+            match JobLevelService::update(&pool, job_level_id, payload).await {
+                Ok(updated_job_level) => (StatusCode::OK, ResponseJson(updated_job_level.to_response())).into_response(),
+                Err(e) => {
+                    let error = ErrorResponse {
+                        error: e.to_string(),
+                    };
+                    (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response()
                 }
             }
         }
+        Ok(None) => {
+            let error = ErrorResponse {
+                error: "Job level not found".to_string(),
+            };
+            (StatusCode::NOT_FOUND, ResponseJson(error)).into_response()
+        }
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response()
+        }
     }
+}
 
+/// Deactivate a job level
+///
+/// Set a job level's active status to false.
+///
+/// # Path Parameters
+/// - `id`: The unique identifier of the job level to deactivate (ULID format)
 #[utoipa::path(
     post,
     path = "/api/job-levels/{id}/deactivate",
     tag = "Job Levels",
     summary = "Deactivate job level",
-    description = "Deactivate a job level by setting its is_active status to false",
+    description = "Set a job level's active status to false",
     params(
-        ("id" = String, Path, description = "Job level ULID")
+        ("id" = String, Path, description = "Job level unique identifier (ULID format)")
     ),
     responses(
-        (status = 200, description = "Job level deactivated successfully"),
-        (status = 404, description = "Job level not found"),
-        (status = 500, description = "Internal server error")
+        (status = 200, description = "Job level deactivated successfully", body = crate::app::models::joblevel::JobLevelResponse),
+        (status = 400, description = "Invalid ID format", body = crate::app::docs::ErrorResponse),
+        (status = 404, description = "Job level not found", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn deactivate(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-        // Authorization check - uncomment when auth middleware is ready
-        // let user = auth::get_user(&state, &headers).await?;
-        // let job_level = JobLevelService::find(&state.db, &id).await?;
-        // if !JobLevelPolicy::update(&user, &job_level).await? {
-        //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
-        // }
+pub async fn deactivate(State(pool): State<PgPool>, Path(id): Path<String>) -> impl IntoResponse {
+    let job_level_id = match Ulid::from_string(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "Invalid ID format".to_string(),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+        }
+    };
 
-        match JobLevelService::deactivate(&state.db, &id).await {
-            Ok(job_level) => Ok(Json(json!(job_level))),
-            Err(e) => {
-                tracing::error!("Failed to deactivate job level {}: {}", id, e);
-                if e.to_string().contains("not found") {
-                    Err((
-                        StatusCode::NOT_FOUND,
-                        Json(json!({"error": "Job level not found"})),
-                    ))
-                } else {
-                    Err((
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({"error": "Failed to deactivate job level"})),
-                    ))
+    // Get current job level and update its active status
+    match JobLevelService::find_by_id(&pool, job_level_id).await {
+        Ok(Some(_job_level)) => {
+            let payload = UpdateJobLevel {
+                name: None,
+                code: None,
+                level: None,
+                description: None,
+                is_active: Some(false),
+            };
+
+            match JobLevelService::update(&pool, job_level_id, payload).await {
+                Ok(updated_job_level) => (StatusCode::OK, ResponseJson(updated_job_level.to_response())).into_response(),
+                Err(e) => {
+                    let error = ErrorResponse {
+                        error: e.to_string(),
+                    };
+                    (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response()
                 }
             }
         }
+        Ok(None) => {
+            let error = ErrorResponse {
+                error: "Job level not found".to_string(),
+            };
+            (StatusCode::NOT_FOUND, ResponseJson(error)).into_response()
+        }
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response()
+        }
     }
-
-impl JobLevelController {}
+}

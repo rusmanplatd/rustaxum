@@ -13,7 +13,7 @@ use crate::app::models::{
 };
 use crate::app::policies::{
     user_organization_policy::UserOrganizationPolicy,
-    policy_trait::{PolicyTrait, AuthorizationContext, AuthorizationResult},
+    policy_trait::{PolicyTrait, AuthorizationResult},
 };
 
 #[derive(Debug)]
