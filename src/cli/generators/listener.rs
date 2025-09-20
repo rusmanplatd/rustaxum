@@ -29,57 +29,22 @@ pub async fn generate_listener(name: &str, event: Option<String>, queued: bool) 
 }
 
 fn generate_sync_listener_template(listener_name: &str, event: &Option<String>) -> String {
-    let event_type = event.as_deref().unwrap_or("ExampleEvent");
+    let event_name = event.as_deref().unwrap_or("UserRegistered");
     format!(r#"use anyhow::Result;
-use serde::{{Deserialize, Serialize}};
+use async_trait::async_trait;
+use std::sync::Arc;
+use crate::app::events::{{Event, EventListener}};
 
-// Import the event this listener handles
-// use crate::app::events::{};
-
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct {} {{
-    // Add listener-specific configuration here
+    pub id: String,
 }}
 
 impl {} {{
     pub fn new() -> Self {{
-        Self {{}}
-    }}
-
-    // Handle the event synchronously
-    pub async fn handle(&self, event: &{}) -> Result<()> {{
-        println!("Handling event in {{}}: {{:?}}", stringify!({}), event);
-
-        // Implement your event handling logic here
-        self.process_event(event).await?;
-
-        println!("Event handled successfully by {{}}", stringify!({}));
-        Ok(())
-    }}
-
-    async fn process_event(&self, event: &{}) -> Result<()> {{
-        // Implement your actual event processing logic here
-        // This could be:
-        // - Sending notifications
-        // - Updating database records
-        // - Triggering other events
-        // - Calling external APIs
-        // - etc.
-
-        println!("Processing event: {{:?}}", event);
-
-        // Example processing logic
-        match event.event_type() {{
-            "{}" => {{
-                println!("Handling {} event");
-                // Add specific handling for this event type
-            }},
-            _ => {{
-                println!("Unknown event type: {{}}", event.event_type());
-            }}
+        Self {{
+            id: ulid::Ulid::new().to_string(),
         }}
-
-        Ok(())
     }}
 }}
 
@@ -89,166 +54,107 @@ impl Default for {} {{
     }}
 }}
 
-// Listener trait for type-safe event handling
-#[async_trait::async_trait]
-pub trait EventListener<E> {{
-    async fn handle(&self, event: &E) -> Result<()>;
-}}
+#[async_trait]
+impl EventListener for {} {{
+    async fn handle(&self, event: Arc<dyn Event>) -> Result<()> {{
+        println!("{} handling event: {{}}", event.event_name());
 
-#[async_trait::async_trait]
-impl EventListener<{}> for {} {{
-    async fn handle(&self, event: &{}) -> Result<()> {{
-        Self::handle(self, event).await
+        if event.event_name() == "{}" {{
+            let event_data = event.to_json();
+
+            println!("Processing {} event with data: {{:?}}", event_data);
+
+            // Implement your event handling logic here
+            // This could be:
+            // - Sending notifications
+            // - Updating database records
+            // - Triggering other events
+            // - Calling external APIs
+            // - etc.
+
+            // Simulate some processing
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+            println!("{} processed successfully!");
+        }}
+
+        Ok(())
+    }}
+
+    fn should_queue(&self) -> bool {{
+        false
+    }}
+
+    fn queue_name(&self) -> Option<&str> {{
+        None
     }}
 }}
-"#, event_type, listener_name, listener_name, event_type, listener_name, listener_name, event_type, event_type, event_type, listener_name, event_type, listener_name, event_type)
+"#, listener_name, listener_name, listener_name, listener_name, listener_name, event_name, event_name, event_name)
 }
 
 fn generate_queued_listener_template(listener_name: &str, event: &Option<String>) -> String {
-    let event_type = event.as_deref().unwrap_or("ExampleEvent");
+    let event_name = event.as_deref().unwrap_or("UserRegistered");
     format!(r#"use anyhow::Result;
-use serde::{{Deserialize, Serialize}};
-use tokio::time::{{sleep, Duration}};
+use async_trait::async_trait;
+use std::sync::Arc;
+use crate::app::events::{{Event, EventListener}};
 
-// Import the event this listener handles
-// use crate::app::events::{};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct {} {{
     pub id: String,
-    pub event_data: String, // Serialized event data
-    pub attempts: u32,
-    pub max_attempts: u32,
-    pub delay: Option<Duration>,
 }}
 
 impl {} {{
-    pub fn new(event: &{}) -> Result<Self> {{
-        Ok(Self {{
+    pub fn new() -> Self {{
+        Self {{
             id: ulid::Ulid::new().to_string(),
-            event_data: serde_json::to_string(event)?,
-            attempts: 0,
-            max_attempts: 3,
-            delay: None,
-        }})
-    }}
-
-    pub fn with_delay(mut self, delay: Duration) -> Self {{
-        self.delay = Some(delay);
-        self
-    }}
-
-    pub fn max_attempts(mut self, attempts: u32) -> Self {{
-        self.max_attempts = attempts;
-        self
-    }}
-
-    // Handle the event asynchronously (queued)
-    pub async fn handle(&mut self) -> Result<()> {{
-        self.attempts += 1;
-
-        // Add delay if specified
-        if let Some(delay) = self.delay {{
-            sleep(delay).await;
         }}
-
-        println!("Handling queued event in {{}} (attempt {{}})", stringify!({}), self.attempts);
-
-        // Deserialize the event
-        let event: {} = serde_json::from_str(&self.event_data)?;
-
-        // Process the event
-        self.process_event(&event).await?;
-
-        println!("Queued event handled successfully by {{}}", stringify!({}));
-        Ok(())
     }}
+}}
 
-    async fn process_event(&self, event: &{}) -> Result<()> {{
-        // Implement your actual event processing logic here
-        // This could be:
-        // - Sending emails/notifications (queued)
-        // - Processing files
-        // - Making API calls
-        // - Heavy computations
-        // - Database operations
-        // - etc.
+impl Default for {} {{
+    fn default() -> Self {{
+        Self::new()
+    }}
+}}
 
-        println!("Processing queued event: {{:?}}", event);
+#[async_trait]
+impl EventListener for {} {{
+    async fn handle(&self, event: Arc<dyn Event>) -> Result<()> {{
+        println!("{} handling event: {{}}", event.event_name());
 
-        // Example processing logic with simulated work
-        match event.event_type() {{
-            "{}" => {{
-                println!("Handling {} event in queue");
-                // Simulate some async work
-                sleep(Duration::from_millis(100)).await;
-                // Add specific handling for this event type
-            }},
-            _ => {{
-                println!("Unknown event type: {{}}", event.event_type());
-            }}
+        if event.event_name() == "{}" {{
+            let event_data = event.to_json();
+
+            println!("Processing {} event with data: {{:?}}", event_data);
+
+            // Implement your event handling logic here
+            // This could be:
+            // - Sending emails/notifications (queued)
+            // - Processing files
+            // - Making API calls
+            // - Heavy computations
+            // - Database operations
+            // - etc.
+
+            // Simulate some async work for queued processing
+            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+
+            println!("{} processed successfully!");
         }}
 
         Ok(())
     }}
 
-    pub fn should_retry(&self) -> bool {{
-        self.attempts < self.max_attempts
+    fn should_queue(&self) -> bool {{
+        true
     }}
 
-    pub async fn failed(&self, error: &anyhow::Error) {{
-        println!("Queued listener {{}} failed: {{}}", self.id, error);
-
-        if !self.should_retry() {{
-            println!("Listener {{}} exceeded max attempts, moving to failed queue", self.id);
-            // Here you could store the failed job in a dead letter queue
-        }}
+    fn queue_name(&self) -> Option<&str> {{
+        Some("listeners")
     }}
 }}
-
-// Queueable trait for async job processing
-#[async_trait::async_trait]
-pub trait QueueableListener {{
-    async fn dispatch(self) -> Result<()>;
-}}
-
-#[async_trait::async_trait]
-impl QueueableListener for {} {{
-    async fn dispatch(mut self) -> Result<()> {{
-        // This would typically add the listener job to a queue (Redis, database, etc.)
-        // For now, we'll just execute it directly
-        println!("Dispatching queued listener: {{}}", self.id);
-
-        loop {{
-            match self.handle().await {{
-                Ok(()) => break,
-                Err(e) => {{
-                    self.failed(&e).await;
-                    if !self.should_retry() {{
-                        return Err(e);
-                    }}
-                    // In a real implementation, you'd re-queue the listener with a delay
-                    sleep(Duration::from_secs(1)).await;
-                }}
-            }}
-        }}
-
-        Ok(())
-    }}
-}}
-
-// Synchronous listener trait for immediate processing
-#[async_trait::async_trait]
-pub trait EventListener<E> {{
-    async fn handle(&self, event: &E) -> Result<()>;
-}}
-
-// Helper function to create and queue the listener
-pub async fn dispatch_listener(event: &{}) -> Result<()> {{
-    let listener = {}::new(event)?;
-    listener.dispatch().await
-}}
-"#, event_type, listener_name, listener_name, event_type, listener_name, event_type, listener_name, event_type, event_type, event_type, listener_name, event_type, listener_name)
+"#, listener_name, listener_name, listener_name, listener_name, listener_name, event_name, event_name, event_name)
 }
 
 fn update_listeners_mod(listener_name: &str) -> Result<()> {

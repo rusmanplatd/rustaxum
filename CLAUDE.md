@@ -120,12 +120,12 @@ This is a Laravel-inspired Rust web framework built with Axum, following familia
 **Layered Architecture**: The application follows a clear separation of concerns with distinct layers:
 
 - **Routes** (`src/routes/`): Define URL patterns and map to controllers
-- **Controllers** (`src/app/controllers/`): Handle HTTP requests/responses, delegate to services
+- **Controllers** (`src/app/http/controllers/`): Handle HTTP requests/responses, delegate to services
 - **Services** (`src/app/services/`): Contain business logic, interact with models
 - **Models** (`src/app/models/`): Data structures and database interactions
-- **Middleware** (`src/app/middleware/`): Cross-cutting concerns (auth, CORS, logging)
+- **Middleware** (`src/app/http/middleware/`): Cross-cutting concerns (auth, CORS, logging)
 - **Resources** (`src/app/resources/`): API response transformations and data presentation
-- **Requests** (`src/app/requests/`): Input validation and form request handling
+- **Requests** (`src/app/http/requests/`): Input validation and form request handling
 - **Mail** (`src/app/mail/`): Email composition and sending logic
 - **Notifications** (`src/app/notifications/`): Multi-channel notification system
 - **Jobs** (`src/app/jobs/`): Background task processing and queue management

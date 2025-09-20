@@ -34,91 +34,134 @@ pub async fn generate_mail(name: &str, markdown: bool) -> Result<()> {
 
 fn generate_mail_template(mail_name: &str) -> String {
     format!(r#"use anyhow::Result;
-use serde::{{Deserialize, Serialize}};
+use async_trait::async_trait;
+use crate::app::mail::{{Mailable, MailMessage, MailContent}};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct {} {{
-    pub to: String,
-    pub subject: String,
+    pub to_email: String,
     // Add mail data fields here
 }}
 
 impl {} {{
-    pub fn new(to: String) -> Self {{
+    pub fn new(to_email: String) -> Self {{
         Self {{
-            to,
-            subject: "{} Notification".to_string(),
+            to_email,
             // Initialize other fields
         }}
     }}
+}}
 
-    pub fn subject(mut self, subject: impl Into<String>) -> Self {{
-        self.subject = subject.into();
-        self
+#[async_trait]
+impl Mailable for {} {{
+    async fn build(&self) -> Result<MailMessage> {{
+        let content = format!(r#"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{} Notification</title>
+</head>
+<body>
+    <h1>{} Notification</h1>
+    <p>This is a notification from your application.</p>
+    <p>Add your email content here.</p>
+</body>
+</html>
+"#);
+
+        Ok(MailMessage::new()
+            .to(self.to_email.clone())
+            .subject("{} Notification".to_string())
+            .content(MailContent::Html(content)))
     }}
 
-    pub async fn send(&self) -> Result<()> {{
-        // Implement mail sending logic here
-        // This could integrate with SMTP, SendGrid, etc.
-        println!("Sending mail to: {{}}", self.to);
-        println!("Subject: {{}}", self.subject);
-        println!("Body: {{}}", self.build_body());
-        Ok(())
+    fn to(&self) -> Vec<String> {{
+        vec![self.to_email.clone()]
     }}
 
-    fn build_body(&self) -> String {{
-        // Build the email body
-        "HTML email body placeholder".to_string()
+    fn subject(&self) -> String {{
+        "{} Notification".to_string()
+    }}
+
+    fn should_queue(&self) -> bool {{
+        true
+    }}
+
+    fn queue_name(&self) -> Option<&str> {{
+        Some("emails")
     }}
 }}
-"#, mail_name, mail_name, mail_name)
+"#, mail_name, mail_name, mail_name, mail_name, mail_name, mail_name, mail_name)
 }
 
 fn generate_markdown_mail_template(mail_name: &str) -> String {
     format!(r#"use anyhow::Result;
-use serde::{{Deserialize, Serialize}};
+use async_trait::async_trait;
+use crate::app::mail::{{Mailable, MailMessage, MailContent}};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct {} {{
-    pub to: String,
-    pub subject: String,
+    pub to_email: String,
     // Add mail data fields here
 }}
 
 impl {} {{
-    pub fn new(to: String) -> Self {{
+    pub fn new(to_email: String) -> Self {{
         Self {{
-            to,
-            subject: "{} Notification".to_string(),
+            to_email,
             // Initialize other fields
         }}
     }}
+}}
 
-    pub fn subject(mut self, subject: impl Into<String>) -> Self {{
-        self.subject = subject.into();
-        self
+#[async_trait]
+impl Mailable for {} {{
+    async fn build(&self) -> Result<MailMessage> {{
+        let markdown_content = format!(r#"# {} Notification
+
+This is a notification from your application.
+
+## Details
+
+Add your email content here in **Markdown** format.
+
+You can use:
+- *Italic text*
+- **Bold text**
+- Lists
+- Links
+- And more!
+
+Best regards,
+Your Application Team
+"#);
+
+        Ok(MailMessage::new()
+            .to(self.to_email.clone())
+            .subject("{} Notification".to_string())
+            .content(MailContent::Markdown {{
+                markdown: markdown_content,
+                compiled_html: None,
+            }}))
     }}
 
-    pub async fn send(&self) -> Result<()> {{
-        // Implement mail sending logic here
-        // This could integrate with SMTP, SendGrid, etc.
-        let body = self.build_body_from_markdown()?;
-        println!("Sending mail to: {{}}", self.to);
-        println!("Subject: {{}}", self.subject);
-        println!("Body: {{}}", body);
-        Ok(())
+    fn to(&self) -> Vec<String> {{
+        vec![self.to_email.clone()]
     }}
 
-    fn build_body_from_markdown(&self) -> Result<String> {{
-        // Read and process the markdown template
-        Ok("Markdown email body placeholder".to_string())
+    fn subject(&self) -> String {{
+        "{} Notification".to_string()
     }}
 
-    fn default_markdown_content(&self) -> String {{
-        "Default markdown content".to_string()
+    fn should_queue(&self) -> bool {{
+        true
+    }}
+
+    fn queue_name(&self) -> Option<&str> {{
+        Some("emails")
     }}
 }}
-"#, mail_name, mail_name, mail_name)
+"#, mail_name, mail_name, mail_name, mail_name, mail_name, mail_name)
 }
 
 fn create_markdown_template(mail_name: &str) -> Result<()> {

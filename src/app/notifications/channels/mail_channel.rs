@@ -1,58 +1,14 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use lettre::{Message, AsyncTransport};
-use lettre::transport::smtp::authentication::Credentials;
-use lettre::transport::smtp::client::{Tls, TlsParameters};
-use lettre::AsyncSmtpTransport;
 use crate::app::notifications::channels::Channel;
-use crate::app::notifications::notification::{Notification, Notifiable, NotificationChannel, MailContent};
-use crate::config::Config;
+use crate::app::notifications::notification::{Notification, Notifiable, NotificationChannel};
+use crate::app::mail::{mail_manager, MailMessage, MailContent as NewMailContent};
 
 pub struct MailChannel;
 
 impl MailChannel {
     pub fn new() -> Self {
         Self
-    }
-
-    async fn get_mailer() -> Result<AsyncSmtpTransport<lettre::Tokio1Executor>> {
-        let config = Config::load()?;
-
-        let mut transport = AsyncSmtpTransport::<lettre::Tokio1Executor>::builder_dangerous(&config.mail.host)
-            .port(config.mail.port);
-
-        // Add authentication if credentials are provided
-        if !config.mail.username.is_empty() {
-            let creds = Credentials::new(config.mail.username.clone(), config.mail.password.clone());
-            transport = transport.credentials(creds);
-        }
-
-        // Configure TLS if enabled
-        if config.mail.use_tls() {
-            let tls_params = TlsParameters::new(config.mail.host.clone())?;
-            transport = transport.tls(Tls::Required(tls_params));
-        } else {
-            transport = transport.tls(Tls::None);
-        }
-
-        Ok(transport.build())
-    }
-
-    fn convert_content_to_html(content: &MailContent) -> String {
-        match content {
-            MailContent::Html(html) => html.clone(),
-            MailContent::Text(text) => {
-                // Convert plain text to HTML
-                format!("<pre style=\"font-family: inherit; white-space: pre-wrap;\">{}</pre>", text)
-            }
-            MailContent::Markdown(md) => {
-                // For basic markdown to HTML conversion
-                // In a real implementation, you'd use a markdown parser like pulldown-cmark
-                md.replace('\n', "<br>")
-                    .replace("**", "<strong>")
-                    .replace("*", "<em>")
-            }
-        }
     }
 }
 
@@ -69,27 +25,49 @@ impl Channel for MailChannel {
         };
 
         // Get mail message from notification
-        let mail_message = notification.to_mail(notifiable).await?;
-        let config = Config::load()?;
+        let old_mail_message = notification.to_mail(notifiable).await?;
 
-        // Convert content to HTML
-        let html_content = Self::convert_content_to_html(&mail_message.content);
+        // Convert to new mail system format
+        let new_content = match old_mail_message.content {
+            crate::app::notifications::notification::MailContent::Text(text) => {
+                NewMailContent::Text(text)
+            },
+            crate::app::notifications::notification::MailContent::Html(html) => {
+                NewMailContent::Html(html)
+            },
+            crate::app::notifications::notification::MailContent::Markdown(md) => {
+                NewMailContent::Markdown {
+                    markdown: md,
+                    compiled_html: None,
+                }
+            },
+        };
 
-        // Build email message
-        let from_address = mail_message.from
-            .unwrap_or_else(|| format!("{} <{}>", config.mail.from_name, config.mail.from_address));
+        let mut new_message = MailMessage::new()
+            .to(old_mail_message.to)
+            .subject(old_mail_message.subject)
+            .content(new_content);
 
-        let email = Message::builder()
-            .from(from_address.parse()?)
-            .to(mail_message.to.parse()?)
-            .subject(&mail_message.subject)
-            .header(lettre::message::header::ContentType::TEXT_HTML)
-            .body(html_content)?;
+        if let Some(from) = old_mail_message.from {
+            new_message = new_message.from(from);
+        }
 
-        // Send email
-        let mailer = Self::get_mailer().await?;
+        // Add attachments
+        for attachment_path in old_mail_message.attachments {
+            new_message = new_message.attach(
+                crate::app::mail::Attachment::from_path(
+                    attachment_path.clone(),
+                    attachment_path,
+                    None
+                )
+            );
+        }
 
-        match mailer.send(email).await {
+        // Send using the mail manager
+        let manager = mail_manager().await;
+        let manager = manager.read().await;
+
+        match manager.send_message(new_message).await {
             Ok(_) => {
                 tracing::info!(
                     "Notification email sent successfully to: {} (type: {})",
@@ -104,7 +82,7 @@ impl Channel for MailChannel {
                     email_address,
                     e
                 );
-                Err(anyhow::anyhow!("Failed to send email: {}", e))
+                Err(e)
             }
         }
     }

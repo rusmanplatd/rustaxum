@@ -12,6 +12,9 @@ pub mod storage;
 pub mod cache;
 pub mod oauth;
 pub mod webpush;
+pub mod events;
+pub mod broadcasting;
+pub mod notifications;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -24,6 +27,9 @@ pub struct Config {
     pub cache: cache::CacheConfig,
     pub oauth: oauth::OAuthConfig,
     pub webpush: webpush::WebPushConfig,
+    pub events: events::EventsConfig,
+    pub broadcasting: broadcasting::BroadcastingConfig,
+    pub notifications: notifications::NotificationsConfig,
 }
 
 impl Config {
@@ -40,6 +46,9 @@ impl Config {
             cache: cache::CacheConfig::from_env()?,
             oauth: oauth::OAuthConfig::from_env()?,
             webpush: webpush::WebPushConfig::from_env()?,
+            events: events::EventsConfig::from_env()?,
+            broadcasting: broadcasting::BroadcastingConfig::from_env()?,
+            notifications: notifications::NotificationsConfig::from_env()?,
         })
     }
 
