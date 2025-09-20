@@ -1,9 +1,9 @@
 // Complete Laravel validation rules implementation example
 // This demonstrates all implemented validation rules
 
-use crate::app::validation::{Validatable, ValidationRules, validation_rules, validate_json_async};
+use crate::app::validation::validate_json_async;
 use crate::validation_rules;
-use serde::{Deserialize, Serialize};
+// use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 // Comprehensive example showing all validation rules

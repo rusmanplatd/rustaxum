@@ -4,7 +4,8 @@ use async_trait::async_trait;
 use utoipa::ToSchema;
 
 use crate::app::http::form_request::FormRequest;
-use crate::app::utils::validator::{Rule, required, string, min, max, regex};
+use crate::app::validation::ValidationRules;
+use crate::validation_rules;
 use crate::impl_form_request_extractor;
 
 /// Request payload for creating a new country
@@ -25,12 +26,12 @@ pub struct CreateCountryRequest {
 
 #[async_trait]
 impl FormRequest for CreateCountryRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("name", vec![required(), string(), min("2"), max("100")]);
-        rules.insert("iso_code", vec![required(), string(), min("2"), max("3"), regex("^[A-Z]{2,3}$")]);
-        rules.insert("phone_code", vec![string(), max("10"), regex("^\\+?[0-9]+$")]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "name" => ["required", "string", "min:2", "max:100"],
+            "iso_code" => ["required", "string", "min:2", "max:3", "regex:^[A-Z]{2,3}$"],
+            "phone_code" => ["string", "max:10", "regex:^\\+?[0-9]+$"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -79,12 +80,12 @@ pub struct UpdateCountryRequest {
 
 #[async_trait]
 impl FormRequest for UpdateCountryRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("name", vec![string(), min("2"), max("100")]);
-        rules.insert("iso_code", vec![string(), min("2"), max("3"), regex("^[A-Z]{2,3}$")]);
-        rules.insert("phone_code", vec![string(), max("10"), regex("^\\+?[0-9]+$")]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "name" => ["string", "min:2", "max:100"],
+            "iso_code" => ["string", "min:2", "max:3", "regex:^[A-Z]{2,3}$"],
+            "phone_code" => ["string", "max:10", "regex:^\\+?[0-9]+$"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {

@@ -3,7 +3,7 @@
 
 use crate::app::validation::{
     Validatable, ValidationRules, ValidationErrors,
-    validate_json_async, make_validator
+    validate_json_async
 };
 use crate::validation_rules;
 use serde::{Deserialize, Serialize};

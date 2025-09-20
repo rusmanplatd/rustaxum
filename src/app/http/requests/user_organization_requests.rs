@@ -5,7 +5,8 @@ use utoipa::ToSchema;
 use chrono::{DateTime, Utc};
 
 use crate::app::http::form_request::FormRequest;
-use crate::app::validation::{Rule, required, string, boolean, date, ulid_format};
+use crate::app::validation::ValidationRules;
+use crate::validation_rules;
 use crate::impl_form_request_extractor;
 
 /// Create user organization relationship form request
@@ -28,13 +29,13 @@ pub struct CreateUserOrganizationRequest {
 
 #[async_trait]
 impl FormRequest for CreateUserOrganizationRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("user_id", vec![required(), string(), ulid_format()]);
-        rules.insert("organization_id", vec![required(), string(), ulid_format()]);
-        rules.insert("job_position_id", vec![required(), string(), ulid_format()]);
-        rules.insert("started_at", vec![date()]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "user_id" => ["required", "string", "ulid_format"],
+            "organization_id" => ["required", "string", "ulid_format"],
+            "job_position_id" => ["required", "string", "ulid_format"],
+            "started_at" => ["date"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -88,14 +89,14 @@ pub struct UpdateUserOrganizationRequest {
 
 #[async_trait]
 impl FormRequest for UpdateUserOrganizationRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("organization_id", vec![string(), ulid_format()]);
-        rules.insert("job_position_id", vec![string(), ulid_format()]);
-        rules.insert("is_active", vec![boolean()]);
-        rules.insert("started_at", vec![date()]);
-        rules.insert("ended_at", vec![date()]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "organization_id" => ["string", "ulid_format"],
+            "job_position_id" => ["string", "ulid_format"],
+            "is_active" => ["boolean"],
+            "started_at" => ["date"],
+            "ended_at" => ["date"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -171,18 +172,18 @@ pub struct IndexUserOrganizationRequest {
 
 #[async_trait]
 impl FormRequest for IndexUserOrganizationRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("page", vec![crate::app::validation::numeric(), crate::app::validation::min(1)]);
-        rules.insert("per_page", vec![crate::app::validation::numeric(), crate::app::validation::min(1), crate::app::validation::max(100)]);
-        rules.insert("sort_by", vec![string(), crate::app::validation::in_list(vec!["created_at", "updated_at", "started_at", "ended_at", "user_id", "organization_id"])]);
-        rules.insert("sort_direction", vec![string(), crate::app::validation::in_list(vec!["asc", "desc"])]);
-        rules.insert("user_id", vec![string(), ulid_format()]);
-        rules.insert("organization_id", vec![string(), ulid_format()]);
-        rules.insert("job_position_id", vec![string(), ulid_format()]);
-        rules.insert("is_active", vec![boolean()]);
-        rules.insert("organization_type", vec![string(), crate::app::validation::in_list(vec!["company", "boc", "bod", "division", "department", "branch", "subbranch", "section"])]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "page" => ["numeric", "min:1"],
+            "per_page" => ["numeric", "min:1", "max:100"],
+            "sort_by" => ["string", "in:created_at,updated_at,started_at,ended_at,user_id,organization_id"],
+            "sort_direction" => ["string", "in:asc,desc"],
+            "user_id" => ["string", "ulid_format"],
+            "organization_id" => ["string", "ulid_format"],
+            "job_position_id" => ["string", "ulid_format"],
+            "is_active" => ["boolean"],
+            "organization_type" => ["string", "in:company,boc,bod,division,department,branch,subbranch,section"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -240,13 +241,13 @@ pub struct TransferUserOrganizationRequest {
 
 #[async_trait]
 impl FormRequest for TransferUserOrganizationRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("organization_id", vec![required(), string(), ulid_format()]);
-        rules.insert("job_position_id", vec![required(), string(), ulid_format()]);
-        rules.insert("transfer_date", vec![date()]);
-        rules.insert("reason", vec![string(), crate::app::validation::max(500)]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "organization_id" => ["required", "string", "ulid_format"],
+            "job_position_id" => ["required", "string", "ulid_format"],
+            "transfer_date" => ["date"],
+            "reason" => ["string", "max:500"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -282,10 +283,10 @@ pub struct AssignRoleRequest {
 
 #[async_trait]
 impl FormRequest for AssignRoleRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("role_id", vec![required(), string(), ulid_format()]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "role_id" => ["required", "string", "ulid_format"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -314,10 +315,10 @@ pub struct RemoveRoleRequest {
 
 #[async_trait]
 impl FormRequest for RemoveRoleRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("role_id", vec![required(), string(), ulid_format()]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "role_id" => ["required", "string", "ulid_format"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {

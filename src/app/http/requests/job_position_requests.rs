@@ -4,7 +4,8 @@ use async_trait::async_trait;
 use utoipa::ToSchema;
 
 use crate::app::http::form_request::FormRequest;
-use crate::app::validation::{Rule, required, string, min, max, in_list, ulid_format};
+use crate::app::validation::ValidationRules;
+use crate::validation_rules;
 use crate::impl_form_request_extractor;
 
 /// Create job position form request
@@ -28,13 +29,13 @@ pub struct CreateJobPositionRequest {
 
 #[async_trait]
 impl FormRequest for CreateJobPositionRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("name", vec![required(), string(), min(2), max(100)]);
-        rules.insert("code", vec![string(), min(2), max(20)]);
-        rules.insert("job_level_id", vec![required(), string(), ulid_format()]);
-        rules.insert("description", vec![string(), max(500)]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "name" => ["required", "string", "min:2", "max:100"],
+            "code" => ["string", "min:2", "max:20"],
+            "job_level_id" => ["required", "string", "ulid_format"],
+            "description" => ["string", "max:500"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -89,14 +90,14 @@ pub struct UpdateJobPositionRequest {
 
 #[async_trait]
 impl FormRequest for UpdateJobPositionRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("name", vec![string(), min(2), max(100)]);
-        rules.insert("code", vec![string(), min(2), max(20)]);
-        rules.insert("job_level_id", vec![string(), ulid_format()]);
-        rules.insert("description", vec![string(), max(500)]);
-        rules.insert("is_active", vec![crate::app::validation::boolean()]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "name" => ["string", "min:2", "max:100"],
+            "code" => ["string", "min:2", "max:20"],
+            "job_level_id" => ["string", "ulid_format"],
+            "description" => ["string", "max:500"],
+            "is_active" => ["boolean"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -159,16 +160,16 @@ pub struct IndexJobPositionRequest {
 
 #[async_trait]
 impl FormRequest for IndexJobPositionRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("page", vec![crate::app::validation::numeric(), min(1)]);
-        rules.insert("per_page", vec![crate::app::validation::numeric(), min(1), max(100)]);
-        rules.insert("sort_by", vec![string(), in_list(vec!["name", "code", "created_at", "updated_at"])]);
-        rules.insert("sort_direction", vec![string(), in_list(vec!["asc", "desc"])]);
-        rules.insert("is_active", vec![crate::app::validation::boolean()]);
-        rules.insert("job_level_id", vec![string(), ulid_format()]);
-        rules.insert("name_search", vec![string(), min(2), max(100)]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "page" => ["numeric", "min:1"],
+            "per_page" => ["numeric", "min:1", "max:100"],
+            "sort_by" => ["string", "in:name,code,created_at,updated_at"],
+            "sort_direction" => ["string", "in:asc,desc"],
+            "is_active" => ["boolean"],
+            "job_level_id" => ["string", "ulid_format"],
+            "name_search" => ["string", "min:2", "max:100"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -218,11 +219,11 @@ pub struct JobPositionsByLevelRequest {
 
 #[async_trait]
 impl FormRequest for JobPositionsByLevelRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("job_level_id", vec![required(), string(), ulid_format()]);
-        rules.insert("include_inactive", vec![crate::app::validation::boolean()]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "job_level_id" => ["required", "string", "ulid_format"],
+            "include_inactive" => ["boolean"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {

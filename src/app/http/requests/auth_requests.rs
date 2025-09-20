@@ -4,7 +4,8 @@ use async_trait::async_trait;
 use utoipa::ToSchema;
 
 use crate::app::http::form_request::FormRequest;
-use crate::app::validation::{Rule, required, email, min, confirmed, string};
+use crate::app::validation::ValidationRules;
+use crate::validation_rules;
 use crate::impl_form_request_extractor;
 
 /// Register user form request
@@ -26,13 +27,13 @@ pub struct RegisterRequest {
 
 #[async_trait]
 impl FormRequest for RegisterRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("name", vec![required(), string(), min(2)]);
-        rules.insert("email", vec![required(), email()]);
-        rules.insert("password", vec![required(), string(), min(8)]);
-        rules.insert("password_confirmation", vec![required(), confirmed()]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "name" => ["required", "string", "min:2"],
+            "email" => ["required", "email"],
+            "password" => ["required", "string", "min:8"],
+            "password_confirmation" => ["required", "confirmed"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -74,11 +75,11 @@ pub struct LoginRequest {
 
 #[async_trait]
 impl FormRequest for LoginRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("email", vec![required(), email()]);
-        rules.insert("password", vec![required(), string()]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "email" => ["required", "email"],
+            "password" => ["required", "string"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -102,10 +103,10 @@ pub struct ForgotPasswordRequest {
 
 #[async_trait]
 impl FormRequest for ForgotPasswordRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("email", vec![required(), email()]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "email" => ["required", "email"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -137,13 +138,13 @@ pub struct ResetPasswordRequest {
 
 #[async_trait]
 impl FormRequest for ResetPasswordRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("token", vec![required(), string()]);
-        rules.insert("email", vec![required(), email()]);
-        rules.insert("password", vec![required(), string(), min(8)]);
-        rules.insert("password_confirmation", vec![required(), confirmed()]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "token" => ["required", "string"],
+            "email" => ["required", "email"],
+            "password" => ["required", "string", "min:8"],
+            "password_confirmation" => ["required", "confirmed"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -177,12 +178,12 @@ pub struct ChangePasswordRequest {
 
 #[async_trait]
 impl FormRequest for ChangePasswordRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("current_password", vec![required(), string()]);
-        rules.insert("password", vec![required(), string(), min(8)]);
-        rules.insert("password_confirmation", vec![required(), confirmed()]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "current_password" => ["required", "string"],
+            "password" => ["required", "string", "min:8"],
+            "password_confirmation" => ["required", "confirmed"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {

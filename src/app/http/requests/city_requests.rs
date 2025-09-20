@@ -5,7 +5,8 @@ use rust_decimal::Decimal;
 use utoipa::ToSchema;
 
 use crate::app::http::form_request::FormRequest;
-use crate::app::utils::validator::{Rule, required, string, min, max, uuid, numeric, between};
+use crate::app::validation::ValidationRules;
+use crate::validation_rules;
 use crate::impl_form_request_extractor;
 
 #[derive(Deserialize, Serialize, ToSchema)]
@@ -29,14 +30,14 @@ pub struct CreateCityRequest {
 
 #[async_trait]
 impl FormRequest for CreateCityRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("province_id", vec![required(), string(), uuid()]);
-        rules.insert("name", vec![required(), string(), min("2"), max("100")]);
-        rules.insert("code", vec![string(), max("10")]);
-        rules.insert("latitude", vec![numeric(), between("-90", "90")]);
-        rules.insert("longitude", vec![numeric(), between("-180", "180")]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "province_id" => ["required", "string", "uuid"],
+            "name" => ["required", "string", "min:2", "max:100"],
+            "code" => ["string", "max:10"],
+            "latitude" => ["numeric", "between:-90,90"],
+            "longitude" => ["numeric", "between:-180,180"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -89,14 +90,14 @@ pub struct UpdateCityRequest {
 
 #[async_trait]
 impl FormRequest for UpdateCityRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("province_id", vec![string(), uuid()]);
-        rules.insert("name", vec![string(), min("2"), max("100")]);
-        rules.insert("code", vec![string(), max("10")]);
-        rules.insert("latitude", vec![numeric(), between("-90", "90")]);
-        rules.insert("longitude", vec![numeric(), between("-180", "180")]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "province_id" => ["string", "uuid"],
+            "name" => ["string", "min:2", "max:100"],
+            "code" => ["string", "max:10"],
+            "latitude" => ["numeric", "between:-90,90"],
+            "longitude" => ["numeric", "between:-180,180"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {

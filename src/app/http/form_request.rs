@@ -9,14 +9,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use utoipa::ToSchema;
 
-use crate::app::utils::validator::{ValidationErrors, Validator, Rule};
-use crate::app::utils::validation_macros::ValidatorExt;
+use crate::app::validation::{ValidationRules, ValidationErrors, make_validator};
+use crate::validation_rules;
 
 /// Response format for validation errors
 #[derive(Serialize, ToSchema)]
 pub struct ValidationErrorResponse {
     pub message: String,
-    pub errors: HashMap<String, Vec<String>>,
+    pub errors: HashMap<String, HashMap<String, String>>,
 }
 
 impl IntoResponse for ValidationErrorResponse {
@@ -27,9 +27,9 @@ impl IntoResponse for ValidationErrorResponse {
 
 /// Trait for form request validation similar to Laravel's FormRequest
 #[async_trait]
-pub trait FormRequest: for<'de> Deserialize<'de> + Send + Sync + 'static {
+pub trait FormRequest: for<'de> Deserialize<'de> + Serialize + Send + Sync + 'static {
     /// Define validation rules for the request
-    fn rules() -> HashMap<&'static str, Vec<Rule>>;
+    fn rules() -> ValidationRules;
 
     /// Define custom validation messages (optional)
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -52,8 +52,8 @@ pub trait FormRequest: for<'de> Deserialize<'de> + Send + Sync + 'static {
     /// Handle a failed validation attempt (optional)
     fn failed_validation(&self, errors: ValidationErrors) -> ValidationErrorResponse {
         ValidationErrorResponse {
-            message: "The given data was invalid.".to_string(),
-            errors: errors.get_messages(),
+            message: errors.message.clone(),
+            errors: errors.errors,
         }
     }
 
@@ -65,26 +65,10 @@ pub trait FormRequest: for<'de> Deserialize<'de> + Send + Sync + 'static {
     }
 
     /// Validate the request data
-    fn validate_data(&self, data: Value) -> Result<(), ValidationErrors> {
+    async fn validate_data(&self, data: Value) -> Result<(), ValidationErrors> {
         let rules = Self::rules();
-        let messages = Self::messages();
-
-        let mut validator = Validator::new(
-            serde_json::from_value::<HashMap<String, Value>>(data)
-                .unwrap_or_default()
-        );
-
-        // Add validation rules
-        for (field, field_rules) in rules {
-            validator.rules(field, field_rules);
-        }
-
-        // Add custom messages
-        for (key, message) in messages {
-            validator.message(key, message);
-        }
-
-        validator.validate()
+        let validator = make_validator(data, rules);
+        validator.validate().await
     }
 }
 
@@ -119,7 +103,7 @@ where
         })?;
 
     // Validate the data
-    if let Err(validation_errors) = payload.validate_data(json_data) {
+    if let Err(validation_errors) = payload.validate_data(json_data).await {
         return Err(payload.failed_validation(validation_errors));
     }
 
@@ -167,7 +151,7 @@ macro_rules! impl_form_request_extractor {
                     })?;
 
                 // Validate the data
-                if let Err(validation_errors) = <$name as $crate::app::http::form_request::FormRequest>::validate_data(&payload, json_data) {
+                if let Err(validation_errors) = <$name as $crate::app::http::form_request::FormRequest>::validate_data(&payload, json_data).await {
                     return Err(<$name as $crate::app::http::form_request::FormRequest>::failed_validation(&payload, validation_errors));
                 }
 
@@ -203,12 +187,12 @@ macro_rules! form_request {
 
         #[async_trait::async_trait]
         impl $crate::app::http::form_request::FormRequest for $name {
-            fn rules() -> std::collections::HashMap<&'static str, Vec<$crate::app::validation::Rule>> {
-                let mut rules = std::collections::HashMap::new();
-                $(
-                    rules.insert($rule_field, vec![$($rule,)*]);
-                )*
-                rules
+            fn rules() -> $crate::app::validation::ValidationRules {
+                $crate::validation_rules! {
+                    $(
+                        $rule_field => [$($rule),*]
+                    ),*
+                }
             }
 
             $(
@@ -245,7 +229,6 @@ macro_rules! form_request {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::utils::validator::{required, email, min};
 
     // Test FormRequest implementation
     #[derive(Deserialize, Serialize)]
@@ -257,12 +240,12 @@ mod tests {
 
     #[async_trait]
     impl FormRequest for TestFormRequest {
-        fn rules() -> HashMap<&'static str, Vec<Rule>> {
-            let mut rules = HashMap::new();
-            rules.insert("name", vec![required(), min(2)]);
-            rules.insert("email", vec![required(), email()]);
-            rules.insert("age", vec![required()]);
-            rules
+        fn rules() -> ValidationRules {
+            validation_rules! {
+                "name" => ["required", "string", "min:2"],
+                "email" => ["required", "email"],
+                "age" => ["required", "integer"]
+            }
         }
 
         fn messages() -> HashMap<&'static str, &'static str> {
@@ -275,8 +258,11 @@ mod tests {
 
     #[test]
     fn test_validation_error_response_serialization() {
+        let mut field_errors = HashMap::new();
+        field_errors.insert("required".to_string(), "Email is required".to_string());
+
         let mut errors = HashMap::new();
-        errors.insert("email".to_string(), vec!["Email is required".to_string()]);
+        errors.insert("email".to_string(), field_errors);
 
         let response = ValidationErrorResponse {
             message: "Validation failed".to_string(),

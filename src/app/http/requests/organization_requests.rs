@@ -4,7 +4,8 @@ use async_trait::async_trait;
 use utoipa::ToSchema;
 
 use crate::app::http::form_request::FormRequest;
-use crate::app::utils::validator::{Rule, required, string, min, max, regex};
+use crate::app::validation::ValidationRules;
+use crate::validation_rules;
 use crate::impl_form_request_extractor;
 
 /// Request payload for creating a new organization
@@ -31,14 +32,14 @@ pub struct CreateOrganizationRequest {
 
 #[async_trait]
 impl FormRequest for CreateOrganizationRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("name", vec![required(), string(), min("2"), max("100")]);
-        rules.insert("organization_type", vec![required(), string(), min("2"), max("50")]);
-        rules.insert("parent_id", vec![string(), regex("^[0-9A-HJKMNP-TV-Z]{26}$")]);
-        rules.insert("code", vec![string(), min("2"), max("20"), regex("^[A-Z0-9-_]+$")]);
-        rules.insert("description", vec![string(), max("500")]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "name" => ["required", "string", "min:2", "max:100"],
+            "organization_type" => ["required", "string", "min:2", "max:50"],
+            "parent_id" => ["string", "regex:^[0-9A-HJKMNP-TV-Z]{26}$"],
+            "code" => ["string", "min:2", "max:20", "regex:^[A-Z0-9-_]+$"],
+            "description" => ["string", "max:500"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -110,14 +111,14 @@ pub struct UpdateOrganizationRequest {
 
 #[async_trait]
 impl FormRequest for UpdateOrganizationRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("name", vec![string(), min("2"), max("100")]);
-        rules.insert("organization_type", vec![string(), min("2"), max("50")]);
-        rules.insert("parent_id", vec![string(), regex("^[0-9A-HJKMNP-TV-Z]{26}$")]);
-        rules.insert("code", vec![string(), min("2"), max("20"), regex("^[A-Z0-9-_]+$")]);
-        rules.insert("description", vec![string(), max("500")]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "name" => ["string", "min:2", "max:100"],
+            "organization_type" => ["string", "min:2", "max:50"],
+            "parent_id" => ["string", "regex:^[0-9A-HJKMNP-TV-Z]{26}$"],
+            "code" => ["string", "min:2", "max:20", "regex:^[A-Z0-9-_]+$"],
+            "description" => ["string", "max:500"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {

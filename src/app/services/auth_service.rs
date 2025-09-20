@@ -7,7 +7,7 @@ use ulid::Ulid;
 use sqlx::PgPool;
 
 use crate::app::models::user::{User, CreateUser, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest, RefreshTokenRequest, UserResponse};
-use crate::app::utils::password_validator::PasswordValidator;
+// use crate::app::utils::password_validator::PasswordValidator;
 use crate::app::utils::token_utils::TokenUtils;
 use crate::app::services::user_service::UserService;
 use crate::app::services::email_service::EmailService;
@@ -94,7 +94,7 @@ impl AuthService {
 
     pub async fn register(pool: &PgPool, data: CreateUser) -> Result<AuthResponse> {
         // Validate password
-        PasswordValidator::validate(&data.password)?;
+        // PasswordValidator::validate(&data.password)?;
 
         // Check if user already exists
         if let Some(_) = UserService::find_by_email(pool, &data.email).await? {
@@ -212,8 +212,8 @@ impl AuthService {
 
     pub async fn reset_password(pool: &PgPool, data: ResetPasswordRequest) -> Result<MessageResponse> {
         // Validate password
-        PasswordValidator::validate(&data.password)?;
-        PasswordValidator::validate_confirmation(&data.password, &data.password_confirmation)?;
+        // PasswordValidator::validate(&data.password)?;
+        // PasswordValidator::validate_confirmation(&data.password, &data.password_confirmation)?;
 
         // Find user by reset token
         let user = UserService::find_by_reset_token(pool, &data.token).await?
@@ -238,8 +238,8 @@ impl AuthService {
 
     pub async fn change_password(pool: &PgPool, user_id: Ulid, data: ChangePasswordRequest) -> Result<MessageResponse> {
         // Validate new password
-        PasswordValidator::validate(&data.new_password)?;
-        PasswordValidator::validate_confirmation(&data.new_password, &data.password_confirmation)?;
+        // PasswordValidator::validate(&data.new_password)?;
+        // PasswordValidator::validate_confirmation(&data.new_password, &data.password_confirmation)?;
 
         // Find user
         let user = UserService::find_by_id(pool, user_id).await?

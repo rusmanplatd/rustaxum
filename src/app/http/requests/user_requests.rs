@@ -4,7 +4,8 @@ use async_trait::async_trait;
 use utoipa::ToSchema;
 
 use crate::app::http::form_request::FormRequest;
-use crate::app::validation::{Rule, required, email, min, max, string, numeric, in_list};
+use crate::app::validation::ValidationRules;
+use crate::validation_rules;
 use crate::impl_form_request_extractor;
 
 /// Update user profile form request
@@ -32,14 +33,14 @@ pub struct UpdateUserRequest {
 
 #[async_trait]
 impl FormRequest for UpdateUserRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("name", vec![required(), string(), min(2), max(100)]);
-        rules.insert("email", vec![required(), email()]);
-        rules.insert("bio", vec![string(), max(500)]);
-        rules.insert("phone", vec![string(), min(10), max(15)]);
-        rules.insert("age", vec![numeric(), min(13), max(120)]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "name" => ["required", "string", "min:2", "max:100"],
+            "email" => ["required", "email"],
+            "bio" => ["string", "max:500"],
+            "phone" => ["string", "min:10", "max:15"],
+            "age" => ["numeric", "min:13", "max:120"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -94,14 +95,14 @@ pub struct SearchUsersRequest {
 
 #[async_trait]
 impl FormRequest for SearchUsersRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("query", vec![string(), min(2), max(100)]);
-        rules.insert("page", vec![numeric(), min(1)]);
-        rules.insert("per_page", vec![numeric(), min(1), max(100)]);
-        rules.insert("sort_by", vec![string(), in_list(vec!["name", "email", "created_at", "updated_at"])]);
-        rules.insert("sort_direction", vec![string(), in_list(vec!["asc", "desc"])]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "query" => ["string", "min:2", "max:100"],
+            "page" => ["numeric", "min:1"],
+            "per_page" => ["numeric", "min:1", "max:100"],
+            "sort_by" => ["string", "in:name,email,created_at,updated_at"],
+            "sort_direction" => ["string", "in:asc,desc"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -154,13 +155,13 @@ pub struct ContactFormRequest {
 
 #[async_trait]
 impl FormRequest for ContactFormRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("name", vec![required(), string(), min(2), max(100)]);
-        rules.insert("email", vec![required(), email()]);
-        rules.insert("subject", vec![required(), string(), min(5), max(200)]);
-        rules.insert("message", vec![required(), string(), min(10), max(2000)]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "name" => ["required", "string", "min:2", "max:100"],
+            "email" => ["required", "email"],
+            "subject" => ["required", "string", "min:5", "max:200"],
+            "message" => ["required", "string", "min:10", "max:2000"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {

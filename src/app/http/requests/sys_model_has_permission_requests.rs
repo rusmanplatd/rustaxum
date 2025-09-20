@@ -5,7 +5,8 @@ use utoipa::ToSchema;
 use ulid::Ulid;
 
 use crate::app::http::form_request::FormRequest;
-use crate::app::utils::validator::{Rule, required, string, ulid_format};
+use crate::app::validation::ValidationRules;
+use crate::validation_rules;
 use crate::impl_form_request_extractor;
 
 #[derive(Deserialize, Serialize, ToSchema)]
@@ -24,14 +25,14 @@ pub struct CreateSysModelHasPermissionRequest {
 
 #[async_trait]
 impl FormRequest for CreateSysModelHasPermissionRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("model_type", vec![required(), string()]);
-        rules.insert("model_id", vec![required(), ulid_format()]);
-        rules.insert("permission_id", vec![required(), ulid_format()]);
-        rules.insert("scope_type", vec![string()]);
-        rules.insert("scope_id", vec![ulid_format()]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "model_type" => ["required", "string"],
+            "model_id" => ["required", "ulid_format"],
+            "permission_id" => ["required", "ulid_format"],
+            "scope_type" => ["string"],
+            "scope_id" => ["ulid_format"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -74,14 +75,14 @@ pub struct UpdateSysModelHasPermissionRequest {
 
 #[async_trait]
 impl FormRequest for UpdateSysModelHasPermissionRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("model_type", vec![string()]);
-        rules.insert("model_id", vec![ulid_format()]);
-        rules.insert("permission_id", vec![ulid_format()]);
-        rules.insert("scope_type", vec![string()]);
-        rules.insert("scope_id", vec![ulid_format()]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "model_type" => ["string"],
+            "model_id" => ["ulid_format"],
+            "permission_id" => ["ulid_format"],
+            "scope_type" => ["string"],
+            "scope_id" => ["ulid_format"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {

@@ -4,7 +4,8 @@ use async_trait::async_trait;
 use utoipa::ToSchema;
 
 use crate::app::http::form_request::FormRequest;
-use crate::app::utils::validator::{Rule, required, string, min, max, uuid};
+use crate::app::validation::ValidationRules;
+use crate::validation_rules;
 use crate::impl_form_request_extractor;
 
 #[derive(Deserialize, Serialize, ToSchema)]
@@ -22,12 +23,12 @@ pub struct CreateProvinceRequest {
 
 #[async_trait]
 impl FormRequest for CreateProvinceRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("country_id", vec![required(), string(), uuid()]);
-        rules.insert("name", vec![required(), string(), min("2"), max("100")]);
-        rules.insert("code", vec![string(), max("10")]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "country_id" => ["required", "string", "uuid"],
+            "name" => ["required", "string", "min:2", "max:100"],
+            "code" => ["string", "max:10"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
@@ -70,12 +71,12 @@ pub struct UpdateProvinceRequest {
 
 #[async_trait]
 impl FormRequest for UpdateProvinceRequest {
-    fn rules() -> HashMap<&'static str, Vec<Rule>> {
-        let mut rules = HashMap::new();
-        rules.insert("country_id", vec![string(), uuid()]);
-        rules.insert("name", vec![string(), min("2"), max("100")]);
-        rules.insert("code", vec![string(), max("10")]);
-        rules
+    fn rules() -> ValidationRules {
+        validation_rules! {
+            "country_id" => ["string", "uuid"],
+            "name" => ["string", "min:2", "max:100"],
+            "code" => ["string", "max:10"]
+        }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
