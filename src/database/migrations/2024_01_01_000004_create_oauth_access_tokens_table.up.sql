@@ -1,8 +1,8 @@
 -- Create oauth_access_tokens table
 CREATE TABLE oauth_access_tokens (
-    id TEXT PRIMARY KEY,
-    user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
-    client_id TEXT NOT NULL REFERENCES oauth_clients(id) ON DELETE CASCADE,
+    id CHAR(26) PRIMARY KEY,
+    user_id CHAR(26) REFERENCES sys_users(id) ON DELETE CASCADE,
+    client_id CHAR(26) NOT NULL REFERENCES oauth_clients(id) ON DELETE CASCADE,
     name VARCHAR DEFAULT NULL,
     scopes TEXT DEFAULT NULL,
     revoked BOOLEAN NOT NULL DEFAULT FALSE,

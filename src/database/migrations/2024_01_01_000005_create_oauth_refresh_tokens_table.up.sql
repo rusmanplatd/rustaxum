@@ -1,7 +1,7 @@
 -- Create oauth_refresh_tokens table
 CREATE TABLE oauth_refresh_tokens (
-    id TEXT PRIMARY KEY,
-    access_token_id TEXT NOT NULL REFERENCES oauth_access_tokens(id) ON DELETE CASCADE,
+    id CHAR(26) PRIMARY KEY,
+    access_token_id CHAR(26) NOT NULL REFERENCES oauth_access_tokens(id) ON DELETE CASCADE,
     revoked BOOLEAN NOT NULL DEFAULT FALSE,
     expires_at TIMESTAMPTZ DEFAULT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

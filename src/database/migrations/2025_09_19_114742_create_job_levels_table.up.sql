@@ -1,6 +1,6 @@
 -- Create job_levels table
 CREATE TABLE job_levels (
-    id TEXT PRIMARY KEY,
+    id CHAR(26) PRIMARY KEY,
     name VARCHAR NOT NULL,
     code VARCHAR UNIQUE,
     level INTEGER NOT NULL,

@@ -1,6 +1,6 @@
 -- Create notifications table for storing notification history
 CREATE TABLE IF NOT EXISTS notifications (
-    id TEXT PRIMARY KEY,
+    id CHAR(26) PRIMARY KEY,
     type VARCHAR(255) NOT NULL,
     notifiable_type VARCHAR(255) NOT NULL,
     notifiable_id VARCHAR(255) NOT NULL,

@@ -13,11 +13,11 @@ impl Seeder for UserSeeder {
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("Seed default users for the application")
+        Some("Seed default sys_users for the application")
     }
 
     async fn run(&self, pool: &PgPool) -> Result<()> {
-        println!("🌱 Seeding users...");
+        println!("🌱 Seeding sys_users...");
 
         let now = Utc::now().naive_utc();
 
@@ -27,7 +27,7 @@ impl Seeder for UserSeeder {
 
         sqlx::query(
             r#"
-            INSERT INTO users (id, name, email, password, email_verified_at, created_at, updated_at)
+            INSERT INTO sys_users (id, name, email, password, email_verified_at, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (email) DO NOTHING
             "#
@@ -48,7 +48,7 @@ impl Seeder for UserSeeder {
 
         sqlx::query(
             r#"
-            INSERT INTO users (id, name, email, password, email_verified_at, created_at, updated_at)
+            INSERT INTO sys_users (id, name, email, password, email_verified_at, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (email) DO NOTHING
             "#
@@ -69,7 +69,7 @@ impl Seeder for UserSeeder {
 
         sqlx::query(
             r#"
-            INSERT INTO users (id, name, email, password, created_at, updated_at)
+            INSERT INTO sys_users (id, name, email, password, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (email) DO NOTHING
             "#

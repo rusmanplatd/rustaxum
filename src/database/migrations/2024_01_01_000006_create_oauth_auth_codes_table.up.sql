@@ -1,8 +1,8 @@
 -- Create oauth_auth_codes table
 CREATE TABLE oauth_auth_codes (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    client_id TEXT NOT NULL REFERENCES oauth_clients(id) ON DELETE CASCADE,
+    id CHAR(26) PRIMARY KEY,
+    user_id CHAR(26) NOT NULL REFERENCES sys_users(id) ON DELETE CASCADE,
+    client_id CHAR(26) NOT NULL REFERENCES oauth_clients(id) ON DELETE CASCADE,
     scopes TEXT DEFAULT NULL,
     revoked BOOLEAN NOT NULL DEFAULT FALSE,
     expires_at TIMESTAMPTZ DEFAULT NULL,

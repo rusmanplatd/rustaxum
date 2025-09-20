@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::query_builder::{Queryable, SortDirection};
 
-/// Job position model representing specific roles within job levels
+/// Job position model representing specific sys_roles within job levels
 /// Contains position information and relationship to job level hierarchy
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct JobPosition {

@@ -321,7 +321,7 @@ pub async fn get_user_roles(
             let role_data: Vec<RoleData> = roles.into_iter().map(RoleData::from).collect();
             (StatusCode::OK, Json(json!({
                 "data": role_data,
-                "message": "User roles retrieved successfully"
+                "message": "User sys_roles retrieved successfully"
             }))).into_response()
         }
         Err(e) => {

@@ -1,7 +1,7 @@
 -- Create oauth_clients table
 CREATE TABLE oauth_clients (
-    id TEXT PRIMARY KEY,
-    user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+    id CHAR(26) PRIMARY KEY,
+    user_id CHAR(26) REFERENCES sys_users(id) ON DELETE CASCADE,
     name VARCHAR NOT NULL,
     secret VARCHAR DEFAULT NULL,
     provider VARCHAR DEFAULT NULL,

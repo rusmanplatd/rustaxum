@@ -94,8 +94,6 @@ pub struct UserOrganizationResourceWithRelations {
     pub organization: Option<OrganizationBasicInfo>,
     /// Job position information
     pub job_position: Option<JobPositionBasicInfo>,
-    /// User roles in this organization
-    pub roles: Vec<RoleBasicInfo>,
 }
 
 /// Basic user information for relations

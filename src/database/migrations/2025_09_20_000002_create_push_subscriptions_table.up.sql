@@ -1,7 +1,7 @@
 -- Create push subscriptions table for web push notifications
 CREATE TABLE push_subscriptions (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
+    id CHAR(26) PRIMARY KEY,
+    user_id CHAR(26) NOT NULL,
     endpoint TEXT NOT NULL,
     p256dh_key TEXT NOT NULL,
     auth_key TEXT NOT NULL,

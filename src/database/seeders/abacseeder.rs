@@ -87,7 +87,7 @@ impl Seeder for AbacSeeder {
 
         // Create sample attributes for users
         if let Ok(admin_user) = sqlx::query(
-            "SELECT id FROM users WHERE email = 'admin@example.com'"
+            "SELECT id FROM sys_users WHERE email = 'admin@example.com'"
         )
         .fetch_one(pool)
         .await
@@ -156,7 +156,7 @@ impl Seeder for AbacSeeder {
         }
 
         if let Ok(regular_user) = sqlx::query(
-            "SELECT id FROM users WHERE email = 'user@example.com'"
+            "SELECT id FROM sys_users WHERE email = 'user@example.com'"
         )
         .fetch_one(pool)
         .await

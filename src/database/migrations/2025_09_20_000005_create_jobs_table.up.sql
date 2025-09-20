@@ -1,6 +1,6 @@
 -- Create jobs table for queue management
 CREATE TABLE IF NOT EXISTS jobs (
-    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    id CHAR(26) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     queue_name VARCHAR(255) NOT NULL DEFAULT 'default',
     job_name VARCHAR(255) NOT NULL,
     payload JSONB NOT NULL,

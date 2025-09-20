@@ -1,6 +1,6 @@
 -- Create oauth_scopes table
 CREATE TABLE oauth_scopes (
-    id TEXT PRIMARY KEY,
+    id CHAR(26) PRIMARY KEY,
     name VARCHAR NOT NULL UNIQUE,
     description TEXT DEFAULT NULL,
     is_default BOOLEAN NOT NULL DEFAULT FALSE,

@@ -63,7 +63,6 @@ pub enum RegisteredSeeder {
     Database,
     User,
     RolePermission,
-    Abac,
     Organization,
     JobLevelPosition,
 }
@@ -77,7 +76,6 @@ impl RegisteredSeeder {
             databaseseeder::Databaseseeder,
             userseeder::UserSeeder,
             rolepermissionseeder::RolePermissionSeeder,
-            abacseeder::AbacSeeder,
             organizationseeder::OrganizationSeeder,
             joblevelpositionseeder::JobLevelPositionSeeder,
         };
@@ -107,10 +105,6 @@ impl RegisteredSeeder {
                 let seeder = RolePermissionSeeder;
                 seeder.run(pool).await
             }
-            RegisteredSeeder::Abac => {
-                let seeder = AbacSeeder;
-                seeder.run(pool).await
-            }
             RegisteredSeeder::Organization => {
                 let seeder = OrganizationSeeder;
                 seeder.run(pool).await
@@ -130,7 +124,6 @@ impl RegisteredSeeder {
             RegisteredSeeder::Database => "DatabaseSeeder",
             RegisteredSeeder::User => "UserSeeder",
             RegisteredSeeder::RolePermission => "RolePermissionSeeder",
-            RegisteredSeeder::Abac => "AbacSeeder",
             RegisteredSeeder::Organization => "OrganizationSeeder",
             RegisteredSeeder::JobLevelPosition => "JobLevelPositionSeeder",
         }
@@ -143,8 +136,7 @@ impl RegisteredSeeder {
             RegisteredSeeder::City => Some("Seed cities table from CSV data with coordinates, requires provinces"),
             RegisteredSeeder::Database => Some("Run all seeders in the correct order"),
             RegisteredSeeder::User => Some("Seed default users"),
-            RegisteredSeeder::RolePermission => Some("Seed roles and permissions for RBAC"),
-            RegisteredSeeder::Abac => Some("Seed attributes and policies for ABAC"),
+            RegisteredSeeder::RolePermission => Some("Seed sys_roles and permissions for RBAC"),
             RegisteredSeeder::Organization => Some("Seed organization data"),
             RegisteredSeeder::JobLevelPosition => Some("Seed job levels and positions"),
         }
@@ -169,7 +161,6 @@ impl SeederRegistry {
         registry.register_seeder("DatabaseSeeder", RegisteredSeeder::Database);
         registry.register_seeder("UserSeeder", RegisteredSeeder::User);
         registry.register_seeder("RolePermissionSeeder", RegisteredSeeder::RolePermission);
-        registry.register_seeder("AbacSeeder", RegisteredSeeder::Abac);
         registry.register_seeder("OrganizationSeeder", RegisteredSeeder::Organization);
         registry.register_seeder("JobLevelPositionSeeder", RegisteredSeeder::JobLevelPosition);
 

@@ -11,7 +11,7 @@ impl RoleService {
 
         sqlx::query(
             r#"
-            INSERT INTO roles (id, name, description, guard_name, created_at, updated_at)
+            INSERT INTO sys_roles (id, name, description, guard_name, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6)
             "#
         )
@@ -29,7 +29,7 @@ impl RoleService {
 
     pub async fn find_by_id(pool: &PgPool, id: Ulid) -> Result<Option<Role>> {
         let role = sqlx::query_as::<_, Role>(
-            "SELECT id, name, description, guard_name, created_at, updated_at FROM roles WHERE id = $1"
+            "SELECT id, name, description, guard_name, created_at, updated_at FROM sys_roles WHERE id = $1"
         )
         .bind(id.to_string())
         .fetch_optional(pool)
@@ -39,10 +39,10 @@ impl RoleService {
     }
 
     pub async fn find_by_name(pool: &PgPool, name: &str, guard_name: Option<&str>) -> Result<Option<Role>> {
-        let guard = guard_name.unwrap_or("web");
+        let guard = guard_name.unwrap_or("api");
 
         let role = sqlx::query_as::<_, Role>(
-            "SELECT id, name, description, guard_name, created_at, updated_at FROM roles WHERE name = $1 AND guard_name = $2"
+            "SELECT id, name, description, guard_name, created_at, updated_at FROM sys_roles WHERE name = $1 AND guard_name = $2"
         )
         .bind(name)
         .bind(guard)
@@ -69,7 +69,7 @@ impl RoleService {
 
         sqlx::query(
             r#"
-            UPDATE roles
+            UPDATE sys_roles
             SET name = $1, description = $2, guard_name = $3, updated_at = $4
             WHERE id = $5
             "#
@@ -87,7 +87,7 @@ impl RoleService {
 
     pub async fn delete(pool: &PgPool, id: Ulid) -> Result<()> {
         sqlx::query(
-            "DELETE FROM roles WHERE id = $1"
+            "DELETE FROM sys_roles WHERE id = $1"
         )
         .bind(id.to_string())
         .execute(pool)
@@ -98,7 +98,7 @@ impl RoleService {
 
     pub async fn list(pool: &PgPool, limit: i64, offset: i64) -> Result<Vec<Role>> {
         let roles = sqlx::query_as::<_, Role>(
-            "SELECT id, name, description, guard_name, created_at, updated_at FROM roles ORDER BY created_at DESC LIMIT $1 OFFSET $2"
+            "SELECT id, name, description, guard_name, created_at, updated_at FROM sys_roles ORDER BY created_at DESC LIMIT $1 OFFSET $2"
         )
         .bind(limit)
         .bind(offset)
@@ -143,13 +143,13 @@ impl RoleService {
     }
 
     pub async fn user_has_role(pool: &PgPool, user_id: Ulid, role_name: &str, guard_name: Option<&str>) -> Result<bool> {
-        let guard = guard_name.unwrap_or("web");
+        let guard = guard_name.unwrap_or("api");
 
         let count: Option<i64> = sqlx::query_scalar(
             r#"
             SELECT COUNT(*) as count
             FROM user_roles ur
-            JOIN roles r ON ur.role_id = r.id
+            JOIN sys_roles r ON ur.role_id = r.id
             WHERE ur.user_id = $1 AND r.name = $2 AND r.guard_name = $3
             "#
         )
@@ -167,7 +167,7 @@ impl RoleService {
             sqlx::query_as::<_, Role>(
                 r#"
                 SELECT r.id, r.name, r.description, r.guard_name, r.created_at, r.updated_at
-                FROM roles r
+                FROM sys_roles r
                 JOIN user_roles ur ON r.id = ur.role_id
                 WHERE ur.user_id = $1 AND r.guard_name = $2
                 ORDER BY r.name
@@ -181,7 +181,7 @@ impl RoleService {
             sqlx::query_as::<_, Role>(
                 r#"
                 SELECT r.id, r.name, r.description, r.guard_name, r.created_at, r.updated_at
-                FROM roles r
+                FROM sys_roles r
                 JOIN user_roles ur ON r.id = ur.role_id
                 WHERE ur.user_id = $1
                 ORDER BY r.name

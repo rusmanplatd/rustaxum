@@ -1,6 +1,6 @@
 -- Create countries table
 CREATE TABLE countries (
-    id TEXT PRIMARY KEY,
+    id CHAR(26) PRIMARY KEY,
     name VARCHAR NOT NULL,
     iso_code VARCHAR NOT NULL UNIQUE,
     phone_code VARCHAR,

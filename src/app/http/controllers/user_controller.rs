@@ -80,7 +80,7 @@ pub async fn show(
     State(pool): State<PgPool>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let query = "SELECT * FROM users WHERE id = $1";
+    let query = "SELECT * FROM sys_users WHERE id = $1";
 
     match sqlx::query_as::<_, User>(query)
         .bind(&id)

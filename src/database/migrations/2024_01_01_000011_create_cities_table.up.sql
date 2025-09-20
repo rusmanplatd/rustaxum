@@ -1,7 +1,7 @@
 -- Create cities table
 CREATE TABLE cities (
-    id TEXT PRIMARY KEY,
-    province_id TEXT NOT NULL,
+    id CHAR(26) PRIMARY KEY,
+    province_id CHAR(26) NOT NULL,
     name VARCHAR NOT NULL,
     code VARCHAR,
     latitude DECIMAL(10, 8),

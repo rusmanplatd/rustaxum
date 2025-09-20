@@ -12,39 +12,39 @@ impl Seeder for RolePermissionSeeder {
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("Seeds roles, permissions, and their relationships for RBAC")
+        Some("Seeds sys_roles, sys_permissions, and their relationships for RBAC")
     }
 
     async fn run(&self, pool: &PgPool) -> Result<()> {
-        println!("🌱 Seeding roles and permissions...");
+        println!("🌱 Seeding sys_roles and permissions...");
 
         let now = Utc::now().naive_utc();
 
         // Create permissions
         let permissions = vec![
-            ("users.create", "web", Some("users"), "create"),
-            ("users.read", "web", Some("users"), "read"),
-            ("users.update", "web", Some("users"), "update"),
-            ("users.delete", "web", Some("users"), "delete"),
-            ("posts.create", "web", Some("posts"), "create"),
-            ("posts.read", "web", Some("posts"), "read"),
-            ("posts.update", "web", Some("posts"), "update"),
-            ("posts.delete", "web", Some("posts"), "delete"),
-            ("roles.create", "web", Some("roles"), "create"),
-            ("roles.read", "web", Some("roles"), "read"),
-            ("roles.update", "web", Some("roles"), "update"),
-            ("roles.delete", "web", Some("roles"), "delete"),
-            ("permissions.create", "web", Some("permissions"), "create"),
-            ("permissions.read", "web", Some("permissions"), "read"),
-            ("permissions.update", "web", Some("permissions"), "update"),
-            ("permissions.delete", "web", Some("permissions"), "delete"),
+            ("users.create", "api", Some("users"), "create"),
+            ("users.read", "api", Some("users"), "read"),
+            ("users.update", "api", Some("users"), "update"),
+            ("users.delete", "api", Some("users"), "delete"),
+            ("posts.create", "api", Some("posts"), "create"),
+            ("posts.read", "api", Some("posts"), "read"),
+            ("posts.update", "api", Some("posts"), "update"),
+            ("posts.delete", "api", Some("posts"), "delete"),
+            ("roles.create", "api", Some("roles"), "create"),
+            ("roles.read", "api", Some("roles"), "read"),
+            ("roles.update", "api", Some("roles"), "update"),
+            ("roles.delete", "api", Some("roles"), "delete"),
+            ("permissions.create", "api", Some("permissions"), "create"),
+            ("permissions.read", "api", Some("permissions"), "read"),
+            ("permissions.update", "api", Some("permissions"), "update"),
+            ("permissions.delete", "api", Some("permissions"), "delete"),
         ];
 
         for (name, guard_name, resource, action) in permissions {
             let permission_id = Ulid::new().to_string();
             sqlx::query(
                 r#"
-                INSERT INTO permissions (id, name, guard_name, resource, action, created_at, updated_at)
+                INSERT INTO sys_permissions (id, name, guard_name, resource, action, created_at, updated_at)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
                 ON CONFLICT (name, guard_name) DO NOTHING
                 "#
@@ -64,7 +64,7 @@ impl Seeder for RolePermissionSeeder {
         let admin_role_id = Ulid::new().to_string();
         sqlx::query(
             r#"
-            INSERT INTO roles (id, name, description, guard_name, created_at, updated_at)
+            INSERT INTO sys_roles (id, name, description, guard_name, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (name, guard_name) DO NOTHING
             "#
@@ -72,7 +72,7 @@ impl Seeder for RolePermissionSeeder {
         .bind(&admin_role_id)
         .bind("admin")
         .bind("Administrator with full access")
-        .bind("web")
+        .bind("api")
         .bind(now)
         .bind(now)
         .execute(pool)
@@ -81,7 +81,7 @@ impl Seeder for RolePermissionSeeder {
         let user_role_id = Ulid::new().to_string();
         sqlx::query(
             r#"
-            INSERT INTO roles (id, name, description, guard_name, created_at, updated_at)
+            INSERT INTO sys_roles (id, name, description, guard_name, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (name, guard_name) DO NOTHING
             "#
@@ -89,7 +89,7 @@ impl Seeder for RolePermissionSeeder {
         .bind(&user_role_id)
         .bind("user")
         .bind("Regular user with limited access")
-        .bind("web")
+        .bind("api")
         .bind(now)
         .bind(now)
         .execute(pool)
@@ -98,7 +98,7 @@ impl Seeder for RolePermissionSeeder {
         let moderator_role_id = Ulid::new().to_string();
         sqlx::query(
             r#"
-            INSERT INTO roles (id, name, description, guard_name, created_at, updated_at)
+            INSERT INTO sys_roles (id, name, description, guard_name, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (name, guard_name) DO NOTHING
             "#
@@ -106,7 +106,7 @@ impl Seeder for RolePermissionSeeder {
         .bind(&moderator_role_id)
         .bind("moderator")
         .bind("Moderator with content management access")
-        .bind("web")
+        .bind("api")
         .bind(now)
         .bind(now)
         .execute(pool)
@@ -114,7 +114,7 @@ impl Seeder for RolePermissionSeeder {
 
         // Assign all permissions to admin role
         let admin_permissions = sqlx::query(
-            "SELECT id FROM permissions WHERE guard_name = 'web'"
+            "SELECT id FROM sys_permissions WHERE guard_name = api"
         )
         .fetch_all(pool)
         .await?;
@@ -140,7 +140,7 @@ impl Seeder for RolePermissionSeeder {
 
         // Assign read permissions to user role
         let user_permissions = sqlx::query(
-            "SELECT id FROM permissions WHERE action = 'read' AND guard_name = 'web'"
+            "SELECT id FROM sys_permissions WHERE action = 'read' AND guard_name = api"
         )
         .fetch_all(pool)
         .await?;
@@ -169,7 +169,7 @@ impl Seeder for RolePermissionSeeder {
 
         for permission_name in moderator_permission_names {
             if let Ok(permission) = sqlx::query(
-                "SELECT id FROM permissions WHERE name = $1 AND guard_name = 'web'"
+                "SELECT id FROM sys_permissions WHERE name = $1 AND guard_name = api"
             )
             .bind(permission_name)
             .fetch_one(pool)
@@ -194,9 +194,9 @@ impl Seeder for RolePermissionSeeder {
             }
         }
 
-        // Assign roles to users
+        // Assign sys_roles to users
         if let Ok(admin_user) = sqlx::query(
-            "SELECT id FROM users WHERE email = 'admin@example.com'"
+            "SELECT id FROM sys_users WHERE email = 'admin@example.com'"
         )
         .fetch_one(pool)
         .await
@@ -220,7 +220,7 @@ impl Seeder for RolePermissionSeeder {
         }
 
         if let Ok(regular_user) = sqlx::query(
-            "SELECT id FROM users WHERE email = 'user@example.com'"
+            "SELECT id FROM sys_users WHERE email = 'user@example.com'"
         )
         .fetch_one(pool)
         .await
@@ -243,7 +243,7 @@ impl Seeder for RolePermissionSeeder {
             .await?;
         }
 
-        println!("✅ Roles and permissions seeded successfully!");
+        println!("✅ sys_Roles and sys_permissions seeded successfully!");
         Ok(())
     }
 }

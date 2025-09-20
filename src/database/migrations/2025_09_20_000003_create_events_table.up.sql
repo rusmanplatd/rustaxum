@@ -1,6 +1,6 @@
 -- Create events table for event sourcing and audit trail
 CREATE TABLE IF NOT EXISTS events (
-    id TEXT PRIMARY KEY,
+    id CHAR(26) PRIMARY KEY,
     event_name VARCHAR(255) NOT NULL,
     event_data JSONB NOT NULL,
     aggregate_id VARCHAR(255),

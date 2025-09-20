@@ -1,9 +1,9 @@
 -- Create user_organizations pivot table
 CREATE TABLE user_organizations (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    job_position_id TEXT NOT NULL REFERENCES job_positions(id) ON DELETE RESTRICT,
+    id CHAR(26) PRIMARY KEY,
+    user_id CHAR(26) NOT NULL REFERENCES sys_users(id) ON DELETE CASCADE,
+    organization_id CHAR(26) NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    job_position_id CHAR(26) NOT NULL REFERENCES job_positions(id) ON DELETE RESTRICT,
     is_active BOOLEAN NOT NULL DEFAULT true,
     started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     ended_at TIMESTAMPTZ,

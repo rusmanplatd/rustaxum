@@ -40,7 +40,7 @@ fn generate_migration_content(name: &str) -> (String, String) {
 
         let up_content = format!(r#"-- Create {} table
 CREATE TABLE {} (
-    id TEXT PRIMARY KEY,
+    id CHAR(26) PRIMARY KEY,
     name VARCHAR NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -93,7 +93,7 @@ DROP TABLE IF EXISTS {};
 
         let down_content = format!(r#"-- Recreate {} table (you may need to customize this)
 CREATE TABLE {} (
-    id TEXT PRIMARY KEY,
+    id CHAR(26) PRIMARY KEY,
     -- Add columns here
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -112,7 +112,7 @@ fn generate_generic_migration(name: &str) -> (String, String) {
 
 -- Example:
 -- CREATE TABLE example (
---     id TEXT PRIMARY KEY,
+--     id CHAR(26) PRIMARY KEY,
 --     name VARCHAR NOT NULL,
 --     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 -- );
@@ -131,7 +131,7 @@ fn generate_generic_migration(name: &str) -> (String, String) {
 -- ALTER TABLE example DROP COLUMN IF EXISTS new_column;
 
 -- CREATE TABLE old_table (
---     id TEXT PRIMARY KEY,
+--     id CHAR(26) PRIMARY KEY,
 --     name VARCHAR NOT NULL
 -- );
 "#, name.replace('_', " ").to_uppercase());

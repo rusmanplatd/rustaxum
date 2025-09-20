@@ -1,9 +1,9 @@
 -- Create job_positions table
 CREATE TABLE job_positions (
-    id TEXT PRIMARY KEY,
+    id CHAR(26) PRIMARY KEY,
     name VARCHAR NOT NULL,
     code VARCHAR UNIQUE,
-    job_level_id TEXT NOT NULL REFERENCES job_levels(id) ON DELETE RESTRICT,
+    job_level_id CHAR(26) NOT NULL REFERENCES job_levels(id) ON DELETE RESTRICT,
     description TEXT,
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

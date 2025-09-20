@@ -16,7 +16,7 @@ impl PermissionService {
 
         sqlx::query(
             r#"
-            INSERT INTO permissions (id, name, guard_name, resource, action, created_at, updated_at)
+            INSERT INTO sys_permissions (id, name, guard_name, resource, action, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             "#
         )
@@ -35,7 +35,7 @@ impl PermissionService {
 
     pub async fn find_by_id(pool: &PgPool, id: Ulid) -> Result<Option<Permission>> {
         let permission = sqlx::query_as::<_, Permission>(
-            "SELECT id, name, guard_name, resource, action, created_at, updated_at FROM permissions WHERE id = $1"
+            "SELECT id, name, guard_name, resource, action, created_at, updated_at FROM sys_permissions WHERE id = $1"
         )
         .bind(id.to_string())
         .fetch_optional(pool)
@@ -45,10 +45,10 @@ impl PermissionService {
     }
 
     pub async fn find_by_name(pool: &PgPool, name: &str, guard_name: Option<&str>) -> Result<Option<Permission>> {
-        let guard = guard_name.unwrap_or("web");
+        let guard = guard_name.unwrap_or("api");
 
         let permission = sqlx::query_as::<_, Permission>(
-            "SELECT id, name, guard_name, resource, action, created_at, updated_at FROM permissions WHERE name = $1 AND guard_name = $2"
+            "SELECT id, name, guard_name, resource, action, created_at, updated_at FROM sys_permissions WHERE name = $1 AND guard_name = $2"
         )
         .bind(name)
         .bind(guard)
@@ -78,7 +78,7 @@ impl PermissionService {
 
         sqlx::query(
             r#"
-            UPDATE permissions
+            UPDATE sys_permissions
             SET name = $1, guard_name = $2, resource = $3, action = $4, updated_at = $5
             WHERE id = $6
             "#
@@ -97,7 +97,7 @@ impl PermissionService {
 
     pub async fn delete(pool: &PgPool, id: Ulid) -> Result<()> {
         sqlx::query(
-            "DELETE FROM permissions WHERE id = $1"
+            "DELETE FROM sys_permissions WHERE id = $1"
         )
         .bind(id.to_string())
         .execute(pool)
@@ -108,7 +108,7 @@ impl PermissionService {
 
     pub async fn list(pool: &PgPool, limit: i64, offset: i64) -> Result<Vec<Permission>> {
         let permissions = sqlx::query_as::<_, Permission>(
-            "SELECT id, name, guard_name, resource, action, created_at, updated_at FROM permissions ORDER BY created_at DESC LIMIT $1 OFFSET $2"
+            "SELECT id, name, guard_name, resource, action, created_at, updated_at FROM sys_permissions ORDER BY created_at DESC LIMIT $1 OFFSET $2"
         )
         .bind(limit)
         .bind(offset)
@@ -153,13 +153,13 @@ impl PermissionService {
     }
 
     pub async fn role_has_permission(pool: &PgPool, role_id: Ulid, permission_name: &str, guard_name: Option<&str>) -> Result<bool> {
-        let guard = guard_name.unwrap_or("web");
+        let guard = guard_name.unwrap_or("api");
 
         let count: Option<i64> = sqlx::query_scalar(
             r#"
             SELECT COUNT(*) as count
             FROM role_permissions rp
-            JOIN permissions p ON rp.permission_id = p.id
+            JOIN sys_permissions p ON rp.permission_id = p.id
             WHERE rp.role_id = $1 AND p.name = $2 AND p.guard_name = $3
             "#
         )
@@ -173,14 +173,14 @@ impl PermissionService {
     }
 
     pub async fn user_has_permission(pool: &PgPool, user_id: Ulid, permission_name: &str, guard_name: Option<&str>) -> Result<bool> {
-        let guard = guard_name.unwrap_or("web");
+        let guard = guard_name.unwrap_or("api");
 
         let count: Option<i64> = sqlx::query_scalar(
             r#"
             SELECT COUNT(*) as count
             FROM user_roles ur
             JOIN role_permissions rp ON ur.role_id = rp.role_id
-            JOIN permissions p ON rp.permission_id = p.id
+            JOIN sys_permissions p ON rp.permission_id = p.id
             WHERE ur.user_id = $1 AND p.name = $2 AND p.guard_name = $3
             "#
         )
@@ -198,7 +198,7 @@ impl PermissionService {
             sqlx::query_as::<_, Permission>(
                 r#"
                 SELECT p.id, p.name, p.guard_name, p.resource, p.action, p.created_at, p.updated_at
-                FROM permissions p
+                FROM sys_permissions p
                 JOIN role_permissions rp ON p.id = rp.permission_id
                 WHERE rp.role_id = $1 AND p.guard_name = $2
                 ORDER BY p.name
@@ -212,7 +212,7 @@ impl PermissionService {
             sqlx::query_as::<_, Permission>(
                 r#"
                 SELECT p.id, p.name, p.guard_name, p.resource, p.action, p.created_at, p.updated_at
-                FROM permissions p
+                FROM sys_permissions p
                 JOIN role_permissions rp ON p.id = rp.permission_id
                 WHERE rp.role_id = $1
                 ORDER BY p.name
@@ -231,7 +231,7 @@ impl PermissionService {
             sqlx::query_as::<_, Permission>(
                 r#"
                 SELECT DISTINCT p.id, p.name, p.guard_name, p.resource, p.action, p.created_at, p.updated_at
-                FROM permissions p
+                FROM sys_permissions p
                 JOIN role_permissions rp ON p.id = rp.permission_id
                 JOIN user_roles ur ON rp.role_id = ur.role_id
                 WHERE ur.user_id = $1 AND p.guard_name = $2
@@ -246,7 +246,7 @@ impl PermissionService {
             sqlx::query_as::<_, Permission>(
                 r#"
                 SELECT DISTINCT p.id, p.name, p.guard_name, p.resource, p.action, p.created_at, p.updated_at
-                FROM permissions p
+                FROM sys_permissions p
                 JOIN role_permissions rp ON p.id = rp.permission_id
                 JOIN user_roles ur ON rp.role_id = ur.role_id
                 WHERE ur.user_id = $1

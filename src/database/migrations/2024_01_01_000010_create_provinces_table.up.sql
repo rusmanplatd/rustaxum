@@ -1,7 +1,7 @@
 -- Create provinces table
 CREATE TABLE provinces (
-    id TEXT PRIMARY KEY,
-    country_id TEXT NOT NULL,
+    id CHAR(26) PRIMARY KEY,
+    country_id CHAR(26) NOT NULL,
     name VARCHAR NOT NULL,
     code VARCHAR,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

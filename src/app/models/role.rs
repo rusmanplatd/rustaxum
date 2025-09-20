@@ -44,7 +44,7 @@ impl Role {
             id: Ulid::new(),
             name,
             description,
-            guard_name: guard_name.unwrap_or_else(|| "web".to_string()),
+            guard_name: guard_name.unwrap_or_else(|| "api".to_string()),
             created_at: now,
             updated_at: now,
         }

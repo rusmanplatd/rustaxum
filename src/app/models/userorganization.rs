@@ -116,7 +116,7 @@ impl UserOrganization {
         let count: i64 = sqlx::query_scalar(
             r#"
             SELECT COUNT(*)
-            FROM roles r
+            FROM sys_roles r
             INNER JOIN user_organization_roles uor ON r.id = uor.role_id
             INNER JOIN user_organizations uo ON uor.user_organization_id = uo.id
             WHERE uo.user_id = $1 AND uo.organization_id = $2 AND r.name = $3 AND uo.is_active = true
@@ -142,9 +142,9 @@ impl UserOrganization {
         let count: i64 = sqlx::query_scalar(
             r#"
             SELECT COUNT(*)
-            FROM permissions p
+            FROM sys_permissions p
             INNER JOIN role_permissions rp ON p.id = rp.permission_id
-            INNER JOIN roles r ON rp.role_id = r.id
+            INNER JOIN sys_roles r ON rp.role_id = r.id
             INNER JOIN user_organization_roles uor ON r.id = uor.role_id
             INNER JOIN user_organizations uo ON uor.user_organization_id = uo.id
             WHERE uo.user_id = $1 AND uo.organization_id = $2 AND p.name = $3 AND uo.is_active = true
