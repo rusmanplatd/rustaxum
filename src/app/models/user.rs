@@ -4,6 +4,7 @@ use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::query_builder::{Queryable, SortDirection};
+use super::{HasModelType, HasRoles};
 
 /// User model representing a registered user
 /// Contains authentication, profile, and security information
@@ -172,6 +173,18 @@ impl User {
         } else {
             false
         }
+    }
+}
+
+impl HasModelType for User {
+    fn model_type() -> &'static str {
+        "User"
+    }
+}
+
+impl HasRoles for User {
+    fn model_id(&self) -> String {
+        self.id.to_string()
     }
 }
 

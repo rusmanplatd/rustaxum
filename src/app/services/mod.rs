@@ -13,3 +13,5 @@ pub mod job_level_service;
 pub mod job_position_service;
 pub mod notification_service;
 pub mod web_push_service;
+pub mod sys_model_has_permission_service;
+pub mod sys_model_has_role_service;

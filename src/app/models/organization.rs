@@ -4,6 +4,7 @@ use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::query_builder::{Queryable, SortDirection};
+use super::{HasModelType, HasRoles};
 
 /// Organization model representing an organizational entity
 /// Contains organizational information including hierarchy and metadata
@@ -101,6 +102,18 @@ impl Organization {
             created_at: self.created_at,
             updated_at: self.updated_at,
         }
+    }
+}
+
+impl HasModelType for Organization {
+    fn model_type() -> &'static str {
+        "Organization"
+    }
+}
+
+impl HasRoles for Organization {
+    fn model_id(&self) -> String {
+        self.id.to_string()
     }
 }
 

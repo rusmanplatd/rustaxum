@@ -750,15 +750,15 @@ mod tests {
             "id",
             "id",
             "roles",
-            "user_roles",
-            "user_id",
+            "sys_model_has_roles",
+            "model_id",
             "role_id"
         );
 
         match rel.relationship_type {
             RelationshipType::BelongsToMany { pivot_table, foreign_pivot_key, related_pivot_key } => {
-                assert_eq!(pivot_table, "user_roles");
-                assert_eq!(foreign_pivot_key, "user_id");
+                assert_eq!(pivot_table, "sys_model_has_roles");
+                assert_eq!(foreign_pivot_key, "model_id");
                 assert_eq!(related_pivot_key, "role_id");
             },
             _ => panic!("Expected BelongsToMany relationship"),

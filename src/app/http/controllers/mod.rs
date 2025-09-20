@@ -12,3 +12,5 @@ pub mod user_organization_controller;
 pub mod job_level_controller;
 pub mod job_position_controller;
 pub mod web_push_controller;
+pub mod sys_model_has_permission_controller;
+pub mod sys_model_has_role_controller;

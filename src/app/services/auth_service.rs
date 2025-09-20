@@ -261,14 +261,14 @@ impl AuthService {
         })
     }
 
-    pub async fn revoke_token(pool: &PgPool, token: &str, user_id: Ulid, reason: Option<String>) -> Result<MessageResponse> {
+    pub async fn revoke_token(_pool: &PgPool, token: &str, _user_id: Ulid, _reason: Option<String>) -> Result<MessageResponse> {
         // Decode token to get expiration
         let claims = Self::decode_token(token, "jwt-secret")?;
-        let expires_at = DateTime::from_timestamp(claims.exp as i64, 0)
+        let _expires_at = DateTime::from_timestamp(claims.exp as i64, 0)
             .ok_or_else(|| anyhow::anyhow!("Invalid token expiration"))?;
 
         // Hash token for storage
-        let token_hash = TokenUtils::hash_token(token);
+        let _token_hash = TokenUtils::hash_token(token);
 
         Ok(MessageResponse {
             message: "Token revoked successfully.".to_string(),

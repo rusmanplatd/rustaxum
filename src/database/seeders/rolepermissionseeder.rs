@@ -3,6 +3,7 @@ use sqlx::{PgPool, Row};
 use ulid::Ulid;
 use chrono::Utc;
 use crate::database::seeder::Seeder;
+use crate::app::models::{HasModelType, user::User};
 
 pub struct RolePermissionSeeder;
 
@@ -205,14 +206,17 @@ impl Seeder for RolePermissionSeeder {
             let admin_user_id: String = admin_user.get("id");
             sqlx::query(
                 r#"
-                INSERT INTO user_roles (id, user_id, role_id, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT (user_id, role_id) DO NOTHING
+                INSERT INTO sys_model_has_roles (id, model_type, model_id, role_id, scope_type, scope_id, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ON CONFLICT (model_type, model_id, role_id) DO NOTHING
                 "#
             )
             .bind(user_role_id_record)
+            .bind(User::model_type())
             .bind(admin_user_id)
             .bind(&admin_role_id)
+            .bind(Option::<String>::None)
+            .bind(Option::<String>::None)
             .bind(now)
             .bind(now)
             .execute(pool)
@@ -229,14 +233,17 @@ impl Seeder for RolePermissionSeeder {
             let regular_user_id: String = regular_user.get("id");
             sqlx::query(
                 r#"
-                INSERT INTO user_roles (id, user_id, role_id, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT (user_id, role_id) DO NOTHING
+                INSERT INTO sys_model_has_roles (id, model_type, model_id, role_id, scope_type, scope_id, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ON CONFLICT (model_type, model_id, role_id) DO NOTHING
                 "#
             )
             .bind(user_role_id_record)
+            .bind(User::model_type())
             .bind(regular_user_id)
             .bind(&user_role_id)
+            .bind(Option::<String>::None)
+            .bind(Option::<String>::None)
             .bind(now)
             .bind(now)
             .execute(pool)

@@ -5,6 +5,7 @@ use lettre::transport::smtp::authentication::Credentials;
 use lettre::transport::smtp::client::{Tls, TlsParameters};
 use lettre::message::{header::ContentType, MultiPart, SinglePart};
 use crate::app::mail::{MailDriver, MailMessage, Attachment, AttachmentData};
+use base64::{Engine as _, engine::general_purpose};
 
 #[derive(Debug, Clone)]
 pub struct SmtpDriver {
@@ -151,7 +152,7 @@ impl SmtpDriver {
             },
             AttachmentData::Bytes(bytes) => bytes,
             AttachmentData::Base64(base64_str) => {
-                base64::decode(&base64_str)
+                general_purpose::STANDARD.decode(&base64_str)
                     .map_err(|e| anyhow::anyhow!("Failed to decode base64 attachment: {}", e))?
             },
         };

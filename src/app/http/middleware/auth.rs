@@ -41,7 +41,7 @@ pub async fn auth_middleware(
     }
 }
 
-async fn is_valid_token(pool: &PgPool, token: &str) -> bool {
+async fn is_valid_token(_pool: &PgPool, token: &str) -> bool {
     // Load config for JWT secret
     let config = match Config::load() {
         Ok(config) => config,
@@ -62,6 +62,6 @@ async fn is_valid_token(pool: &PgPool, token: &str) -> bool {
     // Create token hash for blacklist check
     let mut hasher = Sha256::new();
     hasher.update(token.as_bytes());
-    let token_hash = format!("{:x}", hasher.finalize());
+    let _token_hash = format!("{:x}", hasher.finalize());
     return false
 }

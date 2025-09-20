@@ -156,7 +156,7 @@ pub async fn revoke_personal_access_token(
     }
 }
 
-async fn get_authenticated_user(pool: &PgPool, headers: &HeaderMap) -> anyhow::Result<Ulid> {
+async fn get_authenticated_user(_pool: &PgPool, headers: &HeaderMap) -> anyhow::Result<Ulid> {
     let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
     let token = TokenUtils::extract_token_from_header(auth_header)?;
     let claims = AuthService::decode_token(token, "jwt-secret")?;

@@ -4,7 +4,7 @@ use axum::{
 };
 use sqlx::PgPool;
 
-use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, role_controller, permission_controller, docs_controller, user_organization_controller, job_level_controller, job_position_controller, web_push_controller};
+use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, role_controller, permission_controller, docs_controller, user_organization_controller, job_level_controller, job_position_controller, web_push_controller, sys_model_has_permission_controller, sys_model_has_role_controller};
 
 pub fn routes() -> Router<PgPool> {
     Router::new()
@@ -95,6 +95,20 @@ pub fn routes() -> Router<PgPool> {
         .route("/api/web-push/test", post(web_push_controller::WebPushController::send_test_notification))
         .route("/api/web-push/status", get(web_push_controller::WebPushController::get_status))
         .route("/api/web-push/cleanup", post(web_push_controller::WebPushController::cleanup_subscriptions))
+        // Sys Model Has Permission routes
+        .route("/api/sys-model-has-permissions", get(sys_model_has_permission_controller::index))
+        .route("/api/sys-model-has-permissions", post(sys_model_has_permission_controller::store))
+        .route("/api/sys-model-has-permissions/{id}", get(sys_model_has_permission_controller::show))
+        .route("/api/sys-model-has-permissions/{id}", put(sys_model_has_permission_controller::update))
+        .route("/api/sys-model-has-permissions/{id}", delete(sys_model_has_permission_controller::destroy))
+        .route("/api/models/{model_type}/{model_id}/permissions", get(sys_model_has_permission_controller::by_model))
+        // Sys Model Has Role routes
+        .route("/api/sys-model-has-roles", get(sys_model_has_role_controller::index))
+        .route("/api/sys-model-has-roles", post(sys_model_has_role_controller::store))
+        .route("/api/sys-model-has-roles/{id}", get(sys_model_has_role_controller::show))
+        .route("/api/sys-model-has-roles/{id}", put(sys_model_has_role_controller::update))
+        .route("/api/sys-model-has-roles/{id}", delete(sys_model_has_role_controller::destroy))
+        .route("/api/models/{model_type}/{model_id}/roles", get(sys_model_has_role_controller::by_model))
         // Documentation routes
         .route("/api/docs", get(docs_controller::docs_info))
         .route("/api/docs/openapi.json", get(docs_controller::openapi_json))

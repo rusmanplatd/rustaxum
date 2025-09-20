@@ -8,8 +8,10 @@ use serde_json::json;
 use sqlx::PgPool;
 use ulid::Ulid;
 use std::collections::HashSet;
-use crate::app::services::role_service::RoleService;
-use crate::app::services::permission_service::PermissionService;
+use crate::app::services::sys_model_has_role_service::SysModelHasRoleService;
+use crate::app::services::sys_model_has_permission_service::SysModelHasPermissionService;
+use crate::app::models::user::User;
+use crate::app::models::HasModelType;
 use crate::app::services::auth_service::AuthService;
 use crate::app::utils::token_utils::TokenUtils;
 
@@ -137,8 +139,9 @@ where
             };
 
             // Get user roles
-            let user_roles = match RoleService::get_user_roles(
+            let user_roles = match SysModelHasRoleService::get_model_roles(
                 pool,
+                User::model_type(),
                 user_id,
                 requirement.guard_name.as_deref()
             ).await {
@@ -244,7 +247,7 @@ async fn check_user_permissions(
     guard_name: Option<&str>,
     require_all: bool,
 ) -> Result<bool, anyhow::Error> {
-    let user_permissions = PermissionService::get_user_permissions(pool, user_id, guard_name).await?;
+    let user_permissions = SysModelHasPermissionService::get_model_permissions(pool, User::model_type(), user_id, guard_name).await?;
 
     let user_permission_names: HashSet<String> = user_permissions
         .into_iter()

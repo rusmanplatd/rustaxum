@@ -19,12 +19,6 @@ services:
       - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
       - JWT_EXPIRES_IN=86400
       - REFRESH_TOKEN_EXPIRES_IN=604800
-      - SMTP_HOST=mailpit
-      - SMTP_PORT=1025
-      - SMTP_USERNAME=
-      - SMTP_PASSWORD=
-      - SMTP_FROM_EMAIL=noreply@rustaxum.com
-      - SMTP_FROM_NAME=RustAxum
       - LOG_LEVEL=info
       - PORT=3000
       # Storage configuration

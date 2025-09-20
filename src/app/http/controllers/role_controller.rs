@@ -9,6 +9,9 @@ use serde_json::json;
 use ulid::Ulid;
 use crate::app::models::role::{Role, CreateRole, UpdateRole};
 use crate::app::services::role_service::RoleService;
+use crate::app::services::sys_model_has_role_service::SysModelHasRoleService;
+use crate::app::models::user::User;
+use crate::app::models::HasModelType;
 
 #[derive(Deserialize)]
 pub struct CreateRoleRequest {
@@ -251,7 +254,7 @@ pub async fn assign_to_user(
         }
     };
 
-    match RoleService::assign_to_user(&pool, user_id, role_id).await {
+    match SysModelHasRoleService::assign_role_to_model(&pool, User::model_type(), user_id, role_id, None, None).await {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Role assigned to user successfully"
@@ -288,7 +291,7 @@ pub async fn remove_from_user(
         }
     };
 
-    match RoleService::remove_from_user(&pool, user_id, role_id).await {
+    match SysModelHasRoleService::remove_role_from_model(&pool, User::model_type(), user_id, role_id).await {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Role removed from user successfully"
@@ -316,7 +319,7 @@ pub async fn get_user_roles(
         }
     };
 
-    match RoleService::get_user_roles(&pool, user_id, None).await {
+    match SysModelHasRoleService::get_model_roles(&pool, User::model_type(), user_id, None).await {
         Ok(roles) => {
             let role_data: Vec<RoleData> = roles.into_iter().map(RoleData::from).collect();
             (StatusCode::OK, Json(json!({

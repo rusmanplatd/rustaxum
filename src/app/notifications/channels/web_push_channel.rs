@@ -196,7 +196,7 @@ impl WebPushChannel {
 
         builder.set_vapid_signature(vapid_builder.build()?);
 
-        let web_push_message = builder.build()?;
+        let _web_push_message = builder.build()?;
         // For now, we'll skip the actual client creation as it requires proper web-push setup
         // let client = WebPushClient::new();
         tracing::info!("Would send web push notification to endpoint: {}", subscription.endpoint);

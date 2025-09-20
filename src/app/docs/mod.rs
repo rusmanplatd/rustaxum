@@ -11,6 +11,8 @@ use crate::app::models::userorganization::{UserOrganization, CreateUserOrganizat
 use crate::app::models::organization::{Organization, CreateOrganization, UpdateOrganization, OrganizationResponse};
 use crate::app::models::joblevel::{JobLevel, CreateJobLevel, UpdateJobLevel, JobLevelResponse};
 use crate::app::models::jobposition::{JobPosition, CreateJobPosition, UpdateJobPosition, JobPositionResponse};
+use crate::app::models::sys_model_has_permission::{SysModelHasPermission, CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse};
+use crate::app::models::sys_model_has_role::{SysModelHasRole, CreateSysModelHasRole, UpdateSysModelHasRole, SysModelHasRoleResponse};
 use crate::app::http::requests::country_requests::{CreateCountryRequest, UpdateCountryRequest};
 use crate::app::http::requests::auth_requests::{RegisterRequest, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest};
 use crate::app::http::requests::user_requests::{UpdateUserRequest, SearchUsersRequest, ContactFormRequest};
@@ -25,6 +27,12 @@ use crate::app::http::requests::job_level_requests::{
 };
 use crate::app::http::requests::job_position_requests::{
     CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest
+};
+use crate::app::http::requests::sys_model_has_permission_requests::{
+    CreateSysModelHasPermissionRequest, UpdateSysModelHasPermissionRequest
+};
+use crate::app::http::requests::sys_model_has_role_requests::{
+    CreateSysModelHasRoleRequest, UpdateSysModelHasRoleRequest
 };
 use crate::app::resources::user_organization_resource::{
     UserOrganizationResource, UserOrganizationResourceWithRelations, UserOrganizationCollection,
@@ -88,6 +96,14 @@ use crate::app::resources::user_organization_resource::{
             JobPosition, CreateJobPosition, UpdateJobPosition, JobPositionResponse,
             CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest,
 
+            // Sys Model Has Permission models
+            SysModelHasPermission, CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse,
+            CreateSysModelHasPermissionRequest, UpdateSysModelHasPermissionRequest,
+
+            // Sys Model Has Role models
+            SysModelHasRole, CreateSysModelHasRole, UpdateSysModelHasRole, SysModelHasRoleResponse,
+            CreateSysModelHasRoleRequest, UpdateSysModelHasRoleRequest,
+
             // User Organization Resource models
             UserOrganizationResource, UserOrganizationResourceWithRelations, UserOrganizationCollection,
             UserOrganizationSummaryResource, UserOrganizationActivityResource, OrganizationHierarchyResource,
@@ -109,6 +125,8 @@ use crate::app::resources::user_organization_resource::{
             PaginatedResponse<UserOrganizationResponse>,
             PaginatedResponse<JobLevelResponse>,
             PaginatedResponse<JobPositionResponse>,
+            PaginatedResponse<SysModelHasPermissionResponse>,
+            PaginatedResponse<SysModelHasRoleResponse>,
         )
     ),
     tags(
@@ -123,6 +141,8 @@ use crate::app::resources::user_organization_resource::{
         (name = "Job Positions", description = "Job position management linked to job levels"),
         (name = "Roles", description = "Role-based access control operations"),
         (name = "Permissions", description = "Permission management operations"),
+        (name = "Model Permissions", description = "Polymorphic model permission assignments - assign permissions to any model type"),
+        (name = "Model Roles", description = "Polymorphic model role assignments - assign roles to any model type"),
     )
 )]
 pub struct ApiDoc;

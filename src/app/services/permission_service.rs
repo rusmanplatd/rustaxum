@@ -2,6 +2,7 @@ use anyhow::Result;
 use ulid::Ulid;
 use sqlx::PgPool;
 use crate::app::models::permission::{Permission, CreatePermission, UpdatePermission};
+use crate::app::models::HasRoles;
 
 pub struct PermissionService;
 
@@ -172,19 +173,21 @@ impl PermissionService {
         Ok(count.unwrap_or(0) > 0)
     }
 
-    pub async fn user_has_permission(pool: &PgPool, user_id: Ulid, permission_name: &str, guard_name: Option<&str>) -> Result<bool> {
+    /// Generic method to check if a model has a specific permission
+    pub async fn model_has_permission<T: HasRoles>(pool: &PgPool, model: &T, permission_name: &str, guard_name: Option<&str>) -> Result<bool> {
         let guard = guard_name.unwrap_or("api");
 
         let count: Option<i64> = sqlx::query_scalar(
             r#"
             SELECT COUNT(*) as count
-            FROM user_roles ur
-            JOIN role_permissions rp ON ur.role_id = rp.role_id
+            FROM sys_model_has_roles smhr
+            JOIN role_permissions rp ON smhr.role_id = rp.role_id
             JOIN sys_permissions p ON rp.permission_id = p.id
-            WHERE ur.user_id = $1 AND p.name = $2 AND p.guard_name = $3
+            WHERE smhr.model_type = $1 AND smhr.model_id = $2 AND p.name = $3 AND p.guard_name = $4
             "#
         )
-        .bind(user_id.to_string())
+        .bind(T::model_type())
+        .bind(model.model_id())
         .bind(permission_name)
         .bind(guard)
         .fetch_one(pool)
@@ -226,19 +229,21 @@ impl PermissionService {
         Ok(query)
     }
 
-    pub async fn get_user_permissions(pool: &PgPool, user_id: Ulid, guard_name: Option<&str>) -> Result<Vec<Permission>> {
+    /// Generic method to get permissions for any model that implements HasRoles
+    pub async fn get_model_permissions<T: HasRoles>(pool: &PgPool, model: &T, guard_name: Option<&str>) -> Result<Vec<Permission>> {
         let query = if let Some(guard) = guard_name {
             sqlx::query_as::<_, Permission>(
                 r#"
                 SELECT DISTINCT p.id, p.name, p.guard_name, p.resource, p.action, p.created_at, p.updated_at
                 FROM sys_permissions p
                 JOIN role_permissions rp ON p.id = rp.permission_id
-                JOIN user_roles ur ON rp.role_id = ur.role_id
-                WHERE ur.user_id = $1 AND p.guard_name = $2
+                JOIN sys_model_has_roles smhr ON rp.role_id = smhr.role_id
+                WHERE smhr.model_type = $1 AND smhr.model_id = $2 AND p.guard_name = $3
                 ORDER BY p.name
                 "#
             )
-            .bind(user_id.to_string())
+            .bind(T::model_type())
+            .bind(model.model_id())
             .bind(guard)
             .fetch_all(pool)
             .await?
@@ -248,12 +253,13 @@ impl PermissionService {
                 SELECT DISTINCT p.id, p.name, p.guard_name, p.resource, p.action, p.created_at, p.updated_at
                 FROM sys_permissions p
                 JOIN role_permissions rp ON p.id = rp.permission_id
-                JOIN user_roles ur ON rp.role_id = ur.role_id
-                WHERE ur.user_id = $1
+                JOIN sys_model_has_roles smhr ON rp.role_id = smhr.role_id
+                WHERE smhr.model_type = $1 AND smhr.model_id = $2
                 ORDER BY p.name
                 "#
             )
-            .bind(user_id.to_string())
+            .bind(T::model_type())
+            .bind(model.model_id())
             .fetch_all(pool)
             .await?
         };

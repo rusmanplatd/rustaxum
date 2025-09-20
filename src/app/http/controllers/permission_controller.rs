@@ -9,6 +9,9 @@ use serde_json::json;
 use ulid::Ulid;
 use crate::app::models::permission::{Permission, CreatePermission, UpdatePermission};
 use crate::app::services::permission_service::PermissionService;
+use crate::app::services::sys_model_has_permission_service::SysModelHasPermissionService;
+use crate::app::models::user::User;
+use crate::app::models::HasModelType;
 
 #[derive(Deserialize)]
 pub struct CreatePermissionRequest {
@@ -354,7 +357,7 @@ pub async fn get_user_permissions(
         }
     };
 
-    match PermissionService::get_user_permissions(&pool, user_id, None).await {
+    match SysModelHasPermissionService::get_model_permissions(&pool, User::model_type(), user_id, None).await {
         Ok(permissions) => {
             let permission_data: Vec<PermissionData> = permissions.into_iter().map(PermissionData::from).collect();
             (StatusCode::OK, Json(json!({
