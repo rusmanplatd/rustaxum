@@ -10,3 +10,4 @@ pub mod events;
 pub mod listeners;
 pub mod broadcasting;
 pub mod jobs;
+pub mod validation;
