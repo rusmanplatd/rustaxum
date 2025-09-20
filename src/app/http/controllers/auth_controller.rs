@@ -106,14 +106,6 @@ pub async fn change_password(
         }
     };
 
-    // Check if token is blacklisted
-    if let Ok(true) = AuthService::is_token_blacklisted(&pool, token).await {
-        let error = ErrorResponse {
-            error: "Token has been revoked".to_string(),
-        };
-        return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
-    }
-
     match AuthService::change_password(&pool, user_id, payload).await {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {

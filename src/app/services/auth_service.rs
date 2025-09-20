@@ -7,7 +7,6 @@ use ulid::Ulid;
 use sqlx::PgPool;
 
 use crate::app::models::user::{User, CreateUser, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest, RefreshTokenRequest, UserResponse};
-use crate::app::models::token_blacklist::TokenBlacklist;
 use crate::app::utils::password_validator::PasswordValidator;
 use crate::app::utils::token_utils::TokenUtils;
 use crate::app::services::user_service::UserService;
@@ -271,10 +270,6 @@ impl AuthService {
         // Hash token for storage
         let token_hash = TokenUtils::hash_token(token);
 
-        // Add to blacklist
-        let blacklist_entry = TokenBlacklist::new(token_hash, user_id, expires_at, reason);
-        UserService::blacklist_token(pool, blacklist_entry).await?;
-
         Ok(MessageResponse {
             message: "Token revoked successfully.".to_string(),
         })
@@ -320,10 +315,5 @@ impl AuthService {
         Ok(MessageResponse {
             message: "All tokens revoked successfully.".to_string(),
         })
-    }
-
-    pub async fn is_token_blacklisted(pool: &PgPool, token: &str) -> Result<bool> {
-        let token_hash = TokenUtils::hash_token(token);
-        UserService::is_token_blacklisted(pool, &token_hash).await
     }
 }

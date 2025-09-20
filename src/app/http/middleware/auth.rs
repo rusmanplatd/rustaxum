@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use sha2::{Digest, Sha256};
 
-use crate::app::services::user_service::UserService;
 use crate::config::Config;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -64,10 +63,5 @@ async fn is_valid_token(pool: &PgPool, token: &str) -> bool {
     let mut hasher = Sha256::new();
     hasher.update(token.as_bytes());
     let token_hash = format!("{:x}", hasher.finalize());
-
-    // Check if token is blacklisted
-    match UserService::is_token_blacklisted(pool, &token_hash).await {
-        Ok(is_blacklisted) => !is_blacklisted,
-        Err(_) => false,
-    }
+    return false
 }

@@ -4,7 +4,6 @@ use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
 use crate::app::models::user::{User, CreateUser, UpdateUser};
-use crate::app::models::token_blacklist::TokenBlacklist;
 
 pub struct UserService;
 
@@ -180,45 +179,5 @@ impl UserService {
             .await?;
 
         Ok(())
-    }
-
-    pub async fn blacklist_token(pool: &PgPool, token: TokenBlacklist) -> Result<()> {
-        let query = r#"
-            INSERT INTO token_blacklist (id, token_hash, user_id, expires_at, revoked_at, reason)
-            VALUES ($1, $2, $3, $4, $5, $6)
-        "#;
-
-        sqlx::query(query)
-            .bind(token.id.to_string())
-            .bind(&token.token_hash)
-            .bind(token.user_id.to_string())
-            .bind(token.expires_at)
-            .bind(token.revoked_at)
-            .bind(token.reason)
-            .execute(pool)
-            .await?;
-
-        Ok(())
-    }
-
-    pub async fn is_token_blacklisted(pool: &PgPool, token_hash: &str) -> Result<bool> {
-        let query = "SELECT EXISTS(SELECT 1 FROM token_blacklist WHERE token_hash = $1 AND expires_at > NOW())";
-
-        let result: (bool,) = sqlx::query_as(query)
-            .bind(token_hash)
-            .fetch_one(pool)
-            .await?;
-
-        Ok(result.0)
-    }
-
-    pub async fn cleanup_expired_tokens(pool: &PgPool) -> Result<u64> {
-        let query = "DELETE FROM token_blacklist WHERE expires_at <= NOW()";
-
-        let result = sqlx::query(query)
-            .execute(pool)
-            .await?;
-
-        Ok(result.rows_affected())
     }
 }

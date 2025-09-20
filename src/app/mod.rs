@@ -2,7 +2,6 @@ pub mod docs;
 pub mod http;
 pub mod models;
 pub mod notifications;
-pub mod policies;
 pub mod resources;
 pub mod services;
 pub mod utils;

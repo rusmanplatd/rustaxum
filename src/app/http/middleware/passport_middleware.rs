@@ -59,24 +59,6 @@ async fn authenticate_request(
             )
         })?;
 
-    // Check if token is blacklisted
-    let is_blacklisted = AuthService::is_token_blacklisted(pool, &token)
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to check token blacklist: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"error": "Authentication service error"})),
-            )
-        })?;
-
-    if is_blacklisted {
-        return Err((
-            StatusCode::UNAUTHORIZED,
-            Json(json!({"error": "Token has been revoked"})),
-        ));
-    }
-
     // Decode and validate the JWT token
     let claims = AuthService::decode_token(&token, "jwt-secret")
         .map_err(|_e| {

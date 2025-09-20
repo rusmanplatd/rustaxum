@@ -509,11 +509,6 @@ async fn get_user_from_token(pool: &PgPool, auth_header: Option<&str>) -> anyhow
     let token = TokenUtils::extract_token_from_header(auth_header)?;
     let claims = AuthService::decode_token(token, "jwt-secret")?;
 
-    // Check if token is blacklisted
-    if AuthService::is_token_blacklisted(pool, token).await? {
-        return Err(anyhow::anyhow!("Token has been revoked"));
-    }
-
     let user_id = Ulid::from_string(&claims.sub)?;
     Ok(user_id)
 }
