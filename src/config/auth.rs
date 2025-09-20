@@ -9,7 +9,6 @@ pub struct AuthConfig {
     pub password_reset_expiry_hours: u64,
     pub max_failed_attempts: u32,
     pub lockout_duration_minutes: u64,
-    pub bcrypt_cost: u32,
     pub password_min_length: usize,
     pub require_email_verification: bool,
 }
@@ -39,10 +38,6 @@ impl AuthConfig {
                 .unwrap_or_else(|_| "30".to_string())
                 .parse()
                 .unwrap_or(30),
-            bcrypt_cost: env::var("BCRYPT_COST")
-                .unwrap_or_else(|_| "12".to_string())
-                .parse()
-                .unwrap_or(12),
             password_min_length: env::var("PASSWORD_MIN_LENGTH")
                 .unwrap_or_else(|_| "8".to_string())
                 .parse()

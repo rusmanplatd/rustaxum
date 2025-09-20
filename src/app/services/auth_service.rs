@@ -1,5 +1,5 @@
 use anyhow::{Result, bail};
-use bcrypt::{hash, verify, DEFAULT_COST};
+use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::{rand_core::OsRng, SaltString}};
 use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use chrono::{Duration, Utc, DateTime};
@@ -43,12 +43,18 @@ pub struct AuthService;
 
 impl AuthService {
     pub fn hash_password(password: &str) -> Result<String> {
-        let hashed = hash(password, DEFAULT_COST)?;
-        Ok(hashed)
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
+        let password_hash = argon2.hash_password(password.as_bytes(), &salt)
+            .map_err(|e| anyhow::anyhow!("Failed to hash password: {}", e))?;
+        Ok(password_hash.to_string())
     }
 
     pub fn verify_password(password: &str, hash: &str) -> Result<bool> {
-        let is_valid = verify(password, hash)?;
+        let parsed_hash = PasswordHash::new(hash)
+            .map_err(|e| anyhow::anyhow!("Failed to parse password hash: {}", e))?;
+        let argon2 = Argon2::default();
+        let is_valid = argon2.verify_password(password.as_bytes(), &parsed_hash).is_ok();
         Ok(is_valid)
     }
 

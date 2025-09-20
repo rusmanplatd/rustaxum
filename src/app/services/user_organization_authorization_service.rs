@@ -171,9 +171,9 @@ impl UserOrganizationAuthorizationService {
 
         if let Some(org_type) = org_type {
             let level = match org_type.as_str() {
-                "holding" => 1,
-                "subsidiary" => 2,
-                "boc" | "bod" => 3,
+                "company" => 1,
+                "boc" => 2,
+                "bod" => 3,
                 "division" => 4,
                 "department" => 5,
                 "branch" => 6,

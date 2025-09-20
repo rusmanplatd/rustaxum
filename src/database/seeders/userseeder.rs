@@ -1,9 +1,9 @@
 use sqlx::PgPool;
 use anyhow::Result;
-use bcrypt::{hash, DEFAULT_COST};
 use ulid::Ulid;
 use chrono::{Utc};
 use crate::database::seeder::Seeder;
+use crate::app::services::auth_service::AuthService;
 
 pub struct UserSeeder;
 
@@ -23,7 +23,7 @@ impl Seeder for UserSeeder {
 
         // Create admin user
         let admin_id = Ulid::new().to_string();
-        let admin_password = hash("password", DEFAULT_COST)?;
+        let admin_password = AuthService::hash_password("password")?;
 
         sqlx::query(
             r#"
@@ -44,7 +44,7 @@ impl Seeder for UserSeeder {
 
         // Create regular user
         let user_id = Ulid::new().to_string();
-        let user_password = hash("password", DEFAULT_COST)?;
+        let user_password = AuthService::hash_password("password")?;
 
         sqlx::query(
             r#"
@@ -65,7 +65,7 @@ impl Seeder for UserSeeder {
 
         // Create test user
         let test_id = Ulid::new().to_string();
-        let test_password = hash("password", DEFAULT_COST)?;
+        let test_password = AuthService::hash_password("password")?;
 
         sqlx::query(
             r#"

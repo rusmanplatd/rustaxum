@@ -2,7 +2,7 @@
 CREATE TABLE organizations (
     id TEXT PRIMARY KEY,
     name VARCHAR NOT NULL,
-    type VARCHAR NOT NULL CHECK (type IN ('holding', 'subsidiary', 'boc', 'bod', 'division', 'department', 'branch', 'subbranch', 'section')),
+    type VARCHAR NOT NULL CHECK (type IN ('company', 'boc', 'bod', 'division', 'department', 'branch', 'subbranch', 'section')),
     parent_id TEXT REFERENCES organizations(id) ON DELETE CASCADE,
     code VARCHAR UNIQUE,
     description TEXT,

@@ -87,9 +87,9 @@ impl UserOrganizationPolicy {
     // Determine organization hierarchy level for ABAC policies
     fn get_organization_level(&self, org_type: &str) -> u8 {
         match org_type {
-            "holding" => 1,
-            "subsidiary" => 2,
-            "boc" | "bod" => 3,
+            "company" => 1,
+            "boc" => 2,
+            "bod" => 3,
             "division" => 4,
             "department" => 5,
             "branch" => 6,

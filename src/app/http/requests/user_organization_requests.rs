@@ -181,7 +181,7 @@ impl FormRequest for IndexUserOrganizationRequest {
         rules.insert("organization_id", vec![string(), ulid_format()]);
         rules.insert("job_position_id", vec![string(), ulid_format()]);
         rules.insert("is_active", vec![boolean()]);
-        rules.insert("organization_type", vec![string(), crate::app::validation::in_list(vec!["holding", "subsidiary", "boc", "bod", "division", "department", "branch", "subbranch", "section"])]);
+        rules.insert("organization_type", vec![string(), crate::app::validation::in_list(vec!["company", "boc", "bod", "division", "department", "branch", "subbranch", "section"])]);
         rules
     }
 
@@ -196,7 +196,7 @@ impl FormRequest for IndexUserOrganizationRequest {
         messages.insert("organization_id.ulid_format", "Organization ID must be a valid ULID");
         messages.insert("job_position_id.ulid_format", "Job Position ID must be a valid ULID");
         messages.insert("is_active.boolean", "Active status must be true or false");
-        messages.insert("organization_type.in", "Organization type must be one of: holding, subsidiary, boc, bod, division, department, branch, subbranch, section");
+        messages.insert("organization_type.in", "Organization type must be one of: company, boc, bod, division, department, branch, subbranch, section");
         messages
     }
 
