@@ -2,7 +2,6 @@ use anyhow::Result;
 use async_trait::async_trait;
 use std::sync::Arc;
 use crate::app::events::{Event, EventListener};
-use crate::app::events::user_registered_event::UserRegisteredEvent;
 
 #[derive(Debug)]
 pub struct SendWelcomeEmailListener {

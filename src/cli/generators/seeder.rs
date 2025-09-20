@@ -73,7 +73,7 @@ impl Seeder for {} {{
     async fn run(&self, pool: &PgPool) -> Result<()> {{
         // TODO: Add your seeding logic here
         // Example:
-        // sqlx::query!(
+        // sqlx::query(
         //     "INSERT INTO table_name (column1, column2) VALUES ($1, $2)",
         //     "value1",
         //     "value2"

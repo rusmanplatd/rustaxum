@@ -20,6 +20,7 @@ pub trait Channel: Send + Sync {
 }
 
 /// Channel manager for routing notifications to appropriate channels
+#[derive(Debug)]
 pub struct ChannelManager {
     mail_channel: mail_channel::MailChannel,
     database_channel: database_channel::DatabaseChannel,

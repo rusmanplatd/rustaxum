@@ -86,11 +86,12 @@ pub async fn index(
 
     match PermissionService::list(&pool, limit, offset).await {
         Ok(permissions) => {
+            let total = PermissionService::count(&pool).await.unwrap_or(0);
             let permission_data: Vec<PermissionData> = permissions.into_iter().map(PermissionData::from).collect();
             let response = PermissionListResponse {
                 data: permission_data,
                 meta: Meta {
-                    total: 0, // TODO: Implement count query
+                    total,
                     limit,
                     offset,
                 },

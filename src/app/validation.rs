@@ -72,40 +72,6 @@ pub fn quick_validate<T: AsRef<str>>(
     validator.validate()
 }
 
-/// Quick validation function for common use cases using string format (deprecated)
-///
-/// # Examples
-///
-/// ```rust
-/// use rustaxum::validation::quick_validate_string;
-/// use serde_json::json;
-///
-/// let data = json!({
-///     "name": "John Doe",
-///     "email": "john@example.com"
-/// });
-///
-/// let rules = vec![
-///     ("name", "required|string|min:2"),
-///     ("email", "required|email"),
-/// ];
-///
-/// let result = quick_validate_string(data, rules);
-/// ```
-#[deprecated(note = "Use quick_validate with array format instead")]
-pub fn quick_validate_string(
-    data: serde_json::Value,
-    rules: Vec<(&str, &str)>,
-) -> Result<(), ValidationErrors> {
-    let mut validator = validator!(data);
-    for (field, rule_string) in rules {
-        let rule_array: Vec<&str> = rule_string.split('|').collect();
-        let parsed_rules = parse_rules(rule_array);
-        validator.rules(field, parsed_rules);
-    }
-    validator.validate()
-}
-
 /// Validate request data with common patterns
 ///
 /// # Examples

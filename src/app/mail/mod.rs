@@ -263,8 +263,15 @@ impl MailContent {
         match self {
             MailContent::Html(html) => Ok(html.clone()),
             MailContent::Markdown { compiled_html, .. } => {
-                self.compile_markdown().await?;
-                Ok(compiled_html.as_ref().unwrap().clone())
+                if compiled_html.is_none() {
+                    self.compile_markdown().await?;
+                }
+                match self {
+                    MailContent::Markdown { compiled_html, .. } => {
+                        Ok(compiled_html.as_ref().unwrap().clone())
+                    },
+                    _ => unreachable!()
+                }
             },
             MailContent::Text(text) => {
                 // Simple text to HTML conversion

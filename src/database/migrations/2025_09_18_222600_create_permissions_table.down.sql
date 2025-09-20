@@ -1,2 +1,2 @@
--- Drop permissions table
-DROP TABLE IF EXISTS permissions;
+-- Drop permissions table with cascade to handle foreign key dependencies
+DROP TABLE IF EXISTS permissions CASCADE;

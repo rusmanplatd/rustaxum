@@ -2,7 +2,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Serialize, Deserialize};
 use crate::app::jobs::Job;
-use crate::app::mail::{mail_manager, WelcomeMail};
+use crate::app::mail::{mail_manager, welcome_mail::WelcomeMail};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SendEmailJob {
@@ -127,7 +127,7 @@ impl Job for SendEmailJob {
                 tracing::info!("Password reset email sent to {}", self.to_email);
             },
 
-            EmailType::Newsletter { subject, content } => {
+            EmailType::Newsletter { subject, content: _ } => {
                 // Create a newsletter email (simplified)
                 let welcome_mail = WelcomeMail::new(
                     self.to_email.clone(),

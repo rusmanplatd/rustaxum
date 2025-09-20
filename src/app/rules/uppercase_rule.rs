@@ -131,9 +131,10 @@ impl<T: Into<ValidationValue>> From<Vec<T>> for ValidationValue {
 }
 
 // Validation rule trait for type-safe validation
-pub trait ValidationRule {
+pub trait ValidationRule: std::fmt::Debug {
     fn passes(&self, attribute: &str, value: &ValidationValue) -> bool;
     fn get_message(&self, attribute: &str, value: &ValidationValue) -> String;
+    fn clone_rule(&self) -> Box<dyn ValidationRule>;
 }
 
 impl ValidationRule for UppercaseRule {
@@ -144,13 +145,34 @@ impl ValidationRule for UppercaseRule {
     fn get_message(&self, attribute: &str, value: &ValidationValue) -> String {
         Self::get_message(self, attribute, value)
     }
+
+    fn clone_rule(&self) -> Box<dyn ValidationRule> {
+        Box::new(self.clone())
+    }
 }
 
 // Validator struct for applying multiple rules
-#[derive(Debug, Clone)]
 pub struct Validator {
     pub rules: Vec<Box<dyn ValidationRule>>,
     pub errors: HashMap<String, Vec<String>>,
+}
+
+impl std::fmt::Debug for Validator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Validator")
+            .field("rules", &format!("{} rules", self.rules.len()))
+            .field("errors", &self.errors)
+            .finish()
+    }
+}
+
+impl Clone for Validator {
+    fn clone(&self) -> Self {
+        Self {
+            rules: self.rules.iter().map(|rule| rule.clone_rule()).collect(),
+            errors: self.errors.clone(),
+        }
+    }
 }
 
 impl Validator {

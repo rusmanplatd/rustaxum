@@ -188,21 +188,32 @@ impl MigrationRunner {
 
         println!("Resetting all migrations...");
 
-        let migrations = sqlx::query("SELECT migration FROM migrations ORDER BY id DESC")
-            .fetch_all(&self.pool)
-            .await?;
+        // Get all table names from the database (excluding system tables)
+        let tables: Vec<String> = sqlx::query_scalar(
+            r#"
+            SELECT tablename
+            FROM pg_tables
+            WHERE schemaname = 'public'
+            AND tablename != 'migrations'
+            ORDER BY tablename
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
 
-        for row in migrations {
-            let migration_name: String = row.get("migration");
-            println!("Rolling back: {}", migration_name);
+        if !tables.is_empty() {
+            // Drop all tables with CASCADE to handle foreign key dependencies
+            let table_names: Vec<String> = tables.iter()
+                .map(|t| format!("\"{}\"", t))
+                .collect();
 
-            if let Some(migration_file) = self.load_migration_file(&migration_name)? {
-                if let Some(down_sql) = migration_file.down_sql {
-                    self.execute_sql_statements(&down_sql, &migration_name).await
-                        .map_err(|e| anyhow!("Failed to rollback migration {}: {}", migration_name, e))?;
-                    println!("Rolled back: {}", migration_name);
-                }
-            }
+            let drop_sql = format!("DROP TABLE IF EXISTS {} CASCADE", table_names.join(", "));
+            println!("Dropping all tables...");
+
+            sqlx::query(&drop_sql)
+                .execute(&self.pool)
+                .await
+                .map_err(|e| anyhow!("Failed to drop tables: {}", e))?;
         }
 
         // Clear migrations table
@@ -314,22 +325,107 @@ impl MigrationRunner {
 
 
     async fn execute_sql_statements(&self, sql: &str, migration_name: &str) -> Result<()> {
-        // Split SQL by semicolons and execute each statement separately
-        let statements: Vec<&str> = sql
-            .split(';')
-            .map(|s| s.trim())
-            .filter(|s| !s.is_empty() && !s.starts_with("--"))
-            .collect();
+        // Use a transaction to ensure all statements in a migration are executed atomically
+        let mut tx = self.pool.begin().await?;
+
+        // Parse SQL statements properly, handling functions that contain semicolons
+        let statements = self.parse_sql_statements(sql)?;
 
         for statement in statements {
             if !statement.is_empty() {
-                sqlx::query(statement)
-                    .execute(&self.pool)
+                sqlx::query(&statement)
+                    .execute(&mut *tx)
                     .await
                     .map_err(|e| anyhow!("Failed to execute SQL statement in migration {}: {}\nStatement: {}", migration_name, e, statement))?;
             }
         }
 
+        // Commit the transaction
+        tx.commit().await?;
         Ok(())
+    }
+
+    fn parse_sql_statements(&self, sql: &str) -> Result<Vec<String>> {
+        let mut statements = Vec::new();
+        let mut current_statement = String::new();
+        let mut in_dollar_quote = false;
+        let mut dollar_tag = String::new();
+
+        // Remove comments and split into lines
+        let lines: Vec<&str> = sql.lines()
+            .filter(|line| {
+                let trimmed = line.trim();
+                !trimmed.starts_with("--") && !trimmed.is_empty()
+            })
+            .collect();
+
+        let full_text = lines.join("\n");
+        let chars: Vec<char> = full_text.chars().collect();
+        let mut i = 0;
+
+        while i < chars.len() {
+            let ch = chars[i];
+
+            if ch == '$' && !in_dollar_quote {
+                // Look for start of dollar quote
+                let mut tag = String::new();
+                let mut j = i + 1;
+
+                // Extract the tag between $$
+                while j < chars.len() && chars[j] != '$' {
+                    tag.push(chars[j]);
+                    j += 1;
+                }
+
+                if j < chars.len() && chars[j] == '$' {
+                    // Found complete dollar quote start
+                    in_dollar_quote = true;
+                    dollar_tag = tag;
+                    current_statement.push_str(&format!("${}$", dollar_tag));
+                    i = j;
+                } else {
+                    current_statement.push(ch);
+                }
+            } else if ch == '$' && in_dollar_quote {
+                // Look for end of dollar quote
+                let mut tag = String::new();
+                let mut j = i + 1;
+
+                // Extract the tag between $$
+                while j < chars.len() && chars[j] != '$' {
+                    tag.push(chars[j]);
+                    j += 1;
+                }
+
+                if j < chars.len() && chars[j] == '$' && tag == dollar_tag {
+                    // Found matching dollar quote end
+                    in_dollar_quote = false;
+                    current_statement.push_str(&format!("${}$", tag));
+                    dollar_tag.clear();
+                    i = j;
+                } else {
+                    current_statement.push(ch);
+                }
+            } else if ch == ';' && !in_dollar_quote {
+                // End of statement
+                let statement = current_statement.trim().to_string();
+                if !statement.is_empty() {
+                    statements.push(statement);
+                }
+                current_statement.clear();
+            } else {
+                current_statement.push(ch);
+            }
+
+            i += 1;
+        }
+
+        // Add any remaining statement
+        let statement = current_statement.trim().to_string();
+        if !statement.is_empty() {
+            statements.push(statement);
+        }
+
+        Ok(statements)
     }
 }

@@ -2,7 +2,9 @@ use anyhow::Result;
 use async_trait::async_trait;
 use crate::app::notifications::channels::Channel;
 use crate::app::notifications::notification::{Notification, Notifiable, NotificationChannel};
+use crate::app::broadcasting::{BroadcastMessage as WebSocketBroadcastMessage, websocket::websocket_manager};
 
+#[derive(Debug)]
 pub struct BroadcastChannel;
 
 impl BroadcastChannel {
@@ -17,27 +19,37 @@ impl Channel for BroadcastChannel {
         // Get broadcast message from notification
         let broadcast_message = notification.to_broadcast(notifiable).await?;
 
-        // For now, we'll just log the broadcast message
-        // In a real implementation, you would integrate with a real-time broadcasting system
-        // like WebSockets, Server-Sent Events, or a service like Pusher/Socket.io
+        // Create the channel name for this specific user/entity
+        let channel = format!("user.{}", notifiable.get_key());
 
-        tracing::info!(
-            "Broadcasting notification to entity: {} (type: {})",
-            notifiable.get_key(),
-            notification.notification_type()
-        );
+        // Create the WebSocket broadcast message
+        let websocket_message = WebSocketBroadcastMessage {
+            channel: channel.clone(),
+            event: notification.notification_type().to_string(),
+            data: broadcast_message.data,
+            timestamp: chrono::Utc::now(),
+        };
 
-        tracing::debug!(
-            "Broadcast message data: {}",
-            serde_json::to_string_pretty(&broadcast_message.data)?
-        );
-
-        // TODO: Implement actual broadcasting logic
-        // This could involve:
-        // - Publishing to a Redis channel
-        // - Sending via WebSocket connections
-        // - Pushing to a message queue
-        // - Integrating with external services
+        // Get the global WebSocket manager and broadcast the message
+        let manager = websocket_manager().await;
+        match manager.broadcast(websocket_message).await {
+            Ok(_) => {
+                tracing::info!(
+                    "Successfully broadcasted notification to channel '{}' for entity: {} (type: {})",
+                    channel,
+                    notifiable.get_key(),
+                    notification.notification_type()
+                );
+            }
+            Err(e) => {
+                tracing::error!(
+                    "Failed to broadcast notification to channel '{}': {}",
+                    channel,
+                    e
+                );
+                return Err(e);
+            }
+        }
 
         Ok(())
     }

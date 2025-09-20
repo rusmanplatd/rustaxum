@@ -33,135 +33,139 @@ pub async fn generate_mail(name: &str, markdown: bool) -> Result<()> {
 }
 
 fn generate_mail_template(mail_name: &str) -> String {
-    format!(r#"use anyhow::Result;
-use async_trait::async_trait;
-use crate::app::mail::{{Mailable, MailMessage, MailContent}};
+    let mut content = String::new();
+    content.push_str("use anyhow::Result;\n");
+    content.push_str("use async_trait::async_trait;\n");
+    content.push_str("use crate::app::mail::{Mailable, MailMessage, MailContent};\n\n");
 
-#[derive(Debug, Clone)]
-pub struct {} {{
-    pub to_email: String,
-    // Add mail data fields here
-}}
+    content.push_str("#[derive(Debug, Clone)]\n");
+    content.push_str(&format!("pub struct {} {{\n", mail_name));
+    content.push_str("    pub to_email: String,\n");
+    content.push_str("    // Add mail data fields here\n");
+    content.push_str("}\n\n");
 
-impl {} {{
-    pub fn new(to_email: String) -> Self {{
-        Self {{
-            to_email,
-            // Initialize other fields
-        }}
-    }}
-}}
+    content.push_str(&format!("impl {} {{\n", mail_name));
+    content.push_str("    pub fn new(to_email: String) -> Self {\n");
+    content.push_str("        Self {\n");
+    content.push_str("            to_email,\n");
+    content.push_str("            // Initialize other fields\n");
+    content.push_str("        }\n");
+    content.push_str("    }\n");
+    content.push_str("}\n\n");
 
-#[async_trait]
-impl Mailable for {} {{
-    async fn build(&self) -> Result<MailMessage> {{
-        let content = format!(r#"
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{} Notification</title>
-</head>
-<body>
-    <h1>{} Notification</h1>
-    <p>This is a notification from your application.</p>
-    <p>Add your email content here.</p>
-</body>
-</html>
-"#);
+    content.push_str("#[async_trait]\n");
+    content.push_str(&format!("impl Mailable for {} {{\n", mail_name));
+    content.push_str("    async fn build(&self) -> Result<MailMessage> {\n");
+    content.push_str("        let content = format!(r#\"\n");
+    content.push_str("<!DOCTYPE html>\n");
+    content.push_str("<html>\n");
+    content.push_str("<head>\n");
+    content.push_str("    <title>{} Notification</title>\n");
+    content.push_str("</head>\n");
+    content.push_str("<body>\n");
+    content.push_str("    <h1>{} Notification</h1>\n");
+    content.push_str("    <p>This is a notification from your application.</p>\n");
+    content.push_str("    <p>Add your email content here.</p>\n");
+    content.push_str("</body>\n");
+    content.push_str("</html>\n");
+    content.push_str(&format!("\"#, \"{}\", \"{}\");\n\n", mail_name, mail_name));
 
-        Ok(MailMessage::new()
-            .to(self.to_email.clone())
-            .subject("{} Notification".to_string())
-            .content(MailContent::Html(content)))
-    }}
+    content.push_str("        Ok(MailMessage::new()\n");
+    content.push_str("            .to(self.to_email.clone())\n");
+    content.push_str(&format!("            .subject(format!(\"{} Notification\", \"{}\"))\n", "{}", mail_name));
+    content.push_str("            .content(MailContent::Html(content)))\n");
+    content.push_str("    }\n\n");
 
-    fn to(&self) -> Vec<String> {{
-        vec![self.to_email.clone()]
-    }}
+    content.push_str("    fn to(&self) -> Vec<String> {\n");
+    content.push_str("        vec![self.to_email.clone()]\n");
+    content.push_str("    }\n\n");
 
-    fn subject(&self) -> String {{
-        "{} Notification".to_string()
-    }}
+    content.push_str("    fn subject(&self) -> String {\n");
+    content.push_str(&format!("        format!(\"{} Notification\", \"{}\")\n", "{}", mail_name));
+    content.push_str("    }\n\n");
 
-    fn should_queue(&self) -> bool {{
-        true
-    }}
+    content.push_str("    fn should_queue(&self) -> bool {\n");
+    content.push_str("        true\n");
+    content.push_str("    }\n\n");
 
-    fn queue_name(&self) -> Option<&str> {{
-        Some("emails")
-    }}
-}}
-"#, mail_name, mail_name, mail_name, mail_name, mail_name, mail_name, mail_name)
+    content.push_str("    fn queue_name(&self) -> Option<&str> {\n");
+    content.push_str("        Some(\"emails\")\n");
+    content.push_str("    }\n");
+    content.push_str("}\n");
+
+    content
 }
 
 fn generate_markdown_mail_template(mail_name: &str) -> String {
-    format!(r#"use anyhow::Result;
-use async_trait::async_trait;
-use crate::app::mail::{{Mailable, MailMessage, MailContent}};
+    let mut content = String::new();
+    content.push_str("use anyhow::Result;\n");
+    content.push_str("use async_trait::async_trait;\n");
+    content.push_str("use crate::app::mail::{Mailable, MailMessage, MailContent};\n\n");
 
-#[derive(Debug, Clone)]
-pub struct {} {{
-    pub to_email: String,
-    // Add mail data fields here
-}}
+    content.push_str("#[derive(Debug, Clone)]\n");
+    content.push_str(&format!("pub struct {} {{\n", mail_name));
+    content.push_str("    pub to_email: String,\n");
+    content.push_str("    // Add mail data fields here\n");
+    content.push_str("}\n\n");
 
-impl {} {{
-    pub fn new(to_email: String) -> Self {{
-        Self {{
-            to_email,
-            // Initialize other fields
-        }}
-    }}
-}}
+    content.push_str(&format!("impl {} {{\n", mail_name));
+    content.push_str("    pub fn new(to_email: String) -> Self {\n");
+    content.push_str("        Self {\n");
+    content.push_str("            to_email,\n");
+    content.push_str("            // Initialize other fields\n");
+    content.push_str("        }\n");
+    content.push_str("    }\n");
+    content.push_str("}\n\n");
 
-#[async_trait]
-impl Mailable for {} {{
-    async fn build(&self) -> Result<MailMessage> {{
-        let markdown_content = format!(r#"# {} Notification
+    content.push_str("#[async_trait]\n");
+    content.push_str(&format!("impl Mailable for {} {{\n", mail_name));
+    content.push_str("    async fn build(&self) -> Result<MailMessage> {\n");
+    content.push_str("        let markdown_content = format!(r#\"# {} Notification\n");
+    content.push_str("\n");
+    content.push_str("This is a notification from your application.\n");
+    content.push_str("\n");
+    content.push_str("## Details\n");
+    content.push_str("\n");
+    content.push_str("Add your email content here in **Markdown** format.\n");
+    content.push_str("\n");
+    content.push_str("You can use:\n");
+    content.push_str("- *Italic text*\n");
+    content.push_str("- **Bold text**\n");
+    content.push_str("- Lists\n");
+    content.push_str("- Links\n");
+    content.push_str("- And more!\n");
+    content.push_str("\n");
+    content.push_str("Best regards,\n");
+    content.push_str("Your Application Team\n");
+    content.push_str(&format!("\"#, \"{}\");\n\n", mail_name));
 
-This is a notification from your application.
+    content.push_str("        Ok(MailMessage::new()\n");
+    content.push_str("            .to(self.to_email.clone())\n");
+    content.push_str(&format!("            .subject(format!(\"{} Notification\", \"{}\"))\n", "{}", mail_name));
+    content.push_str("            .content(MailContent::Markdown {\n");
+    content.push_str("                markdown: markdown_content,\n");
+    content.push_str("                compiled_html: None,\n");
+    content.push_str("            }))\n");
+    content.push_str("    }\n\n");
 
-## Details
+    content.push_str("    fn to(&self) -> Vec<String> {\n");
+    content.push_str("        vec![self.to_email.clone()]\n");
+    content.push_str("    }\n\n");
 
-Add your email content here in **Markdown** format.
+    content.push_str("    fn subject(&self) -> String {\n");
+    content.push_str(&format!("        format!(\"{} Notification\", \"{}\")\n", "{}", mail_name));
+    content.push_str("    }\n\n");
 
-You can use:
-- *Italic text*
-- **Bold text**
-- Lists
-- Links
-- And more!
+    content.push_str("    fn should_queue(&self) -> bool {\n");
+    content.push_str("        true\n");
+    content.push_str("    }\n\n");
 
-Best regards,
-Your Application Team
-"#);
+    content.push_str("    fn queue_name(&self) -> Option<&str> {\n");
+    content.push_str("        Some(\"emails\")\n");
+    content.push_str("    }\n");
+    content.push_str("}\n");
 
-        Ok(MailMessage::new()
-            .to(self.to_email.clone())
-            .subject("{} Notification".to_string())
-            .content(MailContent::Markdown {{
-                markdown: markdown_content,
-                compiled_html: None,
-            }}))
-    }}
-
-    fn to(&self) -> Vec<String> {{
-        vec![self.to_email.clone()]
-    }}
-
-    fn subject(&self) -> String {{
-        "{} Notification".to_string()
-    }}
-
-    fn should_queue(&self) -> bool {{
-        true
-    }}
-
-    fn queue_name(&self) -> Option<&str> {{
-        Some("emails")
-    }}
-}}
-"#, mail_name, mail_name, mail_name, mail_name, mail_name, mail_name)
+    content
 }
 
 fn create_markdown_template(mail_name: &str) -> Result<()> {

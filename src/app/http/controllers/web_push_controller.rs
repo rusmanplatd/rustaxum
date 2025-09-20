@@ -1,10 +1,10 @@
 use axum::{
-    extract::{State, Path, Query},
+    extract::Query,
     http::StatusCode,
     response::Json,
     Extension,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashMap;
 use crate::app::services::web_push_service::{
     WebPushService, SubscribeRequest, SubscriptionResponse, VapidPublicKeyResponse

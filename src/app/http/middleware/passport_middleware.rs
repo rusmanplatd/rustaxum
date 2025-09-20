@@ -122,28 +122,23 @@ async fn authenticate_request(
     })
 }
 
-// TODO: Implement extractor for AuthenticatedUser so it can be used in handlers
-// This is commented out for now due to lifetime issues
-// #[async_trait]
-// impl<S> FromRequestParts<S> for AuthenticatedUser
-// where
-//     S: Send + Sync,
-// {
-//     type Rejection = (StatusCode, Json<serde_json::Value>);
+// TODO: Implement FromRequestParts trait correctly
+// For now, using a different approach with middleware and extension retrieval
 
-//     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-//         parts
-//             .extensions
-//             .get::<AuthenticatedUser>()
-//             .cloned()
-//             .ok_or_else(|| {
-//                 (
-//                     StatusCode::UNAUTHORIZED,
-//                     Json(json!({"error": "Authentication required"})),
-//                 )
-//             })
-//     }
-// }
+// Helper function that can be used in handlers to get authenticated user
+pub fn require_auth(
+    parts: &Parts,
+) -> Result<&AuthenticatedUser, (StatusCode, Json<serde_json::Value>)> {
+    parts
+        .extensions
+        .get::<AuthenticatedUser>()
+        .ok_or_else(|| {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"error": "Authentication required"})),
+            )
+        })
+}
 
 // Helper function to get authenticated user from request parts
 pub fn get_authenticated_user(parts: &Parts) -> Option<&AuthenticatedUser> {

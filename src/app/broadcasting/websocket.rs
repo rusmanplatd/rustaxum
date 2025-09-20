@@ -9,7 +9,7 @@ use axum::{
     Router,
 };
 use futures::{sink::SinkExt, stream::StreamExt};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
@@ -24,13 +24,7 @@ pub struct WebSocketManager {
     connections: Arc<RwLock<HashMap<String, Vec<String>>>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BroadcastMessage {
-    pub channel: String,
-    pub event: String,
-    pub data: serde_json::Value,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
-}
+use super::BroadcastMessage;
 
 #[derive(Debug, Deserialize)]
 pub struct WebSocketQuery {
@@ -158,7 +152,7 @@ async fn handle_socket(socket: WebSocket, channel: String, manager: Arc<WebSocke
     };
 
     if let Ok(welcome_json) = serde_json::to_string(&welcome_msg) {
-        let _ = sender.send(Message::Text(welcome_json)).await;
+        let _ = sender.send(Message::Text(welcome_json.into())).await;
     }
 
     // Handle incoming messages from client
@@ -194,11 +188,12 @@ async fn handle_socket(socket: WebSocket, channel: String, manager: Arc<WebSocke
     });
 
     // Handle outgoing broadcasts to client
+    let connection_id_clone = connection_id.clone();
     let send_task = tokio::spawn(async move {
         while let Ok(broadcast_msg) = receiver.recv().await {
             if let Ok(json) = serde_json::to_string(&broadcast_msg) {
-                if sender.send(Message::Text(json)).await.is_err() {
-                    error!("Failed to send message to connection {}", connection_id);
+                if sender.send(Message::Text(json.into())).await.is_err() {
+                    error!("Failed to send message to connection {}", connection_id_clone);
                     break;
                 }
             }

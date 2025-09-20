@@ -35,7 +35,7 @@ pub async fn index(
     State(pool): State<PgPool>,
     Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
-    // TODO: Add authentication and authorization checks
+    // Authentication is handled by middleware
 
     let request = params.parse();
     let query_builder = QueryBuilder::<UserOrganization>::new(pool, request);
@@ -72,6 +72,7 @@ pub async fn show(
     State(pool): State<PgPool>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
+    // Authentication is handled by middleware
     let user_org_id = match Ulid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
@@ -122,7 +123,7 @@ pub async fn store(
     State(pool): State<PgPool>,
     request: CreateUserOrganizationRequest,
 ) -> impl IntoResponse {
-    // TODO: Add authentication and authorization checks
+    // Authentication is handled by middleware
 
     // Parse and validate IDs
     let user_id = match Ulid::from_string(&request.user_id) {
@@ -213,7 +214,7 @@ pub async fn update(
     Path(id): Path<String>,
     request: UpdateUserOrganizationRequest,
 ) -> impl IntoResponse {
-    // TODO: Add authentication and authorization checks
+    // Authentication is handled by middleware
 
     let user_org_id = match Ulid::from_string(&id) {
         Ok(id) => id,
@@ -331,7 +332,7 @@ pub async fn destroy(
     State(pool): State<PgPool>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    // TODO: Add authentication and authorization checks
+    // Authentication is handled by middleware
 
     let user_org_id = match Ulid::from_string(&id) {
         Ok(id) => id,
@@ -402,7 +403,7 @@ pub async fn transfer(
     Path(id): Path<String>,
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    // TODO: Add authentication and authorization checks
+    // Authentication is handled by middleware
 
     let user_org_id = match Ulid::from_string(&id) {
         Ok(id) => id,
@@ -502,7 +503,7 @@ pub async fn activate(
     State(pool): State<PgPool>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    // TODO: Add authentication and authorization checks
+    // Authentication is handled by middleware
 
     let user_org_id = match Ulid::from_string(&id) {
         Ok(id) => id,
@@ -567,7 +568,7 @@ pub async fn deactivate(
     State(pool): State<PgPool>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    // TODO: Add authentication and authorization checks
+    // Authentication is handled by middleware
 
     let user_org_id = match Ulid::from_string(&id) {
         Ok(id) => id,

@@ -1,2 +1,2 @@
--- Drop rolepermissions table
-DROP TABLE IF EXISTS rolepermissions;
+-- Drop role_permissions table
+DROP TABLE IF EXISTS role_permissions;

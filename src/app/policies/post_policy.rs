@@ -193,7 +193,7 @@ impl PolicyTrait for PostPolicy {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::models::{role::Role, permission::Permission};
+    use crate::app::models::{permission::Permission, role::Role, user::User};
     use chrono::Utc;
     use serde_json::json;
 

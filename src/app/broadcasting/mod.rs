@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{RwLock};
 
 /// Base trait for broadcasting events
 #[async_trait]
@@ -80,7 +80,7 @@ impl Default for WebSocketDriver {
 #[async_trait]
 impl BroadcastDriver for WebSocketDriver {
     async fn broadcast(&self, channel: &str, data: serde_json::Value) -> Result<()> {
-        let message = websocket::BroadcastMessage {
+        let message = BroadcastMessage {
             channel: channel.to_string(),
             event: "broadcast".to_string(),
             data,

@@ -1,6 +1,6 @@
 -- Create jobs table for queue management
 CREATE TABLE IF NOT EXISTS jobs (
-    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6)))),
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
     queue_name VARCHAR(255) NOT NULL DEFAULT 'default',
     job_name VARCHAR(255) NOT NULL,
     payload JSONB NOT NULL,
@@ -31,7 +31,7 @@ CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at);
 
 -- Create composite index for queue processing (most important)
 CREATE INDEX IF NOT EXISTS idx_jobs_queue_processing ON jobs(queue_name, status, priority, available_at)
-WHERE status = 'pending' AND available_at <= NOW();
+WHERE status = 'pending';
 
 -- Create composite index for failed jobs
 CREATE INDEX IF NOT EXISTS idx_jobs_failed ON jobs(failed_at, attempts, max_attempts)
@@ -40,6 +40,15 @@ WHERE status = 'failed';
 -- Create composite index for retry logic
 CREATE INDEX IF NOT EXISTS idx_jobs_retry ON jobs(queue_name, status, available_at, attempts, max_attempts)
 WHERE status = 'retrying';
+
+-- Create function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
 
 -- Add trigger to update updated_at timestamp
 CREATE TRIGGER update_jobs_updated_at

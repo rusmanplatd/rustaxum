@@ -13,4 +13,3 @@ pub mod listeners;
 pub mod broadcasting;
 pub mod jobs;
 pub mod rules;
-pub mod demo;

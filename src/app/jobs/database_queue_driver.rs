@@ -1,8 +1,30 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use sqlx::{PgPool, Row};
+use sqlx::{PgPool, FromRow};
 use chrono::{DateTime, Utc};
+use serde_json;
 use crate::app::jobs::{QueueDriver, JobMetadata, JobStatus};
+
+/// Database row representation for jobs table
+#[derive(Debug, FromRow)]
+struct JobRow {
+    id: String,
+    queue_name: String,
+    job_name: String,
+    payload: serde_json::Value,
+    attempts: i32,
+    max_attempts: i32,
+    status: String,
+    priority: i32,
+    available_at: DateTime<Utc>,
+    reserved_at: Option<DateTime<Utc>>,
+    processed_at: Option<DateTime<Utc>>,
+    failed_at: Option<DateTime<Utc>>,
+    error_message: Option<String>,
+    timeout_seconds: Option<i32>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
 
 /// Database-backed queue driver using PostgreSQL
 #[derive(Debug, Clone)]
@@ -16,9 +38,8 @@ impl DatabaseQueueDriver {
     }
 
     /// Convert database row to JobMetadata
-    fn row_to_job_metadata(&self, row: &sqlx::postgres::PgRow) -> Result<JobMetadata> {
-        let status_str: &str = row.try_get("status")?;
-        let status = match status_str {
+    fn row_to_job_metadata(&self, row: &JobRow) -> Result<JobMetadata> {
+        let status = match row.status.as_str() {
             "pending" => JobStatus::Pending,
             "processing" => JobStatus::Processing,
             "completed" => JobStatus::Completed,
@@ -27,24 +48,20 @@ impl DatabaseQueueDriver {
             _ => JobStatus::Pending,
         };
 
-        let created_at: DateTime<Utc> = row.try_get("created_at")?;
-        let updated_at: DateTime<Utc> = row.try_get("updated_at")?;
-        let failed_at: Option<DateTime<Utc>> = row.try_get("failed_at")?;
-
         Ok(JobMetadata {
-            id: row.try_get("id")?,
-            job_name: row.try_get("job_name")?,
-            queue_name: row.try_get("queue_name")?,
+            id: row.id.clone(),
+            job_name: row.job_name.clone(),
+            queue_name: row.queue_name.clone(),
             status,
-            payload: row.try_get("payload")?,
-            attempts: row.try_get::<i32, _>("attempts")? as u32,
-            max_attempts: row.try_get::<i32, _>("max_attempts")? as u32,
-            priority: row.try_get("priority")?,
-            created_at,
-            updated_at,
-            scheduled_at: row.try_get("available_at")?,
-            failed_at,
-            error_message: row.try_get("error_message")?,
+            payload: row.payload.to_string(),
+            attempts: row.attempts as u32,
+            max_attempts: row.max_attempts as u32,
+            priority: row.priority,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+            scheduled_at: Some(row.available_at),
+            failed_at: row.failed_at,
+            error_message: row.error_message.clone(),
         })
     }
 }
@@ -60,7 +77,7 @@ impl QueueDriver for DatabaseQueueDriver {
             JobStatus::Retrying => "retrying",
         };
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO jobs (
                 id, queue_name, job_name, payload, attempts, max_attempts,
@@ -68,21 +85,21 @@ impl QueueDriver for DatabaseQueueDriver {
                 created_at, updated_at
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-            "#,
-            metadata.id,
-            metadata.queue_name,
-            metadata.job_name,
-            metadata.payload,
-            metadata.attempts as i32,
-            metadata.max_attempts as i32,
-            status_str,
-            metadata.priority,
-            metadata.scheduled_at.unwrap_or(metadata.created_at),
-            metadata.failed_at,
-            metadata.error_message,
-            metadata.created_at,
-            metadata.updated_at
+            "#
         )
+        .bind(&metadata.id)
+        .bind(&metadata.queue_name)
+        .bind(&metadata.job_name)
+        .bind(serde_json::from_str::<serde_json::Value>(&metadata.payload)?)
+        .bind(metadata.attempts as i32)
+        .bind(metadata.max_attempts as i32)
+        .bind(status_str)
+        .bind(metadata.priority)
+        .bind(metadata.scheduled_at.unwrap_or(metadata.created_at))
+        .bind(metadata.failed_at)
+        .bind(&metadata.error_message)
+        .bind(metadata.created_at)
+        .bind(metadata.updated_at)
         .execute(&self.pool)
         .await?;
 
@@ -95,7 +112,7 @@ impl QueueDriver for DatabaseQueueDriver {
         let mut tx = self.pool.begin().await?;
 
         // Find the next available job and reserve it
-        let job_row = sqlx::query!(
+        let job_row = sqlx::query_as::<_, JobRow>(
             r#"
             UPDATE jobs
             SET status = 'processing',
@@ -112,9 +129,9 @@ impl QueueDriver for DatabaseQueueDriver {
                 LIMIT 1
             )
             RETURNING *
-            "#,
-            queue_name
+            "#
         )
+        .bind(queue_name)
         .fetch_optional(&mut *tx)
         .await?;
 
@@ -130,18 +147,19 @@ impl QueueDriver for DatabaseQueueDriver {
     }
 
     async fn size(&self, queue_name: &str) -> Result<u64> {
-        let result = sqlx::query!(
-            "SELECT COUNT(*) as count FROM jobs WHERE queue_name = $1 AND status = 'pending'",
-            queue_name
+        let count: (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM jobs WHERE queue_name = $1 AND status = 'pending'"
         )
+        .bind(queue_name)
         .fetch_one(&self.pool)
         .await?;
 
-        Ok(result.count.unwrap_or(0) as u64)
+        Ok(count.0 as u64)
     }
 
     async fn delete(&self, job_id: &str) -> Result<()> {
-        sqlx::query!("DELETE FROM jobs WHERE id = $1", job_id)
+        sqlx::query("DELETE FROM jobs WHERE id = $1")
+            .bind(job_id)
             .execute(&self.pool)
             .await?;
 
@@ -158,7 +176,7 @@ impl QueueDriver for DatabaseQueueDriver {
             JobStatus::Retrying => "retrying",
         };
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE jobs
             SET status = $1,
@@ -168,13 +186,13 @@ impl QueueDriver for DatabaseQueueDriver {
                 processed_at = CASE WHEN $1 = 'completed' THEN NOW() ELSE processed_at END,
                 updated_at = NOW()
             WHERE id = $5
-            "#,
-            status_str,
-            metadata.attempts as i32,
-            metadata.failed_at,
-            metadata.error_message,
-            metadata.id
+            "#
         )
+        .bind(status_str)
+        .bind(metadata.attempts as i32)
+        .bind(metadata.failed_at)
+        .bind(&metadata.error_message)
+        .bind(&metadata.id)
         .execute(&self.pool)
         .await?;
 
@@ -185,15 +203,15 @@ impl QueueDriver for DatabaseQueueDriver {
     async fn failed_jobs(&self, limit: Option<u32>) -> Result<Vec<JobMetadata>> {
         let limit = limit.unwrap_or(100) as i64;
 
-        let rows = sqlx::query!(
+        let rows = sqlx::query_as::<_, JobRow>(
             r#"
             SELECT * FROM jobs
             WHERE status = 'failed'
             ORDER BY failed_at DESC
             LIMIT $1
-            "#,
-            limit
+            "#
         )
+        .bind(limit)
         .fetch_all(&self.pool)
         .await?;
 
@@ -206,7 +224,7 @@ impl QueueDriver for DatabaseQueueDriver {
     }
 
     async fn retry_job(&self, job_id: &str) -> Result<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE jobs
             SET status = 'pending',
@@ -218,9 +236,9 @@ impl QueueDriver for DatabaseQueueDriver {
                 available_at = NOW(),
                 updated_at = NOW()
             WHERE id = $1 AND status = 'failed'
-            "#,
-            job_id
+            "#
         )
+        .bind(job_id)
         .execute(&self.pool)
         .await?;
 
@@ -239,32 +257,22 @@ impl DatabaseQueueDriver {
     pub async fn get_queue_jobs(&self, queue_name: &str, status: Option<JobStatus>, limit: Option<u32>) -> Result<Vec<JobMetadata>> {
         let limit = limit.unwrap_or(100) as i64;
 
-        let rows = if let Some(status) = status {
-            let status_str = match status {
-                JobStatus::Pending => "pending",
-                JobStatus::Processing => "processing",
-                JobStatus::Completed => "completed",
-                JobStatus::Failed => "failed",
-                JobStatus::Retrying => "retrying",
-            };
+        let status_str = status.map(|s| match s {
+            JobStatus::Pending => "pending",
+            JobStatus::Processing => "processing",
+            JobStatus::Completed => "completed",
+            JobStatus::Failed => "failed",
+            JobStatus::Retrying => "retrying",
+        });
 
-            sqlx::query!(
-                "SELECT * FROM jobs WHERE queue_name = $1 AND status = $2 ORDER BY created_at DESC LIMIT $3",
-                queue_name,
-                status_str,
-                limit
-            )
-            .fetch_all(&self.pool)
-            .await?
-        } else {
-            sqlx::query!(
-                "SELECT * FROM jobs WHERE queue_name = $1 ORDER BY created_at DESC LIMIT $2",
-                queue_name,
-                limit
-            )
-            .fetch_all(&self.pool)
-            .await?
-        };
+        let rows = sqlx::query_as::<_, JobRow>(
+            "SELECT * FROM jobs WHERE queue_name = $1 AND ($2::text IS NULL OR status = $2) ORDER BY created_at DESC LIMIT $3"
+        )
+        .bind(queue_name)
+        .bind(status_str)
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await?;
 
         let mut jobs = Vec::new();
         for row in rows {
@@ -276,14 +284,15 @@ impl DatabaseQueueDriver {
 
     /// Clean up old completed jobs
     pub async fn cleanup_completed_jobs(&self, older_than_days: u32) -> Result<u64> {
-        let result = sqlx::query!(
+        let interval = format!("{} days", older_than_days);
+        let result = sqlx::query(
             r#"
             DELETE FROM jobs
             WHERE status = 'completed'
-              AND processed_at < NOW() - INTERVAL '%s days'
-            "#,
-            older_than_days.to_string()
+              AND processed_at < NOW() - CAST($1 AS INTERVAL)
+            "#
         )
+        .bind(interval)
         .execute(&self.pool)
         .await?;
 
@@ -294,7 +303,7 @@ impl DatabaseQueueDriver {
 
     /// Get queue statistics
     pub async fn get_queue_stats(&self, queue_name: &str) -> Result<QueueStats> {
-        let stats = sqlx::query!(
+        let stats: (i64, i64, i64, i64, i64) = sqlx::query_as(
             r#"
             SELECT
                 COUNT(*) FILTER (WHERE status = 'pending') as pending,
@@ -304,19 +313,19 @@ impl DatabaseQueueDriver {
                 COUNT(*) FILTER (WHERE status = 'retrying') as retrying
             FROM jobs
             WHERE queue_name = $1
-            "#,
-            queue_name
+            "#
         )
+        .bind(queue_name)
         .fetch_one(&self.pool)
         .await?;
 
         Ok(QueueStats {
             queue_name: queue_name.to_string(),
-            pending: stats.pending.unwrap_or(0) as u64,
-            processing: stats.processing.unwrap_or(0) as u64,
-            completed: stats.completed.unwrap_or(0) as u64,
-            failed: stats.failed.unwrap_or(0) as u64,
-            retrying: stats.retrying.unwrap_or(0) as u64,
+            pending: stats.0 as u64,
+            processing: stats.1 as u64,
+            completed: stats.2 as u64,
+            failed: stats.3 as u64,
+            retrying: stats.4 as u64,
         })
     }
 }

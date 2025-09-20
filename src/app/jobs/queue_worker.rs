@@ -6,7 +6,7 @@ use tokio::sync::{mpsc, RwLock};
 use tokio::time::{interval, sleep};
 use tracing::{info, warn, error};
 
-use crate::app::jobs::{QueueDriver, JobMetadata, JobStatus, Job};
+use crate::app::jobs::{QueueDriver, Job};
 
 /// Worker configuration
 #[derive(Debug, Clone)]
@@ -268,7 +268,7 @@ impl QueueWorker {
                     job_metadata.mark_retrying();
                     job_metadata.scheduled_at = Some(chrono::Utc::now() + chrono::Duration::seconds(config.retry_delay.as_secs() as i64));
                     driver.update(&job_metadata).await?;
-                    driver.push(job_metadata).await?; // Re-queue for retry
+                    driver.push(job_metadata.clone()).await?; // Re-queue for retry
                     stats.write().await.jobs_retried += 1;
                     info!("Job {} will be retried (attempt {}/{})", job_metadata.id, job_metadata.attempts, job_metadata.max_attempts);
                 } else {
@@ -289,7 +289,7 @@ impl QueueWorker {
                     job_metadata.mark_retrying();
                     job_metadata.scheduled_at = Some(chrono::Utc::now() + chrono::Duration::seconds(config.retry_delay.as_secs() as i64));
                     driver.update(&job_metadata).await?;
-                    driver.push(job_metadata).await?;
+                    driver.push(job_metadata.clone()).await?;
                     stats.write().await.jobs_retried += 1;
                 } else {
                     job_metadata.mark_failed(&timeout_error);

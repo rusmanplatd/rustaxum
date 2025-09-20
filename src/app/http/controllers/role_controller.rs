@@ -80,11 +80,12 @@ pub async fn index(
 
     match RoleService::list(&pool, limit, offset).await {
         Ok(roles) => {
+            let total = RoleService::count(&pool).await.unwrap_or(0);
             let role_data: Vec<RoleData> = roles.into_iter().map(RoleData::from).collect();
             let response = RoleListResponse {
                 data: role_data,
                 meta: Meta {
-                    total: 0, // TODO: Implement count query
+                    total,
                     limit,
                     offset,
                 },

@@ -1,2 +1,2 @@
--- Drop userroles table
-DROP TABLE IF EXISTS userroles;
+-- Drop user_roles table
+DROP TABLE IF EXISTS user_roles;

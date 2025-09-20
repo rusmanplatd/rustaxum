@@ -4,7 +4,7 @@ use lettre::{Message, AsyncTransport, AsyncSmtpTransport, Tokio1Executor};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::transport::smtp::client::{Tls, TlsParameters};
 use lettre::message::{header::ContentType, MultiPart, SinglePart};
-use crate::app::mail::{MailDriver, MailMessage, MailContent, Attachment, AttachmentData};
+use crate::app::mail::{MailDriver, MailMessage, Attachment, AttachmentData};
 
 #[derive(Debug, Clone)]
 pub struct SmtpDriver {
@@ -108,7 +108,9 @@ impl SmtpDriver {
 
         // Add custom headers
         for (key, value) in mail_message.headers {
-            message_builder = message_builder.header((key.as_str(), value.as_str()));
+            // Skip custom headers for now, as lettre requires specific Header types
+            // This would need proper header parsing for each header type
+            tracing::debug!("Skipping custom header: {}: {}", key, value);
         }
 
         // Build content

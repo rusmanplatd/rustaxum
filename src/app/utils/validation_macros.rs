@@ -168,33 +168,6 @@ pub fn parse_rules<T: AsRef<str>>(rules: Vec<T>) -> Vec<Rule> {
         .collect()
 }
 
-/// Parse a rule string into a vector of Rule structs (deprecated - use parse_rules with array instead)
-///
-/// # Examples
-///
-/// ```rust
-/// let rules = parse_rule_string("required|string|min:2|max:50");
-/// ```
-#[deprecated(note = "Use parse_rules with array format instead")]
-pub fn parse_rule_string(rule_str: &str) -> Vec<Rule> {
-    rule_str
-        .split('|')
-        .map(|rule| {
-            if rule.contains(':') {
-                let parts: Vec<&str> = rule.splitn(2, ':').collect();
-                let rule_name = parts[0];
-                let params: Vec<String> = parts[1]
-                    .split(',')
-                    .map(|s| s.trim().to_string())
-                    .collect();
-                Rule::with_params(rule_name, params)
-            } else {
-                Rule::new(rule.trim())
-            }
-        })
-        .collect()
-}
-
 /// Convert serde_json::Value to HashMap<String, Value> for validator
 pub fn json_to_hashmap(value: Value) -> HashMap<String, Value> {
     match value {
@@ -405,29 +378,6 @@ mod tests {
         assert_eq!(rules[1].name, "in");
         assert_eq!(rules[1].parameters, vec!["active", "inactive", "pending"]);
     }
-
-    #[test]
-    fn test_parse_rule_string() {
-        let rules = parse_rule_string("required|string|min:2|max:50");
-        assert_eq!(rules.len(), 4);
-        assert_eq!(rules[0].name, "required");
-        assert_eq!(rules[1].name, "string");
-        assert_eq!(rules[2].name, "min");
-        assert_eq!(rules[2].parameters, vec!["2"]);
-        assert_eq!(rules[3].name, "max");
-        assert_eq!(rules[3].parameters, vec!["50"]);
-    }
-
-    #[test]
-    fn test_parse_rule_string_with_multiple_params() {
-        let rules = parse_rule_string("between:1,10|in:active,inactive,pending");
-        assert_eq!(rules.len(), 2);
-        assert_eq!(rules[0].name, "between");
-        assert_eq!(rules[0].parameters, vec!["1", "10"]);
-        assert_eq!(rules[1].name, "in");
-        assert_eq!(rules[1].parameters, vec!["active", "inactive", "pending"]);
-    }
-
     #[test]
     fn test_json_to_hashmap() {
         let json_data = json!({

@@ -16,7 +16,7 @@ name = "artisan"
 path = "src/cli/main.rs"
 
 [dependencies]
-axum = "0.8"
+axum = { version = "0.8", features = ["ws"] }
 tokio = { version = "1.4", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["fs", "cors", "trace"] }
@@ -57,7 +57,8 @@ url = "2.5"
 base64 = "0.22"
 # OAuth2 dependencies
 oauth2 = "5.0"
-rand = "0.9"
+rand = { version = "0.8", features = ["std_rng"] }
+reqwest = { version = "0.12", features = ["json"] }
 pkcs8 = { version = "0.10", features = ["pem"] }
 rsa = "0.9"
 urlencoding = "2.1"
@@ -74,14 +75,14 @@ p256 = "0.13"
 # Mail and Communication dependencies
 html-escape = "0.2"
 # Markdown parsing for emails
-pulldown-cmark = "0.9"
+pulldown-cmark = "0.13"
 # WebSocket support for broadcasting
-tokio-tungstenite = "0.20"
+tokio-tungstenite = "0.27"
 # Additional serialization
-toml = "0.8"
+toml = "0.9"
 
 [dev-dependencies]
-axum-test = "15.0"
+axum-test = "18.1"
 tokio-test = "0.4"
 mockall = "0.13"
-serial_test = "3.1"
+serial_test = "3.2"

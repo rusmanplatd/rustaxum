@@ -6,6 +6,7 @@ use crate::app::notifications::notification::{Notification, Notifiable, Notifica
 use crate::app::models::notification::Notification as NotificationModel;
 use crate::config::Config;
 
+#[derive(Debug)]
 pub struct DatabaseChannel;
 
 impl DatabaseChannel {

@@ -10,6 +10,8 @@ use ulid::Ulid;
 use std::collections::HashSet;
 use crate::app::services::role_service::RoleService;
 use crate::app::services::permission_service::PermissionService;
+use crate::app::services::auth_service::AuthService;
+use crate::app::utils::token_utils::TokenUtils;
 
 #[derive(Clone)]
 pub struct RoleRequirement {
@@ -92,17 +94,16 @@ fn extract_user_id_from_token(headers: &HeaderMap) -> Option<Ulid> {
     let auth_header = headers.get("authorization")?;
     let auth_str = auth_header.to_str().ok()?;
 
-    if !auth_str.starts_with("Bearer ") {
-        return None;
-    }
+    // Extract the token from the header
+    let token = TokenUtils::extract_token_from_header(Some(auth_str)).ok()?;
 
-    // TODO: Implement proper JWT decoding here
-    // For now, we'll assume the token contains the user ID
-    // In a real implementation, you would decode the JWT and extract the user_id claim
+    // Decode the JWT token to get claims
+    let claims = AuthService::decode_token(token, "jwt-secret").ok()?;
 
-    // Placeholder: Extract user ID from token
-    // This would be replaced with actual JWT decoding logic
-    None
+    // Extract the user ID from the subject (sub) field
+    let user_id = Ulid::from_string(&claims.sub).ok()?;
+
+    Some(user_id)
 }
 
 pub async fn require_role(

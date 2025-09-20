@@ -4,6 +4,7 @@ use crate::app::notifications::channels::Channel;
 use crate::app::notifications::notification::{Notification, Notifiable, NotificationChannel};
 use crate::app::mail::{mail_manager, MailMessage, MailContent as NewMailContent};
 
+#[derive(Debug)]
 pub struct MailChannel;
 
 impl MailChannel {

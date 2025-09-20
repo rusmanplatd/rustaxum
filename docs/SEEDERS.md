@@ -115,7 +115,7 @@ impl Seeder for Postseeder {
         }
 
         // Insert sample data
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO posts (title, content) VALUES ($1, $2)",
             "Sample Post",
             "This is sample content"
