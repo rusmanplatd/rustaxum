@@ -23,7 +23,7 @@ struct CityRecord {
 pub struct Cityseeder;
 
 impl Seeder for Cityseeder {
-    fn name(&self) -> &'static str {
+    fn class_name(&self) -> &'static str {
         "CitySeeder"
     }
 

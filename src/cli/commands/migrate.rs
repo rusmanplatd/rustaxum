@@ -1,9 +1,9 @@
 use anyhow::Result;
 use crate::{config, database};
 use crate::database::migration_runner::MigrationRunner;
-use crate::database::seeder::run_all_seeders;
+use crate::database::seeder::seed;
 
-pub async fn handle_migrate_command(fresh: bool, seed: bool) -> Result<()> {
+pub async fn handle_migrate_command(fresh: bool, run_seed: bool) -> Result<()> {
     let config = config::Config::load()?;
     let pool = database::create_pool(&config).await?;
     let runner = MigrationRunner::new(pool.clone(), "./src/database/migrations".to_string());
@@ -16,9 +16,9 @@ pub async fn handle_migrate_command(fresh: bool, seed: bool) -> Result<()> {
         runner.run_migrations().await?;
     }
 
-    if seed {
+    if run_seed {
         println!("\n🌱 Running seeders after migrations...");
-        run_all_seeders(&pool).await?;
+        seed(&pool).await?;
         println!("✅ Migrations and seeding completed successfully!");
     } else {
         println!("✅ Migrations completed successfully!");
@@ -49,7 +49,7 @@ pub async fn handle_migrate_reset_command() -> Result<()> {
     Ok(())
 }
 
-pub async fn handle_migrate_refresh_command(seed: bool) -> Result<()> {
+pub async fn handle_migrate_refresh_command(run_seed: bool) -> Result<()> {
     println!("🔄 Refreshing migrations (reset + migrate)...");
 
     let config = config::Config::load()?;
@@ -58,9 +58,9 @@ pub async fn handle_migrate_refresh_command(seed: bool) -> Result<()> {
 
     runner.refresh_migrations().await?;
 
-    if seed {
+    if run_seed {
         println!("\n🌱 Running seeders after refresh...");
-        run_all_seeders(&pool).await?;
+        seed(&pool).await?;
         println!("✅ Migration refresh and seeding completed successfully!");
     } else {
         println!("✅ Migration refresh completed successfully!");

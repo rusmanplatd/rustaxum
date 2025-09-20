@@ -8,12 +8,12 @@ use crate::database::seeder::Seeder;
 pub struct UserSeeder;
 
 impl Seeder for UserSeeder {
-    fn name(&self) -> &'static str {
+    fn class_name(&self) -> &'static str {
         "UserSeeder"
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("Seeds default users for the application")
+        Some("Seed default users for the application")
     }
 
     async fn run(&self, pool: &PgPool) -> Result<()> {

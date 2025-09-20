@@ -6,7 +6,7 @@ use ulid::Ulid;
 pub struct OrganizationSeeder;
 
 impl Seeder for OrganizationSeeder {
-    fn name(&self) -> &'static str {
+    fn class_name(&self) -> &'static str {
         "OrganizationSeeder"
     }
 

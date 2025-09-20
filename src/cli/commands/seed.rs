@@ -1,7 +1,7 @@
 use anyhow::Result;
 use crate::config::Config;
 use crate::database::create_pool;
-use crate::database::seeder::{run_seeder, run_all_seeders, list_seeders};
+use crate::database::seeder::{call, seed, all};
 use crate::cli::commands::migrate::{handle_migrate_reset_command, handle_migrate_command};
 
 pub async fn handle_seed_command(class: Option<String>, fresh: bool) -> Result<()> {
@@ -21,12 +21,10 @@ pub async fn handle_seed_command(class: Option<String>, fresh: bool) -> Result<(
 
     match class {
         Some(seeder_name) => {
-            println!("🌱 Running specific seeder: {}", seeder_name);
-            run_seeder(&seeder_name, &pool).await?;
+            call(&seeder_name, &pool).await?;
         }
         None => {
-            println!("🌱 Running all seeders...");
-            run_all_seeders(&pool).await?;
+            seed(&pool).await?;
         }
     }
 
@@ -35,7 +33,7 @@ pub async fn handle_seed_command(class: Option<String>, fresh: bool) -> Result<(
 }
 
 pub async fn handle_seed_list_command() -> Result<()> {
-    let seeders = list_seeders();
+    let seeders = all();
 
     if seeders.is_empty() {
         println!("No seeders available.");

@@ -7,7 +7,7 @@ use crate::database::seeder::Seeder;
 pub struct RolePermissionSeeder;
 
 impl Seeder for RolePermissionSeeder {
-    fn name(&self) -> &'static str {
+    fn class_name(&self) -> &'static str {
         "RolePermissionSeeder"
     }
 

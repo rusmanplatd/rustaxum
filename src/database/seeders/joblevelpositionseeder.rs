@@ -6,7 +6,7 @@ use ulid::Ulid;
 pub struct JobLevelPositionSeeder;
 
 impl Seeder for JobLevelPositionSeeder {
-    fn name(&self) -> &'static str {
+    fn class_name(&self) -> &'static str {
         "JobLevelPositionSeeder"
     }
 

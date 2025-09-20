@@ -8,7 +8,7 @@ use crate::database::seeder::Seeder;
 pub struct AbacSeeder;
 
 impl Seeder for AbacSeeder {
-    fn name(&self) -> &'static str {
+    fn class_name(&self) -> &'static str {
         "AbacSeeder"
     }
 

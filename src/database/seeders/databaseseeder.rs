@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 use anyhow::Result;
-use crate::database::seeder::Seeder;
+use crate::database::seeder::{Seeder, SeederContext};
 use crate::database::seeders::{
     countryseeder::Countryseeder,
     provinceseeder::Provinceseeder,
@@ -8,51 +8,45 @@ use crate::database::seeders::{
     userseeder::UserSeeder,
     rolepermissionseeder::RolePermissionSeeder,
     abacseeder::AbacSeeder,
+    organizationseeder::OrganizationSeeder,
+    joblevelpositionseeder::JobLevelPositionSeeder,
 };
 
 pub struct Databaseseeder;
 
 impl Seeder for Databaseseeder {
-    fn name(&self) -> &'static str {
+    fn class_name(&self) -> &'static str {
         "DatabaseSeeder"
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("Runs all seeders including users, RBAC, and ABAC data")
+        Some("Run all seeders including geographic data, users, RBAC, and ABAC")
     }
 
     async fn run(&self, pool: &PgPool) -> Result<()> {
-        println!("Running all database seeders...");
+        let context = SeederContext::new(pool);
 
-        // Run geographic data seeders first
-        println!("\n🌱 Running CountrySeeder...");
-        let country_seeder = Countryseeder;
-        country_seeder.run(pool).await?;
+        println!("🌱 Database Seeding Started");
+        println!("───────────────────────────");
 
-        println!("\n🌱 Running ProvinceSeeder...");
-        let province_seeder = Provinceseeder;
-        province_seeder.run(pool).await?;
+        // Geographic data seeders (order matters due to foreign keys)
+        context.call(Countryseeder).await?;
+        context.call(Provinceseeder).await?;
+        context.call(Cityseeder).await?;
 
-        println!("\n🌱 Running CitySeeder...");
-        let city_seeder = Cityseeder;
-        city_seeder.run(pool).await?;
+        // Organization and job structure
+        context.call(OrganizationSeeder).await?;
+        context.call(JobLevelPositionSeeder).await?;
 
-        // Run user seeder
-        println!("\n🌱 Running UserSeeder...");
-        let user_seeder = UserSeeder;
-        user_seeder.run(pool).await?;
+        // User management
+        context.call(UserSeeder).await?;
 
-        // Run RBAC seeder (roles and permissions)
-        println!("\n🌱 Running RolePermissionSeeder...");
-        let rbac_seeder = RolePermissionSeeder;
-        rbac_seeder.run(pool).await?;
+        // Authorization systems
+        context.call(RolePermissionSeeder).await?;
+        context.call(AbacSeeder).await?;
 
-        // Run ABAC seeder (attributes and policies)
-        println!("\n🌱 Running AbacSeeder...");
-        let abac_seeder = AbacSeeder;
-        abac_seeder.run(pool).await?;
-
-        println!("\n✅ All database seeding completed successfully!");
+        println!("───────────────────────────");
+        println!("✅ Database seeding completed successfully!");
         Ok(())
     }
 }

@@ -17,7 +17,7 @@ struct CountryRecord {
 pub struct Countryseeder;
 
 impl Seeder for Countryseeder {
-    fn name(&self) -> &'static str {
+    fn class_name(&self) -> &'static str {
         "CountrySeeder"
     }
 
