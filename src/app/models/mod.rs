@@ -19,3 +19,4 @@ pub mod organization;
 pub mod joblevel;
 pub mod jobposition;
 pub mod userorganization;
+pub mod notification;

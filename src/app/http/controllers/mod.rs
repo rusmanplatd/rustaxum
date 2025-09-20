@@ -11,3 +11,4 @@ pub mod organization_controller;
 pub mod user_organization_controller;
 pub mod job_level_controller;
 pub mod job_position_controller;
+pub mod web_push_controller;

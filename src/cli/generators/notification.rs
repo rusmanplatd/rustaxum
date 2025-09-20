@@ -29,102 +29,86 @@ pub async fn generate_notification(name: &str, markdown: bool) -> Result<()> {
 }
 
 fn generate_notification_template(notification_name: &str) -> String {
-    format!(r#"use anyhow::Result;
-use serde::{{Deserialize, Serialize}};
+    let mut template = String::new();
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct {} {{
-    pub channels: Vec<NotificationChannel>,
-    pub data: NotificationData,
-}}
+    template.push_str("use anyhow::Result;\n");
+    template.push_str("use async_trait::async_trait;\n");
+    template.push_str("use serde::{Deserialize, Serialize};\n");
+    template.push_str("use serde_json::json;\n");
+    template.push_str("use crate::app::notifications::notification::{\n");
+    template.push_str("    Notification, Notifiable, NotificationChannel, MailMessage, MailContent, DatabaseMessage\n");
+    template.push_str("};\n\n");
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum NotificationChannel {{
-    Mail,
-    Database,
-    Broadcast,
-    Sms,
-    Slack,
-}}
+    template.push_str("#[derive(Debug, Clone, Serialize, Deserialize)]\n");
+    template.push_str(&format!("pub struct {} {{\n", notification_name));
+    template.push_str("    pub title: String,\n");
+    template.push_str("    pub message: String,\n");
+    template.push_str("    pub action_url: Option<String>,\n");
+    template.push_str("    // Add your notification-specific data fields here\n");
+    template.push_str("}\n\n");
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NotificationData {{
-    pub title: String,
-    pub message: String,
-    pub action_url: Option<String>,
-    // Add notification-specific data fields here
-}}
+    template.push_str(&format!("impl {} {{\n", notification_name));
+    template.push_str("    pub fn new(title: String, message: String) -> Self {\n");
+    template.push_str("        Self {\n");
+    template.push_str("            title,\n");
+    template.push_str("            message,\n");
+    template.push_str("            action_url: None,\n");
+    template.push_str("        }\n");
+    template.push_str("    }\n\n");
+    template.push_str("    pub fn action_url(mut self, url: String) -> Self {\n");
+    template.push_str("        self.action_url = Some(url);\n");
+    template.push_str("        self\n");
+    template.push_str("    }\n");
+    template.push_str("}\n\n");
 
-impl {} {{
-    pub fn new(title: String, message: String) -> Self {{
-        Self {{
-            channels: vec![NotificationChannel::Database],
-            data: NotificationData {{
-                title,
-                message,
-                action_url: None,
-            }},
-        }}
-    }}
+    template.push_str("#[async_trait]\n");
+    template.push_str(&format!("impl Notification for {} {{\n", notification_name));
+    template.push_str("    async fn via(&self, _notifiable: &dyn Notifiable) -> Vec<NotificationChannel> {\n");
+    template.push_str("        vec![\n");
+    template.push_str("            NotificationChannel::Database,\n");
+    template.push_str("            NotificationChannel::Mail,\n");
+    template.push_str("            NotificationChannel::WebPush,\n");
+    template.push_str("        ]\n");
+    template.push_str("    }\n\n");
+    template.push_str("    async fn to_mail(&self, notifiable: &dyn Notifiable) -> Result<MailMessage> {\n");
+    template.push_str("        let email = notifiable.route_notification_for(&NotificationChannel::Mail)\n");
+    template.push_str("            .await\n");
+    template.push_str("            .unwrap_or_else(|| \"user@example.com\".to_string());\n\n");
+    template.push_str("        let content = format!(r#\"<!DOCTYPE html>\n");
+    template.push_str("<html>\n");
+    template.push_str("<head>\n");
+    template.push_str("    <meta charset=\"utf-8\">\n");
+    template.push_str("    <title>{}</title>\n");
+    template.push_str("</head>\n");
+    template.push_str("<body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333;\">\n");
+    template.push_str("    <div style=\"max-width: 600px; margin: 0 auto; padding: 20px;\">\n");
+    template.push_str("        <h2 style=\"color: #2c3e50;\">{}</h2>\n");
+    template.push_str("        <p>{}</p>\n");
+    template.push_str("        <p>Best regards,<br>Your Application Team</p>\n");
+    template.push_str("    </div>\n");
+    template.push_str("</body>\n");
+    template.push_str("</html>\"#, self.title, self.title, self.message);\n\n");
+    template.push_str("        Ok(MailMessage::new(\n");
+    template.push_str("            email,\n");
+    template.push_str("            self.title.clone(),\n");
+    template.push_str("            MailContent::Html(content),\n");
+    template.push_str("        ))\n");
+    template.push_str("    }\n\n");
+    template.push_str("    async fn to_database(&self, _notifiable: &dyn Notifiable) -> Result<DatabaseMessage> {\n");
+    template.push_str("        let data = json!({\n");
+    template.push_str("            \"title\": self.title,\n");
+    template.push_str("            \"message\": self.message,\n");
+    template.push_str("            \"action_url\": self.action_url,\n");
+    template.push_str("            \"type\": self.notification_type()\n");
+    template.push_str("        });\n\n");
+    template.push_str("        Ok(DatabaseMessage::new(data))\n");
+    template.push_str("    }\n\n");
+    template.push_str("    fn notification_type(&self) -> &'static str {\n");
+    template.push_str(&format!("        \"{}\"\n", notification_name));
+    template.push_str("    }\n");
+    template.push_str("}\n");
 
-    pub fn via(mut self, channels: Vec<NotificationChannel>) -> Self {{
-        self.channels = channels;
-        self
-    }}
-
-    pub fn action_url(mut self, url: String) -> Self {{
-        self.data.action_url = Some(url);
-        self
-    }}
-
-    pub async fn send_to(&self, recipient: &str) -> Result<()> {{
-        for channel in &self.channels {{
-            match channel {{
-                NotificationChannel::Mail => self.send_mail(recipient).await?,
-                NotificationChannel::Database => self.send_database(recipient).await?,
-                NotificationChannel::Broadcast => self.send_broadcast(recipient).await?,
-                NotificationChannel::Sms => self.send_sms(recipient).await?,
-                NotificationChannel::Slack => self.send_slack(recipient).await?,
-            }}
-        }}
-        Ok(())
-    }}
-
-    async fn send_mail(&self, recipient: &str) -> Result<()> {{
-        println!("Sending mail notification to: {{}}", recipient);
-        println!("Title: {{}}", self.data.title);
-        println!("Message: {{}}", self.data.message);
-        Ok(())
-    }}
-
-    async fn send_database(&self, recipient: &str) -> Result<()> {{
-        println!("Storing database notification for: {{}}", recipient);
-        println!("Title: {{}}", self.data.title);
-        println!("Message: {{}}", self.data.message);
-        Ok(())
-    }}
-
-    async fn send_broadcast(&self, recipient: &str) -> Result<()> {{
-        println!("Broadcasting notification to: {{}}", recipient);
-        println!("Title: {{}}", self.data.title);
-        println!("Message: {{}}", self.data.message);
-        Ok(())
-    }}
-
-    async fn send_sms(&self, recipient: &str) -> Result<()> {{
-        println!("Sending SMS notification to: {{}}", recipient);
-        println!("Message: {{}}", self.data.message);
-        Ok(())
-    }}
-
-    async fn send_slack(&self, recipient: &str) -> Result<()> {{
-        println!("Sending Slack notification to: {{}}", recipient);
-        println!("Title: {{}}", self.data.title);
-        println!("Message: {{}}", self.data.message);
-        Ok(())
-    }}
-}}
-"#, notification_name, notification_name)
+    template
 }
 
 fn create_markdown_template(notification_name: &str) -> Result<()> {
