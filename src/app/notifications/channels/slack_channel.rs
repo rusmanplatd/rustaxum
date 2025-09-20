@@ -2,40 +2,13 @@ use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Serialize, Deserialize};
 use crate::app::notifications::channels::Channel;
-use crate::app::notifications::notification::{Notification, Notifiable, NotificationChannel};
+use crate::app::notifications::notification::{Notification, Notifiable, NotificationChannel, SlackMessage, SlackAttachment, SlackField};
 use crate::config::Config;
 
 #[derive(Debug, Clone)]
 pub struct SlackChannel {
     webhook_url: Option<String>,
     default_channel: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SlackMessage {
-    pub text: String,
-    pub channel: Option<String>,
-    pub username: Option<String>,
-    pub icon_emoji: Option<String>,
-    pub attachments: Option<Vec<SlackAttachment>>,
-    pub blocks: Option<Vec<SlackBlock>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SlackAttachment {
-    pub color: Option<String>,
-    pub title: Option<String>,
-    pub text: Option<String>,
-    pub fields: Option<Vec<SlackField>>,
-    pub footer: Option<String>,
-    pub ts: Option<i64>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SlackField {
-    pub title: String,
-    pub value: String,
-    pub short: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -83,7 +56,7 @@ impl SlackChannel {
         self
     }
 
-    async fn send_slack_message(&self, message: SlackMessage) -> Result<()> {
+    async fn send_slack_message(&self, message: &SlackMessage) -> Result<()> {
         let webhook_url = match &self.webhook_url {
             Some(url) => url,
             None => {
@@ -122,8 +95,8 @@ impl SlackChannel {
         if let Some(emoji) = &message.icon_emoji {
             println!("Icon: {}", emoji);
         }
-        if let Some(attachments) = &message.attachments {
-            println!("Attachments: {} items", attachments.len());
+        if !message.attachments.is_empty() {
+            println!("Attachments: {} items", message.attachments.len());
         }
         println!("Timestamp: {}", chrono::Utc::now());
         println!("===============================");
@@ -146,34 +119,18 @@ impl SlackChannel {
             _ => "#9e9e9e",                 // Gray
         };
 
-        let attachment = SlackAttachment {
-            color: Some(color.to_string()),
-            title: Some(title.to_string()),
-            text: Some(message.to_string()),
-            fields: Some(vec![
-                SlackField {
-                    title: "Type".to_string(),
-                    value: notification_type.to_string(),
-                    short: Some(true),
-                },
-                SlackField {
-                    title: "Time".to_string(),
-                    value: chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC").to_string(),
-                    short: Some(true),
-                },
-            ]),
-            footer: Some("Notification System".to_string()),
-            ts: Some(chrono::Utc::now().timestamp()),
-        };
+        let attachment = SlackAttachment::new()
+            .color(color.to_string())
+            .title(title.to_string())
+            .text(message.to_string())
+            .field(SlackField::new("Type".to_string(), notification_type.to_string(), true))
+            .field(SlackField::new("Time".to_string(), chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC").to_string(), true));
 
-        SlackMessage {
-            text: format!("*{}*", title),
-            channel: Some(self.default_channel.clone()),
-            username: Some("Notification Bot".to_string()),
-            icon_emoji: Some(":bell:".to_string()),
-            attachments: Some(vec![attachment]),
-            blocks: None,
-        }
+        SlackMessage::new(format!("*{}*", title))
+            .channel(self.default_channel.clone())
+            .username("Notification Bot".to_string())
+            .icon_emoji(":bell:".to_string())
+            .attachment(attachment)
     }
 
     fn create_rich_message(&self, notification_type: &str, data: &serde_json::Value) -> SlackMessage {
@@ -187,45 +144,42 @@ impl SlackChannel {
 
         // Create blocks for rich formatting
         let blocks = vec![
-            SlackBlock {
-                block_type: "header".to_string(),
-                text: Some(SlackText {
-                    text_type: "plain_text".to_string(),
-                    text: title.to_string(),
-                }),
-                elements: None,
-            },
-            SlackBlock {
-                block_type: "section".to_string(),
-                text: Some(SlackText {
-                    text_type: "mrkdwn".to_string(),
-                    text: message.to_string(),
-                }),
-                elements: None,
-            },
-            SlackBlock {
-                block_type: "context".to_string(),
-                text: None,
-                elements: Some(vec![
-                    SlackElement {
-                        element_type: "mrkdwn".to_string(),
-                        text: Some(format!("*Type:* {} | *Time:* {}",
-                            notification_type,
-                            chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
-                        )),
-                    }
-                ]),
-            },
+            serde_json::json!({
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": title
+                }
+            }),
+            serde_json::json!({
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": message
+                }
+            }),
+            serde_json::json!({
+                "type": "context",
+                "elements": [{
+                    "type": "mrkdwn",
+                    "text": format!("*Type:* {} | *Time:* {}",
+                        notification_type,
+                        chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
+                    )
+                }]
+            })
         ];
 
-        SlackMessage {
-            text: title.to_string(), // Fallback text
-            channel: Some(self.default_channel.clone()),
-            username: Some("Notification Bot".to_string()),
-            icon_emoji: Some(":bell:".to_string()),
-            attachments: None,
-            blocks: Some(blocks),
+        let mut message = SlackMessage::new(title.to_string())
+            .channel(self.default_channel.clone())
+            .username("Notification Bot".to_string())
+            .icon_emoji(":bell:".to_string());
+
+        for block in blocks {
+            message = message.block(block);
         }
+
+        message
     }
 }
 
@@ -245,21 +199,28 @@ impl Channel for SlackChannel {
         let target_channel = notifiable.route_notification_for(&NotificationChannel::Slack).await
             .unwrap_or_else(|| self.default_channel.clone());
 
-        // Get the notification data
-        let database_message = notification.to_database(notifiable).await?;
-        let notification_type = notification.notification_type();
+        // Try to get the slack message from the notification first
+        let mut slack_message = match notification.to_slack(notifiable) {
+            Ok(message) => message,
+            Err(_) => {
+                // Fallback to creating from database message
+                let database_message = notification.to_database(notifiable)?;
+                self.create_rich_message(notification.notification_type(), &database_message.data)
+            }
+        };
 
-        // Create Slack message - use rich blocks for better formatting
-        let mut slack_message = self.create_rich_message(notification_type, &database_message.data);
-        slack_message.channel = Some(target_channel.clone());
+        // Override channel if not set
+        if slack_message.channel.is_none() {
+            slack_message.channel = Some(target_channel.clone());
+        }
 
         // Send the message
-        match self.send_slack_message(slack_message).await {
+        match self.send_slack_message(&slack_message).await {
             Ok(()) => {
                 tracing::info!(
                     "Slack notification sent successfully to channel: {} (type: {})",
                     target_channel,
-                    notification_type
+                    notification.notification_type()
                 );
                 Ok(())
             }

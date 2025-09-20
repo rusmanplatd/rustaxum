@@ -26,7 +26,7 @@ impl Channel for MailChannel {
         };
 
         // Get mail message from notification
-        let old_mail_message = notification.to_mail(notifiable).await?;
+        let old_mail_message = notification.to_mail(notifiable)?;
 
         // Convert to new mail system format
         let new_content = match old_mail_message.content {

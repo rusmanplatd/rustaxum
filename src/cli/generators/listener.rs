@@ -97,7 +97,8 @@ fn generate_queued_listener_template(listener_name: &str, event: &Option<String>
     format!(r#"use anyhow::Result;
 use async_trait::async_trait;
 use std::sync::Arc;
-use crate::app::events::{{Event, EventListener}};
+use chrono::Duration;
+use crate::app::events::{{Event, EventListener, ShouldQueueListener}};
 
 #[derive(Debug)]
 pub struct {} {{
@@ -153,8 +154,79 @@ impl EventListener for {} {{
     fn queue_name(&self) -> Option<&str> {{
         Some("listeners")
     }}
+
+    async fn failed(&self, event: Arc<dyn Event>, exception: &anyhow::Error) -> Result<()> {{
+        tracing::error!(
+            "{} failed to handle event {{}}: {{}}",
+            event.event_name(),
+            exception
+        );
+        Ok(())
+    }}
+
+    fn tags(&self) -> Vec<String> {{
+        vec!["listener".to_string()]
+    }}
+
+    fn max_exceptions(&self) -> Option<u32> {{
+        Some(3)
+    }}
+
+    fn backoff(&self) -> Vec<chrono::Duration> {{
+        vec![
+            Duration::seconds(1),
+            Duration::seconds(5),
+            Duration::seconds(10),
+        ]
+    }}
 }}
-"#, listener_name, listener_name, listener_name, listener_name, listener_name, event_name, event_name, event_name)
+
+#[async_trait]
+impl ShouldQueueListener for {} {{
+    fn queue_connection(&self) -> Option<&str> {{
+        None
+    }}
+
+    fn queue(&self) -> Option<&str> {{
+        Some("listeners")
+    }}
+
+    fn delay(&self) -> Option<chrono::Duration> {{
+        None
+    }}
+
+    fn tries(&self) -> Option<u32> {{
+        Some(3)
+    }}
+
+    fn timeout(&self) -> Option<chrono::Duration> {{
+        Some(Duration::minutes(5))
+    }}
+
+    fn middleware(&self) -> Vec<String> {{
+        vec![]
+    }}
+
+    fn after_commit(&self) -> bool {{
+        true
+    }}
+
+    fn via_connection(self, _connection: &str) -> Self {{
+        // Implement connection logic if needed
+        self
+    }}
+
+    fn via_queue(self, _queue: &str) -> Self {{
+        // Implement queue logic if needed
+        self
+    }}
+
+    fn with_delay(self, _delay: chrono::Duration) -> Self {{
+        // Implement delay logic if needed
+        self
+    }}
+}}
+"#, listener_name, listener_name, listener_name, listener_name, listener_name, event_name, event_name, event_name, listener_name, listener_name)
 }
 
 fn update_listeners_mod(listener_name: &str) -> Result<()> {

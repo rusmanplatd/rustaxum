@@ -28,8 +28,7 @@ fn generate_event_template(event_name: &str) -> String {
     format!(r#"use anyhow::Result;
 use serde::{{Deserialize, Serialize}};
 use std::collections::HashMap;
-use crate::app::events::Event;
-use crate::app::broadcasting::Broadcastable;
+use crate::app::events::{{Event, Dispatchable, InteractsWithSockets, SerializesModels, ShouldQueue}};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct {} {{
@@ -81,25 +80,31 @@ impl Event for {} {{
     }}
 }}
 
-impl Broadcastable for {} {{
-    fn broadcast_channel(&self) -> String {{
-        "{}".to_lowercase().replace("event", "")
-    }}
+// Uncomment the following to make this event queueable:
+// impl ShouldQueue for {} {{}}
 
-    fn broadcast_data(&self) -> serde_json::Value {{
-        serde_json::json!({{
-            "event": "{}",
-            "message": self.message,
-            "user_id": self.user_id,
-            "timestamp": self.timestamp,
-            "metadata": self.metadata
-        }})
-    }}
+// Uncomment the following to enable socket interactions:
+// impl InteractsWithSockets for {} {{
+//     fn socket_id(&self) -> Option<String> {{
+//         // Return socket ID if available
+//         None
+//     }}
+//
+//     fn broadcast_to_everyone_except(&self, socket_ids: Vec<String>) -> Vec<String> {{
+//         socket_ids
+//     }}
+// }}
 
-    fn is_private(&self) -> bool {{
-        false
-    }}
-}}
+// Uncomment the following to enable model serialization:
+// impl SerializesModels for {} {{
+//     fn prepare_for_serialization(&self) {{
+//         // Prepare models for serialization
+//     }}
+//
+//     fn restore_after_serialization(&self) {{
+//         // Restore models after serialization
+//     }}
+// }}
 "#, event_name, event_name, event_name, event_name.replace("Event", ""), event_name, event_name, event_name)
 }
 

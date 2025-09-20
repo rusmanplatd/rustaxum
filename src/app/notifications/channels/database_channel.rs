@@ -25,7 +25,7 @@ impl DatabaseChannel {
 impl Channel for DatabaseChannel {
     async fn send(&self, notification: &dyn Notification, notifiable: &dyn Notifiable) -> Result<()> {
         // Get database message from notification
-        let database_message = notification.to_database(notifiable).await?;
+        let database_message = notification.to_database(notifiable)?;
 
         // Create notification model
         let notification_model = NotificationModel::new(

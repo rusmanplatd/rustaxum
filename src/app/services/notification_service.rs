@@ -23,7 +23,7 @@ impl NotificationService {
         notifiable: &dyn Notifiable,
     ) -> Result<()> {
         // Get the channels this notification should be sent on
-        let channels = notification.via(notifiable).await;
+        let channels = notification.via(notifiable);
 
         // Filter channels based on notifiable preferences (if implemented)
         let filtered_channels = if let Some(user) = self.try_as_user(notifiable) {
@@ -74,7 +74,7 @@ impl NotificationService {
         notification: &dyn Notification,
         notifiable: &dyn Notifiable,
     ) -> Result<()> {
-        let channels = notification.via(notifiable).await;
+        let channels = notification.via(notifiable);
         self.channel_manager
             .send(notification, notifiable, channels)
             .await

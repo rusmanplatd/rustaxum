@@ -17,7 +17,7 @@ impl BroadcastChannel {
 impl Channel for BroadcastChannel {
     async fn send(&self, notification: &dyn Notification, notifiable: &dyn Notifiable) -> Result<()> {
         // Get broadcast message from notification
-        let broadcast_message = notification.to_broadcast(notifiable).await?;
+        let broadcast_message = notification.to_broadcast(notifiable)?;
 
         // Create the channel name for this specific user/entity
         let channel = format!("user.{}", notifiable.get_key());

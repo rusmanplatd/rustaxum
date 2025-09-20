@@ -183,7 +183,7 @@ impl Channel for SmsChannel {
 
         // Get the SMS message content from notification
         // For now, we'll convert the database message to SMS text
-        let database_message = notification.to_database(notifiable).await?;
+        let database_message = notification.to_database(notifiable)?;
         let message_text = database_message.data
             .get("message")
             .and_then(|v| v.as_str())

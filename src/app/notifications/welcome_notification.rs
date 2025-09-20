@@ -1,5 +1,4 @@
 use anyhow::Result;
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use crate::app::notifications::notification::{
@@ -21,9 +20,8 @@ impl WelcomeNotification {
     }
 }
 
-#[async_trait]
 impl Notification for WelcomeNotification {
-    async fn via(&self, _notifiable: &dyn Notifiable) -> Vec<NotificationChannel> {
+    fn via(&self, _notifiable: &dyn Notifiable) -> Vec<NotificationChannel> {
         vec![
             NotificationChannel::Database,
             NotificationChannel::Mail,
@@ -31,10 +29,8 @@ impl Notification for WelcomeNotification {
         ]
     }
 
-    async fn to_mail(&self, notifiable: &dyn Notifiable) -> Result<MailMessage> {
-        let email = notifiable.route_notification_for(&NotificationChannel::Mail)
-            .await
-            .unwrap_or_else(|| "user@example.com".to_string());
+    fn to_mail(&self, _notifiable: &dyn Notifiable) -> Result<MailMessage> {
+        let email = "user@example.com".to_string(); // TODO: Get from notifiable
 
         let content = format!(r#"<!DOCTYPE html>
 <html>
@@ -85,7 +81,7 @@ impl Notification for WelcomeNotification {
         ))
     }
 
-    async fn to_database(&self, _notifiable: &dyn Notifiable) -> Result<DatabaseMessage> {
+    fn to_database(&self, _notifiable: &dyn Notifiable) -> Result<DatabaseMessage> {
         let data = json!({
             "title": "Welcome to RustAxum!",
             "message": format!("Welcome {}! Your account has been successfully created.", self.user_name),

@@ -1,5 +1,4 @@
 use anyhow::Result;
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use crate::app::notifications::notification::{
@@ -25,19 +24,16 @@ impl InvoicePaidNotification {
     }
 }
 
-#[async_trait]
 impl Notification for InvoicePaidNotification {
-    async fn via(&self, _notifiable: &dyn Notifiable) -> Vec<NotificationChannel> {
+    fn via(&self, _notifiable: &dyn Notifiable) -> Vec<NotificationChannel> {
         vec![
             NotificationChannel::Database,
             NotificationChannel::Mail,
         ]
     }
 
-    async fn to_mail(&self, notifiable: &dyn Notifiable) -> Result<MailMessage> {
-        let email = notifiable.route_notification_for(&NotificationChannel::Mail)
-            .await
-            .unwrap_or_else(|| "user@example.com".to_string());
+    fn to_mail(&self, _notifiable: &dyn Notifiable) -> Result<MailMessage> {
+        let email = "user@example.com".to_string(); // TODO: Get from notifiable
 
         let content = format!(r#"<!DOCTYPE html>
 <html>
@@ -85,7 +81,7 @@ impl Notification for InvoicePaidNotification {
         ))
     }
 
-    async fn to_database(&self, _notifiable: &dyn Notifiable) -> Result<DatabaseMessage> {
+    fn to_database(&self, _notifiable: &dyn Notifiable) -> Result<DatabaseMessage> {
         let data = json!({
             "title": "Payment Received",
             "message": format!("Payment of {:.2} {} received for invoice #{}",

@@ -220,7 +220,7 @@ impl Channel for WebPushChannel {
             .unwrap_or(&full_key);
 
         // Get web push message from notification
-        let web_push_message = notification.to_web_push(notifiable).await?;
+        let web_push_message = notification.to_web_push(notifiable)?;
 
         // Get user's push subscriptions
         let subscriptions = Self::get_user_subscriptions(user_id).await?;

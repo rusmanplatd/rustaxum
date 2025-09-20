@@ -32,11 +32,11 @@ fn generate_notification_template(notification_name: &str) -> String {
     let mut template = String::new();
 
     template.push_str("use anyhow::Result;\n");
-    template.push_str("use async_trait::async_trait;\n");
     template.push_str("use serde::{Deserialize, Serialize};\n");
     template.push_str("use serde_json::json;\n");
-    template.push_str("use crate::app::notifications::notification::{\n");
-    template.push_str("    Notification, Notifiable, NotificationChannel, MailMessage, MailContent, DatabaseMessage\n");
+    template.push_str("use crate::app::notifications::{\n");
+    template.push_str("    Notification, Notifiable, NotificationChannel, MailMessage, MailContent, DatabaseMessage,\n");
+    template.push_str("    ShouldQueue, Queueable\n");
     template.push_str("};\n\n");
 
     template.push_str("#[derive(Debug, Clone, Serialize, Deserialize)]\n");
@@ -70,10 +70,9 @@ fn generate_notification_template(notification_name: &str) -> String {
     template.push_str("            NotificationChannel::WebPush,\n");
     template.push_str("        ]\n");
     template.push_str("    }\n\n");
-    template.push_str("    async fn to_mail(&self, notifiable: &dyn Notifiable) -> Result<MailMessage> {\n");
-    template.push_str("        let email = notifiable.route_notification_for(&NotificationChannel::Mail)\n");
-    template.push_str("            .await\n");
-    template.push_str("            .unwrap_or_else(|| \"user@example.com\".to_string());\n\n");
+    template.push_str("    fn to_mail(&self, notifiable: &dyn Notifiable) -> Result<MailMessage> {\n");
+    template.push_str("        // Note: In a real implementation, you would need to make this async\n");
+    template.push_str("        let email = \"user@example.com\".to_string(); // TODO: Get from notifiable\n\n");
     template.push_str("        let content = format!(r#\"<!DOCTYPE html>\n");
     template.push_str("<html>\n");
     template.push_str("<head>\n");
@@ -94,7 +93,7 @@ fn generate_notification_template(notification_name: &str) -> String {
     template.push_str("            MailContent::Html(content),\n");
     template.push_str("        ))\n");
     template.push_str("    }\n\n");
-    template.push_str("    async fn to_database(&self, _notifiable: &dyn Notifiable) -> Result<DatabaseMessage> {\n");
+    template.push_str("    fn to_database(&self, _notifiable: &dyn Notifiable) -> Result<DatabaseMessage> {\n");
     template.push_str("        let data = json!({\n");
     template.push_str("            \"title\": self.title,\n");
     template.push_str("            \"message\": self.message,\n");

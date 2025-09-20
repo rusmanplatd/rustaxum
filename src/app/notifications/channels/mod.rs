@@ -93,11 +93,11 @@ impl ChannelManager {
                         tracing::warn!("Web push channel not configured");
                     }
                 }
-                NotificationChannel::Sms => {
+                NotificationChannel::Sms | NotificationChannel::Vonage => {
                     if let Some(sms_channel) = &self.sms_channel {
                         sms_channel.send(notification, notifiable).await?;
                     } else {
-                        tracing::warn!("SMS channel not configured");
+                        tracing::warn!("SMS/Vonage channel not configured");
                     }
                 }
                 NotificationChannel::Slack => {

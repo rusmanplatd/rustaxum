@@ -11,7 +11,7 @@ impl Notifiable for User {
             NotificationChannel::Database => Some(self.id.to_string()),
             NotificationChannel::Broadcast => Some(self.id.to_string()),
             NotificationChannel::WebPush => Some(self.id.to_string()),
-            NotificationChannel::Sms => {
+            NotificationChannel::Sms | NotificationChannel::Vonage => {
                 // TODO: Add phone number field to User model if needed
                 None
             }

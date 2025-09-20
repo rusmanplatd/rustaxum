@@ -10,7 +10,6 @@ use serde_json::Value;
 use utoipa::ToSchema;
 
 use crate::app::validation::{ValidationRules, ValidationErrors, make_validator};
-use crate::validation_rules;
 
 /// Response format for validation errors
 #[derive(Serialize, ToSchema)]
@@ -228,6 +227,8 @@ macro_rules! form_request {
 
 #[cfg(test)]
 mod tests {
+    use crate::validation_rules;
+
     use super::*;
 
     // Test FormRequest implementation

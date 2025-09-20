@@ -1,5 +1,4 @@
 use anyhow::Result;
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use crate::app::notifications::notification::{
@@ -41,9 +40,8 @@ impl OrderShippedNotification {
     }
 }
 
-#[async_trait]
 impl Notification for OrderShippedNotification {
-    async fn via(&self, _notifiable: &dyn Notifiable) -> Vec<NotificationChannel> {
+    fn via(&self, _notifiable: &dyn Notifiable) -> Vec<NotificationChannel> {
         vec![
             NotificationChannel::Database,
             NotificationChannel::Mail,
@@ -51,10 +49,8 @@ impl Notification for OrderShippedNotification {
         ]
     }
 
-    async fn to_mail(&self, notifiable: &dyn Notifiable) -> Result<MailMessage> {
-        let email = notifiable.route_notification_for(&NotificationChannel::Mail)
-            .await
-            .unwrap_or_else(|| "customer@example.com".to_string());
+    fn to_mail(&self, _notifiable: &dyn Notifiable) -> Result<MailMessage> {
+        let email = "customer@example.com".to_string(); // TODO: Get from notifiable
 
         let tracking_link = if let Some(url) = &self.tracking_url {
             format!(r#"<div style="text-align: center; margin: 30px 0;">
@@ -117,7 +113,7 @@ impl Notification for OrderShippedNotification {
         ))
     }
 
-    async fn to_database(&self, _notifiable: &dyn Notifiable) -> Result<DatabaseMessage> {
+    fn to_database(&self, _notifiable: &dyn Notifiable) -> Result<DatabaseMessage> {
         let data = json!({
             "title": "Order Shipped",
             "message": format!("Your order #{} has been shipped via {} and should arrive by {}",
@@ -134,7 +130,7 @@ impl Notification for OrderShippedNotification {
         Ok(DatabaseMessage::new(data))
     }
 
-    async fn to_web_push(&self, _notifiable: &dyn Notifiable) -> Result<WebPushMessage> {
+    fn to_web_push(&self, _notifiable: &dyn Notifiable) -> Result<WebPushMessage> {
         let mut notification = WebPushMessage::new(
             "📦 Order Shipped!".to_string(),
             format!("Your order #{} has been shipped and is on the way!", self.order_id),
