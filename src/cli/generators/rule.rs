@@ -151,9 +151,39 @@ impl From<bool> for ValidationValue {{
     }}
 }}
 
-impl<T: Into<ValidationValue>> From<Vec<T>> for ValidationValue {{
-    fn from(value: Vec<T>) -> Self {{
-        ValidationValue::Array(value.into_iter().map(|v| v.into()).collect())
+impl From<Vec<ValidationValue>> for ValidationValue {{
+    fn from(value: Vec<ValidationValue>) -> Self {{
+        ValidationValue::Array(value)
+    }}
+}}
+
+impl From<Vec<String>> for ValidationValue {{
+    fn from(value: Vec<String>) -> Self {{
+        ValidationValue::Array(value.into_iter().map(ValidationValue::String).collect())
+    }}
+}}
+
+impl From<Vec<&str>> for ValidationValue {{
+    fn from(value: Vec<&str>) -> Self {{
+        ValidationValue::Array(value.into_iter().map(|s| ValidationValue::String(s.to_string())).collect())
+    }}
+}}
+
+impl From<Vec<f64>> for ValidationValue {{
+    fn from(value: Vec<f64>) -> Self {{
+        ValidationValue::Array(value.into_iter().map(ValidationValue::Number).collect())
+    }}
+}}
+
+impl From<Vec<i64>> for ValidationValue {{
+    fn from(value: Vec<i64>) -> Self {{
+        ValidationValue::Array(value.into_iter().map(ValidationValue::Integer).collect())
+    }}
+}}
+
+impl From<Vec<bool>> for ValidationValue {{
+    fn from(value: Vec<bool>) -> Self {{
+        ValidationValue::Array(value.into_iter().map(ValidationValue::Boolean).collect())
     }}
 }}
 

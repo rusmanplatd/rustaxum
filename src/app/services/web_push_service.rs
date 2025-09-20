@@ -235,10 +235,3 @@ impl WebPushService {
     }
 }
 
-impl Default for WebPushService {
-    fn default() -> Self {
-        tokio::task::block_in_place(|| {
-            tokio::runtime::Handle::current().block_on(Self::new())
-        })
-    }
-}

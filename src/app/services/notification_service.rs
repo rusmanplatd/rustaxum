@@ -143,14 +143,6 @@ impl NotificationService {
     }
 }
 
-impl Default for NotificationService {
-    fn default() -> Self {
-        // Since we can't have async default, create a blocking version
-        tokio::task::block_in_place(|| {
-            tokio::runtime::Handle::current().block_on(Self::new())
-        })
-    }
-}
 
 // Convenience functions for common notification operations
 impl NotificationService {
