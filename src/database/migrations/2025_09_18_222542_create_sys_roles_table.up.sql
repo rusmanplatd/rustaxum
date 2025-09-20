@@ -1,13 +1,14 @@
 -- Create sys_roles table
 CREATE TABLE sys_roles (
     id CHAR(26) PRIMARY KEY,
-    name VARCHAR NOT NULL UNIQUE,
+    name VARCHAR NOT NULL,
     description TEXT,
     guard_name VARCHAR NOT NULL DEFAULT 'api',
     scope_type VARCHAR(255),
     scope_id CHAR(26),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(name, guard_name)
 );
 
 -- Add indexes

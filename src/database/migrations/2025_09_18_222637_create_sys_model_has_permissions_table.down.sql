@@ -1,4 +1,4 @@
--- Create role_permissions table
+-- Create sys_model_has_permissions table
 CREATE TABLE sys_model_has_permissions (
     id CHAR(26) PRIMARY KEY,
     model_type VARCHAR(255) NOT NULL,

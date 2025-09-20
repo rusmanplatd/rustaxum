@@ -117,8 +117,8 @@ impl UserOrganization {
             r#"
             SELECT COUNT(*)
             FROM sys_roles r
-            INNER JOIN user_organization_roles uor ON r.id = uor.role_id
-            INNER JOIN user_organizations uo ON uor.user_organization_id = uo.id
+            INNER JOIN sys_model_has_roles smhr ON r.id = smhr.role_id AND smhr.model_type = 'UserOrganization'
+            INNER JOIN user_organizations uo ON smhr.model_id = uo.id
             WHERE uo.user_id = $1 AND uo.organization_id = $2 AND r.name = $3 AND uo.is_active = true
             "#
         )
@@ -143,10 +143,10 @@ impl UserOrganization {
             r#"
             SELECT COUNT(*)
             FROM sys_permissions p
-            INNER JOIN role_permissions rp ON p.id = rp.permission_id
-            INNER JOIN sys_roles r ON rp.role_id = r.id
-            INNER JOIN user_organization_roles uor ON r.id = uor.role_id
-            INNER JOIN user_organizations uo ON uor.user_organization_id = uo.id
+            INNER JOIN sys_model_has_permissions smhp ON p.id = smhp.permission_id AND smhp.model_type = 'Role'
+            INNER JOIN sys_roles r ON smhp.model_id = r.id
+            INNER JOIN sys_model_has_roles smhr ON r.id = smhr.role_id AND smhr.model_type = 'UserOrganization'
+            INNER JOIN user_organizations uo ON smhr.model_id = uo.id
             WHERE uo.user_id = $1 AND uo.organization_id = $2 AND p.name = $3 AND uo.is_active = true
             "#
         )
@@ -168,14 +168,17 @@ impl UserOrganization {
     ) -> Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO user_organization_roles (id, user_organization_id, role_id, created_at, updated_at)
-            VALUES ($1, $2, $3, NOW(), NOW())
-            ON CONFLICT (user_organization_id, role_id) DO NOTHING
+            INSERT INTO sys_model_has_roles (id, model_type, model_id, role_id, scope_type, scope_id, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+            ON CONFLICT (model_type, model_id, role_id) DO NOTHING
             "#
         )
         .bind(Ulid::new().to_string())
+        .bind("UserOrganization")
         .bind(user_organization_id.to_string())
         .bind(role_id.to_string())
+        .bind(Option::<String>::None)
+        .bind(Option::<String>::None)
         .execute(pool)
         .await?;
 
@@ -190,8 +193,8 @@ impl UserOrganization {
     ) -> Result<()> {
         sqlx::query(
             r#"
-            DELETE FROM user_organization_roles
-            WHERE user_organization_id = $1 AND role_id = $2
+            DELETE FROM sys_model_has_roles
+            WHERE model_type = 'UserOrganization' AND model_id = $1 AND role_id = $2
             "#
         )
         .bind(user_organization_id.to_string())

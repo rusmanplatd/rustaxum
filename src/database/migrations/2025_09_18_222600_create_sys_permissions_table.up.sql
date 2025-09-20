@@ -1,12 +1,13 @@
 -- Create sys_permissions table
 CREATE TABLE sys_permissions (
     id CHAR(26) PRIMARY KEY,
-    name VARCHAR NOT NULL UNIQUE,
+    name VARCHAR NOT NULL,
     guard_name VARCHAR NOT NULL DEFAULT 'api',
     resource VARCHAR,
     action VARCHAR NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(name, guard_name)
 );
 
 -- Add indexes

@@ -7,7 +7,6 @@ use crate::database::seeders::{
     cityseeder::Cityseeder,
     userseeder::UserSeeder,
     rolepermissionseeder::RolePermissionSeeder,
-    abacseeder::AbacSeeder,
     organizationseeder::OrganizationSeeder,
     joblevelpositionseeder::JobLevelPositionSeeder,
 };
@@ -29,6 +28,11 @@ impl Seeder for Databaseseeder {
         println!("🌱 Database Seeding Started");
         println!("───────────────────────────");
 
+        // User management
+        context.call(UserSeeder).await?;
+        // Authorization systems
+        context.call(RolePermissionSeeder).await?;
+
         // Geographic data seeders (order matters due to foreign keys)
         context.call(Countryseeder).await?;
         context.call(Provinceseeder).await?;
@@ -38,12 +42,6 @@ impl Seeder for Databaseseeder {
         context.call(OrganizationSeeder).await?;
         context.call(JobLevelPositionSeeder).await?;
 
-        // User management
-        context.call(UserSeeder).await?;
-
-        // Authorization systems
-        context.call(RolePermissionSeeder).await?;
-        context.call(AbacSeeder).await?;
 
         println!("───────────────────────────");
         println!("✅ Database seeding completed successfully!");

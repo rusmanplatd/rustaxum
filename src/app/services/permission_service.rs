@@ -125,14 +125,17 @@ impl PermissionService {
 
         sqlx::query(
             r#"
-            INSERT INTO role_permissions (id, role_id, permission_id, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT (role_id, permission_id) DO NOTHING
+            INSERT INTO sys_model_has_permissions (id, model_type, model_id, permission_id, scope_type, scope_id, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (model_type, model_id, permission_id) DO NOTHING
             "#
         )
         .bind(role_permission_id.to_string())
+        .bind("Role")
         .bind(role_id.to_string())
         .bind(permission_id.to_string())
+        .bind(Option::<String>::None)
+        .bind(Option::<String>::None)
         .bind(now)
         .bind(now)
         .execute(pool)
@@ -143,7 +146,7 @@ impl PermissionService {
 
     pub async fn remove_from_role(pool: &PgPool, role_id: Ulid, permission_id: Ulid) -> Result<()> {
         sqlx::query(
-            "DELETE FROM role_permissions WHERE role_id = $1 AND permission_id = $2"
+            "DELETE FROM sys_model_has_permissions WHERE model_type = 'Role' AND model_id = $1 AND permission_id = $2"
         )
         .bind(role_id.to_string())
         .bind(permission_id.to_string())
@@ -159,9 +162,9 @@ impl PermissionService {
         let count: Option<i64> = sqlx::query_scalar(
             r#"
             SELECT COUNT(*) as count
-            FROM role_permissions rp
-            JOIN sys_permissions p ON rp.permission_id = p.id
-            WHERE rp.role_id = $1 AND p.name = $2 AND p.guard_name = $3
+            FROM sys_model_has_permissions smhp
+            JOIN sys_permissions p ON smhp.permission_id = p.id
+            WHERE smhp.model_type = 'Role' AND smhp.model_id = $1 AND p.name = $2 AND p.guard_name = $3
             "#
         )
         .bind(role_id.to_string())
@@ -181,8 +184,8 @@ impl PermissionService {
             r#"
             SELECT COUNT(*) as count
             FROM sys_model_has_roles smhr
-            JOIN role_permissions rp ON smhr.role_id = rp.role_id
-            JOIN sys_permissions p ON rp.permission_id = p.id
+            JOIN sys_model_has_permissions smhp ON smhr.role_id = smhp.model_id AND smhp.model_type = 'Role'
+            JOIN sys_permissions p ON smhp.permission_id = p.id
             WHERE smhr.model_type = $1 AND smhr.model_id = $2 AND p.name = $3 AND p.guard_name = $4
             "#
         )
@@ -202,8 +205,8 @@ impl PermissionService {
                 r#"
                 SELECT p.id, p.name, p.guard_name, p.resource, p.action, p.created_at, p.updated_at
                 FROM sys_permissions p
-                JOIN role_permissions rp ON p.id = rp.permission_id
-                WHERE rp.role_id = $1 AND p.guard_name = $2
+                JOIN sys_model_has_permissions smhp ON p.id = smhp.permission_id
+                WHERE smhp.model_type = 'Role' AND smhp.model_id = $1 AND p.guard_name = $2
                 ORDER BY p.name
                 "#
             )
@@ -216,8 +219,8 @@ impl PermissionService {
                 r#"
                 SELECT p.id, p.name, p.guard_name, p.resource, p.action, p.created_at, p.updated_at
                 FROM sys_permissions p
-                JOIN role_permissions rp ON p.id = rp.permission_id
-                WHERE rp.role_id = $1
+                JOIN sys_model_has_permissions smhp ON p.id = smhp.permission_id
+                WHERE smhp.model_type = 'Role' AND smhp.model_id = $1
                 ORDER BY p.name
                 "#
             )
@@ -236,8 +239,8 @@ impl PermissionService {
                 r#"
                 SELECT DISTINCT p.id, p.name, p.guard_name, p.resource, p.action, p.created_at, p.updated_at
                 FROM sys_permissions p
-                JOIN role_permissions rp ON p.id = rp.permission_id
-                JOIN sys_model_has_roles smhr ON rp.role_id = smhr.role_id
+                JOIN sys_model_has_permissions smhp ON p.id = smhp.permission_id AND smhp.model_type = 'Role'
+                JOIN sys_model_has_roles smhr ON smhp.model_id = smhr.role_id
                 WHERE smhr.model_type = $1 AND smhr.model_id = $2 AND p.guard_name = $3
                 ORDER BY p.name
                 "#
@@ -252,8 +255,8 @@ impl PermissionService {
                 r#"
                 SELECT DISTINCT p.id, p.name, p.guard_name, p.resource, p.action, p.created_at, p.updated_at
                 FROM sys_permissions p
-                JOIN role_permissions rp ON p.id = rp.permission_id
-                JOIN sys_model_has_roles smhr ON rp.role_id = smhr.role_id
+                JOIN sys_model_has_permissions smhp ON p.id = smhp.permission_id AND smhp.model_type = 'Role'
+                JOIN sys_model_has_roles smhr ON smhp.model_id = smhr.role_id
                 WHERE smhr.model_type = $1 AND smhr.model_id = $2
                 ORDER BY p.name
                 "#
@@ -269,7 +272,7 @@ impl PermissionService {
 
     pub async fn count(pool: &PgPool) -> Result<i64> {
         let count: Option<i64> = sqlx::query_scalar(
-            "SELECT COUNT(*) as count FROM permissions"
+            "SELECT COUNT(*) as count FROM sys_permissions"
         )
         .fetch_one(pool)
         .await?;

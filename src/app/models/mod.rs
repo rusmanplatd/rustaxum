@@ -6,7 +6,6 @@ pub mod province;
 pub mod city;
 pub mod role;
 pub mod permission;
-pub mod rolepermission;
 pub mod organization;
 pub mod joblevel;
 pub mod jobposition;

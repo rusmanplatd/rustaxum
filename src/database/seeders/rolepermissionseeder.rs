@@ -113,9 +113,9 @@ impl Seeder for RolePermissionSeeder {
         .execute(pool)
         .await?;
 
-        // Assign all permissions to admin role
+        // Assign all permissions to admin role using sys_model_has_permissions
         let admin_permissions = sqlx::query(
-            "SELECT id FROM sys_permissions WHERE guard_name = api"
+            "SELECT id FROM sys_permissions WHERE guard_name = 'api'"
         )
         .fetch_all(pool)
         .await?;
@@ -125,23 +125,26 @@ impl Seeder for RolePermissionSeeder {
             let permission_id: String = permission.get("id");
             sqlx::query(
                 r#"
-                INSERT INTO role_permissions (id, role_id, permission_id, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT (role_id, permission_id) DO NOTHING
+                INSERT INTO sys_model_has_permissions (id, model_type, model_id, permission_id, scope_type, scope_id, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ON CONFLICT (model_type, model_id, permission_id) DO NOTHING
                 "#
             )
             .bind(role_permission_id)
+            .bind("Role")
             .bind(&admin_role_id)
             .bind(permission_id)
+            .bind(Option::<String>::None)
+            .bind(Option::<String>::None)
             .bind(now)
             .bind(now)
             .execute(pool)
             .await?;
         }
 
-        // Assign read permissions to user role
+        // Assign read permissions to user role using sys_model_has_permissions
         let user_permissions = sqlx::query(
-            "SELECT id FROM sys_permissions WHERE action = 'read' AND guard_name = api"
+            "SELECT id FROM sys_permissions WHERE action = 'read' AND guard_name = 'api'"
         )
         .fetch_all(pool)
         .await?;
@@ -151,26 +154,29 @@ impl Seeder for RolePermissionSeeder {
             let permission_id: String = permission.get("id");
             sqlx::query(
                 r#"
-                INSERT INTO role_permissions (id, role_id, permission_id, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT (role_id, permission_id) DO NOTHING
+                INSERT INTO sys_model_has_permissions (id, model_type, model_id, permission_id, scope_type, scope_id, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ON CONFLICT (model_type, model_id, permission_id) DO NOTHING
                 "#
             )
             .bind(role_permission_id)
+            .bind("Role")
             .bind(&user_role_id)
             .bind(permission_id)
+            .bind(Option::<String>::None)
+            .bind(Option::<String>::None)
             .bind(now)
             .bind(now)
             .execute(pool)
             .await?;
         }
 
-        // Assign content management permissions to moderator role
+        // Assign content management permissions to moderator role using sys_model_has_permissions
         let moderator_permission_names = vec!["posts.create", "posts.read", "posts.update", "posts.delete", "users.read"];
 
         for permission_name in moderator_permission_names {
             if let Ok(permission) = sqlx::query(
-                "SELECT id FROM sys_permissions WHERE name = $1 AND guard_name = api"
+                "SELECT id FROM sys_permissions WHERE name = $1 AND guard_name = 'api'"
             )
             .bind(permission_name)
             .fetch_one(pool)
@@ -180,14 +186,17 @@ impl Seeder for RolePermissionSeeder {
                 let permission_id: String = permission.get("id");
                 sqlx::query(
                     r#"
-                    INSERT INTO role_permissions (id, role_id, permission_id, created_at, updated_at)
-                    VALUES ($1, $2, $3, $4, $5)
-                    ON CONFLICT (role_id, permission_id) DO NOTHING
+                    INSERT INTO sys_model_has_permissions (id, model_type, model_id, permission_id, scope_type, scope_id, created_at, updated_at)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    ON CONFLICT (model_type, model_id, permission_id) DO NOTHING
                     "#
                 )
                 .bind(role_permission_id)
+                .bind("Role")
                 .bind(&moderator_role_id)
                 .bind(permission_id)
+                .bind(Option::<String>::None)
+                .bind(Option::<String>::None)
                 .bind(now)
                 .bind(now)
                 .execute(pool)

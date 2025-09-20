@@ -16,3 +16,6 @@ CREATE INDEX idx_sys_model_has_roles_model ON sys_model_has_roles (model_type, m
 CREATE INDEX idx_sys_model_has_roles_scope ON sys_model_has_roles (scope_type, scope_id);
 CREATE INDEX idx_sys_model_has_roles_role_id ON sys_model_has_roles (role_id);
 
+-- Add unique constraint for conflict handling
+CREATE UNIQUE INDEX idx_sys_model_has_roles_unique ON sys_model_has_roles (model_type, model_id, role_id);
+

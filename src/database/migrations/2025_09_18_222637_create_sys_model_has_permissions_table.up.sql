@@ -1,4 +1,4 @@
--- Create role_permissions table
+-- Create sys_model_has_permissions table
 CREATE TABLE sys_model_has_permissions (
     id CHAR(26) PRIMARY KEY,
     model_type VARCHAR(255) NOT NULL,
@@ -15,4 +15,7 @@ CREATE TABLE sys_model_has_permissions (
 CREATE INDEX idx_sys_model_has_permissions_model ON sys_model_has_permissions (model_type, model_id);
 CREATE INDEX idx_sys_model_has_permissions_scope ON sys_model_has_permissions (scope_type, scope_id);
 CREATE INDEX idx_sys_model_has_permissions_permission_id ON sys_model_has_permissions (permission_id);
+
+-- Add unique constraint for conflict handling
+CREATE UNIQUE INDEX idx_sys_model_has_permissions_unique ON sys_model_has_permissions (model_type, model_id, permission_id);
 
