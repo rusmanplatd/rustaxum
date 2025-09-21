@@ -8,12 +8,13 @@ use std::collections::HashMap;
 use serde_json::{json, Value};
 use utoipa::ToSchema;
 use crate::query_builder::{Queryable, SortDirection};
-use crate::schema::user_organizations;
+use crate::app::models::{HasModelType, HasRoles};
+use crate::schema::{user_organizations, sys_roles, sys_model_has_roles, sys_permissions, sys_model_has_permissions};
 
 /// User organization model representing the relationship between users and organizations
 /// Contains employment information, organization position, and temporal data
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, diesel::Queryable, Identifiable)]
-#[diesel(table_name = crate::schema::user_organizations)]
+#[diesel(table_name = user_organizations)]
 pub struct UserOrganization {
     /// Unique identifier for the user-organization relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
@@ -118,21 +119,19 @@ impl UserOrganization {
     ) -> Result<bool> {
         let mut conn = pool.get()?;
 
-        let count: i64 = diesel::sql_query(
-            r#"
-            SELECT COUNT(*) as count
-            FROM sys_roles r
-            INNER JOIN sys_model_has_roles smhr ON r.id = smhr.role_id AND smhr.model_type = 'UserOrganization'
-            INNER JOIN user_organizations uo ON smhr.model_id = uo.id
-            WHERE uo.user_id = $1 AND uo.organization_id = $2 AND r.name = $3 AND uo.is_active = true
-            "#
-        )
-        .bind::<diesel::sql_types::Text, _>(user_id.to_string())
-        .bind::<diesel::sql_types::Text, _>(organization_id.to_string())
-        .bind::<diesel::sql_types::Text, _>(role_name)
-        .get_result::<(i64,)>(&mut conn)
-        .map(|(count,)| count)
-        .unwrap_or(0);
+        let count = user_organizations::table
+            .inner_join(sys_model_has_roles::table.on(
+                sys_model_has_roles::model_id.eq(user_organizations::id)
+                    .and(sys_model_has_roles::model_type.eq("UserOrganization"))
+            ))
+            .inner_join(sys_roles::table.on(sys_roles::id.eq(sys_model_has_roles::role_id)))
+            .filter(user_organizations::user_id.eq(user_id.to_string()))
+            .filter(user_organizations::organization_id.eq(organization_id.to_string()))
+            .filter(sys_roles::name.eq(role_name))
+            .filter(user_organizations::is_active.eq(true))
+            .count()
+            .get_result::<i64>(&mut conn)
+            .unwrap_or(0);
 
         Ok(count > 0)
     }
@@ -146,23 +145,24 @@ impl UserOrganization {
     ) -> Result<bool> {
         let mut conn = pool.get()?;
 
-        let count: i64 = diesel::sql_query(
-            r#"
-            SELECT COUNT(*) as count
-            FROM sys_permissions p
-            INNER JOIN sys_model_has_permissions smhp ON p.id = smhp.permission_id AND smhp.model_type = 'Role'
-            INNER JOIN sys_roles r ON smhp.model_id = r.id
-            INNER JOIN sys_model_has_roles smhr ON r.id = smhr.role_id AND smhr.model_type = 'UserOrganization'
-            INNER JOIN user_organizations uo ON smhr.model_id = uo.id
-            WHERE uo.user_id = $1 AND uo.organization_id = $2 AND p.name = $3 AND uo.is_active = true
-            "#
-        )
-        .bind::<diesel::sql_types::Text, _>(user_id.to_string())
-        .bind::<diesel::sql_types::Text, _>(organization_id.to_string())
-        .bind::<diesel::sql_types::Text, _>(permission_name)
-        .get_result::<(i64,)>(&mut conn)
-        .map(|(count,)| count)
-        .unwrap_or(0);
+        let count = user_organizations::table
+            .inner_join(sys_model_has_roles::table.on(
+                sys_model_has_roles::model_id.eq(user_organizations::id)
+                    .and(sys_model_has_roles::model_type.eq("UserOrganization"))
+            ))
+            .inner_join(sys_roles::table.on(sys_roles::id.eq(sys_model_has_roles::role_id)))
+            .inner_join(sys_model_has_permissions::table.on(
+                sys_model_has_permissions::model_id.eq(sys_roles::id)
+                    .and(sys_model_has_permissions::model_type.eq("Role"))
+            ))
+            .inner_join(sys_permissions::table.on(sys_permissions::id.eq(sys_model_has_permissions::permission_id)))
+            .filter(user_organizations::user_id.eq(user_id.to_string()))
+            .filter(user_organizations::organization_id.eq(organization_id.to_string()))
+            .filter(sys_permissions::name.eq(permission_name))
+            .filter(user_organizations::is_active.eq(true))
+            .count()
+            .get_result::<i64>(&mut conn)
+            .unwrap_or(0);
 
         Ok(count > 0)
     }
@@ -430,5 +430,17 @@ impl Queryable for UserOrganization {
 
     fn default_sort() -> Option<(&'static str, SortDirection)> {
         Some(("created_at", SortDirection::Desc))
+    }
+}
+
+impl HasModelType for UserOrganization {
+    fn model_type() -> &'static str {
+        "UserOrganization"
+    }
+}
+
+impl HasRoles for UserOrganization {
+    fn model_id(&self) -> String {
+        self.id.to_string()
     }
 }

@@ -6,9 +6,9 @@ use axum::{
 use serde_json::{json, Value};
 
 use crate::app::http::requests::organization_position_requests::{
-    CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest
+    CreateOrganizationPositionRequest, UpdateOrganizationPositionRequest, IndexOrganizationPositionRequest, OrganizationPositionsByLevelRequest
 };
-use crate::app::services::organization_position_service::JobPositionService;
+use crate::app::services::organization_position_service::OrganizationPositionService;
 use crate::database::DbPool;
 
 /// List organization positions with filtering, sorting and pagination
@@ -35,15 +35,15 @@ use crate::database::DbPool;
 )]
 pub async fn index(
     State(pool): State<DbPool>,
-    request: IndexJobPositionRequest,
+    request: IndexOrganizationPositionRequest,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers)?;
-    // if !JobPositionPolicy::view_any(&user)? {
+    // if !OrganizationPositionPolicy::view_any(&user)? {
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match JobPositionService::index(&pool, &request) {
+    match OrganizationPositionService::index(&pool, &request) {
         Ok(response) => Ok(Json(json!(response))),
         Err(e) => {
             tracing::error!("Failed to fetch organization positions: {}", e);
@@ -77,12 +77,12 @@ pub async fn show(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers)?;
-    // let organization_position = JobPositionService::find(&pool, &id)?;
-    // if !JobPositionPolicy::view(&user, &organization_position)? {
+    // let organization_position = OrganizationPositionService::find(&pool, &id)?;
+    // if !OrganizationPositionPolicy::view(&user, &organization_position)? {
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match JobPositionService::show(&pool, &id) {
+    match OrganizationPositionService::show(&pool, &id) {
         Ok(organization_position) => Ok(Json(json!(organization_position))),
         Err(e) => {
             tracing::error!("Failed to fetch organization position {}: {}", id, e);
@@ -108,7 +108,7 @@ pub async fn show(
     tag = "Organization Positions",
     summary = "Create organization position",
     description = "Create a new organization position with name, optional code, organization position level association, and optional description",
-    request_body = CreateJobPositionRequest,
+    request_body = CreateOrganizationPositionRequest,
     responses(
         (status = 201, description = "Organization position created successfully"),
         (status = 422, description = "Validation error"),
@@ -117,15 +117,15 @@ pub async fn show(
 )]
 pub async fn store(
     State(pool): State<DbPool>,
-    request: CreateJobPositionRequest,
+    request: CreateOrganizationPositionRequest,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers)?;
-    // if !JobPositionPolicy::create(&user)? {
+    // if !OrganizationPositionPolicy::create(&user)? {
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match JobPositionService::create(&pool, &request) {
+    match OrganizationPositionService::create(&pool, &request) {
         Ok(organization_position) => Ok(Json(json!(organization_position))),
         Err(e) => {
             tracing::error!("Failed to create organization position: {}", e);
@@ -170,7 +170,7 @@ pub async fn store(
     params(
         ("id" = String, Path, description = "Organization position ULID")
     ),
-    request_body = UpdateJobPositionRequest,
+    request_body = UpdateOrganizationPositionRequest,
     responses(
         (status = 200, description = "Organization position updated successfully"),
         (status = 404, description = "Organization position not found"),
@@ -181,16 +181,16 @@ pub async fn store(
 pub async fn update(
     State(pool): State<DbPool>,
     Path(id): Path<String>,
-    request: UpdateJobPositionRequest,
+    request: UpdateOrganizationPositionRequest,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers)?;
-    // let organization_position = JobPositionService::find(&pool, &id)?;
-    // if !JobPositionPolicy::update(&user, &organization_position)? {
+    // let organization_position = OrganizationPositionService::find(&pool, &id)?;
+    // if !OrganizationPositionPolicy::update(&user, &organization_position)? {
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match JobPositionService::update(&pool, &id, &request) {
+    match OrganizationPositionService::update(&pool, &id, &request) {
         Ok(organization_position) => Ok(Json(json!(organization_position))),
         Err(e) => {
             tracing::error!("Failed to update organization position {}: {}", id, e);
@@ -253,12 +253,12 @@ pub async fn destroy(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers)?;
-    // let organization_position = JobPositionService::find(&pool, &id)?;
-    // if !JobPositionPolicy::delete(&user, &organization_position)? {
+    // let organization_position = OrganizationPositionService::find(&pool, &id)?;
+    // if !OrganizationPositionPolicy::delete(&user, &organization_position)? {
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match JobPositionService::delete(&pool, &id) {
+    match OrganizationPositionService::delete(&pool, &id) {
         Ok(_) => Ok(Json(json!({"message": "Organization position deleted successfully"}))),
         Err(e) => {
             tracing::error!("Failed to delete organization position {}: {}", id, e);
@@ -304,12 +304,12 @@ pub async fn activate(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers)?;
-    // let organization_position = JobPositionService::find(&pool, &id)?;
-    // if !JobPositionPolicy::update(&user, &organization_position)? {
+    // let organization_position = OrganizationPositionService::find(&pool, &id)?;
+    // if !OrganizationPositionPolicy::update(&user, &organization_position)? {
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match JobPositionService::activate(&pool, &id) {
+    match OrganizationPositionService::activate(&pool, &id) {
         Ok(organization_position) => Ok(Json(json!(organization_position))),
         Err(e) => {
             tracing::error!("Failed to activate organization position {}: {}", id, e);
@@ -350,12 +350,12 @@ pub async fn deactivate(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers)?;
-    // let organization_position = JobPositionService::find(&pool, &id)?;
-    // if !JobPositionPolicy::update(&user, &organization_position)? {
+    // let organization_position = OrganizationPositionService::find(&pool, &id)?;
+    // if !OrganizationPositionPolicy::update(&user, &organization_position)? {
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match JobPositionService::deactivate(&pool, &id) {
+    match OrganizationPositionService::deactivate(&pool, &id) {
         Ok(organization_position) => Ok(Json(json!(organization_position))),
         Err(e) => {
             tracing::error!("Failed to deactivate organization position {}: {}", id, e);
@@ -394,18 +394,18 @@ pub async fn deactivate(
 pub async fn by_level(
     State(pool): State<DbPool>,
     Path(organization_position_level_id): Path<String>,
-    mut request: JobPositionsByLevelRequest,
+    mut request: OrganizationPositionsByLevelRequest,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers)?;
-    // if !JobPositionPolicy::view_any(&user)? {
+    // if !OrganizationPositionPolicy::view_any(&user)? {
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
     // Set the organization_position_level_id from the path parameter
     request.organization_position_level_id = organization_position_level_id;
 
-    match JobPositionService::by_level(&pool, &request) {
+    match OrganizationPositionService::by_level(&pool, &request) {
         Ok(positions) => Ok(Json(json!(positions))),
         Err(e) => {
             tracing::error!("Failed to fetch organization positions by level: {}", e);
@@ -417,9 +417,9 @@ pub async fn by_level(
     }
 }
 
-pub struct JobPositionController;
+pub struct OrganizationPositionController;
 
-impl JobPositionController {
+impl OrganizationPositionController {
     pub fn index() -> &'static str {
         "index"
     }

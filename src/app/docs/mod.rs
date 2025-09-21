@@ -14,10 +14,10 @@ use crate::app::http::requests::province_requests::{CreateProvinceRequest, Updat
 use crate::app::http::requests::city_requests::{CreateCityRequest, UpdateCityRequest};
 
 // Adding back simple models that don't have circular dependencies
-use crate::app::models::joblevel::{OrganizationPositionLevel, CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel, OrganizationPositionLevelResponse};
-use crate::app::models::jobposition::{JobPosition, CreateJobPosition, UpdateJobPosition, JobPositionResponse};
+use crate::app::models::organization_position_level::{OrganizationPositionLevel, CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel, OrganizationPositionLevelResponse};
+use crate::app::models::organization_position::{OrganizationPosition, CreateOrganizationPosition, UpdateOrganizationPosition, OrganizationPositionResponse};
 use crate::app::http::requests::organization_position_level_requests::{CreateOrganizationPositionLevelRequest, UpdateOrganizationPositionLevelRequest, IndexOrganizationPositionLevelRequest};
-use crate::app::http::requests::organization_position_requests::{CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest};
+use crate::app::http::requests::organization_position_requests::{CreateOrganizationPositionRequest, UpdateOrganizationPositionRequest, IndexOrganizationPositionRequest, OrganizationPositionsByLevelRequest};
 
 // Role and permission models need ToSchema trait implementation - commented out for now
 // use crate::app::models::role::{Role, CreateRole, UpdateRole, RoleResponse};
@@ -87,8 +87,8 @@ use crate::app::models::organization::{Organization, CreateOrganization, UpdateO
             // Job models - safe to include as they have minimal dependencies
             OrganizationPositionLevel, CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel, OrganizationPositionLevelResponse,
             CreateOrganizationPositionLevelRequest, UpdateOrganizationPositionLevelRequest, IndexOrganizationPositionLevelRequest,
-            JobPosition, CreateJobPosition, UpdateJobPosition, JobPositionResponse,
-            CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest,
+            OrganizationPosition, CreateOrganizationPosition, UpdateOrganizationPosition, OrganizationPositionResponse,
+            CreateOrganizationPositionRequest, UpdateOrganizationPositionRequest, IndexOrganizationPositionRequest, OrganizationPositionsByLevelRequest,
 
             // Role and Permission models - commented out until ToSchema is implemented
             // Role, CreateRole, UpdateRole, RoleResponse,
@@ -104,7 +104,7 @@ use crate::app::models::organization::{Organization, CreateOrganization, UpdateO
             // Complex resource models - commented out due to circular dependencies
             // UserOrganizationResource, UserOrganizationResourceWithRelations, UserOrganizationCollection,
             // UserOrganizationSummaryResource, UserOrganizationActivityResource, OrganizationHierarchyResource,
-            // UserBasicInfo, OrganizationBasicInfo, JobPositionBasicInfo, OrganizationPositionLevelBasicInfo, RoleBasicInfo,
+            // UserBasicInfo, OrganizationBasicInfo, OrganizationPositionBasicInfo, OrganizationPositionLevelBasicInfo, RoleBasicInfo,
             // UserOrgPaginationMeta, OrganizationTypeCount,
 
             // Common response types - basic ones only

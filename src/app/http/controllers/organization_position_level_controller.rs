@@ -8,7 +8,7 @@ use ulid::Ulid;
 use crate::database::DbPool;
 use std::collections::HashMap;
 
-use crate::app::models::joblevel::{CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel};
+use crate::app::models::organization_position_level::{CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel};
 use crate::app::services::organization_position_level_service::OrganizationPositionLevelService;
 use crate::app::http::requests::{CreateOrganizationPositionLevelRequest, UpdateOrganizationPositionLevelRequest};
 
@@ -22,22 +22,6 @@ struct MessageResponse {
     message: String,
 }
 
-/// Get all organization position levels with optional filtering and pagination
-///
-/// Retrieve a list of all organization position levels with support for filtering and pagination.
-/// You can filter by any field and sort by any column.
-///
-/// # Query Parameters
-/// - `page`: Page number for pagination (default: 1)
-/// - `limit`: Number of items per page (default: 10, max: 100)
-/// - `sort`: Sort field (default: level)
-/// - `direction`: Sort direction - asc or desc (default: asc)
-/// - `filter[field]`: Filter by field value
-///
-/// # Example
-/// ```
-/// GET /api/organization-position-levels?page=1&limit=10&sort=level&direction=asc&filter[is_active]=true
-/// ```
 #[utoipa::path(
     get,
     path = "/api/organization-position-levels",
@@ -51,7 +35,7 @@ struct MessageResponse {
         ("direction" = Option<String>, Query, description = "Sort direction (asc/desc)"),
     ),
     responses(
-        (status = 200, description = "List of organization position levels", body = Vec<crate::app::models::joblevel::OrganizationPositionLevelResponse>),
+        (status = 200, description = "List of organization position levels", body = Vec<crate::app::models::organization_position_level::OrganizationPositionLevelResponse>),
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
@@ -73,18 +57,6 @@ pub async fn index(
     }
 }
 
-/// Get a specific organization position level by ID
-///
-/// Retrieve detailed information about a specific organization position level using its unique identifier.
-/// The ID should be a valid ULID format.
-///
-/// # Path Parameters
-/// - `id`: The unique identifier of the organization position level (ULID format)
-///
-/// # Example
-/// ```
-/// GET /api/organization-position-levels/01ARZ3NDEKTSV4RRFFQ69G5FAV
-/// ```
 #[utoipa::path(
     get,
     path = "/api/organization-position-levels/{id}",
@@ -95,7 +67,7 @@ pub async fn index(
         ("id" = String, Path, description = "Job level unique identifier (ULID format)")
     ),
     responses(
-        (status = 200, description = "Job level details", body = crate::app::models::joblevel::OrganizationPositionLevelResponse),
+        (status = 200, description = "Job level details", body = crate::app::models::organization_position_level::OrganizationPositionLevelResponse),
         (status = 400, description = "Invalid ID format", body = crate::app::docs::ErrorResponse),
         (status = 404, description = "Job level not found", body = crate::app::docs::ErrorResponse),
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
@@ -158,7 +130,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
     description = "Create a new organization position level with the provided information",
     request_body = crate::app::http::requests::CreateOrganizationPositionLevelRequest,
     responses(
-        (status = 201, description = "Job level created successfully", body = crate::app::models::joblevel::OrganizationPositionLevelResponse),
+        (status = 201, description = "Job level created successfully", body = crate::app::models::organization_position_level::OrganizationPositionLevelResponse),
         (status = 400, description = "Validation error or bad request", body = crate::app::docs::ErrorResponse),
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
@@ -208,7 +180,7 @@ pub async fn store(State(pool): State<DbPool>, request: CreateOrganizationPositi
     ),
     request_body = crate::app::http::requests::UpdateOrganizationPositionLevelRequest,
     responses(
-        (status = 200, description = "Job level updated successfully", body = crate::app::models::joblevel::OrganizationPositionLevelResponse),
+        (status = 200, description = "Job level updated successfully", body = crate::app::models::organization_position_level::OrganizationPositionLevelResponse),
         (status = 400, description = "Invalid ID format or validation error", body = crate::app::docs::ErrorResponse),
         (status = 404, description = "Job level not found", body = crate::app::docs::ErrorResponse),
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
@@ -313,7 +285,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         ("id" = String, Path, description = "Job level unique identifier (ULID format)")
     ),
     responses(
-        (status = 200, description = "Job level activated successfully", body = crate::app::models::joblevel::OrganizationPositionLevelResponse),
+        (status = 200, description = "Job level activated successfully", body = crate::app::models::organization_position_level::OrganizationPositionLevelResponse),
         (status = 400, description = "Invalid ID format", body = crate::app::docs::ErrorResponse),
         (status = 404, description = "Job level not found", body = crate::app::docs::ErrorResponse),
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
@@ -382,7 +354,7 @@ pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> imp
         ("id" = String, Path, description = "Job level unique identifier (ULID format)")
     ),
     responses(
-        (status = 200, description = "Job level deactivated successfully", body = crate::app::models::joblevel::OrganizationPositionLevelResponse),
+        (status = 200, description = "Job level deactivated successfully", body = crate::app::models::organization_position_level::OrganizationPositionLevelResponse),
         (status = 400, description = "Invalid ID format", body = crate::app::docs::ErrorResponse),
         (status = 404, description = "Job level not found", body = crate::app::docs::ErrorResponse),
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)

@@ -3,6 +3,7 @@ use ulid::Ulid;
 use crate::database::DbPool;
 use rust_decimal::Decimal;
 use diesel::prelude::*;
+use diesel::sql_types::Numeric;
 use crate::schema::cities;
 
 use crate::app::models::city::{City, CreateCity, UpdateCity};
@@ -56,30 +57,35 @@ impl CityService {
     pub fn find_by_coordinates(pool: &DbPool, lat: Decimal, lng: Decimal, radius_km: Decimal) -> Result<Vec<City>> {
         let mut conn = pool.get()?;
 
-        let query = r#"
-            SELECT id, province_id, name, code, latitude, longitude, created_at, updated_at FROM cities
-            WHERE latitude IS NOT NULL
-            AND longitude IS NOT NULL
-            AND (
-                6371 * acos(
-                    cos(radians($1)) * cos(radians(latitude)) *
-                    cos(radians(longitude) - radians($2)) +
-                    sin(radians($1)) * sin(radians(latitude))
-                )
-            ) <= $3
-            ORDER BY (
-                6371 * acos(
-                    cos(radians($1)) * cos(radians(latitude)) *
-                    cos(radians(longitude) - radians($2)) +
-                    sin(radians($1)) * sin(radians(latitude))
-                )
-            ) ASC
-        "#;
+        // Define the distance calculation as a custom SQL function
+        diesel::define_sql_function!(fn haversine_distance(lat1: Numeric, lng1: Numeric, lat2: Numeric, lng2: Numeric) -> Numeric);
 
-        let result = diesel::sql_query(query)
-            .bind::<diesel::sql_types::Numeric, _>(lat)
-            .bind::<diesel::sql_types::Numeric, _>(lng)
-            .bind::<diesel::sql_types::Numeric, _>(radius_km)
+        let result = cities::table
+            .filter(cities::latitude.is_not_null())
+            .filter(cities::longitude.is_not_null())
+            .filter(
+                diesel::dsl::sql::<diesel::sql_types::Numeric>(
+                    "6371 * acos(cos(radians("
+                )
+                .bind::<diesel::sql_types::Numeric, _>(lat)
+                .sql(")) * cos(radians(latitude)) * cos(radians(longitude) - radians(")
+                .bind::<diesel::sql_types::Numeric, _>(lng)
+                .sql(")) + sin(radians(")
+                .bind::<diesel::sql_types::Numeric, _>(lat)
+                .sql(")) * sin(radians(latitude)))")
+                .le(radius_km)
+            )
+            .order_by(
+                diesel::dsl::sql::<diesel::sql_types::Numeric>(
+                    "6371 * acos(cos(radians("
+                )
+                .bind::<diesel::sql_types::Numeric, _>(lat)
+                .sql(")) * cos(radians(latitude)) * cos(radians(longitude) - radians(")
+                .bind::<diesel::sql_types::Numeric, _>(lng)
+                .sql(")) + sin(radians(")
+                .bind::<diesel::sql_types::Numeric, _>(lat)
+                .sql(")) * sin(radians(latitude)))")
+            )
             .load::<City>(&mut conn)?;
 
         Ok(result)

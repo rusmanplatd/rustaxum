@@ -6,15 +6,15 @@ use serde_json::{json, Value};
 use diesel::prelude::*;
 use crate::schema::organization_positions;
 
-use crate::app::models::jobposition::JobPosition;
+use crate::app::models::organization_position::OrganizationPosition;
 use crate::app::http::requests::organization_position_requests::{
-    CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest
+    CreateOrganizationPositionRequest, UpdateOrganizationPositionRequest, IndexOrganizationPositionRequest, OrganizationPositionsByLevelRequest
 };
 
-pub struct JobPositionService;
+pub struct OrganizationPositionService;
 
-impl JobPositionService {
-    pub fn index(pool: &DbPool, request: &IndexJobPositionRequest) -> Result<Value> {
+impl OrganizationPositionService {
+    pub fn index(pool: &DbPool, request: &IndexOrganizationPositionRequest) -> Result<Value> {
         let mut conn = pool.get()?;
 
         let mut query = organization_positions::table.into_boxed();
@@ -52,7 +52,7 @@ impl JobPositionService {
         let organization_positions = query
             .limit(per_page as i64)
             .offset(offset as i64)
-            .load::<JobPosition>(&mut conn)?;
+            .load::<OrganizationPosition>(&mut conn)?;
 
         let total = organization_positions::table.count().get_result::<i64>(&mut conn)?;
 
@@ -67,19 +67,19 @@ impl JobPositionService {
         }))
     }
 
-    pub fn show(pool: &DbPool, id: &str) -> Result<JobPosition> {
+    pub fn show(pool: &DbPool, id: &str) -> Result<OrganizationPosition> {
         let mut conn = pool.get()?;
 
         let organization_position = organization_positions::table
             .filter(organization_positions::id.eq(id))
-            .first::<JobPosition>(&mut conn)
+            .first::<OrganizationPosition>(&mut conn)
             .optional()?
             .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
 
         Ok(organization_position)
     }
 
-    pub fn create(pool: &DbPool, request: &CreateJobPositionRequest) -> Result<JobPosition> {
+    pub fn create(pool: &DbPool, request: &CreateOrganizationPositionRequest) -> Result<OrganizationPosition> {
         let mut conn = pool.get()?;
         let id = Ulid::new();
         let now = Utc::now();
@@ -95,12 +95,12 @@ impl JobPositionService {
                 organization_positions::created_at.eq(now),
                 organization_positions::updated_at.eq(now),
             ))
-            .get_result::<JobPosition>(&mut conn)?;
+            .get_result::<OrganizationPosition>(&mut conn)?;
 
         Ok(organization_position)
     }
 
-    pub fn update(pool: &DbPool, id: &str, request: &UpdateJobPositionRequest) -> Result<JobPosition> {
+    pub fn update(pool: &DbPool, id: &str, request: &UpdateOrganizationPositionRequest) -> Result<OrganizationPosition> {
         let mut conn = pool.get()?;
         let now = Utc::now();
 
@@ -115,7 +115,7 @@ impl JobPositionService {
                 organization_positions::is_active.eq(request.is_active.unwrap_or(true)),
                 organization_positions::updated_at.eq(now),
             ))
-            .get_result::<JobPosition>(&mut conn)
+            .get_result::<OrganizationPosition>(&mut conn)
             .optional()?
             .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
 
@@ -135,7 +135,7 @@ impl JobPositionService {
         Ok(())
     }
 
-    pub fn activate(pool: &DbPool, id: &str) -> Result<JobPosition> {
+    pub fn activate(pool: &DbPool, id: &str) -> Result<OrganizationPosition> {
         let mut conn = pool.get()?;
         let now = Utc::now();
 
@@ -144,14 +144,14 @@ impl JobPositionService {
                 organization_positions::is_active.eq(true),
                 organization_positions::updated_at.eq(now),
             ))
-            .get_result::<JobPosition>(&mut conn)
+            .get_result::<OrganizationPosition>(&mut conn)
             .optional()?
             .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
 
         Ok(organization_position)
     }
 
-    pub fn deactivate(pool: &DbPool, id: &str) -> Result<JobPosition> {
+    pub fn deactivate(pool: &DbPool, id: &str) -> Result<OrganizationPosition> {
         let mut conn = pool.get()?;
         let now = Utc::now();
 
@@ -160,14 +160,14 @@ impl JobPositionService {
                 organization_positions::is_active.eq(false),
                 organization_positions::updated_at.eq(now),
             ))
-            .get_result::<JobPosition>(&mut conn)
+            .get_result::<OrganizationPosition>(&mut conn)
             .optional()?
             .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
 
         Ok(organization_position)
     }
 
-    pub fn by_level(pool: &DbPool, request: &JobPositionsByLevelRequest) -> Result<Value> {
+    pub fn by_level(pool: &DbPool, request: &OrganizationPositionsByLevelRequest) -> Result<Value> {
         let mut conn = pool.get()?;
         let include_inactive = request.include_inactive.unwrap_or(false);
 
@@ -181,7 +181,7 @@ impl JobPositionService {
 
         let organization_positions = query
             .order(organization_positions::created_at.desc())
-            .load::<JobPosition>(&mut conn)?;
+            .load::<OrganizationPosition>(&mut conn)?;
 
         Ok(json!({
             "data": organization_positions.into_iter().map(|jp| jp.to_response()).collect::<Vec<_>>(),

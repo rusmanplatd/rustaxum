@@ -22,22 +22,6 @@ struct MessageResponse {
     message: String,
 }
 
-/// Get all organizations with optional filtering and pagination
-///
-/// Retrieve a list of all organizations with support for filtering and pagination.
-/// You can filter by any field and sort by any column.
-///
-/// # Query Parameters
-/// - `page`: Page number for pagination (default: 1)
-/// - `limit`: Number of items per page (default: 10, max: 100)
-/// - `sort`: Sort field (default: name)
-/// - `direction`: Sort direction - asc or desc (default: asc)
-/// - `filter[field]`: Filter by field value
-///
-/// # Example
-/// ```
-/// GET /api/organizations?page=1&limit=10&sort=name&direction=asc&filter[organization_type]=department
-/// ```
 #[utoipa::path(
     get,
     path = "/api/organizations",
@@ -73,18 +57,6 @@ pub async fn index(
     }
 }
 
-/// Get a specific organization by ID
-///
-/// Retrieve detailed information about a specific organization using its unique identifier.
-/// The ID should be a valid ULID format.
-///
-/// # Path Parameters
-/// - `id`: The unique identifier of the organization (ULID format)
-///
-/// # Example
-/// ```
-/// GET /api/organizations/01ARZ3NDEKTSV4RRFFQ69G5FAV
-/// ```
 #[utoipa::path(
     get,
     path = "/api/organizations/{id}",

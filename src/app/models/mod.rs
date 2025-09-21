@@ -7,9 +7,9 @@ pub mod city;
 pub mod role;
 pub mod permission;
 pub mod organization;
-pub mod joblevel;
-pub mod jobposition;
-pub mod userorganization;
+pub mod organization_position_level;
+pub mod organization_position;
+pub mod user_organization;
 pub mod notification;
 pub mod sys_model_has_permission;
 pub mod sys_model_has_role;
@@ -31,6 +31,7 @@ pub trait HasRoles: HasModelType {
 pub mod model_types {
     use crate::app::models::user::User;
     use crate::app::models::organization::Organization;
+    use crate::app::models::user_organization::UserOrganization;
     use crate::app::models::HasModelType;
 
     /// Returns a list of all valid model types
@@ -38,6 +39,7 @@ pub mod model_types {
         vec![
             User::model_type(),
             Organization::model_type(),
+            UserOrganization::model_type(),
         ]
     }
 
@@ -49,4 +51,5 @@ pub mod model_types {
     /// Model type constants for easy access
     pub const USER: &str = "User";
     pub const ORGANIZATION: &str = "Organization";
+    pub const USER_ORGANIZATION: &str = "User_Organization";
 }

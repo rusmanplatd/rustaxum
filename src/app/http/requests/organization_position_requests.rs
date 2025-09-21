@@ -10,7 +10,7 @@ use crate::impl_form_request_extractor;
 
 /// Create organization position form request
 #[derive(Deserialize, Serialize, ToSchema)]
-pub struct CreateJobPositionRequest {
+pub struct CreateOrganizationPositionRequest {
     /// Organization position name (2-100 characters)
     #[schema(example = "Senior Software Engineer")]
     pub name: String,
@@ -28,7 +28,7 @@ pub struct CreateJobPositionRequest {
 }
 
 #[async_trait]
-impl FormRequest for CreateJobPositionRequest {
+impl FormRequest for CreateOrganizationPositionRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
             "name" => ["required", "string", "min:2", "max:100"],
@@ -61,11 +61,11 @@ impl FormRequest for CreateJobPositionRequest {
     }
 }
 
-impl_form_request_extractor!(CreateJobPositionRequest);
+impl_form_request_extractor!(CreateOrganizationPositionRequest);
 
 /// Update organization position form request
 #[derive(Deserialize, Serialize, ToSchema)]
-pub struct UpdateJobPositionRequest {
+pub struct UpdateOrganizationPositionRequest {
     /// Organization position name (optional, 2-100 characters)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "Senior Software Engineer")]
@@ -89,7 +89,7 @@ pub struct UpdateJobPositionRequest {
 }
 
 #[async_trait]
-impl FormRequest for UpdateJobPositionRequest {
+impl FormRequest for UpdateOrganizationPositionRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
             "name" => ["string", "min:2", "max:100"],
@@ -123,11 +123,11 @@ impl FormRequest for UpdateJobPositionRequest {
     }
 }
 
-impl_form_request_extractor!(UpdateJobPositionRequest);
+impl_form_request_extractor!(UpdateOrganizationPositionRequest);
 
 /// Index/list organization positions form request
 #[derive(Deserialize, Serialize, ToSchema)]
-pub struct IndexJobPositionRequest {
+pub struct IndexOrganizationPositionRequest {
     /// Page number (default: 1)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = 1)]
@@ -159,7 +159,7 @@ pub struct IndexJobPositionRequest {
 }
 
 #[async_trait]
-impl FormRequest for IndexJobPositionRequest {
+impl FormRequest for IndexOrganizationPositionRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
             "page" => ["numeric", "min:1"],
@@ -203,11 +203,11 @@ impl FormRequest for IndexJobPositionRequest {
     }
 }
 
-impl_form_request_extractor!(IndexJobPositionRequest);
+impl_form_request_extractor!(IndexOrganizationPositionRequest);
 
 /// Organization positions by organization position level form request
 #[derive(Deserialize, Serialize, ToSchema)]
-pub struct JobPositionsByLevelRequest {
+pub struct OrganizationPositionsByLevelRequest {
     /// Job level ID (ULID format)
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub organization_position_level_id: String,
@@ -218,7 +218,7 @@ pub struct JobPositionsByLevelRequest {
 }
 
 #[async_trait]
-impl FormRequest for JobPositionsByLevelRequest {
+impl FormRequest for OrganizationPositionsByLevelRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
             "organization_position_level_id" => ["required", "string", "ulid_format"],
@@ -248,4 +248,4 @@ impl FormRequest for JobPositionsByLevelRequest {
     }
 }
 
-impl_form_request_extractor!(JobPositionsByLevelRequest);
+impl_form_request_extractor!(OrganizationPositionsByLevelRequest);

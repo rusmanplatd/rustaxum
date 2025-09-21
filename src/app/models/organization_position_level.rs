@@ -5,26 +5,27 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::query_builder::{Queryable, SortDirection};
 
-/// Organization position model representing specific sys_roles within organization position levels
-/// Contains position information and relationship to organization position level hierarchy
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct JobPosition {
-    /// Unique identifier for the organization position
+/// Job level model representing organizational hierarchy levels
+/// Contains level information including rank, code, and description
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, diesel::Queryable, Identifiable)]
+#[diesel(table_name = crate::schema::organization_position_levels)]
+pub struct OrganizationPositionLevel {
+    /// Unique identifier for the organization position level
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub id: Ulid,
-    /// Organization position name
-    #[schema(example = "Software Engineering Manager")]
+    /// Job level name
+    #[schema(example = "Senior Manager")]
     pub name: String,
-    /// Optional organization position code
-    #[schema(example = "SEM")]
+    /// Optional organization position level code
+    #[schema(example = "SM")]
     pub code: Option<String>,
-    /// ID of the organization position level this position belongs to
-    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub organization_position_level_id: Ulid,
-    /// Optional description of the organization position
-    #[schema(example = "Manages software engineering teams and technical projects")]
+    /// Numeric level ranking (higher number = higher level)
+    #[schema(example = 5)]
+    pub level: i32,
+    /// Optional description of the organization position level
+    #[schema(example = "Senior management position with team leadership responsibilities")]
     pub description: Option<String>,
-    /// Whether the organization position is currently active
+    /// Whether the organization position level is currently active
     #[schema(example = true)]
     pub is_active: bool,
     /// Creation timestamp
@@ -35,46 +36,60 @@ pub struct JobPosition {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Create organization position payload for service layer
+/// Create organization position level payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct CreateJobPosition {
+pub struct CreateOrganizationPositionLevel {
     pub name: String,
     pub code: Option<String>,
-    pub organization_position_level_id: String,
+    pub level: i32,
     pub description: Option<String>,
 }
 
-/// Update organization position payload for service layer
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct UpdateJobPosition {
-    pub name: Option<String>,
-    pub code: Option<String>,
-    pub organization_position_level_id: Option<String>,
-    pub description: Option<String>,
-    pub is_active: Option<bool>,
-}
-
-/// Organization position response payload for API endpoints
-#[derive(Debug, Serialize, ToSchema)]
-pub struct JobPositionResponse {
+/// Insertable struct for organization position levels
+#[derive(Debug, Insertable)]
+#[diesel(table_name = crate::schema::organization_position_levels)]
+pub struct NewOrganizationPositionLevel {
     pub id: String,
     pub name: String,
     pub code: Option<String>,
-    pub organization_position_level_id: String,
+    pub level: i32,
     pub description: Option<String>,
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-impl JobPosition {
-    pub fn new(name: String, code: Option<String>, organization_position_level_id: Ulid, description: Option<String>) -> Self {
+/// Update organization position level payload for service layer
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct UpdateOrganizationPositionLevel {
+    pub name: Option<String>,
+    pub code: Option<String>,
+    pub level: Option<i32>,
+    pub description: Option<String>,
+    pub is_active: Option<bool>,
+}
+
+/// Job level response payload for API endpoints
+#[derive(Debug, Serialize, ToSchema)]
+pub struct OrganizationPositionLevelResponse {
+    pub id: String,
+    pub name: String,
+    pub code: Option<String>,
+    pub level: i32,
+    pub description: Option<String>,
+    pub is_active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl OrganizationPositionLevel {
+    pub fn new(name: String, code: Option<String>, level: i32, description: Option<String>) -> Self {
         let now = Utc::now();
         Self {
             id: Ulid::new(),
             name,
             code,
-            organization_position_level_id,
+            level,
             description,
             is_active: true,
             created_at: now,
@@ -82,12 +97,12 @@ impl JobPosition {
         }
     }
 
-    pub fn to_response(&self) -> JobPositionResponse {
-        JobPositionResponse {
+    pub fn to_response(&self) -> OrganizationPositionLevelResponse {
+        OrganizationPositionLevelResponse {
             id: self.id.to_string(),
             name: self.name.clone(),
             code: self.code.clone(),
-            organization_position_level_id: self.organization_position_level_id.to_string(),
+            level: self.level,
             description: self.description.clone(),
             is_active: self.is_active,
             created_at: self.created_at,
@@ -96,9 +111,9 @@ impl JobPosition {
     }
 }
 
-impl Queryable for JobPosition {
+impl Queryable for OrganizationPositionLevel {
     fn table_name() -> &'static str {
-        "organization_positions"
+        "OrganizationPositionLevel"
     }
 
     fn allowed_filters() -> Vec<&'static str> {
@@ -106,7 +121,7 @@ impl Queryable for JobPosition {
             "id",
             "name",
             "code",
-            "organization_position_level_id",
+            "level",
             "description",
             "is_active",
             "created_at",
@@ -119,7 +134,7 @@ impl Queryable for JobPosition {
             "id",
             "name",
             "code",
-            "organization_position_level_id",
+            "level",
             "description",
             "is_active",
             "created_at",
@@ -132,7 +147,7 @@ impl Queryable for JobPosition {
             "id",
             "name",
             "code",
-            "organization_position_level_id",
+            "level",
             "description",
             "is_active",
             "created_at",
@@ -141,6 +156,6 @@ impl Queryable for JobPosition {
     }
 
     fn default_sort() -> Option<(&'static str, SortDirection)> {
-        Some(("name", SortDirection::Asc))
+        Some(("level", SortDirection::Asc))
     }
 }

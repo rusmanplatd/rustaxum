@@ -22,22 +22,6 @@ struct MessageResponse {
     message: String,
 }
 
-/// Get all countries with optional filtering and pagination
-///
-/// Retrieve a list of all countries with support for filtering and pagination.
-/// You can filter by any field and sort by any column.
-///
-/// # Query Parameters
-/// - `page`: Page number for pagination (default: 1)
-/// - `limit`: Number of items per page (default: 10, max: 100)
-/// - `sort`: Sort field (default: name)
-/// - `direction`: Sort direction - asc or desc (default: asc)
-/// - `filter[field]`: Filter by field value
-///
-/// # Example
-/// ```
-/// GET /api/countries?page=1&limit=10&sort=name&direction=asc&filter[name]=united
-/// ```
 #[utoipa::path(
     get,
     path = "/api/countries",
@@ -73,18 +57,6 @@ pub async fn index(
     }
 }
 
-/// Get a specific country by ID
-///
-/// Retrieve detailed information about a specific country using its unique identifier.
-/// The ID should be a valid ULID format.
-///
-/// # Path Parameters
-/// - `id`: The unique identifier of the country (ULID format)
-///
-/// # Example
-/// ```
-/// GET /api/countries/01ARZ3NDEKTSV4RRFFQ69G5FAV
-/// ```
 #[utoipa::path(
     get,
     path = "/api/countries/{id}",

@@ -93,7 +93,7 @@ pub struct UserOrganizationResourceWithRelations {
     /// Organization information
     pub organization: Option<OrganizationBasicInfo>,
     /// Organization position information
-    pub organization_position: Option<JobPositionBasicInfo>,
+    pub organization_position: Option<OrganizationPositionBasicInfo>,
 }
 
 /// Basic user information for relations
@@ -129,7 +129,7 @@ pub struct OrganizationBasicInfo {
 
 /// Basic organization position information for relations
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct JobPositionBasicInfo {
+pub struct OrganizationPositionBasicInfo {
     /// Organization position ID
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub id: String,
