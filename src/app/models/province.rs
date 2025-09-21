@@ -3,18 +3,19 @@ use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
-use crate::app::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{SortDirection};
 
 /// Province model representing a state/province within a country
 /// Contains geographical and administrative information
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
+#[diesel(table_name = crate::schema::provinces)]
 pub struct Province {
     /// Unique province identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: Ulid,
+    pub id: String,
     /// ID of the country this province belongs to
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub country_id: Ulid,
+    pub country_id: String,
     /// Province name
     #[schema(example = "California")]
     pub name: String,
@@ -37,6 +38,18 @@ pub struct CreateProvince {
     pub code: Option<String>,
 }
 
+/// Insertable struct for provinces
+#[derive(Debug, Insertable)]
+#[diesel(table_name = crate::schema::provinces)]
+pub struct NewProvince {
+    pub id: String,
+    pub country_id: String,
+    pub name: String,
+    pub code: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// Update province payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateProvince {
@@ -56,11 +69,11 @@ pub struct ProvinceResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl Province {
-    pub fn new(country_id: Ulid, name: String, code: Option<String>) -> Self {
+impl NewProvince {
+    pub fn new(country_id: String, name: String, code: Option<String>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new(),
+            id: Ulid::new().to_string(),
             country_id,
             name,
             code,
@@ -68,11 +81,14 @@ impl Province {
             updated_at: now,
         }
     }
+}
+
+impl Province {
 
     pub fn to_response(&self) -> ProvinceResponse {
         ProvinceResponse {
-            id: self.id.to_string(),
-            country_id: self.country_id.to_string(),
+            id: self.id.clone(),
+            country_id: self.country_id.clone(),
             name: self.name.clone(),
             code: self.code.clone(),
             created_at: self.created_at,

@@ -149,8 +149,8 @@ pub async fn authorize(
 
     // Create authorization code
     let auth_code_data = CreateAuthCode {
-        user_id,
-        client_id,
+        user_id: user_id.to_string(),
+        client_id: client_id.to_string(),
         scopes: ScopeService::get_scope_names(&scopes),
         redirect_uri: params.redirect_uri.clone(),
         challenge: params.code_challenge,
@@ -347,7 +347,7 @@ async fn handle_client_credentials_grant(pool: &DbPool, params: TokenRequest) ->
     // Create access token (no user for client credentials)
     let create_token = crate::app::models::oauth::CreateAccessToken {
         user_id: None,
-        client_id,
+        client_id: client_id.to_string(),
         name: None,
         scopes: ScopeService::get_scope_names(&scopes),
         expires_at: Some(Utc::now() + Duration::seconds(3600)), // 1 hour

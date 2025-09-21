@@ -1,6 +1,6 @@
 use crate::app::query_builder::{
-    QueryBuilder, QueryBuilderService, QueryParams, PaginationType,
-    Filter, Sort, SortDirection
+    QueryBuilderService, QueryParams,
+    Filter, Sort
 };
 use crate::app::models::user::User;
 use crate::database::DbPool;

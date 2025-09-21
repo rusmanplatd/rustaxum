@@ -3,16 +3,16 @@ use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
-use crate::app::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{SortDirection};
 
 /// Organization position model representing specific sys_roles within organization position levels
 /// Contains position information and relationship to organization position level hierarchy
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, diesel::Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::organization_positions)]
 pub struct OrganizationPosition {
     /// Unique identifier for the organization position
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: Ulid,
+    pub id: String,
     /// Organization position name
     #[schema(example = "Software Engineering Manager")]
     pub name: String,
@@ -21,7 +21,7 @@ pub struct OrganizationPosition {
     pub code: Option<String>,
     /// ID of the organization position level this position belongs to
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub organization_position_level_id: Ulid,
+    pub organization_position_level_id: String,
     /// Optional description of the organization position
     #[schema(example = "Manages software engineering teams and technical projects")]
     pub description: Option<String>,
@@ -82,11 +82,11 @@ pub struct OrganizationPositionResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl OrganizationPosition {
-    pub fn new(name: String, code: Option<String>, organization_position_level_id: Ulid, description: Option<String>) -> Self {
+impl NewOrganizationPosition {
+    pub fn new(name: String, code: Option<String>, organization_position_level_id: String, description: Option<String>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new(),
+            id: Ulid::new().to_string(),
             name,
             code,
             organization_position_level_id,
@@ -96,13 +96,16 @@ impl OrganizationPosition {
             updated_at: now,
         }
     }
+}
+
+impl OrganizationPosition {
 
     pub fn to_response(&self) -> OrganizationPositionResponse {
         OrganizationPositionResponse {
-            id: self.id.to_string(),
+            id: self.id.clone(),
             name: self.name.clone(),
             code: self.code.clone(),
-            organization_position_level_id: self.organization_position_level_id.to_string(),
+            organization_position_level_id: self.organization_position_level_id.clone(),
             description: self.description.clone(),
             is_active: self.is_active,
             created_at: self.created_at,

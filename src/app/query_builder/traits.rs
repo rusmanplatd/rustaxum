@@ -1,5 +1,4 @@
 use crate::app::query_builder::SortDirection;
-use diesel::prelude::*;
 use diesel::pg::PgConnection;
 use anyhow::Result;
 

@@ -2,11 +2,23 @@ use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
-use crate::app::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
+#[diesel(table_name = crate::schema::oauth_scopes)]
 pub struct Scope {
-    pub id: Ulid,
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub is_default: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Insertable)]
+#[diesel(table_name = crate::schema::oauth_scopes)]
+pub struct NewScope {
+    pub id: String,
     pub name: String,
     pub description: Option<String>,
     pub is_default: bool,
@@ -39,21 +51,10 @@ pub struct ScopeResponse {
 }
 
 impl Scope {
-    pub fn new(name: String, description: Option<String>, is_default: bool) -> Self {
-        let now = Utc::now();
-        Self {
-            id: Ulid::new(),
-            name,
-            description,
-            is_default,
-            created_at: now,
-            updated_at: now,
-        }
-    }
 
     pub fn to_response(&self) -> ScopeResponse {
         ScopeResponse {
-            id: self.id.to_string(),
+            id: self.id.clone(),
             name: self.name.clone(),
             description: self.description.clone(),
             is_default: self.is_default,
@@ -68,6 +69,20 @@ impl Scope {
 
     pub fn implies(&self, other: &str) -> bool {
         self.is_wildcard() || self.name == other
+    }
+}
+
+impl NewScope {
+    pub fn new(name: String, description: Option<String>, is_default: bool) -> Self {
+        let now = Utc::now();
+        Self {
+            id: Ulid::new().to_string(),
+            name,
+            description,
+            is_default,
+            created_at: now,
+            updated_at: now,
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use ulid::Ulid;
 use diesel::prelude::*;
-use crate::database::{DbPool, DbConnection};
+use crate::database::{DbPool};
 use crate::schema::sys_roles;
 use crate::app::models::role::{Role, CreateRole, UpdateRole};
 use crate::app::models::HasRoles;

@@ -451,11 +451,11 @@ impl TokenService {
         let expires_at = access_token.expires_at.unwrap_or(now + Duration::days(1));
 
         let claims = TokenClaims {
-            sub: access_token.user_id.map(|id| id.to_string()).unwrap_or_default(),
+            sub: access_token.user_id.clone().unwrap_or_default(),
             aud: client_id.to_string(),
             exp: expires_at.timestamp() as usize,
             iat: now.timestamp() as usize,
-            jti: access_token.id.to_string(),
+            jti: access_token.id.clone(),
             scopes: access_token.get_scopes(),
         };
 

@@ -2,7 +2,7 @@ use anyhow::Result;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
-use crate::database::{DbPool, DbConnection};
+use crate::database::{DbPool};
 use crate::schema::sys_users;
 use crate::app::models::user::{User, CreateUser, UpdateUser};
 

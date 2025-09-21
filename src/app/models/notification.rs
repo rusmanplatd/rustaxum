@@ -3,16 +3,15 @@ use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
-use crate::app::query_builder::{Queryable, SortDirection};
-use crate::schema::notifications;
+use crate::app::query_builder::{SortDirection};
 
 /// Database notification model
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, diesel::Queryable, Identifiable, QueryableByName)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, QueryableByName)]
 #[diesel(table_name = crate::schema::notifications)]
 pub struct Notification {
     /// Unique notification identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: Ulid,
+    pub id: String,
     /// Type of notification (class name) - maps to schema type_ field
     #[schema(example = "InvoicePaidNotification")]
     #[diesel(column_name = type_)]
@@ -61,6 +60,29 @@ pub struct CreateNotification {
     pub data: serde_json::Value,
 }
 
+/// Insertable struct for notifications
+#[derive(Debug, Insertable)]
+#[diesel(table_name = crate::schema::notifications)]
+pub struct NewNotification {
+    pub id: String,
+    #[diesel(column_name = type_)]
+    pub notification_type: String,
+    pub notifiable_type: String,
+    pub notifiable_id: String,
+    pub data: serde_json::Value,
+    pub channels: Option<Vec<Option<String>>>,
+    pub read_at: Option<DateTime<Utc>>,
+    pub sent_at: Option<DateTime<Utc>>,
+    pub failed_at: Option<DateTime<Utc>>,
+    pub retry_count: Option<i32>,
+    pub max_retries: Option<i32>,
+    pub error_message: Option<String>,
+    pub priority: Option<i32>,
+    pub scheduled_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// Update notification payload
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateNotification {
@@ -80,7 +102,7 @@ pub struct NotificationResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl Notification {
+impl NewNotification {
     pub fn new(
         notification_type: String,
         notifiable_id: String,
@@ -89,7 +111,7 @@ impl Notification {
     ) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new(),
+            id: Ulid::new().to_string(),
             notification_type,
             notifiable_type,
             notifiable_id,
@@ -107,10 +129,13 @@ impl Notification {
             updated_at: now,
         }
     }
+}
+
+impl Notification {
 
     pub fn to_response(&self) -> NotificationResponse {
         NotificationResponse {
-            id: self.id.to_string(),
+            id: self.id.clone(),
             notification_type: self.notification_type.clone(),
             notifiable_id: self.notifiable_id.clone(),
             notifiable_type: self.notifiable_type.clone(),

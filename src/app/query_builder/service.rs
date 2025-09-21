@@ -1,5 +1,5 @@
 use crate::app::query_builder::{QueryBuilder, QueryBuilderExt, QueryExecutor, QueryParams, Queryable, PaginationResult};
-use crate::database::{DbConnection, DbPool};
+use crate::database::{DbPool};
 use anyhow::Result;
 use axum::extract::Query;
 

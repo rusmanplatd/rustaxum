@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 use diesel::prelude::*;
 use diesel::sql_query;
-use crate::database::{DbPool, DbConnection};
+use crate::database::{DbPool};
 use crate::app::models::migration::Migration;
 use crate::schema::migrations;
 

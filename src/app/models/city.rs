@@ -4,14 +4,15 @@ use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use utoipa::ToSchema;
-use crate::app::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{SortDirection};
 
 /// City model representing a city within a province
 /// Contains geographical coordinates and administrative information
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
+#[diesel(table_name = crate::schema::cities)]
 pub struct City {
-    pub id: Ulid,
-    pub province_id: Ulid,
+    pub id: String,
+    pub province_id: String,
     pub name: String,
     pub code: Option<String>,
     #[schema(value_type = Option<f64>)]
@@ -32,6 +33,20 @@ pub struct CreateCity {
     pub latitude: Option<Decimal>,
     #[schema(value_type = Option<f64>)]
     pub longitude: Option<Decimal>,
+}
+
+/// Insertable struct for creating new cities in the database
+#[derive(Debug, Insertable)]
+#[diesel(table_name = crate::schema::cities)]
+pub struct NewCity {
+    pub id: String,
+    pub province_id: String,
+    pub name: String,
+    pub code: Option<String>,
+    pub latitude: Option<Decimal>,
+    pub longitude: Option<Decimal>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 /// Update city payload for service layer
@@ -62,8 +77,23 @@ pub struct CityResponse {
 }
 
 impl City {
+    pub fn to_response(&self) -> CityResponse {
+        CityResponse {
+            id: self.id.clone(),
+            province_id: self.province_id.clone(),
+            name: self.name.clone(),
+            code: self.code.clone(),
+            latitude: self.latitude,
+            longitude: self.longitude,
+            created_at: self.created_at,
+            updated_at: self.updated_at,
+        }
+    }
+}
+
+impl NewCity {
     pub fn new(
-        province_id: Ulid,
+        province_id: String,
         name: String,
         code: Option<String>,
         latitude: Option<Decimal>,
@@ -71,7 +101,7 @@ impl City {
     ) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new(),
+            id: Ulid::new().to_string(),
             province_id,
             name,
             code,
@@ -79,19 +109,6 @@ impl City {
             longitude,
             created_at: now,
             updated_at: now,
-        }
-    }
-
-    pub fn to_response(&self) -> CityResponse {
-        CityResponse {
-            id: self.id.to_string(),
-            province_id: self.province_id.to_string(),
-            name: self.name.clone(),
-            code: self.code.clone(),
-            latitude: self.latitude,
-            longitude: self.longitude,
-            created_at: self.created_at,
-            updated_at: self.updated_at,
         }
     }
 }

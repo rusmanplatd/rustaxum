@@ -2,13 +2,24 @@ use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
-use crate::app::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, QueryableByName)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::oauth_refresh_tokens)]
 pub struct RefreshToken {
-    pub id: Ulid,
-    pub access_token_id: Ulid,
+    pub id: String,
+    pub access_token_id: String,
+    pub revoked: bool,
+    pub expires_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Insertable)]
+#[diesel(table_name = crate::schema::oauth_refresh_tokens)]
+pub struct NewRefreshToken {
+    pub id: String,
+    pub access_token_id: String,
     pub revoked: bool,
     pub expires_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
@@ -17,7 +28,7 @@ pub struct RefreshToken {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateRefreshToken {
-    pub access_token_id: Ulid,
+    pub access_token_id: String,
     pub expires_at: Option<DateTime<Utc>>,
 }
 
@@ -32,22 +43,11 @@ pub struct RefreshTokenResponse {
 }
 
 impl RefreshToken {
-    pub fn new(access_token_id: Ulid, expires_at: Option<DateTime<Utc>>) -> Self {
-        let now = Utc::now();
-        Self {
-            id: Ulid::new(),
-            access_token_id,
-            revoked: false,
-            expires_at,
-            created_at: now,
-            updated_at: now,
-        }
-    }
 
     pub fn to_response(&self) -> RefreshTokenResponse {
         RefreshTokenResponse {
-            id: self.id.to_string(),
-            access_token_id: self.access_token_id.to_string(),
+            id: self.id.clone(),
+            access_token_id: self.access_token_id.clone(),
             revoked: self.revoked,
             expires_at: self.expires_at,
             created_at: self.created_at,
@@ -64,6 +64,20 @@ impl RefreshToken {
 
     pub fn is_valid(&self) -> bool {
         !self.revoked && !self.is_expired()
+    }
+}
+
+impl NewRefreshToken {
+    pub fn new(access_token_id: String, expires_at: Option<DateTime<Utc>>) -> Self {
+        let now = Utc::now();
+        Self {
+            id: Ulid::new().to_string(),
+            access_token_id,
+            revoked: false,
+            expires_at,
+            created_at: now,
+            updated_at: now,
+        }
     }
 }
 

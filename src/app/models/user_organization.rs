@@ -7,27 +7,27 @@ use anyhow::Result;
 use std::collections::HashMap;
 use serde_json::{json, Value};
 use utoipa::ToSchema;
-use crate::app::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{SortDirection};
 use crate::app::models::{HasModelType, HasRoles};
 use crate::schema::{user_organizations, sys_roles, sys_model_has_roles, sys_permissions, sys_model_has_permissions};
 
 /// User organization model representing the relationship between users and organizations
 /// Contains employment information, organization position, and temporal data
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, diesel::Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
 #[diesel(table_name = user_organizations)]
 pub struct UserOrganization {
     /// Unique identifier for the user-organization relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: Ulid,
+    pub id: String,
     /// ID of the user in this relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub user_id: Ulid,
+    pub user_id: String,
     /// ID of the organization in this relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub organization_id: Ulid,
+    pub organization_id: String,
     /// ID of the organization position held by the user
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub organization_position_id: Ulid,
+    pub organization_position_id: String,
     /// Whether this employment relationship is currently active
     #[schema(example = true)]
     pub is_active: bool,
@@ -54,6 +54,21 @@ pub struct CreateUserOrganization {
     pub started_at: Option<DateTime<Utc>>,
 }
 
+/// Insertable struct for user organizations
+#[derive(Debug, Insertable)]
+#[diesel(table_name = user_organizations)]
+pub struct NewUserOrganization {
+    pub id: String,
+    pub user_id: String,
+    pub organization_id: String,
+    pub organization_position_id: String,
+    pub is_active: bool,
+    pub started_at: DateTime<Utc>,
+    pub ended_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// Update user organization payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateUserOrganization {
@@ -78,11 +93,11 @@ pub struct UserOrganizationResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl UserOrganization {
-    pub fn new(user_id: Ulid, organization_id: Ulid, organization_position_id: Ulid, started_at: Option<DateTime<Utc>>) -> Self {
+impl NewUserOrganization {
+    pub fn new(user_id: String, organization_id: String, organization_position_id: String, started_at: Option<DateTime<Utc>>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new(),
+            id: Ulid::new().to_string(),
             user_id,
             organization_id,
             organization_position_id,
@@ -93,13 +108,16 @@ impl UserOrganization {
             updated_at: now,
         }
     }
+}
+
+impl UserOrganization {
 
     pub fn to_response(&self) -> UserOrganizationResponse {
         UserOrganizationResponse {
-            id: self.id.to_string(),
-            user_id: self.user_id.to_string(),
-            organization_id: self.organization_id.to_string(),
-            organization_position_id: self.organization_position_id.to_string(),
+            id: self.id.clone(),
+            user_id: self.user_id.clone(),
+            organization_id: self.organization_id.clone(),
+            organization_position_id: self.organization_position_id.clone(),
             is_active: self.is_active,
             started_at: self.started_at,
             ended_at: self.ended_at,
@@ -113,8 +131,8 @@ impl UserOrganization {
     /// Check if user has a specific role in an organization
     pub fn user_has_role_in_organization(
         pool: &DbPool,
-        user_id: Ulid,
-        organization_id: Ulid,
+        user_id: String,
+        organization_id: String,
         role_name: &str,
     ) -> Result<bool> {
         let mut conn = pool.get()?;
@@ -125,8 +143,8 @@ impl UserOrganization {
                     .and(sys_model_has_roles::model_type.eq("UserOrganization"))
             ))
             .inner_join(sys_roles::table.on(sys_roles::id.eq(sys_model_has_roles::role_id)))
-            .filter(user_organizations::user_id.eq(user_id.to_string()))
-            .filter(user_organizations::organization_id.eq(organization_id.to_string()))
+            .filter(user_organizations::user_id.eq(user_id))
+            .filter(user_organizations::organization_id.eq(organization_id))
             .filter(sys_roles::name.eq(role_name))
             .filter(user_organizations::is_active.eq(true))
             .count()
@@ -139,8 +157,8 @@ impl UserOrganization {
     /// Check if user has a specific permission in an organization
     pub fn user_has_permission_in_organization(
         pool: &DbPool,
-        user_id: Ulid,
-        organization_id: Ulid,
+        user_id: String,
+        organization_id: String,
         permission_name: &str,
     ) -> Result<bool> {
         let mut conn = pool.get()?;
@@ -156,8 +174,8 @@ impl UserOrganization {
                     .and(sys_model_has_permissions::model_type.eq("Role"))
             ))
             .inner_join(sys_permissions::table.on(sys_permissions::id.eq(sys_model_has_permissions::permission_id)))
-            .filter(user_organizations::user_id.eq(user_id.to_string()))
-            .filter(user_organizations::organization_id.eq(organization_id.to_string()))
+            .filter(user_organizations::user_id.eq(user_id))
+            .filter(user_organizations::organization_id.eq(organization_id))
             .filter(sys_permissions::name.eq(permission_name))
             .filter(user_organizations::is_active.eq(true))
             .count()
@@ -170,8 +188,8 @@ impl UserOrganization {
     /// Assign a role to user in organization
     pub fn assign_role_to_user_organization(
         pool: &DbPool,
-        user_organization_id: Ulid,
-        role_id: Ulid,
+        user_organization_id: String,
+        role_id: String,
     ) -> Result<()> {
         use diesel::insert_into;
         use chrono::Utc;
@@ -194,8 +212,8 @@ impl UserOrganization {
         let new_role = NewModelHasRole {
             id: Ulid::new().to_string(),
             model_type: "UserOrganization".to_string(),
-            model_id: user_organization_id.to_string(),
-            role_id: role_id.to_string(),
+            model_id: user_organization_id,
+            role_id: role_id,
             scope_type: None,
             scope_id: None,
             created_at: now,
@@ -214,15 +232,15 @@ impl UserOrganization {
     /// Remove a role from user in organization
     pub fn remove_role_from_user_organization(
         pool: &DbPool,
-        user_organization_id: Ulid,
-        role_id: Ulid,
+        user_organization_id: String,
+        role_id: String,
     ) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::delete(sys_model_has_roles::table)
             .filter(sys_model_has_roles::model_type.eq("UserOrganization"))
-            .filter(sys_model_has_roles::model_id.eq(user_organization_id.to_string()))
-            .filter(sys_model_has_roles::role_id.eq(role_id.to_string()))
+            .filter(sys_model_has_roles::model_id.eq(user_organization_id))
+            .filter(sys_model_has_roles::role_id.eq(role_id))
             .execute(&mut conn)?;
 
         Ok(())
@@ -234,10 +252,10 @@ impl UserOrganization {
     pub fn get_abac_attributes(&self) -> HashMap<String, Value> {
         let mut attributes = HashMap::new();
 
-        attributes.insert("user_organization_id".to_string(), json!(self.id.to_string()));
-        attributes.insert("user_id".to_string(), json!(self.user_id.to_string()));
-        attributes.insert("organization_id".to_string(), json!(self.organization_id.to_string()));
-        attributes.insert("organization_position_id".to_string(), json!(self.organization_position_id.to_string()));
+        attributes.insert("user_organization_id".to_string(), json!(self.id.clone()));
+        attributes.insert("user_id".to_string(), json!(self.user_id.clone()));
+        attributes.insert("organization_id".to_string(), json!(self.organization_id.clone()));
+        attributes.insert("organization_position_id".to_string(), json!(self.organization_position_id.clone()));
         attributes.insert("is_active".to_string(), json!(self.is_active));
         attributes.insert("started_at".to_string(), json!(self.started_at.to_rfc3339()));
 
@@ -269,7 +287,7 @@ impl UserOrganization {
     pub fn can_access_in_hierarchy(
         &self,
         pool: &DbPool,
-        target_organization_id: Ulid,
+        target_organization_id: String,
         access_level: u8, // 1 = same org, 2 = child orgs, 3 = parent orgs
     ) -> Result<bool> {
         match access_level {
@@ -291,8 +309,8 @@ impl UserOrganization {
                     SELECT COUNT(*) as count FROM org_hierarchy WHERE id = $2
                     "#
                 )
-                .bind::<diesel::sql_types::Text, _>(self.organization_id.to_string())
-                .bind::<diesel::sql_types::Text, _>(target_organization_id.to_string())
+                .bind::<diesel::sql_types::Text, _>(self.organization_id.clone())
+                .bind::<diesel::sql_types::Text, _>(target_organization_id.clone())
                 .get_result::<(i64,)>(&mut conn)
                 .map(|(count,)| count)
                 .unwrap_or(0);
@@ -316,8 +334,8 @@ impl UserOrganization {
                     SELECT COUNT(*) as count FROM parent_hierarchy WHERE id = $2
                     "#
                 )
-                .bind::<diesel::sql_types::Text, _>(self.organization_id.to_string())
-                .bind::<diesel::sql_types::Text, _>(target_organization_id.to_string())
+                .bind::<diesel::sql_types::Text, _>(self.organization_id.clone())
+                .bind::<diesel::sql_types::Text, _>(target_organization_id)
                 .get_result::<(i64,)>(&mut conn)
                 .map(|(count,)| count)
                 .unwrap_or(0);
@@ -334,7 +352,7 @@ impl UserOrganization {
         self.is_active = true;
         self.updated_at = Utc::now();
 
-        diesel::update(user_organizations::table.filter(user_organizations::id.eq(self.id.to_string())))
+        diesel::update(user_organizations::table.filter(user_organizations::id.eq(self.id.clone())))
             .set((
                 user_organizations::is_active.eq(true),
                 user_organizations::updated_at.eq(self.updated_at),
@@ -351,7 +369,7 @@ impl UserOrganization {
         self.ended_at = Some(Utc::now());
         self.updated_at = Utc::now();
 
-        diesel::update(user_organizations::table.filter(user_organizations::id.eq(self.id.to_string())))
+        diesel::update(user_organizations::table.filter(user_organizations::id.eq(self.id.clone())))
             .set((
                 user_organizations::is_active.eq(false),
                 user_organizations::ended_at.eq(self.ended_at),
@@ -366,15 +384,15 @@ impl UserOrganization {
     pub fn transfer_to_organization(
         &mut self,
         pool: &DbPool,
-        new_organization_id: Ulid,
-        new_organization_position_id: Ulid,
+        new_organization_id: String,
+        new_organization_position_id: String,
     ) -> Result<()> {
         // End current relationship
         self.deactivate(pool)?;
 
         // Create new relationship
-        let new_user_org = UserOrganization::new(
-            self.user_id,
+        let new_user_org = NewUserOrganization::new(
+            self.user_id.clone(),
             new_organization_id,
             new_organization_position_id,
             Some(Utc::now()),
@@ -382,31 +400,7 @@ impl UserOrganization {
 
         let mut conn = pool.get()?;
 
-        #[derive(Insertable)]
-        #[diesel(table_name = user_organizations)]
-        struct NewUserOrganization {
-            id: String,
-            user_id: String,
-            organization_id: String,
-            organization_position_id: String,
-            is_active: bool,
-            started_at: chrono::DateTime<Utc>,
-            ended_at: Option<chrono::DateTime<Utc>>,
-            created_at: chrono::DateTime<Utc>,
-            updated_at: chrono::DateTime<Utc>,
-        }
-
-        let new_user_org_insertable = NewUserOrganization {
-            id: new_user_org.id.to_string(),
-            user_id: new_user_org.user_id.to_string(),
-            organization_id: new_user_org.organization_id.to_string(),
-            organization_position_id: new_user_org.organization_position_id.to_string(),
-            is_active: new_user_org.is_active,
-            started_at: new_user_org.started_at,
-            ended_at: new_user_org.ended_at,
-            created_at: new_user_org.created_at,
-            updated_at: new_user_org.updated_at,
-        };
+        let new_user_org_insertable = new_user_org;
 
         diesel::insert_into(user_organizations::table)
             .values(&new_user_org_insertable)
@@ -487,6 +481,6 @@ impl HasModelType for UserOrganization {
 
 impl HasRoles for UserOrganization {
     fn model_id(&self) -> String {
-        self.id.to_string()
+        self.id.clone()
     }
 }

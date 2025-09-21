@@ -5,21 +5,10 @@ use axum::{
 };
 use ulid::Ulid;
 use crate::database::DbPool;
-use crate::app::query_builder::{QueryParams, QueryService, QueryBuilderService};
+use crate::app::query_builder::{QueryParams, QueryBuilderService};
 use crate::app::models::user::User;
 use crate::app::services::user_service::UserService;
 
-/// Get all users with filtering and pagination
-///
-/// Retrieve a list of all users with support for advanced filtering, sorting, and pagination.
-/// Users are returned without sensitive information like passwords or tokens.
-///
-/// # Query Parameters
-/// - `page`: Page number for pagination (default: 1)
-/// - `limit`: Number of items per page (default: 10, max: 100)
-/// - `sort`: Sort field (default: created_at)
-/// - `direction`: Sort direction - asc or desc (default: desc)
-/// - `filter[field]`: Filter by field value
 #[utoipa::path(
     get,
     path = "/api/users",

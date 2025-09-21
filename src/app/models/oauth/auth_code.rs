@@ -2,13 +2,14 @@ use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
-use crate::app::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
+#[diesel(table_name = crate::schema::oauth_auth_codes)]
 pub struct AuthCode {
-    pub id: Ulid,
-    pub user_id: Ulid,
-    pub client_id: Ulid,
+    pub id: String,
+    pub user_id: String,
+    pub client_id: String,
     pub scopes: Option<String>,
     pub revoked: bool,
     pub expires_at: Option<DateTime<Utc>>,
@@ -21,13 +22,29 @@ pub struct AuthCode {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateAuthCode {
-    pub user_id: Ulid,
-    pub client_id: Ulid,
+    pub user_id: String,
+    pub client_id: String,
     pub scopes: Vec<String>,
     pub redirect_uri: String,
     pub challenge: Option<String>,
     pub challenge_method: Option<String>,
     pub expires_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Insertable)]
+#[diesel(table_name = crate::schema::oauth_auth_codes)]
+pub struct NewAuthCode {
+    pub id: String,
+    pub user_id: String,
+    pub client_id: String,
+    pub scopes: Option<String>,
+    pub revoked: bool,
+    pub expires_at: Option<DateTime<Utc>>,
+    pub challenge: Option<String>,
+    pub challenge_method: Option<String>,
+    pub redirect_uri: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize)]
@@ -44,30 +61,6 @@ pub struct AuthCodeResponse {
 }
 
 impl AuthCode {
-    pub fn new(
-        user_id: Ulid,
-        client_id: Ulid,
-        scopes: Option<String>,
-        redirect_uri: String,
-        challenge: Option<String>,
-        challenge_method: Option<String>,
-        expires_at: Option<DateTime<Utc>>,
-    ) -> Self {
-        let now = Utc::now();
-        Self {
-            id: Ulid::new(),
-            user_id,
-            client_id,
-            scopes,
-            revoked: false,
-            expires_at,
-            challenge,
-            challenge_method,
-            redirect_uri,
-            created_at: now,
-            updated_at: now,
-        }
-    }
 
     pub fn to_response(&self) -> AuthCodeResponse {
         let scopes = match &self.scopes {
@@ -79,9 +72,9 @@ impl AuthCode {
         };
 
         AuthCodeResponse {
-            id: self.id.to_string(),
-            user_id: self.user_id.to_string(),
-            client_id: self.client_id.to_string(),
+            id: self.id.clone(),
+            user_id: self.user_id.clone(),
+            client_id: self.client_id.clone(),
             scopes,
             revoked: self.revoked,
             expires_at: self.expires_at,
@@ -133,6 +126,33 @@ impl AuthCode {
             },
             (None, None) => true, // No PKCE challenge
             _ => false, // Invalid PKCE setup
+        }
+    }
+}
+
+impl NewAuthCode {
+    pub fn new(
+        user_id: String,
+        client_id: String,
+        scopes: Option<String>,
+        redirect_uri: String,
+        challenge: Option<String>,
+        challenge_method: Option<String>,
+        expires_at: Option<DateTime<Utc>>,
+    ) -> Self {
+        let now = Utc::now();
+        Self {
+            id: Ulid::new().to_string(),
+            user_id,
+            client_id,
+            scopes,
+            revoked: false,
+            expires_at,
+            challenge,
+            challenge_method,
+            redirect_uri,
+            created_at: now,
+            updated_at: now,
         }
     }
 }

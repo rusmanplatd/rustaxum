@@ -112,7 +112,7 @@ pub async fn revoke_personal_access_token(
     match TokenService::find_access_token_by_id(&pool, token_ulid) {
         Ok(Some(token)) => {
             if let Some(owner_id) = token.user_id {
-                if owner_id != user_id {
+                if owner_id != user_id.to_string() {
                     let error = ErrorResponse {
                         error: "Access denied".to_string(),
                     };

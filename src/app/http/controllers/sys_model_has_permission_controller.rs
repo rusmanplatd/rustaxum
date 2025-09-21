@@ -108,10 +108,10 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
 pub async fn store(State(pool): State<DbPool>, request: CreateSysModelHasPermissionRequest) -> impl IntoResponse {
     let payload = CreateSysModelHasPermission {
         model_type: request.model_type,
-        model_id: request.model_id,
-        permission_id: request.permission_id,
+        model_id: request.model_id.to_string(),
+        permission_id: request.permission_id.to_string(),
         scope_type: request.scope_type,
-        scope_id: request.scope_id,
+        scope_id: request.scope_id.map(|id| id.to_string()),
     };
 
     match SysModelHasPermissionService::create(&pool, payload) {
@@ -159,10 +159,10 @@ pub async fn update(
 
     let payload = UpdateSysModelHasPermission {
         model_type: request.model_type,
-        model_id: request.model_id,
-        permission_id: request.permission_id,
+        model_id: request.model_id.map(|id| id.to_string()),
+        permission_id: request.permission_id.map(|id| id.to_string()),
         scope_type: request.scope_type,
-        scope_id: request.scope_id,
+        scope_id: request.scope_id.map(|id| id.to_string()),
     };
 
     match SysModelHasPermissionService::update(&pool, permission_id, payload) {

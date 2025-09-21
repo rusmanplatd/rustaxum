@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
-use crate::app::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{SortDirection};
 
 /// Country model representing a country entity
 /// Contains country information including name, ISO code, and phone code
@@ -12,7 +12,7 @@ use crate::app::query_builder::{Queryable, SortDirection};
 pub struct Country {
     /// Unique identifier for the country
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: Ulid,
+    pub id: String,
     /// Country name
     #[schema(example = "United States")]
     pub name: String,
@@ -38,6 +38,18 @@ pub struct CreateCountry {
     pub phone_code: Option<String>,
 }
 
+/// Insertable struct for countries
+#[derive(Debug, Insertable)]
+#[diesel(table_name = crate::schema::countries)]
+pub struct NewCountry {
+    pub id: String,
+    pub name: String,
+    pub iso_code: String,
+    pub phone_code: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// Update country payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateCountry {
@@ -57,11 +69,11 @@ pub struct CountryResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl Country {
+impl NewCountry {
     pub fn new(name: String, iso_code: String, phone_code: Option<String>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new(),
+            id: Ulid::new().to_string(),
             name,
             iso_code,
             phone_code,
@@ -69,10 +81,13 @@ impl Country {
             updated_at: now,
         }
     }
+}
+
+impl Country {
 
     pub fn to_response(&self) -> CountryResponse {
         CountryResponse {
-            id: self.id.to_string(),
+            id: self.id.clone(),
             name: self.name.clone(),
             iso_code: self.iso_code.clone(),
             phone_code: self.phone_code.clone(),

@@ -3,16 +3,16 @@ use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
-use crate::app::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{SortDirection};
 
 /// Job level model representing organizational hierarchy levels
 /// Contains level information including rank, code, and description
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, diesel::Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::organization_position_levels)]
 pub struct OrganizationPositionLevel {
     /// Unique identifier for the organization position level
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: Ulid,
+    pub id: String,
     /// Job level name
     #[schema(example = "Senior Manager")]
     pub name: String,
@@ -82,11 +82,11 @@ pub struct OrganizationPositionLevelResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl OrganizationPositionLevel {
+impl NewOrganizationPositionLevel {
     pub fn new(name: String, code: Option<String>, level: i32, description: Option<String>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new(),
+            id: Ulid::new().to_string(),
             name,
             code,
             level,
@@ -96,10 +96,13 @@ impl OrganizationPositionLevel {
             updated_at: now,
         }
     }
+}
+
+impl OrganizationPositionLevel {
 
     pub fn to_response(&self) -> OrganizationPositionLevelResponse {
         OrganizationPositionLevelResponse {
-            id: self.id.to_string(),
+            id: self.id.clone(),
             name: self.name.clone(),
             code: self.code.clone(),
             level: self.level,
@@ -113,7 +116,7 @@ impl OrganizationPositionLevel {
 
 impl crate::app::query_builder::Queryable for OrganizationPositionLevel {
     fn table_name() -> &'static str {
-        "OrganizationPositionLevel"
+        "organization_position_levels"
     }
 
     fn allowed_filters() -> Vec<&'static str> {

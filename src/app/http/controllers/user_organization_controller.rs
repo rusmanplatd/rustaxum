@@ -211,7 +211,7 @@ pub async fn update(
     };
 
     // Fetch the existing user organization relationship
-    let mut user_org = match UserOrganizationService::find_by_id(&pool, user_org_id)
+    let _user_org = match UserOrganizationService::find_by_id(&pool, user_org_id)
         {
         Ok(Some(user_org)) => user_org,
         Ok(None) => {
@@ -392,7 +392,7 @@ pub async fn transfer(
     };
 
     // Perform the transfer
-    match user_org.transfer_to_organization(&pool, new_organization_id, new_organization_position_id) {
+    match user_org.transfer_to_organization(&pool, new_organization_id.to_string(), new_organization_position_id.to_string()) {
         Ok(_) => {
             (StatusCode::OK, Json(serde_json::json!({
                 "message": "User transferred successfully"

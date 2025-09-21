@@ -89,12 +89,12 @@ pub trait Notification: Send + Sync {
     fn via(&self, notifiable: &dyn Notifiable) -> Vec<NotificationChannel>;
 
     /// Get the mail representation of the notification
-    fn to_mail(&self, notifiable: &dyn Notifiable) -> Result<MailMessage> {
+    fn to_mail(&self, _notifiable: &dyn Notifiable) -> Result<MailMessage> {
         Err(anyhow::anyhow!("Mail channel not implemented for this notification"))
     }
 
     /// Get the database representation of the notification
-    fn to_database(&self, notifiable: &dyn Notifiable) -> Result<DatabaseMessage> {
+    fn to_database(&self, _notifiable: &dyn Notifiable) -> Result<DatabaseMessage> {
         Err(anyhow::anyhow!("Database channel not implemented for this notification"))
     }
 
@@ -179,7 +179,7 @@ pub trait Notification: Send + Sync {
     }
 
     /// Determine if the notification should be sent
-    fn should_send(&self, notifiable: &dyn Notifiable, channel: &NotificationChannel) -> bool {
+    fn should_send(&self, _notifiable: &dyn Notifiable, _channel: &NotificationChannel) -> bool {
         true
     }
 
@@ -224,7 +224,7 @@ pub trait Notifiable: Send + Sync {
     }
 
     /// Mark notifications as read
-    async fn mark_as_read(&self, notification_ids: Vec<String>) -> Result<()> {
+    async fn mark_as_read(&self, _notification_ids: Vec<String>) -> Result<()> {
         Ok(())
     }
 
@@ -234,7 +234,7 @@ pub trait Notifiable: Send + Sync {
     }
 
     /// Check if the notifiable can receive a notification on a given channel
-    async fn can_receive_notification(&self, notification_type: &str, channel: &NotificationChannel) -> bool {
+    async fn can_receive_notification(&self, _notification_type: &str, _channel: &NotificationChannel) -> bool {
         true
     }
 
@@ -539,9 +539,9 @@ impl NotificationFacade {
 
     /// Route a notification to specific channels and recipients
     pub async fn route(
-        channel: NotificationChannel,
-        route: String,
-        notification: impl Notification + Send + Sync,
+        _channel: NotificationChannel,
+        _route: String,
+        _notification: impl Notification + Send + Sync,
     ) -> Result<()> {
         // TODO: Implement routing logic for on-demand notifications
         Ok(())
@@ -554,8 +554,8 @@ impl NotificationFacade {
 
     /// Assert that a notification was sent
     pub async fn assert_sent_to<N: Notifiable>(
-        notifiable: &N,
-        notification_type: &str,
+        _notifiable: &N,
+        _notification_type: &str,
     ) -> bool {
         // TODO: Implement assertion logic
         false
@@ -575,7 +575,7 @@ pub async fn notify_entity<N: Notifiable>(
 ) -> Result<()> {
     let channels = notification.via(notifiable);
     for channel in channels {
-        if let Some(route) = notifiable.route_notification_for(&channel).await {
+        if let Some(_route) = notifiable.route_notification_for(&channel).await {
             // Send notification via the specific channel
             // Implementation would go here
         }
@@ -590,31 +590,31 @@ pub async fn notify<N: Notifiable>(
 ) -> Result<()> {
     let channels = notification.via(notifiable);
     for channel in channels {
-        if let Some(route) = notifiable.route_notification_for(&channel).await {
+        if let Some(_route) = notifiable.route_notification_for(&channel).await {
             // TODO: Send notification via the specific channel
             match channel {
                 NotificationChannel::Mail => {
-                    if let Ok(mail_message) = notification.to_mail(notifiable) {
+                    if let Ok(_mail_message) = notification.to_mail(notifiable) {
                         // TODO: Send mail
                     }
                 }
                 NotificationChannel::Database => {
-                    if let Ok(db_message) = notification.to_database(notifiable) {
+                    if let Ok(_db_message) = notification.to_database(notifiable) {
                         // TODO: Store in database
                     }
                 }
                 NotificationChannel::Broadcast => {
-                    if let Ok(broadcast_message) = notification.to_broadcast(notifiable) {
+                    if let Ok(_broadcast_message) = notification.to_broadcast(notifiable) {
                         // TODO: Broadcast
                     }
                 }
                 NotificationChannel::Slack => {
-                    if let Ok(slack_message) = notification.to_slack(notifiable) {
+                    if let Ok(_slack_message) = notification.to_slack(notifiable) {
                         // TODO: Send to Slack
                     }
                 }
                 NotificationChannel::Sms | NotificationChannel::Vonage => {
-                    if let Ok(sms_message) = notification.to_vonage(notifiable) {
+                    if let Ok(_sms_message) = notification.to_vonage(notifiable) {
                         // TODO: Send SMS
                     }
                 }

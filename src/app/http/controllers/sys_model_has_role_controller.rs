@@ -109,10 +109,10 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
 pub async fn store(State(pool): State<DbPool>, request: CreateSysModelHasRoleRequest) -> impl IntoResponse {
     let payload = CreateSysModelHasRole {
         model_type: request.model_type,
-        model_id: request.model_id,
-        role_id: request.role_id,
+        model_id: request.model_id.to_string(),
+        role_id: request.role_id.to_string(),
         scope_type: request.scope_type,
-        scope_id: request.scope_id,
+        scope_id: request.scope_id.map(|id| id.to_string()),
     };
 
     match SysModelHasRoleService::create(&pool, payload) {
@@ -160,10 +160,10 @@ pub async fn update(
 
     let payload = UpdateSysModelHasRole {
         model_type: request.model_type,
-        model_id: request.model_id,
-        role_id: request.role_id,
+        model_id: request.model_id.map(|id| id.to_string()),
+        role_id: request.role_id.map(|id| id.to_string()),
         scope_type: request.scope_type,
-        scope_id: request.scope_id,
+        scope_id: request.scope_id.map(|id| id.to_string()),
     };
 
     match SysModelHasRoleService::update(&pool, role_id, payload) {

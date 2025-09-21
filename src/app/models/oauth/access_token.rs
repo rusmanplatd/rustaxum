@@ -2,14 +2,14 @@ use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
-use crate::app::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, QueryableByName)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::oauth_access_tokens)]
 pub struct AccessToken {
-    pub id: Ulid,
-    pub user_id: Option<Ulid>,
-    pub client_id: Ulid,
+    pub id: String,
+    pub user_id: Option<String>,
+    pub client_id: String,
     pub name: Option<String>,
     pub scopes: Option<String>,
     pub revoked: bool,
@@ -20,11 +20,25 @@ pub struct AccessToken {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateAccessToken {
-    pub user_id: Option<Ulid>,
-    pub client_id: Ulid,
+    pub user_id: Option<String>,
+    pub client_id: String,
     pub name: Option<String>,
     pub scopes: Vec<String>,
     pub expires_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Insertable)]
+#[diesel(table_name = crate::schema::oauth_access_tokens)]
+pub struct NewAccessToken {
+    pub id: String,
+    pub user_id: Option<String>,
+    pub client_id: String,
+    pub name: Option<String>,
+    pub scopes: Option<String>,
+    pub revoked: bool,
+    pub expires_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -47,27 +61,6 @@ pub struct AccessTokenResponse {
 }
 
 impl AccessToken {
-    pub fn new(
-        user_id: Option<Ulid>,
-        client_id: Ulid,
-        name: Option<String>,
-        scopes: Option<String>,
-        expires_at: Option<DateTime<Utc>>,
-    ) -> Self {
-        let now = Utc::now();
-        Self {
-            id: Ulid::new(),
-            user_id,
-            client_id,
-            name,
-            scopes,
-            revoked: false,
-            expires_at,
-            created_at: now,
-            updated_at: now,
-        }
-    }
-
     pub fn to_response(&self) -> AccessTokenResponse {
         let scopes = match &self.scopes {
             Some(scope_str) => scope_str
@@ -78,9 +71,9 @@ impl AccessToken {
         };
 
         AccessTokenResponse {
-            id: self.id.to_string(),
-            user_id: self.user_id.map(|id| id.to_string()),
-            client_id: self.client_id.to_string(),
+            id: self.id.clone(),
+            user_id: self.user_id.clone(),
+            client_id: self.client_id.clone(),
             name: self.name.clone(),
             scopes,
             revoked: self.revoked,
@@ -114,6 +107,29 @@ impl AccessToken {
 
     pub fn is_valid(&self) -> bool {
         !self.revoked && !self.is_expired()
+    }
+}
+
+impl NewAccessToken {
+    pub fn new(
+        user_id: Option<String>,
+        client_id: String,
+        name: Option<String>,
+        scopes: Option<String>,
+        expires_at: Option<DateTime<Utc>>,
+    ) -> Self {
+        let now = Utc::now();
+        Self {
+            id: Ulid::new().to_string(),
+            user_id,
+            client_id,
+            name,
+            scopes,
+            revoked: false,
+            expires_at,
+            created_at: now,
+            updated_at: now,
+        }
     }
 }
 

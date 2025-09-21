@@ -5,7 +5,6 @@ use ulid::Ulid;
 use crate::cli::PassportCommands;
 use crate::app::services::oauth::{ClientService, ScopeService, TokenService};
 use crate::app::models::oauth::{CreateClient, CreateScope};
-use crate::config::Config;
 
 pub async fn handle_passport_command(cmd: PassportCommands) -> Result<()> {
     let pool = crate::database::create_pool()?;

@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
-use crate::app::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{SortDirection};
 use super::{HasModelType, HasRoles};
 
 /// Organization model representing an organizational entity
@@ -13,16 +13,17 @@ use super::{HasModelType, HasRoles};
 pub struct Organization {
     /// Unique identifier for the organization
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: Ulid,
+    pub id: String,
     /// Organization name
     #[schema(example = "Engineering Department")]
     pub name: String,
     /// Type of organization (department, division, company, etc.)
     #[schema(example = "department")]
+    #[diesel(column_name = type_)]
     pub organization_type: String,
     /// Parent organization ID for hierarchical structure
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub parent_id: Option<Ulid>,
+    pub parent_id: Option<String>,
     /// Optional organization code
     #[schema(example = "ENG-001")]
     pub code: Option<String>,
@@ -50,6 +51,22 @@ pub struct CreateOrganization {
     pub description: Option<String>,
 }
 
+/// Insertable struct for organizations
+#[derive(Debug, Insertable)]
+#[diesel(table_name = crate::schema::organizations)]
+pub struct NewOrganization {
+    pub id: String,
+    pub name: String,
+    #[diesel(column_name = type_)]
+    pub organization_type: String,
+    pub parent_id: Option<String>,
+    pub code: Option<String>,
+    pub description: Option<String>,
+    pub is_active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// Update organization payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateOrganization {
@@ -75,11 +92,11 @@ pub struct OrganizationResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl Organization {
-    pub fn new(name: String, organization_type: String, parent_id: Option<Ulid>, code: Option<String>, description: Option<String>) -> Self {
+impl NewOrganization {
+    pub fn new(name: String, organization_type: String, parent_id: Option<String>, code: Option<String>, description: Option<String>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new(),
+            id: Ulid::new().to_string(),
             name,
             organization_type,
             parent_id,
@@ -90,13 +107,16 @@ impl Organization {
             updated_at: now,
         }
     }
+}
+
+impl Organization {
 
     pub fn to_response(&self) -> OrganizationResponse {
         OrganizationResponse {
-            id: self.id.to_string(),
+            id: self.id.clone(),
             name: self.name.clone(),
             organization_type: self.organization_type.clone(),
-            parent_id: self.parent_id.map(|id| id.to_string()),
+            parent_id: self.parent_id.clone(),
             code: self.code.clone(),
             description: self.description.clone(),
             is_active: self.is_active,
@@ -114,7 +134,7 @@ impl HasModelType for Organization {
 
 impl HasRoles for Organization {
     fn model_id(&self) -> String {
-        self.id.to_string()
+        self.id.clone()
     }
 }
 
