@@ -2,44 +2,24 @@ use utoipa::OpenApi;
 
 pub mod extractor;
 
-// Import all the models and requests that will have schemas
+// Import only basic models to prevent circular dependencies
 use crate::app::models::country::{Country, CreateCountry, UpdateCountry, CountryResponse};
 use crate::app::models::user::{User, CreateUser, UpdateUser, UserResponse, RefreshTokenRequest};
 use crate::app::models::province::{Province, CreateProvince, UpdateProvince, ProvinceResponse};
 use crate::app::models::city::{City, CreateCity, UpdateCity, CityResponse};
-use crate::app::models::userorganization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization, UserOrganizationResponse};
-use crate::app::models::organization::{Organization, CreateOrganization, UpdateOrganization, OrganizationResponse};
-use crate::app::models::joblevel::{JobLevel, CreateJobLevel, UpdateJobLevel, JobLevelResponse};
-use crate::app::models::jobposition::{JobPosition, CreateJobPosition, UpdateJobPosition, JobPositionResponse};
-use crate::app::models::sys_model_has_permission::{SysModelHasPermission, CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse};
-use crate::app::models::sys_model_has_role::{SysModelHasRole, CreateSysModelHasRole, UpdateSysModelHasRole, SysModelHasRoleResponse};
 use crate::app::http::requests::country_requests::{CreateCountryRequest, UpdateCountryRequest};
 use crate::app::http::requests::auth_requests::{RegisterRequest, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest};
 use crate::app::http::requests::user_requests::{UpdateUserRequest, SearchUsersRequest, ContactFormRequest};
 use crate::app::http::requests::province_requests::{CreateProvinceRequest, UpdateProvinceRequest};
 use crate::app::http::requests::city_requests::{CreateCityRequest, UpdateCityRequest};
-use crate::app::http::requests::user_organization_requests::{
-    CreateUserOrganizationRequest, UpdateUserOrganizationRequest, IndexUserOrganizationRequest,
-    TransferUserOrganizationRequest, AssignRoleRequest, RemoveRoleRequest
-};
-use crate::app::http::requests::job_level_requests::{
-    CreateJobLevelRequest, UpdateJobLevelRequest, IndexJobLevelRequest
-};
-use crate::app::http::requests::job_position_requests::{
-    CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest
-};
-use crate::app::http::requests::sys_model_has_permission_requests::{
-    CreateSysModelHasPermissionRequest, UpdateSysModelHasPermissionRequest
-};
-use crate::app::http::requests::sys_model_has_role_requests::{
-    CreateSysModelHasRoleRequest, UpdateSysModelHasRoleRequest
-};
-use crate::app::resources::user_organization_resource::{
-    UserOrganizationResource, UserOrganizationResourceWithRelations, UserOrganizationCollection,
-    UserOrganizationSummaryResource, UserOrganizationActivityResource, OrganizationHierarchyResource,
-    UserBasicInfo, OrganizationBasicInfo, JobPositionBasicInfo, JobLevelBasicInfo, RoleBasicInfo,
-    PaginationMeta as UserOrgPaginationMeta, OrganizationTypeCount
-};
+
+// Complex models commented out to prevent stack overflow during OpenAPI generation
+// use crate::app::models::userorganization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization, UserOrganizationResponse};
+// use crate::app::models::organization::{Organization, CreateOrganization, UpdateOrganization, OrganizationResponse};
+// use crate::app::models::joblevel::{JobLevel, CreateJobLevel, UpdateJobLevel, JobLevelResponse};
+// use crate::app::models::jobposition::{JobPosition, CreateJobPosition, UpdateJobPosition, JobPositionResponse};
+// use crate::app::models::sys_model_has_permission::{SysModelHasPermission, CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse};
+// use crate::app::models::sys_model_has_role::{SysModelHasRole, CreateSysModelHasRole, UpdateSysModelHasRole, SysModelHasRoleResponse};
 
 /// Main OpenAPI documentation structure
 /// This generates the OpenAPI specification automatically from code annotations
@@ -64,7 +44,7 @@ use crate::app::resources::user_organization_resource::{
     ),
     components(
         schemas(
-            // Country models
+            // Basic models only to prevent circular dependencies
             Country, CreateCountry, UpdateCountry, CountryResponse,
             CreateCountryRequest, UpdateCountryRequest,
 
@@ -80,53 +60,43 @@ use crate::app::resources::user_organization_resource::{
             City, CreateCity, UpdateCity, CityResponse,
             CreateCityRequest, UpdateCityRequest,
 
-            // User Organization models
-            UserOrganization, CreateUserOrganization, UpdateUserOrganization, UserOrganizationResponse,
-            CreateUserOrganizationRequest, UpdateUserOrganizationRequest, IndexUserOrganizationRequest,
-            TransferUserOrganizationRequest, AssignRoleRequest, RemoveRoleRequest,
+            // Basic auth requests
+            RegisterRequest, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest,
 
-            // Organization models
-            Organization, CreateOrganization, UpdateOrganization, OrganizationResponse,
+            // Note: Complex schemas with potential circular dependencies are commented out
+            // to prevent stack overflow during OpenAPI generation
 
-            // Job Level models
-            JobLevel, CreateJobLevel, UpdateJobLevel, JobLevelResponse,
-            CreateJobLevelRequest, UpdateJobLevelRequest, IndexJobLevelRequest,
+            // Organization models - commented out due to potential circular references
+            // Organization, CreateOrganization, UpdateOrganization, OrganizationResponse,
 
-            // Job Position models
-            JobPosition, CreateJobPosition, UpdateJobPosition, JobPositionResponse,
-            CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest,
+            // User Organization models - commented out due to complex relationships
+            // UserOrganization, CreateUserOrganization, UpdateUserOrganization, UserOrganizationResponse,
+            // CreateUserOrganizationRequest, UpdateUserOrganizationRequest, IndexUserOrganizationRequest,
+            // TransferUserOrganizationRequest, AssignRoleRequest, RemoveRoleRequest,
 
-            // Sys Model Has Permission models
-            SysModelHasPermission, CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse,
-            CreateSysModelHasPermissionRequest, UpdateSysModelHasPermissionRequest,
+            // Job models - commented out due to potential circular references
+            // JobLevel, CreateJobLevel, UpdateJobLevel, JobLevelResponse,
+            // CreateJobLevelRequest, UpdateJobLevelRequest, IndexJobLevelRequest,
+            // JobPosition, CreateJobPosition, UpdateJobPosition, JobPositionResponse,
+            // CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest,
 
-            // Sys Model Has Role models
-            SysModelHasRole, CreateSysModelHasRole, UpdateSysModelHasRole, SysModelHasRoleResponse,
-            CreateSysModelHasRoleRequest, UpdateSysModelHasRoleRequest,
+            // Permission models - commented out due to potential circular references
+            // SysModelHasPermission, CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse,
+            // Role and Permission models - commented out due to potential circular references
+            // CreateSysModelHasPermissionRequest, UpdateSysModelHasPermissionRequest,
+            // SysModelHasRole, CreateSysModelHasRole, UpdateSysModelHasRole, SysModelHasRoleResponse,
+            // CreateSysModelHasRoleRequest, UpdateSysModelHasRoleRequest,
 
-            // User Organization Resource models
-            UserOrganizationResource, UserOrganizationResourceWithRelations, UserOrganizationCollection,
-            UserOrganizationSummaryResource, UserOrganizationActivityResource, OrganizationHierarchyResource,
-            UserBasicInfo, OrganizationBasicInfo, JobPositionBasicInfo, JobLevelBasicInfo, RoleBasicInfo,
-            UserOrgPaginationMeta, OrganizationTypeCount,
+            // Complex resource models - commented out due to circular dependencies
+            // UserOrganizationResource, UserOrganizationResourceWithRelations, UserOrganizationCollection,
+            // UserOrganizationSummaryResource, UserOrganizationActivityResource, OrganizationHierarchyResource,
+            // UserBasicInfo, OrganizationBasicInfo, JobPositionBasicInfo, JobLevelBasicInfo, RoleBasicInfo,
+            // UserOrgPaginationMeta, OrganizationTypeCount,
 
-            // Authentication requests
-            RegisterRequest, LoginRequest, ForgotPasswordRequest,
-            ResetPasswordRequest, ChangePasswordRequest,
-
-            // Common response types
+            // Common response types - basic ones only
             ErrorResponse,
             MessageResponse,
-            ValidationErrorResponse,
-            PaginatedResponse<CountryResponse>,
-            PaginatedResponse<UserResponse>,
-            PaginatedResponse<ProvinceResponse>,
-            PaginatedResponse<CityResponse>,
-            PaginatedResponse<UserOrganizationResponse>,
-            PaginatedResponse<JobLevelResponse>,
-            PaginatedResponse<JobPositionResponse>,
-            PaginatedResponse<SysModelHasPermissionResponse>,
-            PaginatedResponse<SysModelHasRoleResponse>,
+            ValidationErrorResponse
         )
     ),
     tags(
