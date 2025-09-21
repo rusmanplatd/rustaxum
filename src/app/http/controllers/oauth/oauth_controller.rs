@@ -195,7 +195,7 @@ pub async fn token(State(pool): State<PgPool>, Form(params): Form<TokenRequest>)
     }.into_response()
 }
 
-async fn handle_authorization_code_grant(pool: &PgPool, params: TokenRequest) -> impl IntoResponse {
+async fn handle_authorization_code_grant(pool: &PgPool, params: TokenRequest) -> impl IntoResponse + use<> {
     let code = match params.code {
         Some(code) => code,
         None => {
@@ -248,7 +248,7 @@ async fn handle_authorization_code_grant(pool: &PgPool, params: TokenRequest) ->
     }
 }
 
-async fn handle_refresh_token_grant(pool: &PgPool, params: TokenRequest) -> impl IntoResponse {
+async fn handle_refresh_token_grant(pool: &PgPool, params: TokenRequest) -> impl IntoResponse + use<> {
     let refresh_token = match params.refresh_token {
         Some(token) => token,
         None => {
@@ -288,7 +288,7 @@ async fn handle_refresh_token_grant(pool: &PgPool, params: TokenRequest) -> impl
     }
 }
 
-async fn handle_client_credentials_grant(pool: &PgPool, params: TokenRequest) -> impl IntoResponse {
+async fn handle_client_credentials_grant(pool: &PgPool, params: TokenRequest) -> impl IntoResponse + use<> {
     let client_id = match Ulid::from_string(&params.client_id) {
         Ok(id) => id,
         Err(_) => {

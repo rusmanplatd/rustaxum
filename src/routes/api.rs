@@ -8,7 +8,8 @@ use crate::app::http::controllers::{auth_controller, user_controller, country_co
 use crate::app::http::controllers::web_push_controller::WebPushController;
 
 pub fn routes() -> Router<PgPool> {
-    Router::new()
+    tracing::debug!("Creating API routes...");
+    let router = Router::new()
         // Authentication routes
         .route("/api/auth/register", post(auth_controller::register))
         .route("/api/auth/login", post(auth_controller::login))
@@ -113,5 +114,8 @@ pub fn routes() -> Router<PgPool> {
         // Documentation routes
         .route("/api/docs", get(docs_controller::docs_info))
         .route("/api/docs/openapi.json", get(docs_controller::openapi_json))
-        .route("/api/docs/openapi.yaml", get(docs_controller::openapi_yaml))
+        .route("/api/docs/openapi.yaml", get(docs_controller::openapi_yaml));
+
+    tracing::info!("API routes created successfully with {} route handlers", 60); // Approximate count
+    router
 }

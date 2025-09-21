@@ -10,7 +10,8 @@ use crate::app::http::controllers::oauth::{
 
 /// OAuth2/Passport routes
 pub fn oauth_routes() -> Router<PgPool> {
-    Router::new()
+    tracing::debug!("Creating OAuth2/Passport routes...");
+    let router = Router::new()
         // OAuth2 Core Endpoints
         .route("/oauth/authorize", get(oauth_controller::authorize))
         .route("/oauth/token", post(oauth_controller::token))
@@ -28,5 +29,8 @@ pub fn oauth_routes() -> Router<PgPool> {
         // Personal Access Tokens API (requires authentication)
         .route("/oauth/personal-access-tokens", post(personal_access_token_controller::create_personal_access_token))
         .route("/oauth/personal-access-tokens", get(personal_access_token_controller::list_personal_access_tokens))
-        .route("/oauth/personal-access-tokens/{id}", delete(personal_access_token_controller::revoke_personal_access_token))
+        .route("/oauth/personal-access-tokens/{id}", delete(personal_access_token_controller::revoke_personal_access_token));
+
+    tracing::info!("OAuth2/Passport routes created successfully with {} endpoints", 11);
+    router
 }

@@ -25,34 +25,54 @@ impl Validator {
     }
 
     pub async fn validate(&self) -> Result<(), ValidationErrors> {
+        tracing::debug!("Starting validation with {} rules", self.rules.len());
         let mut errors = ValidationErrors::new();
 
         for (field, field_rules) in &self.rules {
+            tracing::debug!("Validating field '{}' with rules: {:?}", field, field_rules);
             self.validate_field(field, field_rules, &mut errors).await;
         }
 
         if errors.has_errors() {
+            tracing::debug!("Validation failed with {} error(s)", errors.errors.len());
             errors.finalize();
             Err(errors)
         } else {
+            tracing::debug!("Validation passed successfully");
             Ok(())
         }
     }
 
     async fn validate_field(&self, field: &str, field_rules: &[String], errors: &mut ValidationErrors) {
         let value = self.get_nested_value(field);
+        tracing::debug!("Validating field '{}' with value type: {}", field,
+            match &value {
+                serde_json::Value::Null => "null",
+                serde_json::Value::Bool(_) => "boolean",
+                serde_json::Value::Number(_) => "number",
+                serde_json::Value::String(_) => "string",
+                serde_json::Value::Array(_) => "array",
+                serde_json::Value::Object(_) => "object",
+            }
+        );
 
         for rule_str in field_rules {
+            tracing::debug!("Applying rule '{}' to field '{}'", rule_str, field);
             if let Err(validation_error) = self.validate_rule(field, rule_str, &value).await {
+                tracing::debug!("Rule '{}' failed for field '{}': {}", rule_str, field, validation_error.message);
                 errors.add(field, &validation_error.rule, &validation_error.message);
+            } else {
+                tracing::debug!("Rule '{}' passed for field '{}'", rule_str, field);
             }
         }
 
         // Handle array validation for nested fields
         if let Value::Array(arr) = &value {
+            tracing::debug!("Processing array field '{}' with {} items", field, arr.len());
             for (index, item) in arr.iter().enumerate() {
                 let indexed_field = format!("{}[{}]", field, index);
                 if item.is_object() {
+                    tracing::debug!("Validating nested object at '{}'", indexed_field);
                     self.validate_nested_object(&indexed_field, item, field_rules, errors).await;
                 }
             }
@@ -64,23 +84,30 @@ impl Validator {
         const MAX_DEPTH: usize = 10;
         let depth = base_field.matches('.').count() + base_field.matches('[').count();
 
+        tracing::debug!("Validating nested object at '{}' (depth: {})", base_field, depth);
+
         if depth >= MAX_DEPTH {
+            tracing::warn!("Maximum nesting depth ({}) reached for field '{}', skipping further validation", MAX_DEPTH, base_field);
             return;
         }
 
         if let Value::Object(map) = obj {
+            tracing::debug!("Processing object with {} properties at '{}'", map.len(), base_field);
             for (key, value) in map {
                 let nested_field = format!("{}.{}", base_field, key);
 
                 // Check if we have rules for this nested field
                 if let Some(nested_rules) = self.rules.get(&format!("*.{}", key)) {
+                    tracing::debug!("Found wildcard rules for key '{}' at '{}'", key, nested_field);
                     if let Err(validation_error) = self.validate_nested_rule(&nested_field, nested_rules, value).await {
+                        tracing::debug!("Nested rule validation failed for '{}': {}", nested_field, validation_error.message);
                         errors.add(&nested_field, &validation_error.rule, &validation_error.message);
                     }
                 }
 
                 // Check for deeper nesting
                 if value.is_object() || value.is_array() {
+                    tracing::debug!("Found deeper nesting at '{}', continuing validation", nested_field);
                     self.validate_deep_nested(&nested_field, value, errors).await;
                 }
             }
@@ -93,39 +120,56 @@ impl Validator {
             const MAX_DEPTH: usize = 10;
             let depth = base_field.matches('.').count() + base_field.matches('[').count();
 
+            tracing::debug!("Deep nested validation at '{}' (depth: {})", base_field, depth);
+
             if depth >= MAX_DEPTH {
+                tracing::warn!("Maximum nesting depth ({}) reached in deep validation for field '{}', stopping recursion", MAX_DEPTH, base_field);
                 return;
             }
 
             match value {
                 Value::Object(map) => {
+                    tracing::debug!("Deep validating object with {} properties at '{}'", map.len(), base_field);
                     for (key, val) in map {
                         let nested_field = format!("{}.{}", base_field, key);
 
                         // Check for wildcard rules that match this path
+                        let mut rules_found = 0;
                         for (rule_field, rules) in &self.rules {
                             if self.matches_wildcard_pattern(rule_field, &nested_field) {
+                                rules_found += 1;
+                                tracing::debug!("Applying wildcard pattern '{}' to field '{}'", rule_field, nested_field);
                                 if let Err(validation_error) = self.validate_nested_rule(&nested_field, rules, val).await {
+                                    tracing::debug!("Wildcard rule validation failed for '{}': {}", nested_field, validation_error.message);
                                     errors.add(&nested_field, &validation_error.rule, &validation_error.message);
                                 }
                             }
                         }
 
+                        if rules_found == 0 {
+                            tracing::debug!("No wildcard rules found for field '{}'", nested_field);
+                        }
+
                         if val.is_object() || val.is_array() {
+                            tracing::debug!("Recursing deeper into '{}'", nested_field);
                             self.validate_deep_nested(&nested_field, val, errors).await;
                         }
                     }
                 },
                 Value::Array(arr) => {
+                    tracing::debug!("Deep validating array with {} items at '{}'", arr.len(), base_field);
                     for (index, item) in arr.iter().enumerate() {
                         let indexed_field = format!("{}[{}]", base_field, index);
 
                         if item.is_object() || item.is_array() {
+                            tracing::debug!("Recursing into array item at '{}'", indexed_field);
                             self.validate_deep_nested(&indexed_field, item, errors).await;
                         }
                     }
                 },
-                _ => {}
+                _ => {
+                    tracing::debug!("Deep validation reached primitive value at '{}'", base_field);
+                }
             }
         })
     }

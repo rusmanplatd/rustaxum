@@ -672,7 +672,7 @@ impl EventFacade {
 /// Helper macro to create and fire events
 #[macro_export]
 macro_rules! fire_event {
-    ($event:expr) => {
+    ($event:expr_2021) => {
         $crate::app::events::dispatch(std::sync::Arc::new($event)).await
     };
 }
@@ -680,7 +680,7 @@ macro_rules! fire_event {
 /// Helper macro to register event listeners
 #[macro_export]
 macro_rules! register_listener {
-    ($event_type:ty, $listener:expr) => {
+    ($event_type:ty, $listener:expr_2021) => {
         $crate::app::events::listen::<$event_type>(std::sync::Arc::new($listener)).await;
     };
 }
@@ -688,7 +688,7 @@ macro_rules! register_listener {
 /// Helper macro to dispatch events with automatic queue handling
 #[macro_export]
 macro_rules! dispatch_event {
-    ($event:expr) => {
+    ($event:expr_2021) => {
         {
             let event = std::sync::Arc::new($event);
             if event.should_queue() {
@@ -708,7 +708,7 @@ macro_rules! dispatch_event {
 /// Helper macro to create event listeners with automatic registration
 #[macro_export]
 macro_rules! event_listener {
-    ($event_type:ty, $handler:expr) => {
+    ($event_type:ty, $handler:expr_2021) => {
         {
             struct GeneratedListener {
                 handler: Box<dyn Fn(std::sync::Arc<dyn $crate::app::events::Event>) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<()>> + Send>> + Send + Sync>,

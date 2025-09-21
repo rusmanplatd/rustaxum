@@ -16,7 +16,7 @@ pub trait Scopeable {
 /// Macro for defining scopes easily
 #[macro_export]
 macro_rules! scope {
-    ($name:ident, $filter:expr) => {
+    ($name:ident, $filter:expr_2021) => {
         pub fn $name() -> FilterGroup {
             $filter
         }

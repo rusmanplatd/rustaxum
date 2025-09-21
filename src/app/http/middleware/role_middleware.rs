@@ -270,7 +270,7 @@ async fn check_user_permissions(
 // Convenience macros for easier usage
 #[macro_export]
 macro_rules! require_role {
-    ($($role:expr),+) => {
+    ($($role:expr_2021),+) => {
         $crate::app::http::middleware::role_middleware::require_role(
             $crate::app::http::middleware::role_middleware::RoleRequirement::any_of(vec![$($role),+])
         )
@@ -279,7 +279,7 @@ macro_rules! require_role {
 
 #[macro_export]
 macro_rules! require_all_roles {
-    ($($role:expr),+) => {
+    ($($role:expr_2021),+) => {
         $crate::app::http::middleware::role_middleware::require_role(
             $crate::app::http::middleware::role_middleware::RoleRequirement::all_of(vec![$($role),+])
         )
@@ -288,7 +288,7 @@ macro_rules! require_all_roles {
 
 #[macro_export]
 macro_rules! require_permission {
-    ($($permission:expr),+) => {
+    ($($permission:expr_2021),+) => {
         $crate::app::http::middleware::role_middleware::require_permission(
             $crate::app::http::middleware::role_middleware::PermissionRequirement::any_of(vec![$($permission),+])
         )
@@ -297,7 +297,7 @@ macro_rules! require_permission {
 
 #[macro_export]
 macro_rules! require_all_permissions {
-    ($($permission:expr),+) => {
+    ($($permission:expr_2021),+) => {
         $crate::app::http::middleware::role_middleware::require_permission(
             $crate::app::http::middleware::role_middleware::PermissionRequirement::all_of(vec![$($permission),+])
         )

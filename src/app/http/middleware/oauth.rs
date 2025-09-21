@@ -123,7 +123,7 @@ macro_rules! require_admin_scope {
 
 #[macro_export]
 macro_rules! require_custom_scopes {
-    ($($scope:expr),+) => {
+    ($($scope:expr_2021),+) => {
         $crate::app::http::middleware::oauth::require_scopes(vec![$($scope),+])
     };
 }

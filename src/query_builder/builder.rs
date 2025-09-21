@@ -286,13 +286,13 @@ where
                     // Extract all columns from the row
                     for (i, column) in row.columns().iter().enumerate() {
                         let name = column.name();
-                        if let Ok(value) = row.try_get::<String, _>(i) {
+                        match row.try_get::<String, _>(i) { Ok(value) => {
                             json_obj.insert(name.to_string(), serde_json::Value::String(value));
-                        } else if let Ok(value) = row.try_get::<i64, _>(i) {
+                        } _ => { match row.try_get::<i64, _>(i) { Ok(value) => {
                             json_obj.insert(name.to_string(), serde_json::Value::Number(serde_json::Number::from(value)));
-                        } else if let Ok(value) = row.try_get::<bool, _>(i) {
+                        } _ => { match row.try_get::<bool, _>(i) { Ok(value) => {
                             json_obj.insert(name.to_string(), serde_json::Value::Bool(value));
-                        }
+                        } _ => {}}}}}}
                         // Add more type conversions as needed
                     }
                     json_rows.push(serde_json::Value::Object(json_obj));

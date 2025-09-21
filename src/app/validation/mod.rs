@@ -43,7 +43,7 @@ pub trait Validatable: serde::Serialize {
 // Macro to help implement validation rules easily
 #[macro_export]
 macro_rules! validation_rules {
-    ($($field:expr => [$($rule:expr),* $(,)?]),* $(,)?) => {
+    ($($field:expr_2021 => [$($rule:expr_2021),* $(,)?]),* $(,)?) => {
         {
             let mut rules = std::collections::HashMap::new();
             $(

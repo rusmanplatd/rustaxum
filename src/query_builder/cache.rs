@@ -98,7 +98,7 @@ impl QueryCache {
 
     /// Get cache statistics
     pub fn stats(&self) -> CacheStats {
-        if let Ok(storage) = self.storage.read() {
+        match self.storage.read() { Ok(storage) => {
             let now = Instant::now();
             let total = storage.len();
             let expired = storage.values().filter(|entry| now >= entry.expires_at).count();
@@ -108,9 +108,9 @@ impl QueryCache {
                 expired_entries: expired,
                 active_entries: total - expired,
             }
-        } else {
+        } _ => {
             CacheStats::default()
-        }
+        }}
     }
 
     /// Generate cache key from query parameters

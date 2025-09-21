@@ -125,14 +125,14 @@ impl FromRow<'_, PgRow> for Organization {
             source: Box::new(e),
         })?;
 
-        let parent_id = if let Ok(parent_id_str) = row.try_get::<String, _>("parent_id") {
+        let parent_id = match row.try_get::<String, _>("parent_id") { Ok(parent_id_str) => {
             Some(Ulid::from_string(&parent_id_str).map_err(|e| sqlx::Error::ColumnDecode {
                 index: "parent_id".to_string(),
                 source: Box::new(e),
             })?)
-        } else {
+        } _ => {
             None
-        };
+        }};
 
         Ok(Organization {
             id,

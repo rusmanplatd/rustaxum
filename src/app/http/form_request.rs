@@ -169,7 +169,7 @@ macro_rules! form_request {
             $($field:ident: $field_type:ty),* $(,)?
         },
         rules: {
-            $($rule_field:literal => [$($rule:expr),* $(,)?]),* $(,)?
+            $($rule_field:literal => [$($rule:expr_2021),* $(,)?]),* $(,)?
         }
         $(, messages: {
             $($msg_key:literal => $msg_value:literal),* $(,)?
@@ -177,7 +177,7 @@ macro_rules! form_request {
         $(, attributes: {
             $($attr_key:literal => $attr_value:literal),* $(,)?
         })?
-        $(, authorize: $auth_fn:expr)?
+        $(, authorize: $auth_fn:expr_2021)?
     ) => {
         #[derive(serde::Deserialize, serde::Serialize)]
         pub struct $name {

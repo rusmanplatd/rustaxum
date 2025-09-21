@@ -8,7 +8,8 @@ use utoipa_redoc::{Redoc, Servable};
 use crate::app::docs::ApiDoc;
 
 pub fn routes() -> Router<PgPool> {
-    Router::new()
+    tracing::debug!("Creating web routes...");
+    let router = Router::new()
         .route("/", get(home))
         .route("/health", get(health_check))
         // Documentation UIs
@@ -22,7 +23,10 @@ pub fn routes() -> Router<PgPool> {
         )
         .merge(
             Redoc::with_url("/docs/redoc", ApiDoc::openapi())
-        )
+        );
+
+    tracing::info!("Web routes created successfully with documentation UIs");
+    router
 }
 
 async fn home() -> &'static str {

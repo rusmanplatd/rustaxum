@@ -380,7 +380,7 @@ pub async fn dispatch_job(job: &dyn Job) -> Result<String> {
 /// Helper macro to dispatch jobs
 #[macro_export]
 macro_rules! dispatch {
-    ($job:expr) => {
+    ($job:expr_2021) => {
         $crate::app::jobs::dispatch_job(&$job).await
     };
 }
