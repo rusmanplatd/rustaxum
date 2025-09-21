@@ -86,7 +86,7 @@ impl NotificationService {
         notifiable_type: &str,
         notifiable_id: &str,
     ) -> Result<Vec<NotificationModel>> {
-        DatabaseChannel::get_unread_notifications(notifiable_type, notifiable_id).await
+        DatabaseChannel::get_unread_notifications(notifiable_type, notifiable_id)
     }
 
     /// Get all notifications for a notifiable entity with pagination
@@ -97,7 +97,7 @@ impl NotificationService {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<NotificationModel>> {
-        DatabaseChannel::get_notifications(notifiable_type, notifiable_id, limit, offset).await
+        DatabaseChannel::get_notifications(notifiable_type, notifiable_id, limit, offset)
     }
 
     /// Mark a notification as read

@@ -4,7 +4,59 @@ use chrono::Utc;
 use crate::database::{seeder::Seeder, DbPool};
 use crate::app::models::{HasModelType, user::User};
 use diesel::prelude::*;
+use diesel::insert_into;
 use crate::schema::{sys_permissions, sys_roles, sys_model_has_permissions, sys_model_has_roles, sys_users};
+
+#[derive(Insertable)]
+#[diesel(table_name = sys_permissions)]
+struct NewPermission {
+    id: String,
+    name: String,
+    guard_name: String,
+    resource: Option<String>,
+    action: String,
+    created_at: chrono::DateTime<Utc>,
+    updated_at: chrono::DateTime<Utc>,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = sys_roles)]
+struct NewRole {
+    id: String,
+    name: String,
+    description: Option<String>,
+    guard_name: String,
+    scope_type: Option<String>,
+    scope_id: Option<String>,
+    created_at: chrono::DateTime<Utc>,
+    updated_at: chrono::DateTime<Utc>,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = sys_model_has_permissions)]
+struct NewModelHasPermission {
+    id: String,
+    model_type: String,
+    model_id: String,
+    permission_id: String,
+    scope_type: Option<String>,
+    scope_id: Option<String>,
+    created_at: chrono::DateTime<Utc>,
+    updated_at: chrono::DateTime<Utc>,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = sys_model_has_roles)]
+struct NewModelHasRole {
+    id: String,
+    model_type: String,
+    model_id: String,
+    role_id: String,
+    scope_type: Option<String>,
+    scope_id: Option<String>,
+    created_at: chrono::DateTime<Utc>,
+    updated_at: chrono::DateTime<Utc>,
+}
 
 pub struct RolePermissionSeeder;
 
@@ -43,221 +95,210 @@ impl Seeder for RolePermissionSeeder {
             ("permissions.delete", "api", Some("permissions"), "delete"),
         ];
 
-        for (name, guard_name, resource, action) in permissions {
-            let permission_id = Ulid::new().to_string();
-            diesel::sql_query(
-                r#"
-                INSERT INTO sys_permissions (id, name, guard_name, resource, action, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
-                ON CONFLICT (name, guard_name) DO NOTHING
-                "#
-            )
-            .bind::<diesel::sql_types::Text, _>(permission_id)
-            .bind::<diesel::sql_types::Text, _>(name)
-            .bind::<diesel::sql_types::Text, _>(guard_name)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(resource)
-            .bind::<diesel::sql_types::Text, _>(action)
-            .bind::<diesel::sql_types::Timestamptz, _>(now)
-            .bind::<diesel::sql_types::Timestamptz, _>(now)
-            .execute(&mut conn)?;
+        let new_permissions: Vec<NewPermission> = permissions
+            .into_iter()
+            .map(|(name, guard_name, resource, action)| NewPermission {
+                id: Ulid::new().to_string(),
+                name: name.to_string(),
+                guard_name: guard_name.to_string(),
+                resource: resource.map(|r| r.to_string()),
+                action: action.to_string(),
+                created_at: now,
+                updated_at: now,
+            })
+            .collect();
+
+        for permission in new_permissions {
+            insert_into(sys_permissions::table)
+                .values(&permission)
+                .on_conflict((sys_permissions::name, sys_permissions::guard_name))
+                .do_nothing()
+                .execute(&mut conn)?;
         }
 
         // Create roles
         let admin_role_id = Ulid::new().to_string();
-        diesel::sql_query(
-            r#"
-            INSERT INTO sys_roles (id, name, description, guard_name, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT (name, guard_name) DO NOTHING
-            "#
-        )
-        .bind::<diesel::sql_types::Text, _>(&admin_role_id)
-        .bind::<diesel::sql_types::Text, _>("admin")
-        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Some("Administrator with full access"))
-        .bind::<diesel::sql_types::Text, _>("api")
-        .bind::<diesel::sql_types::Timestamptz, _>(now)
-        .bind::<diesel::sql_types::Timestamptz, _>(now)
-        .execute(&mut conn)?;
+        let admin_role = NewRole {
+            id: admin_role_id.clone(),
+            name: "admin".to_string(),
+            description: Some("Administrator with full access".to_string()),
+            guard_name: "api".to_string(),
+            scope_type: None,
+            scope_id: None,
+            created_at: now,
+            updated_at: now,
+        };
+
+        insert_into(sys_roles::table)
+            .values(&admin_role)
+            .on_conflict((sys_roles::name, sys_roles::guard_name))
+            .do_nothing()
+            .execute(&mut conn)?;
 
         let user_role_id = Ulid::new().to_string();
-        diesel::sql_query(
-            r#"
-            INSERT INTO sys_roles (id, name, description, guard_name, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT (name, guard_name) DO NOTHING
-            "#
-        )
-        .bind::<diesel::sql_types::Text, _>(&user_role_id)
-        .bind::<diesel::sql_types::Text, _>("user")
-        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Some("Regular user with limited access"))
-        .bind::<diesel::sql_types::Text, _>("api")
-        .bind::<diesel::sql_types::Timestamptz, _>(now)
-        .bind::<diesel::sql_types::Timestamptz, _>(now)
-        .execute(&mut conn)?;
+        let user_role = NewRole {
+            id: user_role_id.clone(),
+            name: "user".to_string(),
+            description: Some("Regular user with limited access".to_string()),
+            guard_name: "api".to_string(),
+            scope_type: None,
+            scope_id: None,
+            created_at: now,
+            updated_at: now,
+        };
+
+        insert_into(sys_roles::table)
+            .values(&user_role)
+            .on_conflict((sys_roles::name, sys_roles::guard_name))
+            .do_nothing()
+            .execute(&mut conn)?;
 
         let moderator_role_id = Ulid::new().to_string();
-        diesel::sql_query(
-            r#"
-            INSERT INTO sys_roles (id, name, description, guard_name, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT (name, guard_name) DO NOTHING
-            "#
-        )
-        .bind::<diesel::sql_types::Text, _>(&moderator_role_id)
-        .bind::<diesel::sql_types::Text, _>("moderator")
-        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Some("Moderator with content management access"))
-        .bind::<diesel::sql_types::Text, _>("api")
-        .bind::<diesel::sql_types::Timestamptz, _>(now)
-        .bind::<diesel::sql_types::Timestamptz, _>(now)
-        .execute(&mut conn)?;
+        let moderator_role = NewRole {
+            id: moderator_role_id.clone(),
+            name: "moderator".to_string(),
+            description: Some("Moderator with content management access".to_string()),
+            guard_name: "api".to_string(),
+            scope_type: None,
+            scope_id: None,
+            created_at: now,
+            updated_at: now,
+        };
+
+        insert_into(sys_roles::table)
+            .values(&moderator_role)
+            .on_conflict((sys_roles::name, sys_roles::guard_name))
+            .do_nothing()
+            .execute(&mut conn)?;
 
         // Assign all permissions to admin role using sys_model_has_permissions
-        let admin_permissions: Vec<String> = diesel::sql_query(
-            "SELECT id FROM sys_permissions WHERE guard_name = 'api'"
-        )
-        .load::<(String,)>(&mut conn)?
-        .into_iter()
-        .map(|(id,)| id)
-        .collect();
+        let admin_permissions: Vec<String> = sys_permissions::table
+            .filter(sys_permissions::guard_name.eq("api"))
+            .select(sys_permissions::id)
+            .load::<String>(&mut conn)?;
 
         for permission_id in admin_permissions {
-            let role_permission_id = Ulid::new().to_string();
-            diesel::sql_query(
-                r#"
-                INSERT INTO sys_model_has_permissions (id, model_type, model_id, permission_id, scope_type, scope_id, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                ON CONFLICT (model_type, model_id, permission_id) DO NOTHING
-                "#
-            )
-            .bind::<diesel::sql_types::Text, _>(role_permission_id)
-            .bind::<diesel::sql_types::Text, _>("Role")
-            .bind::<diesel::sql_types::Text, _>(&admin_role_id)
-            .bind::<diesel::sql_types::Text, _>(permission_id)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Option::<String>::None)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Option::<String>::None)
-            .bind::<diesel::sql_types::Timestamptz, _>(now)
-            .bind::<diesel::sql_types::Timestamptz, _>(now)
-            .execute(&mut conn)?;
+            let role_permission = NewModelHasPermission {
+                id: Ulid::new().to_string(),
+                model_type: "Role".to_string(),
+                model_id: admin_role_id.clone(),
+                permission_id,
+                scope_type: None,
+                scope_id: None,
+                created_at: now,
+                updated_at: now,
+            };
+
+            insert_into(sys_model_has_permissions::table)
+                .values(&role_permission)
+                .on_conflict((sys_model_has_permissions::model_type, sys_model_has_permissions::model_id, sys_model_has_permissions::permission_id))
+                .do_nothing()
+                .execute(&mut conn)?;
         }
 
         // Assign read permissions to user role using sys_model_has_permissions
-        let user_permissions: Vec<String> = diesel::sql_query(
-            "SELECT id FROM sys_permissions WHERE action = 'read' AND guard_name = 'api'"
-        )
-        .load::<(String,)>(&mut conn)?
-        .into_iter()
-        .map(|(id,)| id)
-        .collect();
+        let user_permissions: Vec<String> = sys_permissions::table
+            .filter(sys_permissions::action.eq("read"))
+            .filter(sys_permissions::guard_name.eq("api"))
+            .select(sys_permissions::id)
+            .load::<String>(&mut conn)?;
 
         for permission_id in user_permissions {
-            let role_permission_id = Ulid::new().to_string();
-            diesel::sql_query(
-                r#"
-                INSERT INTO sys_model_has_permissions (id, model_type, model_id, permission_id, scope_type, scope_id, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                ON CONFLICT (model_type, model_id, permission_id) DO NOTHING
-                "#
-            )
-            .bind::<diesel::sql_types::Text, _>(role_permission_id)
-            .bind::<diesel::sql_types::Text, _>("Role")
-            .bind::<diesel::sql_types::Text, _>(&user_role_id)
-            .bind::<diesel::sql_types::Text, _>(permission_id)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Option::<String>::None)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Option::<String>::None)
-            .bind::<diesel::sql_types::Timestamptz, _>(now)
-            .bind::<diesel::sql_types::Timestamptz, _>(now)
-            .execute(&mut conn)?;
+            let role_permission = NewModelHasPermission {
+                id: Ulid::new().to_string(),
+                model_type: "Role".to_string(),
+                model_id: user_role_id.clone(),
+                permission_id,
+                scope_type: None,
+                scope_id: None,
+                created_at: now,
+                updated_at: now,
+            };
+
+            insert_into(sys_model_has_permissions::table)
+                .values(&role_permission)
+                .on_conflict((sys_model_has_permissions::model_type, sys_model_has_permissions::model_id, sys_model_has_permissions::permission_id))
+                .do_nothing()
+                .execute(&mut conn)?;
         }
 
         // Assign content management permissions to moderator role using sys_model_has_permissions
         let moderator_permission_names = vec!["posts.create", "posts.read", "posts.update", "posts.delete", "users.read"];
 
         for permission_name in moderator_permission_names {
-            let permissions: Vec<String> = diesel::sql_query(
-                "SELECT id FROM sys_permissions WHERE name = $1 AND guard_name = 'api'"
-            )
-            .bind::<diesel::sql_types::Text, _>(permission_name)
-            .load::<(String,)>(&mut conn)?
-            .into_iter()
-            .map(|(id,)| id)
-            .collect();
+            let permissions: Vec<String> = sys_permissions::table
+                .filter(sys_permissions::name.eq(permission_name))
+                .filter(sys_permissions::guard_name.eq("api"))
+                .select(sys_permissions::id)
+                .load::<String>(&mut conn)?;
 
             for permission_id in permissions {
-                let role_permission_id = Ulid::new().to_string();
-                diesel::sql_query(
-                    r#"
-                    INSERT INTO sys_model_has_permissions (id, model_type, model_id, permission_id, scope_type, scope_id, created_at, updated_at)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                    ON CONFLICT (model_type, model_id, permission_id) DO NOTHING
-                    "#
-                )
-                .bind::<diesel::sql_types::Text, _>(role_permission_id)
-                .bind::<diesel::sql_types::Text, _>("Role")
-                .bind::<diesel::sql_types::Text, _>(&moderator_role_id)
-                .bind::<diesel::sql_types::Text, _>(permission_id)
-                .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Option::<String>::None)
-                .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Option::<String>::None)
-                .bind::<diesel::sql_types::Timestamptz, _>(now)
-                .bind::<diesel::sql_types::Timestamptz, _>(now)
-                .execute(&mut conn)?;
+                let role_permission = NewModelHasPermission {
+                    id: Ulid::new().to_string(),
+                    model_type: "Role".to_string(),
+                    model_id: moderator_role_id.clone(),
+                    permission_id,
+                    scope_type: None,
+                    scope_id: None,
+                    created_at: now,
+                    updated_at: now,
+                };
+
+                insert_into(sys_model_has_permissions::table)
+                    .values(&role_permission)
+                    .on_conflict((sys_model_has_permissions::model_type, sys_model_has_permissions::model_id, sys_model_has_permissions::permission_id))
+                    .do_nothing()
+                    .execute(&mut conn)?;
             }
         }
 
         // Assign sys_roles to users
-        let admin_users: Vec<String> = diesel::sql_query(
-            "SELECT id FROM sys_users WHERE email = 'admin@example.com'"
-        )
-        .load::<(String,)>(&mut conn)?
-        .into_iter()
-        .map(|(id,)| id)
-        .collect();
+        let admin_users: Vec<String> = sys_users::table
+            .filter(sys_users::email.eq("admin@example.com"))
+            .select(sys_users::id)
+            .load::<String>(&mut conn)?;
 
         for admin_user_id in admin_users {
-            let user_role_id_record = Ulid::new().to_string();
-            diesel::sql_query(
-                r#"
-                INSERT INTO sys_model_has_roles (id, model_type, model_id, role_id, scope_type, scope_id, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                ON CONFLICT (model_type, model_id, role_id) DO NOTHING
-                "#
-            )
-            .bind::<diesel::sql_types::Text, _>(user_role_id_record)
-            .bind::<diesel::sql_types::Text, _>(User::model_type())
-            .bind::<diesel::sql_types::Text, _>(admin_user_id)
-            .bind::<diesel::sql_types::Text, _>(&admin_role_id)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Option::<String>::None)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Option::<String>::None)
-            .bind::<diesel::sql_types::Timestamptz, _>(now)
-            .bind::<diesel::sql_types::Timestamptz, _>(now)
-            .execute(&mut conn)?;
+            let user_role = NewModelHasRole {
+                id: Ulid::new().to_string(),
+                model_type: User::model_type().to_string(),
+                model_id: admin_user_id,
+                role_id: admin_role_id.clone(),
+                scope_type: None,
+                scope_id: None,
+                created_at: now,
+                updated_at: now,
+            };
+
+            insert_into(sys_model_has_roles::table)
+                .values(&user_role)
+                .on_conflict((sys_model_has_roles::model_type, sys_model_has_roles::model_id, sys_model_has_roles::role_id))
+                .do_nothing()
+                .execute(&mut conn)?;
         }
 
-        let regular_users: Vec<String> = diesel::sql_query(
-            "SELECT id FROM sys_users WHERE email = 'user@example.com'"
-        )
-        .load::<(String,)>(&mut conn)?
-        .into_iter()
-        .map(|(id,)| id)
-        .collect();
+        let regular_users: Vec<String> = sys_users::table
+            .filter(sys_users::email.eq("user@example.com"))
+            .select(sys_users::id)
+            .load::<String>(&mut conn)?;
 
         for regular_user_id in regular_users {
-            let user_role_id_record = Ulid::new().to_string();
-            diesel::sql_query(
-                r#"
-                INSERT INTO sys_model_has_roles (id, model_type, model_id, role_id, scope_type, scope_id, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                ON CONFLICT (model_type, model_id, role_id) DO NOTHING
-                "#
-            )
-            .bind::<diesel::sql_types::Text, _>(user_role_id_record)
-            .bind::<diesel::sql_types::Text, _>(User::model_type())
-            .bind::<diesel::sql_types::Text, _>(regular_user_id)
-            .bind::<diesel::sql_types::Text, _>(&user_role_id)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Option::<String>::None)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Option::<String>::None)
-            .bind::<diesel::sql_types::Timestamptz, _>(now)
-            .bind::<diesel::sql_types::Timestamptz, _>(now)
-            .execute(&mut conn)?;
+            let user_role = NewModelHasRole {
+                id: Ulid::new().to_string(),
+                model_type: User::model_type().to_string(),
+                model_id: regular_user_id,
+                role_id: user_role_id.clone(),
+                scope_type: None,
+                scope_id: None,
+                created_at: now,
+                updated_at: now,
+            };
+
+            insert_into(sys_model_has_roles::table)
+                .values(&user_role)
+                .on_conflict((sys_model_has_roles::model_type, sys_model_has_roles::model_id, sys_model_has_roles::role_id))
+                .do_nothing()
+                .execute(&mut conn)?;
         }
 
         println!("✅ sys_Roles and sys_permissions seeded successfully!");

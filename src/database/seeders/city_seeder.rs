@@ -38,10 +38,18 @@ impl Seeder for Cityseeder {
         let mut conn = pool.get()?;
 
         // Check if cities already exist
-        let count: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM cities")
-            .load::<(i64,)>(&mut conn)?
+        use diesel::sql_query;
+
+        #[derive(QueryableByName)]
+        struct CountResult {
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            pub count: i64,
+        }
+
+        let count: i64 = sql_query("SELECT COUNT(*) as count FROM cities")
+            .load::<CountResult>(&mut conn)?
             .first()
-            .map(|(c,)| *c)
+            .map(|r| r.count)
             .unwrap_or(0);
 
         if count > 0 {
@@ -50,18 +58,28 @@ impl Seeder for Cityseeder {
         }
 
         // Get province mappings from database with country info
-        let provinces: Vec<(String, String, String)> = diesel::sql_query(
+        #[derive(QueryableByName)]
+        struct ProvinceMapping {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            pub code: String,
+            #[diesel(sql_type = diesel::sql_types::Bpchar)]
+            pub id: String,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            pub iso_code: String,
+        }
+
+        let provinces: Vec<ProvinceMapping> = sql_query(
             "SELECT p.code, p.id, c.iso_code
              FROM provinces p
              JOIN countries c ON p.country_id = c.id"
         )
-        .load::<(String, String, String)>(&mut conn)?;
+        .load::<ProvinceMapping>(&mut conn)?;
 
         let province_map: HashMap<String, Ulid> = provinces
             .into_iter()
-            .map(|(province_code, id, country_iso)| {
-                let key = format!("{}:{}", country_iso, province_code);
-                (key, Ulid::from_string(&id).unwrap())
+            .map(|prov| {
+                let key = format!("{}:{}", prov.iso_code, prov.code);
+                (key, Ulid::from_string(&prov.id).unwrap())
             })
             .collect();
 

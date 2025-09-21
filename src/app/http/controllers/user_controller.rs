@@ -5,7 +5,7 @@ use axum::{
 };
 use ulid::Ulid;
 use crate::database::DbPool;
-use crate::app::query_builder::{QueryParams, QueryBuilderService};
+use crate::app::query_builder::{QueryParams, QueryService, QueryBuilderService};
 use crate::app::models::user::User;
 use crate::app::services::user_service::UserService;
 
@@ -41,7 +41,7 @@ pub async fn index(
     State(pool): State<DbPool>,
     Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
-    match User::index(Query(params), &pool) {
+    match <User as QueryBuilderService<User>>::index(Query(params), &pool) {
         Ok(result) => {
             (StatusCode::OK, Json(serde_json::json!(result))).into_response()
         },

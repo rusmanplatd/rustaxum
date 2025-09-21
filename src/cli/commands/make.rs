@@ -22,7 +22,7 @@ pub async fn handle_make_command(command: MakeCommands) -> Result<()> {
             generators::request::generate_request(&name).await
         },
         MakeCommands::Seeder { name } => {
-            generators::seeder::generate_seeder(&name).await
+            generators::seeder::generate_seeder(&name)
         },
         MakeCommands::Resource { name, collection } => {
             generators::resource::generate_resource(&name, collection).await

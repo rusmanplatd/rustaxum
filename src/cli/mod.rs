@@ -269,13 +269,13 @@ pub enum PassportCommands {
 pub async fn run_cli(cli: Cli) -> Result<()> {
     match cli.command {
         Commands::Make(make_cmd) => commands::make::handle_make_command(make_cmd).await,
-        Commands::Migrate { fresh, seed } => commands::migrate::handle_migrate_command(fresh, seed).await,
-        Commands::MigrateRollback { step } => commands::migrate::handle_migrate_rollback_command(step).await,
-        Commands::MigrateReset => commands::migrate::handle_migrate_reset_command().await,
-        Commands::MigrateRefresh { seed } => commands::migrate::handle_migrate_refresh_command(seed).await,
-        Commands::MigrateStatus => commands::migrate::handle_migrate_status_command().await,
-        Commands::DbSeed { class, fresh } => commands::seed::handle_seed_command(class, fresh).await,
-        Commands::DbSeedList => commands::seed::handle_seed_list_command().await,
+        Commands::Migrate { fresh, seed } => commands::migrate::handle_migrate_command(fresh, seed),
+        Commands::MigrateRollback { step } => commands::migrate::handle_migrate_rollback_command(step),
+        Commands::MigrateReset => commands::migrate::handle_migrate_reset_command(),
+        Commands::MigrateRefresh { seed } => commands::migrate::handle_migrate_refresh_command(seed),
+        Commands::MigrateStatus => commands::migrate::handle_migrate_status_command(),
+        Commands::DbSeed { class, fresh } => commands::seed::handle_seed_command(class, fresh),
+        Commands::DbSeedList => commands::seed::handle_seed_list_command(),
         Commands::Serve { port, host } => commands::serve::handle_serve_command(host, port).await,
         Commands::Passport(passport_cmd) => commands::passport::handle_passport_command(passport_cmd).await,
     }

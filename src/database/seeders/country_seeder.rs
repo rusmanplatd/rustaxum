@@ -32,11 +32,9 @@ impl Seeder for Countryseeder {
         let mut conn = pool.get()?;
 
         // Check if countries already exist
-        let count: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM countries")
-            .load::<(i64,)>(&mut conn)?
-            .first()
-            .map(|(c,)| *c)
-            .unwrap_or(0);
+        let count: i64 = countries::table
+            .count()
+            .get_result(&mut conn)?;
 
         if count > 0 {
             println!("Countries table already has {} records. Skipping seeding.", count);

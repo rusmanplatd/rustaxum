@@ -3,7 +3,7 @@ use ulid::Ulid;
 use crate::database::DbPool;
 use std::collections::HashMap;
 use diesel::prelude::*;
-use crate::schema::OrganizationPositionLevel;
+use crate::schema::organization_position_levels;
 
 use crate::app::models::organization_position_level::{OrganizationPositionLevel, CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel};
 
@@ -14,16 +14,16 @@ impl OrganizationPositionLevelService {
         let mut conn = pool.get()?;
         let organization_position_level = OrganizationPositionLevel::new(data.name, data.code, data.level, data.description);
 
-        diesel::insert_into(OrganizationPositionLevel::table)
+        diesel::insert_into(organization_position_levels::table)
             .values((
-                OrganizationPositionLevel::id.eq(organization_position_level.id.to_string()),
-                OrganizationPositionLevel::name.eq(&organization_position_level.name),
-                OrganizationPositionLevel::code.eq(&organization_position_level.code),
-                OrganizationPositionLevel::level.eq(organization_position_level.level),
-                OrganizationPositionLevel::description.eq(&organization_position_level.description),
-                OrganizationPositionLevel::is_active.eq(organization_position_level.is_active),
-                OrganizationPositionLevel::created_at.eq(organization_position_level.created_at),
-                OrganizationPositionLevel::updated_at.eq(organization_position_level.updated_at),
+                organization_position_levels::id.eq(organization_position_level.id.to_string()),
+                organization_position_levels::name.eq(&organization_position_level.name),
+                organization_position_levels::code.eq(&organization_position_level.code),
+                organization_position_levels::level.eq(organization_position_level.level),
+                organization_position_levels::description.eq(&organization_position_level.description),
+                organization_position_levels::is_active.eq(organization_position_level.is_active),
+                organization_position_levels::created_at.eq(organization_position_level.created_at),
+                organization_position_levels::updated_at.eq(organization_position_level.updated_at),
             ))
             .execute(&mut conn)?;
 
@@ -33,8 +33,8 @@ impl OrganizationPositionLevelService {
     pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<OrganizationPositionLevel>> {
         let mut conn = pool.get()?;
 
-        let result = OrganizationPositionLevel::table
-            .filter(OrganizationPositionLevel::id.eq(id.to_string()))
+        let result = organization_position_levels::table
+            .filter(organization_position_levels::id.eq(id.to_string()))
             .first::<OrganizationPositionLevel>(&mut conn)
             .optional()?;
 
@@ -44,8 +44,8 @@ impl OrganizationPositionLevelService {
     pub fn find_by_level(pool: &DbPool, level: i32) -> Result<Option<OrganizationPositionLevel>> {
         let mut conn = pool.get()?;
 
-        let result = OrganizationPositionLevel::table
-            .filter(OrganizationPositionLevel::level.eq(level))
+        let result = organization_position_levels::table
+            .filter(organization_position_levels::level.eq(level))
             .first::<OrganizationPositionLevel>(&mut conn)
             .optional()?;
 
@@ -55,8 +55,8 @@ impl OrganizationPositionLevelService {
     pub fn list(pool: &DbPool, _query_params: HashMap<String, String>) -> Result<Vec<OrganizationPositionLevel>> {
         let mut conn = pool.get()?;
 
-        let result = OrganizationPositionLevel::table
-            .order(OrganizationPositionLevel::level.asc())
+        let result = organization_position_levels::table
+            .order(organization_position_levels::level.asc())
             .load::<OrganizationPositionLevel>(&mut conn)?;
 
         Ok(result)
@@ -85,14 +85,14 @@ impl OrganizationPositionLevelService {
         }
         current.updated_at = chrono::Utc::now();
 
-        diesel::update(OrganizationPositionLevel::table.filter(OrganizationPositionLevel::id.eq(id.to_string())))
+        diesel::update(organization_position_levels::table.filter(organization_position_levels::id.eq(id.to_string())))
             .set((
-                OrganizationPositionLevel::name.eq(&current.name),
-                OrganizationPositionLevel::code.eq(&current.code),
-                OrganizationPositionLevel::level.eq(current.level),
-                OrganizationPositionLevel::description.eq(&current.description),
-                OrganizationPositionLevel::is_active.eq(current.is_active),
-                OrganizationPositionLevel::updated_at.eq(current.updated_at),
+                organization_position_levels::name.eq(&current.name),
+                organization_position_levels::code.eq(&current.code),
+                organization_position_levels::level.eq(current.level),
+                organization_position_levels::description.eq(&current.description),
+                organization_position_levels::is_active.eq(current.is_active),
+                organization_position_levels::updated_at.eq(current.updated_at),
             ))
             .execute(&mut conn)?;
 
@@ -102,7 +102,7 @@ impl OrganizationPositionLevelService {
     pub fn delete(pool: &DbPool, id: Ulid) -> Result<()> {
         let mut conn = pool.get()?;
 
-        let rows_affected = diesel::delete(OrganizationPositionLevel::table.filter(OrganizationPositionLevel::id.eq(id.to_string())))
+        let rows_affected = diesel::delete(organization_position_levels::table.filter(organization_position_levels::id.eq(id.to_string())))
             .execute(&mut conn)?;
 
         if rows_affected == 0 {
@@ -115,9 +115,9 @@ impl OrganizationPositionLevelService {
     pub fn find_active_levels(pool: &DbPool) -> Result<Vec<OrganizationPositionLevel>> {
         let mut conn = pool.get()?;
 
-        let results = OrganizationPositionLevel::table
-            .filter(OrganizationPositionLevel::is_active.eq(true))
-            .order(OrganizationPositionLevel::level.asc())
+        let results = organization_position_levels::table
+            .filter(organization_position_levels::is_active.eq(true))
+            .order(organization_position_levels::level.asc())
             .load::<OrganizationPositionLevel>(&mut conn)?;
 
         Ok(results)
@@ -126,10 +126,10 @@ impl OrganizationPositionLevelService {
     pub fn find_by_level_range(pool: &DbPool, min_level: i32, max_level: i32) -> Result<Vec<OrganizationPositionLevel>> {
         let mut conn = pool.get()?;
 
-        let results = OrganizationPositionLevel::table
-            .filter(OrganizationPositionLevel::level.ge(min_level))
-            .filter(OrganizationPositionLevel::level.le(max_level))
-            .order(OrganizationPositionLevel::level.asc())
+        let results = organization_position_levels::table
+            .filter(organization_position_levels::level.ge(min_level))
+            .filter(organization_position_levels::level.le(max_level))
+            .order(organization_position_levels::level.asc())
             .load::<OrganizationPositionLevel>(&mut conn)?;
 
         Ok(results)

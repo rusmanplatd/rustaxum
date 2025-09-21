@@ -4,27 +4,27 @@ use crate::database::create_pool;
 use crate::database::seeder::{call, seed, all};
 use crate::cli::commands::migrate::{handle_migrate_reset_command, handle_migrate_command};
 
-pub async fn handle_seed_command(class: Option<String>, fresh: bool) -> Result<()> {
+pub fn handle_seed_command(class: Option<String>, fresh: bool) -> Result<()> {
     dotenv::dotenv().ok();
     let config = Config::load()?;
-    let pool = create_pool(&config).await?;
+    let pool = create_pool(&config)?;
 
     if fresh {
         println!("🔄 Fresh seeding: Resetting database...");
 
         // Reset and re-run migrations
-        handle_migrate_reset_command().await?;
-        handle_migrate_command(false, false).await?;
+        handle_migrate_reset_command()?;
+        handle_migrate_command(false, false)?;
 
         println!("✅ Database reset and migrations completed");
     }
 
     match class {
         Some(seeder_name) => {
-            call(&seeder_name, &pool).await?;
+            call(&seeder_name, &pool)?;
         }
         None => {
-            seed(&pool).await?;
+            seed(&pool)?;
         }
     }
 
@@ -32,7 +32,7 @@ pub async fn handle_seed_command(class: Option<String>, fresh: bool) -> Result<(
     Ok(())
 }
 
-pub async fn handle_seed_list_command() -> Result<()> {
+pub fn handle_seed_list_command() -> Result<()> {
     let seeders = all();
 
     if seeders.is_empty() {

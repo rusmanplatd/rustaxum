@@ -78,77 +78,6 @@ impl crate::app::query_builder::Queryable for SysModelHasPermission {
         vec![
             "id",
             "model_type",
-            "scope_type",
-            "created_at",
-            "updated_at",
-        ]
-    }
-
-    fn allowed_fields() -> Vec<&'static str> {
-        vec![
-            "id",
-            "model_type",
-            "model_id",
-            "permission_id",
-            "scope_type",
-            "scope_id",
-            "created_at",
-            "updated_at",
-        ]
-    }
-}
-
-impl SysModelHasPermission {
-    pub fn new(model_type: String, model_id: Ulid, permission_id: Ulid, scope_type: Option<String>, scope_id: Option<Ulid>) -> Self {
-        let now = Utc::now();
-        Self {
-            id: Ulid::new(),
-            model_type,
-            model_id,
-            permission_id,
-            scope_type,
-            scope_id,
-            created_at: now,
-            updated_at: now,
-        }
-    }
-
-    pub fn to_response(&self) -> SysModelHasPermissionResponse {
-        SysModelHasPermissionResponse {
-            id: self.id,
-            model_type: self.model_type.clone(),
-            model_id: self.model_id,
-            permission_id: self.permission_id,
-            scope_type: self.scope_type.clone(),
-            scope_id: self.scope_id,
-            created_at: self.created_at,
-            updated_at: self.updated_at,
-        }
-    }
-}
-
-impl crate::app::query_builder::Queryable for SysModelHasPermission {
-    fn table_name() -> &'static str {
-        "sys_model_has_permissions"
-    }
-
-    fn allowed_filters() -> Vec<&'static str> {
-        vec![
-            "id",
-            "model_type",
-            "model_id",
-            "permission_id",
-            "scope_type",
-            "scope_id",
-            "created_at",
-            "updated_at",
-        ]
-    }
-
-    fn allowed_sorts() -> Vec<&'static str> {
-        vec![
-            "id",
-            "model_type",
             "model_id",
             "permission_id",
             "scope_type",
@@ -179,6 +108,35 @@ impl crate::app::query_builder::Queryable for SysModelHasPermission {
         vec![
             "permission",
         ]
+    }
+}
+
+impl SysModelHasPermission {
+    pub fn new(model_type: String, model_id: Ulid, permission_id: Ulid, scope_type: Option<String>, scope_id: Option<Ulid>) -> Self {
+        let now = Utc::now();
+        Self {
+            id: Ulid::new(),
+            model_type,
+            model_id,
+            permission_id,
+            scope_type,
+            scope_id,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    pub fn to_response(&self) -> SysModelHasPermissionResponse {
+        SysModelHasPermissionResponse {
+            id: self.id,
+            model_type: self.model_type.clone(),
+            model_id: self.model_id,
+            permission_id: self.permission_id,
+            scope_type: self.scope_type.clone(),
+            scope_id: self.scope_id,
+            created_at: self.created_at,
+            updated_at: self.updated_at,
+        }
     }
 }
 

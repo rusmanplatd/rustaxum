@@ -1,18 +1,19 @@
 -- Create sys_permissions table
 CREATE TABLE sys_permissions (
     id CHAR(26) PRIMARY KEY,
+    organization_id CHAR(26) REFERENCES organizations(id) ON DELETE RESTRICT,
     name VARCHAR NOT NULL,
     guard_name VARCHAR NOT NULL DEFAULT 'api',
-    resource VARCHAR,
-    action VARCHAR NOT NULL,
+    scope_type VARCHAR(255) COMMENTS "Type of resource this permission assignment is scoped to",
+    scope_id CHAR(26) COMMENTS "ID of the resource this permission assignment is scoped to",
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(name, guard_name)
+    UNIQUE(name, guard_name, scope_type, scope_id)
 );
 
 -- Add indexes
+CREATE INDEX idx_permissions_organization_id ON sys_permissions (organization_id);
 CREATE INDEX idx_permissions_name ON sys_permissions (name);
 CREATE INDEX idx_permissions_guard_name ON sys_permissions (guard_name);
-CREATE INDEX idx_permissions_resource ON sys_permissions (resource);
-CREATE INDEX idx_permissions_action ON sys_permissions (action);
+CREATE INDEX idx_permissions_scope ON sys_permissions (scope_type, scope_id);
 CREATE INDEX idx_permissions_created_at ON sys_permissions (created_at);

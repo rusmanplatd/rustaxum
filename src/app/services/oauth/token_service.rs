@@ -518,9 +518,9 @@ impl TokenService {
     }
 
     pub async fn list_user_tokens(pool: &DbPool, user_id: Ulid) -> Result<Vec<AccessToken>> {
-        let mut request = crate::app::query_builder::QueryBuilderRequest::default();
-        request.filters.insert("user_id".to_string(), user_id.to_string());
-        request.filters.insert("revoked".to_string(), "false".to_string());
+        let mut request = crate::app::query_builder::QueryParams::default();
+        request.filter.insert("user_id".to_string(), serde_json::Value::String(user_id.to_string()));
+        request.filter.insert("revoked".to_string(), serde_json::Value::String("false".to_string()));
 
         let query_builder = QueryBuilder::<AccessToken>::new(pool.clone(), request);
         query_builder.get().await

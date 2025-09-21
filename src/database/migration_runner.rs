@@ -1,8 +1,23 @@
 use anyhow::{Result, anyhow};
 use std::fs;
 use std::path::Path;
-use crate::database::DbPool;
+use diesel::prelude::*;
+use diesel::sql_query;
+use crate::database::{DbPool, DbConnection};
 use crate::app::models::migration::Migration;
+use crate::schema::migrations;
+
+#[derive(QueryableByName)]
+struct TableName {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub tablename: String,
+}
+
+#[derive(QueryableByName)]
+struct CountResult {
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    pub count: i64,
+}
 
 pub struct MigrationRunner {
     pool: DbPool,
@@ -25,7 +40,9 @@ impl MigrationRunner {
         }
     }
 
-    pub async fn ensure_migrations_table(&self) -> Result<()> {
+    pub fn ensure_migrations_table(&self) -> Result<()> {
+        let mut conn = self.pool.get()?;
+
         // Create table first
         let create_table = r#"
             CREATE TABLE IF NOT EXISTS migrations (
@@ -35,35 +52,27 @@ impl MigrationRunner {
                 executed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
             )
         "#;
-        sqlx::query(create_table).execute(&self.pool).await?;
+        sql_query(create_table).execute(&mut conn)?;
 
         // Create index separately
         let create_index = "CREATE INDEX IF NOT EXISTS idx_migrations_batch ON migrations(batch)";
-        sqlx::query(create_index).execute(&self.pool).await?;
+        sql_query(create_index).execute(&mut conn)?;
 
         Ok(())
     }
 
-    pub async fn get_executed_migrations(&self) -> Result<Vec<Migration>> {
-        let rows = sqlx::query("SELECT id, migration, batch, executed_at FROM migrations ORDER BY id")
-            .fetch_all(&self.pool)
-            .await?;
+    pub fn get_executed_migrations(&self) -> Result<Vec<Migration>> {
+        let mut conn = self.pool.get()?;
 
-        let migrations = rows
-            .into_iter()
-            .map(|row| Migration {
-                id: row.get("id"),
-                migration: row.get("migration"),
-                batch: row.get("batch"),
-                executed_at: row.get("executed_at"),
-            })
-            .collect();
+        let migrations = migrations::table
+            .order(migrations::id)
+            .load::<Migration>(&mut conn)?;
 
         Ok(migrations)
     }
 
-    pub async fn get_pending_migrations(&self) -> Result<Vec<MigrationFile>> {
-        let executed = self.get_executed_migrations().await?;
+    pub fn get_pending_migrations(&self) -> Result<Vec<MigrationFile>> {
+        let executed = self.get_executed_migrations()?;
         let executed_names: std::collections::HashSet<String> =
             executed.into_iter().map(|m| m.migration).collect();
 
@@ -76,46 +85,54 @@ impl MigrationRunner {
         Ok(pending)
     }
 
-    pub async fn get_next_batch_number(&self) -> Result<i32> {
-        let row = sqlx::query("SELECT COALESCE(MAX(batch), 0) + 1 as next_batch FROM migrations")
-            .fetch_one(&self.pool)
-            .await?;
+    pub fn get_next_batch_number(&self) -> Result<i32> {
+        let mut conn = self.pool.get()?;
 
-        Ok(row.get("next_batch"))
+        let result: Option<i32> = migrations::table
+            .select(diesel::dsl::max(migrations::batch))
+            .first(&mut conn)
+            .optional()?;
+
+        Ok(result.unwrap_or(0) + 1)
     }
 
-    pub async fn get_last_batch_number(&self) -> Result<Option<i32>> {
-        let row = sqlx::query("SELECT MAX(batch) as last_batch FROM migrations")
-            .fetch_optional(&self.pool)
-            .await?;
+    pub fn get_last_batch_number(&self) -> Result<Option<i32>> {
+        let mut conn = self.pool.get()?;
 
-        Ok(row.and_then(|r| r.get("last_batch")))
+        let result: Option<i32> = migrations::table
+            .select(diesel::dsl::max(migrations::batch))
+            .first(&mut conn)
+            .optional()?;
+
+        Ok(result)
     }
 
-    pub async fn run_migrations(&self) -> Result<()> {
-        self.ensure_migrations_table().await?;
+    pub fn run_migrations(&self) -> Result<()> {
+        self.ensure_migrations_table()?;
 
-        let pending = self.get_pending_migrations().await?;
+        let pending = self.get_pending_migrations()?;
         if pending.is_empty() {
             println!("No pending migrations found.");
             return Ok(());
         }
 
-        let batch = self.get_next_batch_number().await?;
+        let batch = self.get_next_batch_number()?;
         println!("Running {} migrations in batch {}...", pending.len(), batch);
 
         for migration in pending {
             println!("Migrating: {}", migration.name);
 
             // Execute the migration SQL (split by semicolons and execute each statement)
-            self.execute_sql_statements(&migration.up_sql, &migration.name).await?;
+            self.execute_sql_statements(&migration.up_sql, &migration.name)?;
 
             // Record the migration
-            sqlx::query("INSERT INTO migrations (migration, batch) VALUES ($1, $2)")
-                .bind(&migration.name)
-                .bind(batch)
-                .execute(&self.pool)
-                .await?;
+            let mut conn = self.pool.get()?;
+            diesel::insert_into(migrations::table)
+                .values((
+                    migrations::migration.eq(&migration.name),
+                    migrations::batch.eq(batch),
+                ))
+                .execute(&mut conn)?;
 
             println!("Migrated: {}", migration.name);
         }
@@ -124,11 +141,11 @@ impl MigrationRunner {
         Ok(())
     }
 
-    pub async fn rollback_migrations(&self, steps: Option<i32>) -> Result<()> {
-        self.ensure_migrations_table().await?;
+    pub fn rollback_migrations(&self, steps: Option<i32>) -> Result<()> {
+        self.ensure_migrations_table()?;
 
         let steps = steps.unwrap_or(1);
-        let last_batch = self.get_last_batch_number().await?;
+        let last_batch = self.get_last_batch_number()?;
 
         if last_batch.is_none() {
             println!("No migrations to rollback.");
@@ -138,12 +155,12 @@ impl MigrationRunner {
         let last_batch = last_batch.unwrap();
         let target_batch = std::cmp::max(0, last_batch - steps + 1);
 
-        let migrations_to_rollback = sqlx::query(
-            "SELECT migration FROM migrations WHERE batch >= $1 ORDER BY id DESC"
-        )
-        .bind(target_batch)
-        .fetch_all(&self.pool)
-        .await?;
+        let mut conn = self.pool.get()?;
+        let migrations_to_rollback: Vec<String> = migrations::table
+            .select(migrations::migration)
+            .filter(migrations::batch.ge(target_batch))
+            .order(migrations::id.desc())
+            .load(&mut conn)?;
 
         if migrations_to_rollback.is_empty() {
             println!("No migrations to rollback.");
@@ -152,22 +169,20 @@ impl MigrationRunner {
 
         println!("Rolling back {} migrations...", migrations_to_rollback.len());
 
-        for row in migrations_to_rollback {
-            let migration_name: String = row.get("migration");
+        for migration_name in migrations_to_rollback {
             println!("Rolling back: {}", migration_name);
 
             // Load migration file to get down SQL
             if let Some(migration_file) = self.load_migration_file(&migration_name)? {
                 if let Some(down_sql) = migration_file.down_sql {
                     // Execute rollback SQL
-                    self.execute_sql_statements(&down_sql, &migration_name).await
+                    self.execute_sql_statements(&down_sql, &migration_name)
                         .map_err(|e| anyhow!("Failed to rollback migration {}: {}", migration_name, e))?;
 
                     // Remove from migrations table
-                    sqlx::query("DELETE FROM migrations WHERE migration = $1")
-                        .bind(&migration_name)
-                        .execute(&self.pool)
-                        .await?;
+                    let mut conn = self.pool.get()?;
+                    diesel::delete(migrations::table.filter(migrations::migration.eq(&migration_name)))
+                        .execute(&mut conn)?;
 
                     println!("Rolled back: {}", migration_name);
                 } else {
@@ -183,13 +198,15 @@ impl MigrationRunner {
         Ok(())
     }
 
-    pub async fn reset_migrations(&self) -> Result<()> {
-        self.ensure_migrations_table().await?;
+    pub fn reset_migrations(&self) -> Result<()> {
+        self.ensure_migrations_table()?;
 
         println!("Resetting all migrations...");
 
+        let mut conn = self.pool.get()?;
+
         // Get all table names from the database (excluding system tables)
-        let tables: Vec<String> = sqlx::query_scalar(
+        let tables: Vec<String> = sql_query(
             r#"
             SELECT tablename
             FROM pg_tables
@@ -198,8 +215,10 @@ impl MigrationRunner {
             ORDER BY tablename
             "#
         )
-        .fetch_all(&self.pool)
-        .await?;
+        .load::<TableName>(&mut conn)?
+        .into_iter()
+        .map(|t| t.tablename)
+        .collect();
 
         if !tables.is_empty() {
             // Drop all tables with CASCADE to handle foreign key dependencies
@@ -210,30 +229,29 @@ impl MigrationRunner {
             let drop_sql = format!("DROP TABLE IF EXISTS {} CASCADE", table_names.join(", "));
             println!("Dropping all tables...");
 
-            sqlx::query(&drop_sql)
-                .execute(&self.pool)
-                .await
+            sql_query(&drop_sql)
+                .execute(&mut conn)
                 .map_err(|e| anyhow!("Failed to drop tables: {}", e))?;
         }
 
         // Clear migrations table
-        sqlx::query("DELETE FROM migrations").execute(&self.pool).await?;
+        diesel::delete(migrations::table).execute(&mut conn)?;
         println!("✅ All migrations reset!");
         Ok(())
     }
 
-    pub async fn refresh_migrations(&self) -> Result<()> {
+    pub fn refresh_migrations(&self) -> Result<()> {
         println!("Refreshing migrations (reset + migrate)...");
-        self.reset_migrations().await?;
-        self.run_migrations().await?;
+        self.reset_migrations()?;
+        self.run_migrations()?;
         Ok(())
     }
 
-    pub async fn show_status(&self) -> Result<()> {
-        self.ensure_migrations_table().await?;
+    pub fn show_status(&self) -> Result<()> {
+        self.ensure_migrations_table()?;
 
-        let executed = self.get_executed_migrations().await?;
-        let pending = self.get_pending_migrations().await?;
+        let executed = self.get_executed_migrations()?;
+        let pending = self.get_pending_migrations()?;
 
         println!("\n📊 Migration Status");
         println!("==================");
@@ -324,24 +342,29 @@ impl MigrationRunner {
     }
 
 
-    async fn execute_sql_statements(&self, sql: &str, migration_name: &str) -> Result<()> {
+    fn execute_sql_statements(&self, sql: &str, migration_name: &str) -> Result<()> {
+        let mut conn = self.pool.get()?;
+
         // Use a transaction to ensure all statements in a migration are executed atomically
-        let mut tx = self.pool.begin().await?;
+        conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            // Parse SQL statements properly, handling functions that contain semicolons
+            let statements = self.parse_sql_statements(sql)?;
 
-        // Parse SQL statements properly, handling functions that contain semicolons
-        let statements = self.parse_sql_statements(sql)?;
-
-        for statement in statements {
-            if !statement.is_empty() {
-                sqlx::query(&statement)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(|e| anyhow!("Failed to execute SQL statement in migration {}: {}\nStatement: {}", migration_name, e, statement))?;
+            for statement in statements {
+                if !statement.is_empty() {
+                    sql_query(&statement)
+                        .execute(conn)
+                        .map_err(|e| {
+                            diesel::result::Error::DatabaseError(
+                                diesel::result::DatabaseErrorKind::Unknown,
+                                Box::new(format!("Failed to execute SQL statement in migration {}: {}\nStatement: {}", migration_name, e, statement))
+                            )
+                        })?;
+                }
             }
-        }
+            Ok(())
+        }).map_err(|e| anyhow!("Transaction failed: {}", e))?;
 
-        // Commit the transaction
-        tx.commit().await?;
         Ok(())
     }
 

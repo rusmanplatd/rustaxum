@@ -33,11 +33,9 @@ impl Seeder for Provinceseeder {
         let mut conn = pool.get()?;
 
         // Check if provinces already exist
-        let count: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM provinces")
-            .load::<(i64,)>(&mut conn)?
-            .first()
-            .map(|(c,)| *c)
-            .unwrap_or(0);
+        let count: i64 = provinces::table
+            .count()
+            .get_result(&mut conn)?;
 
         if count > 0 {
             println!("Provinces table already has {} records. Skipping seeding.", count);
@@ -45,7 +43,8 @@ impl Seeder for Provinceseeder {
         }
 
         // Get country mappings from database
-        let countries: Vec<(String, String)> = diesel::sql_query("SELECT iso_code, id FROM countries")
+        let countries: Vec<(String, String)> = countries::table
+            .select((countries::iso_code, countries::id))
             .load::<(String, String)>(&mut conn)?;
 
         let country_map: HashMap<String, Ulid> = countries

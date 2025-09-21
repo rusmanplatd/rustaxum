@@ -138,13 +138,13 @@ impl ClientService {
     }
 
     pub fn list_clients(pool: &DbPool, user_id: Option<Ulid>) -> Result<Vec<ClientResponse>> {
-        let mut request = crate::app::query_builder::QueryBuilderRequest::default();
+        let mut request = crate::app::query_builder::QueryParams::default();
 
         if let Some(user_id) = user_id {
-            request.filters.insert("user_id".to_string(), user_id.to_string());
+            request.filter.insert("user_id".to_string(), serde_json::Value::String(user_id.to_string()));
         }
 
-        request.filters.insert("revoked".to_string(), "false".to_string());
+        request.filter.insert("revoked".to_string(), serde_json::Value::String("false".to_string()));
 
         let query_builder = QueryBuilder::<Client>::new(pool.clone(), request);
         let clients = query_builder.get()?;

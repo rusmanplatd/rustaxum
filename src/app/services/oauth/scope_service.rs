@@ -62,7 +62,7 @@ impl ScopeService {
     }
 
     pub fn list_scopes(pool: &DbPool) -> Result<Vec<ScopeResponse>> {
-        let request = crate::app::query_builder::QueryBuilderRequest::default();
+        let request = crate::app::query_builder::QueryParams::default();
         let query_builder = QueryBuilder::<Scope>::new(pool.clone(), request);
         let scopes = query_builder.get()?;
         Ok(scopes.into_iter().map(|s| s.to_response()).collect())

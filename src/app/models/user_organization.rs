@@ -173,22 +173,40 @@ impl UserOrganization {
         user_organization_id: Ulid,
         role_id: Ulid,
     ) -> Result<()> {
+        use diesel::insert_into;
+        use chrono::Utc;
         let mut conn = pool.get()?;
+        let now = Utc::now();
 
-        diesel::sql_query(
-            r#"
-            INSERT INTO sys_model_has_roles (id, model_type, model_id, role_id, scope_type, scope_id, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-            ON CONFLICT (model_type, model_id, role_id) DO NOTHING
-            "#
-        )
-        .bind::<diesel::sql_types::Text, _>(Ulid::new().to_string())
-        .bind::<diesel::sql_types::Text, _>("UserOrganization")
-        .bind::<diesel::sql_types::Text, _>(user_organization_id.to_string())
-        .bind::<diesel::sql_types::Text, _>(role_id.to_string())
-        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Option::<String>::None)
-        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Option::<String>::None)
-        .execute(&mut conn)?;
+        #[derive(Insertable)]
+        #[diesel(table_name = sys_model_has_roles)]
+        struct NewModelHasRole {
+            id: String,
+            model_type: String,
+            model_id: String,
+            role_id: String,
+            scope_type: Option<String>,
+            scope_id: Option<String>,
+            created_at: chrono::DateTime<Utc>,
+            updated_at: chrono::DateTime<Utc>,
+        }
+
+        let new_role = NewModelHasRole {
+            id: Ulid::new().to_string(),
+            model_type: "UserOrganization".to_string(),
+            model_id: user_organization_id.to_string(),
+            role_id: role_id.to_string(),
+            scope_type: None,
+            scope_id: None,
+            created_at: now,
+            updated_at: now,
+        };
+
+        insert_into(sys_model_has_roles::table)
+            .values(&new_role)
+            .on_conflict((sys_model_has_roles::model_type, sys_model_has_roles::model_id, sys_model_has_roles::role_id))
+            .do_nothing()
+            .execute(&mut conn)?;
 
         Ok(())
     }
@@ -201,15 +219,11 @@ impl UserOrganization {
     ) -> Result<()> {
         let mut conn = pool.get()?;
 
-        diesel::sql_query(
-            r#"
-            DELETE FROM sys_model_has_roles
-            WHERE model_type = 'UserOrganization' AND model_id = $1 AND role_id = $2
-            "#
-        )
-        .bind::<diesel::sql_types::Text, _>(user_organization_id.to_string())
-        .bind::<diesel::sql_types::Text, _>(role_id.to_string())
-        .execute(&mut conn)?;
+        diesel::delete(sys_model_has_roles::table)
+            .filter(sys_model_has_roles::model_type.eq("UserOrganization"))
+            .filter(sys_model_has_roles::model_id.eq(user_organization_id.to_string()))
+            .filter(sys_model_has_roles::role_id.eq(role_id.to_string()))
+            .execute(&mut conn)?;
 
         Ok(())
     }
@@ -263,7 +277,9 @@ impl UserOrganization {
             2 => {
                 let mut conn = pool.get()?;
                 // Check if target is a child organization
-                let count: i64 = diesel::sql_query(
+                // Note: Using raw SQL for CTE as Diesel doesn't support CTEs directly
+                use diesel::sql_query;
+                let count: i64 = sql_query(
                     r#"
                     WITH RECURSIVE org_hierarchy AS (
                         SELECT id, parent_id FROM organizations WHERE id = $1
@@ -286,7 +302,9 @@ impl UserOrganization {
             3 => {
                 let mut conn = pool.get()?;
                 // Check if target is a parent organization
-                let count: i64 = diesel::sql_query(
+                // Note: Using raw SQL for CTE as Diesel doesn't support CTEs directly
+                use diesel::sql_query;
+                let count: i64 = sql_query(
                     r#"
                     WITH RECURSIVE parent_hierarchy AS (
                         SELECT id, parent_id FROM organizations WHERE id = $1
@@ -316,11 +334,12 @@ impl UserOrganization {
         self.is_active = true;
         self.updated_at = Utc::now();
 
-        diesel::sql_query(
-            "UPDATE user_organizations SET is_active = true, updated_at = NOW() WHERE id = $1"
-        )
-        .bind::<diesel::sql_types::Text, _>(self.id.to_string())
-        .execute(&mut conn)?;
+        diesel::update(user_organizations::table.filter(user_organizations::id.eq(self.id.to_string())))
+            .set((
+                user_organizations::is_active.eq(true),
+                user_organizations::updated_at.eq(self.updated_at),
+            ))
+            .execute(&mut conn)?;
 
         Ok(())
     }
@@ -332,11 +351,13 @@ impl UserOrganization {
         self.ended_at = Some(Utc::now());
         self.updated_at = Utc::now();
 
-        diesel::sql_query(
-            "UPDATE user_organizations SET is_active = false, ended_at = NOW(), updated_at = NOW() WHERE id = $1"
-        )
-        .bind::<diesel::sql_types::Text, _>(self.id.to_string())
-        .execute(&mut conn)?;
+        diesel::update(user_organizations::table.filter(user_organizations::id.eq(self.id.to_string())))
+            .set((
+                user_organizations::is_active.eq(false),
+                user_organizations::ended_at.eq(self.ended_at),
+                user_organizations::updated_at.eq(self.updated_at),
+            ))
+            .execute(&mut conn)?;
 
         Ok(())
     }
@@ -360,22 +381,36 @@ impl UserOrganization {
         );
 
         let mut conn = pool.get()?;
-        diesel::sql_query(
-            r#"
-            INSERT INTO user_organizations (id, user_id, organization_id, organization_position_id, is_active, started_at, ended_at, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            "#
-        )
-        .bind::<diesel::sql_types::Text, _>(new_user_org.id.to_string())
-        .bind::<diesel::sql_types::Text, _>(new_user_org.user_id.to_string())
-        .bind::<diesel::sql_types::Text, _>(new_user_org.organization_id.to_string())
-        .bind::<diesel::sql_types::Text, _>(new_user_org.organization_position_id.to_string())
-        .bind::<diesel::sql_types::Bool, _>(new_user_org.is_active)
-        .bind::<diesel::sql_types::Timestamptz, _>(new_user_org.started_at)
-        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(new_user_org.ended_at)
-        .bind::<diesel::sql_types::Timestamptz, _>(new_user_org.created_at)
-        .bind::<diesel::sql_types::Timestamptz, _>(new_user_org.updated_at)
-        .execute(&mut conn)?;
+
+        #[derive(Insertable)]
+        #[diesel(table_name = user_organizations)]
+        struct NewUserOrganization {
+            id: String,
+            user_id: String,
+            organization_id: String,
+            organization_position_id: String,
+            is_active: bool,
+            started_at: chrono::DateTime<Utc>,
+            ended_at: Option<chrono::DateTime<Utc>>,
+            created_at: chrono::DateTime<Utc>,
+            updated_at: chrono::DateTime<Utc>,
+        }
+
+        let new_user_org_insertable = NewUserOrganization {
+            id: new_user_org.id.to_string(),
+            user_id: new_user_org.user_id.to_string(),
+            organization_id: new_user_org.organization_id.to_string(),
+            organization_position_id: new_user_org.organization_position_id.to_string(),
+            is_active: new_user_org.is_active,
+            started_at: new_user_org.started_at,
+            ended_at: new_user_org.ended_at,
+            created_at: new_user_org.created_at,
+            updated_at: new_user_org.updated_at,
+        };
+
+        diesel::insert_into(user_organizations::table)
+            .values(&new_user_org_insertable)
+            .execute(&mut conn)?;
 
         Ok(())
     }

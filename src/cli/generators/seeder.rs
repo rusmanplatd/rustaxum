@@ -2,7 +2,7 @@ use anyhow::{Result, anyhow};
 use std::fs;
 use std::path::Path;
 
-pub async fn generate_seeder(name: &str) -> Result<()> {
+pub fn generate_seeder(name: &str) -> Result<()> {
     let seeder_name = to_pascal_case(name);
     let file_name = to_snake_case(&seeder_name);
     let file_path = format!("src/database/seeders/{}.rs", file_name);
@@ -70,16 +70,19 @@ impl Seeder for {} {{
         Some("TODO: Add description for this seeder")
     }}
 
-    async fn run(&self, pool: &DbPool) -> Result<()> {{
+    fn run(&self, pool: &DbPool) -> Result<()> {{
         // TODO: Add your seeding logic here
-        // Example:
-        // sqlx::query(
-        //     "INSERT INTO table_name (column1, column2) VALUES ($1, $2)",
-        //     "value1",
-        //     "value2"
-        // )
-        // .execute(pool)
-        // .await?;
+        // Example using Diesel:
+        // use diesel::prelude::*;
+        // use crate::schema::table_name;
+        //
+        // let mut conn = pool.get()?;
+        // diesel::insert_into(table_name::table)
+        //     .values((
+        //         table_name::column1.eq("value1"),
+        //         table_name::column2.eq("value2"),
+        //     ))
+        //     .execute(&mut conn)?;
 
         println!("{} seeder executed successfully");
         Ok(())
