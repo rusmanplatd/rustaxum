@@ -1,7 +1,7 @@
 use axum::{routing::get, Router, response::Html};
-use sqlx::PgPool;
+use crate::database::DbPool;
 
-pub fn routes() -> Router<PgPool> {
+pub fn routes() -> Router<DbPool> {
     tracing::debug!("Creating web routes...");
     let router = Router::new()
         .route("/", get(home))

@@ -1,182 +1,183 @@
 use anyhow::Result;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
-use sqlx::PgPool;
-
+use diesel::prelude::*;
+use crate::database::{DbPool, DbConnection};
+use crate::schema::sys_users;
 use crate::app::models::user::{User, CreateUser, UpdateUser};
 
 pub struct UserService;
 
 impl UserService {
-    pub async fn create_user(_pool: &PgPool, data: CreateUser) -> Result<User> {
+    pub fn create_user(_pool: &DbPool, data: CreateUser) -> Result<User> {
         let user = User::new(data.name, data.email, data.password);
         Ok(user)
     }
 
-    pub async fn create_user_record(pool: &PgPool, user: User) -> Result<User> {
-        let query = r#"
-            INSERT INTO sys_users (id, name, email, password, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING *
-        "#;
+    pub fn create_user_record(pool: &DbPool, user: User) -> Result<User> {
+        let mut conn = pool.get()?;
 
-        let result = sqlx::query_as::<_, User>(query)
-            .bind(user.id.to_string())
-            .bind(&user.name)
-            .bind(&user.email)
-            .bind(&user.password)
-            .bind(user.created_at)
-            .bind(user.updated_at)
-            .fetch_one(pool)
-            .await?;
+        let new_user = diesel::insert_into(sys_users::table)
+            .values((
+                sys_users::id.eq(user.id.to_string()),
+                sys_users::name.eq(&user.name),
+                sys_users::email.eq(&user.email),
+                sys_users::password.eq(&user.password),
+                sys_users::created_at.eq(user.created_at),
+                sys_users::updated_at.eq(user.updated_at),
+            ))
+            .get_result::<User>(&mut conn)?;
+
+        Ok(new_user)
+    }
+
+    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<User>> {
+        let mut conn = pool.get()?;
+
+        let result = sys_users::table
+            .filter(sys_users::id.eq(id.to_string()))
+            .first::<User>(&mut conn)
+            .optional()?;
 
         Ok(result)
     }
 
-    pub async fn find_by_id(pool: &PgPool, id: Ulid) -> Result<Option<User>> {
-        let query = "SELECT * FROM sys_users WHERE id = $1";
+    pub fn find_by_email(pool: &DbPool, email: &str) -> Result<Option<User>> {
+        let mut conn = pool.get()?;
 
-        let result = sqlx::query_as::<_, User>(query)
-            .bind(id.to_string())
-            .fetch_optional(pool)
-            .await?;
-
-        Ok(result)
-    }
-
-    pub async fn find_by_email(pool: &PgPool, email: &str) -> Result<Option<User>> {
-        let query = "SELECT * FROM sys_users WHERE email = $1";
-
-        let result = sqlx::query_as::<_, User>(query)
-            .bind(email)
-            .fetch_optional(pool)
-            .await?;
+        let result = sys_users::table
+            .filter(sys_users::email.eq(email))
+            .first::<User>(&mut conn)
+            .optional()?;
 
         Ok(result)
     }
 
-    pub async fn find_by_reset_token(pool: &PgPool, token: &str) -> Result<Option<User>> {
-        let query = "SELECT * FROM sys_users WHERE password_reset_token = $1 AND password_reset_expires_at > NOW()";
+    pub fn find_by_reset_token(pool: &DbPool, token: &str) -> Result<Option<User>> {
+        let mut conn = pool.get()?;
 
-        let result = sqlx::query_as::<_, User>(query)
-            .bind(token)
-            .fetch_optional(pool)
-            .await?;
-
-        Ok(result)
-    }
-
-    pub async fn update_user(pool: &PgPool, id: Ulid, data: UpdateUser) -> Result<User> {
-        let query = r#"
-            UPDATE users
-            SET name = COALESCE($2, name),
-                email = COALESCE($3, email),
-                updated_at = NOW()
-            WHERE id = $1
-            RETURNING *
-        "#;
-
-        let result = sqlx::query_as::<_, User>(query)
-            .bind(id.to_string())
-            .bind(data.name)
-            .bind(data.email)
-            .fetch_one(pool)
-            .await?;
+        let result = sys_users::table
+            .filter(sys_users::password_reset_token.eq(token))
+            .filter(sys_users::password_reset_expires_at.gt(Utc::now()))
+            .first::<User>(&mut conn)
+            .optional()?;
 
         Ok(result)
     }
 
-    pub async fn update_password(pool: &PgPool, id: Ulid, new_password: String) -> Result<()> {
-        let query = "UPDATE sys_users SET password = $1, updated_at = NOW() WHERE id = $2";
+    pub fn update_user(pool: &DbPool, id: Ulid, data: UpdateUser) -> Result<User> {
+        let mut conn = pool.get()?;
 
-        sqlx::query(query)
-            .bind(new_password)
-            .bind(id.to_string())
-            .execute(pool)
-            .await?;
-
-        Ok(())
-    }
-
-    pub async fn update_last_login(pool: &PgPool, id: Ulid) -> Result<()> {
-        let query = "UPDATE sys_users SET last_login_at = NOW(), updated_at = NOW() WHERE id = $1";
-
-        sqlx::query(query)
-            .bind(id.to_string())
-            .execute(pool)
-            .await?;
-
-        Ok(())
-    }
-
-    pub async fn update_failed_attempts(pool: &PgPool, id: Ulid, attempts: i32, locked_until: Option<DateTime<Utc>>) -> Result<()> {
-        let query = "UPDATE sys_users SET failed_login_attempts = $1, locked_until = $2, updated_at = NOW() WHERE id = $3";
-
-        sqlx::query(query)
-            .bind(attempts)
-            .bind(locked_until)
-            .bind(id.to_string())
-            .execute(pool)
-            .await?;
-
-        Ok(())
-    }
-
-    pub async fn reset_failed_attempts(pool: &PgPool, id: Ulid) -> Result<()> {
-        let query = "UPDATE sys_users SET failed_login_attempts = 0, locked_until = NULL, updated_at = NOW() WHERE id = $1";
-
-        sqlx::query(query)
-            .bind(id.to_string())
-            .execute(pool)
-            .await?;
-
-        Ok(())
-    }
-
-    pub async fn update_password_reset_token(pool: &PgPool, id: Ulid, token: Option<String>, expires_at: Option<DateTime<Utc>>) -> Result<()> {
-        let query = "UPDATE sys_users SET password_reset_token = $1, password_reset_expires_at = $2, updated_at = NOW() WHERE id = $3";
-
-        sqlx::query(query)
-            .bind(token)
-            .bind(expires_at)
-            .bind(id.to_string())
-            .execute(pool)
-            .await?;
-
-        Ok(())
-    }
-
-    pub async fn update_refresh_token(pool: &PgPool, id: Ulid, token: Option<String>, expires_at: Option<DateTime<Utc>>) -> Result<()> {
-        let query = "UPDATE sys_users SET refresh_token = $1, refresh_token_expires_at = $2, updated_at = NOW() WHERE id = $3";
-
-        sqlx::query(query)
-            .bind(token)
-            .bind(expires_at)
-            .bind(id.to_string())
-            .execute(pool)
-            .await?;
-
-        Ok(())
-    }
-
-    pub async fn find_by_refresh_token(pool: &PgPool, token: &str) -> Result<Option<User>> {
-        let query = "SELECT * FROM sys_users WHERE refresh_token = $1 AND refresh_token_expires_at > NOW()";
-
-        let result = sqlx::query_as::<_, User>(query)
-            .bind(token)
-            .fetch_optional(pool)
-            .await?;
+        let result = diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
+            .set((
+                data.name.map(|n| sys_users::name.eq(n)),
+                data.email.map(|e| sys_users::email.eq(e)),
+                sys_users::updated_at.eq(Utc::now()),
+            ))
+            .get_result::<User>(&mut conn)?;
 
         Ok(result)
     }
 
-    pub async fn delete_user(pool: &PgPool, id: Ulid) -> Result<()> {
-        let query = "DELETE FROM sys_users WHERE id = $1";
+    pub fn update_password(pool: &DbPool, id: Ulid, new_password: String) -> Result<()> {
+        let mut conn = pool.get()?;
 
-        sqlx::query(query)
-            .bind(id.to_string())
-            .execute(pool)
-            .await?;
+        diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
+            .set((
+                sys_users::password.eq(new_password),
+                sys_users::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut conn)?;
+
+        Ok(())
+    }
+
+    pub fn update_last_login(pool: &DbPool, id: Ulid) -> Result<()> {
+        let mut conn = pool.get()?;
+
+        diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
+            .set((
+                sys_users::last_login_at.eq(Some(Utc::now())),
+                sys_users::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut conn)?;
+
+        Ok(())
+    }
+
+    pub fn update_failed_attempts(pool: &DbPool, id: Ulid, attempts: i32, locked_until: Option<DateTime<Utc>>) -> Result<()> {
+        let mut conn = pool.get()?;
+
+        diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
+            .set((
+                sys_users::failed_login_attempts.eq(attempts),
+                sys_users::locked_until.eq(locked_until),
+                sys_users::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut conn)?;
+
+        Ok(())
+    }
+
+    pub fn reset_failed_attempts(pool: &DbPool, id: Ulid) -> Result<()> {
+        let mut conn = pool.get()?;
+
+        diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
+            .set((
+                sys_users::failed_login_attempts.eq(0),
+                sys_users::locked_until.eq::<Option<DateTime<Utc>>>(None),
+                sys_users::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut conn)?;
+
+        Ok(())
+    }
+
+    pub fn update_password_reset_token(pool: &DbPool, id: Ulid, token: Option<String>, expires_at: Option<DateTime<Utc>>) -> Result<()> {
+        let mut conn = pool.get()?;
+
+        diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
+            .set((
+                sys_users::password_reset_token.eq(token),
+                sys_users::password_reset_expires_at.eq(expires_at),
+                sys_users::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut conn)?;
+
+        Ok(())
+    }
+
+    pub fn update_refresh_token(pool: &DbPool, id: Ulid, token: Option<String>, expires_at: Option<DateTime<Utc>>) -> Result<()> {
+        let mut conn = pool.get()?;
+
+        diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
+            .set((
+                sys_users::refresh_token.eq(token),
+                sys_users::refresh_token_expires_at.eq(expires_at),
+                sys_users::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut conn)?;
+
+        Ok(())
+    }
+
+    pub fn find_by_refresh_token(pool: &DbPool, token: &str) -> Result<Option<User>> {
+        let mut conn = pool.get()?;
+
+        let result = sys_users::table
+            .filter(sys_users::refresh_token.eq(token))
+            .filter(sys_users::refresh_token_expires_at.gt(Utc::now()))
+            .first::<User>(&mut conn)
+            .optional()?;
+
+        Ok(result)
+    }
+
+    pub fn delete_user(pool: &DbPool, id: Ulid) -> Result<()> {
+        let mut conn = pool.get()?;
+
+        diesel::delete(sys_users::table.filter(sys_users::id.eq(id.to_string())))
+            .execute(&mut conn)?;
 
         Ok(())
     }

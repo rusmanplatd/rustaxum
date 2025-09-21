@@ -1,6 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use sqlx::PgPool;
+use crate::database::DbPool;
 use crate::app::notifications::channels::Channel;
 use crate::app::notifications::notification::{Notification, Notifiable, NotificationChannel};
 use crate::app::models::notification::Notification as NotificationModel;
@@ -14,9 +14,9 @@ impl DatabaseChannel {
         Self
     }
 
-    async fn get_database_pool() -> Result<PgPool> {
+    async fn get_database_pool() -> Result<DbPool> {
         let config = Config::load()?;
-        let pool = PgPool::connect(&config.database.url).await?;
+        let pool = DbPool::connect(&config.database.url).await?;
         Ok(pool)
     }
 }

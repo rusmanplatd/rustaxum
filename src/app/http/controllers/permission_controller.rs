@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json},
 };
-use sqlx::PgPool;
+use crate::database::DbPool;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use ulid::Ulid;
@@ -81,7 +81,7 @@ impl From<Permission> for PermissionData {
 }
 
 pub async fn index(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Query(params): Query<ListPermissionsQuery>
 ) -> impl IntoResponse {
     let limit = params.limit.unwrap_or(20);
@@ -111,7 +111,7 @@ pub async fn index(
 }
 
 pub async fn store(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Json(payload): Json<CreatePermissionRequest>
 ) -> impl IntoResponse {
     let create_permission = CreatePermission {
@@ -139,7 +139,7 @@ pub async fn store(
 }
 
 pub async fn show(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>
 ) -> impl IntoResponse {
     let permission_id = match Ulid::from_string(&id) {
@@ -174,7 +174,7 @@ pub async fn show(
 }
 
 pub async fn update(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
     Json(payload): Json<UpdatePermissionRequest>
 ) -> impl IntoResponse {
@@ -212,7 +212,7 @@ pub async fn update(
 }
 
 pub async fn destroy(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>
 ) -> impl IntoResponse {
     let permission_id = match Ulid::from_string(&id) {
@@ -240,7 +240,7 @@ pub async fn destroy(
 }
 
 pub async fn assign_to_role(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
     Json(payload): Json<AssignPermissionRequest>
 ) -> impl IntoResponse {
@@ -278,7 +278,7 @@ pub async fn assign_to_role(
 }
 
 pub async fn remove_from_role(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path((id, role_id)): Path<(String, String)>
 ) -> impl IntoResponse {
     let permission_id = match Ulid::from_string(&id) {
@@ -315,7 +315,7 @@ pub async fn remove_from_role(
 }
 
 pub async fn get_role_permissions(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(role_id): Path<String>
 ) -> impl IntoResponse {
     let role_id = match Ulid::from_string(&role_id) {
@@ -345,7 +345,7 @@ pub async fn get_role_permissions(
 }
 
 pub async fn get_user_permissions(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(user_id): Path<String>
 ) -> impl IntoResponse {
     let user_id = match Ulid::from_string(&user_id) {

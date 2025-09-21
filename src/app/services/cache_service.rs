@@ -82,7 +82,7 @@ impl CacheService {
         match &self.cache {
             Some(cache) => cache.increment(&key, 1).await,
             None => {
-                let cache = crate::cache::default_cache().await?;
+                let cache = crate::cache::default_cache()?;
                 cache.increment(&key, 1).await
             }
         }
@@ -125,7 +125,7 @@ impl CacheService {
         match &self.cache {
             Some(cache) => cache.put_many(&key_value_pairs, ttl).await,
             None => {
-                let cache = crate::cache::default_cache().await?;
+                let cache = crate::cache::default_cache()?;
                 cache.put_many(&key_value_pairs, ttl).await
             }
         }
@@ -141,10 +141,10 @@ impl CacheService {
         let key_refs: Vec<&str> = keys.iter().map(|k| k.as_str()).collect();
 
         let results = match &self.cache {
-            Some(cache) => cache.many(&key_refs).await?,
+            Some(cache) => cache.many(&key_refs)?,
             None => {
-                let cache = crate::cache::default_cache().await?;
-                cache.many(&key_refs).await?
+                let cache = crate::cache::default_cache()?;
+                cache.many(&key_refs)?
             }
         };
 
@@ -165,7 +165,7 @@ impl CacheService {
         match &self.cache {
             Some(cache) => cache.add(&key, &lock_value, Some(lock_duration)).await,
             None => {
-                let cache = crate::cache::default_cache().await?;
+                let cache = crate::cache::default_cache()?;
                 cache.add(&key, &lock_value, Some(lock_duration)).await
             }
         }

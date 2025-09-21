@@ -5,7 +5,7 @@ use axum::{
     response::{IntoResponse, Response, Json as ResponseJson},
 };
 use serde::Serialize;
-use sqlx::PgPool;
+use crate::database::DbPool;
 
 use crate::app::services::oauth::TokenService;
 use crate::app::utils::token_utils::TokenUtils;
@@ -17,7 +17,7 @@ struct ErrorResponse {
 }
 
 pub async fn oauth_middleware(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     mut req: Request,
     next: Next,
 ) -> Result<Response, Response> {
@@ -40,8 +40,8 @@ pub async fn oauth_middleware(
     }
 }
 
-pub fn require_scopes(required_scopes: Vec<&'static str>) -> impl Fn(State<PgPool>, Request, Next) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, Response>> + Send>> + Clone {
-    move |State(pool): State<PgPool>, mut req: Request, next: Next| {
+pub fn require_scopes(required_scopes: Vec<&'static str>) -> impl Fn(State<DbPool>, Request, Next) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, Response>> + Send>> + Clone {
+    move |State(pool): State<DbPool>, mut req: Request, next: Next| {
         let required_scopes = required_scopes.clone();
         Box::pin(async move {
             let headers = req.headers().clone();
@@ -81,12 +81,12 @@ pub fn require_scopes(required_scopes: Vec<&'static str>) -> impl Fn(State<PgPoo
     }
 }
 
-pub fn require_scope(required_scope: &'static str) -> impl Fn(State<PgPool>, Request, Next) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, Response>> + Send>> + Clone {
+pub fn require_scope(required_scope: &'static str) -> impl Fn(State<DbPool>, Request, Next) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, Response>> + Send>> + Clone {
     require_scopes(vec![required_scope])
 }
 
 async fn validate_oauth_token(
-    pool: &PgPool,
+    pool: &DbPool,
     headers: &HeaderMap,
 ) -> anyhow::Result<(crate::app::models::oauth::AccessToken, crate::app::services::oauth::TokenClaims)> {
     // Extract Bearer token from Authorization header

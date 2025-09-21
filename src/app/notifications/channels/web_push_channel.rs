@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use crate::database::DbPool;
 use web_push::{WebPushMessageBuilder, SubscriptionInfo, VapidSignatureBuilder};
 use crate::app::notifications::channels::Channel;
 use crate::app::notifications::notification::{Notification, Notifiable, NotificationChannel};
@@ -64,9 +64,9 @@ impl WebPushChannel {
         })
     }
 
-    async fn get_database_pool() -> Result<PgPool> {
+    async fn get_database_pool() -> Result<DbPool> {
         let config = Config::load()?;
-        let pool = PgPool::connect(&config.database.url).await?;
+        let pool = DbPool::connect(&config.database.url).await?;
         Ok(pool)
     }
 
@@ -318,7 +318,8 @@ impl NotificationAction {
     }
 }
 
-// Implement FromRow for PushSubscription if not using sqlx derive
+// TODO: Implement Diesel equivalent for PushSubscription
+/*
 impl sqlx::FromRow<'_, sqlx::postgres::PgRow> for PushSubscription {
     fn from_row(row: &sqlx::postgres::PgRow) -> Result<Self, sqlx::Error> {
         use sqlx::Row;
@@ -341,3 +342,4 @@ impl sqlx::FromRow<'_, sqlx::postgres::PgRow> for PushSubscription {
         })
     }
 }
+*/

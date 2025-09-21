@@ -1,4 +1,4 @@
-use sqlx::PgPool;
+use crate::database::DbPool;
 use anyhow::{Result, anyhow};
 use crate::database::seeder::Seeder;
 use crate::app::models::province::Province;
@@ -26,7 +26,7 @@ impl Seeder for Provinceseeder {
         Some("Seeds provinces table from CSV data, requires countries")
     }
 
-    async fn run(&self, pool: &PgPool) -> Result<()> {
+    async fn run(&self, pool: &DbPool) -> Result<()> {
         println!("Seeding provinces from CSV...");
 
         // Check if provinces already exist

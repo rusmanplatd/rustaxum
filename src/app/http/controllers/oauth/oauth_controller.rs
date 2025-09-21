@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Json as ResponseJson, Redirect},
 };
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use crate::database::DbPool;
 use ulid::Ulid;
 use chrono::{Duration, Utc};
 use std::collections::HashMap;
@@ -62,7 +62,7 @@ pub struct IntrospectResponse {
 }
 
 pub async fn authorize(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     headers: HeaderMap,
     Query(params): Query<AuthorizeQuery>,
 ) -> impl IntoResponse {
@@ -90,7 +90,7 @@ pub async fn authorize(
     };
 
     // Validate client and redirect URI
-    match ClientService::is_valid_redirect_uri(&pool, client_id, &params.redirect_uri).await {
+    match ClientService::is_valid_redirect_uri(&pool, client_id, &params.redirect_uri) {
         Ok(true) => {},
         Ok(false) => {
             return (StatusCode::BAD_REQUEST, ResponseJson(ErrorResponse {
@@ -151,14 +151,14 @@ pub async fn authorize(
     let auth_code_data = CreateAuthCode {
         user_id,
         client_id,
-        scopes: ScopeService::get_scope_names(&scopes).await,
+        scopes: ScopeService::get_scope_names(&scopes),
         redirect_uri: params.redirect_uri.clone(),
         challenge: params.code_challenge,
         challenge_method: params.code_challenge_method,
         expires_at: Some(Utc::now() + Duration::minutes(10)), // 10 minutes
     };
 
-    match TokenService::create_auth_code(&pool, auth_code_data).await {
+    match TokenService::create_auth_code(&pool, auth_code_data) {
         Ok(auth_code) => {
             let redirect_url = format!(
                 "{}?code={}{}",
@@ -180,7 +180,7 @@ pub async fn authorize(
     }
 }
 
-pub async fn token(State(pool): State<PgPool>, Form(params): Form<TokenRequest>) -> impl IntoResponse {
+pub async fn token(State(pool): State<DbPool>, Form(params): Form<TokenRequest>) -> impl IntoResponse {
     match params.grant_type.as_str() {
         "authorization_code" => handle_authorization_code_grant(&pool, params).await.into_response(),
         "refresh_token" => handle_refresh_token_grant(&pool, params).await.into_response(),
@@ -195,7 +195,7 @@ pub async fn token(State(pool): State<PgPool>, Form(params): Form<TokenRequest>)
     }.into_response()
 }
 
-async fn handle_authorization_code_grant(pool: &PgPool, params: TokenRequest) -> impl IntoResponse + use<> {
+async fn handle_authorization_code_grant(pool: &DbPool, params: TokenRequest) -> impl IntoResponse + use<> {
     let code = match params.code {
         Some(code) => code,
         None => {
@@ -248,7 +248,7 @@ async fn handle_authorization_code_grant(pool: &PgPool, params: TokenRequest) ->
     }
 }
 
-async fn handle_refresh_token_grant(pool: &PgPool, params: TokenRequest) -> impl IntoResponse + use<> {
+async fn handle_refresh_token_grant(pool: &DbPool, params: TokenRequest) -> impl IntoResponse + use<> {
     let refresh_token = match params.refresh_token {
         Some(token) => token,
         None => {
@@ -288,7 +288,7 @@ async fn handle_refresh_token_grant(pool: &PgPool, params: TokenRequest) -> impl
     }
 }
 
-async fn handle_client_credentials_grant(pool: &PgPool, params: TokenRequest) -> impl IntoResponse + use<> {
+async fn handle_client_credentials_grant(pool: &DbPool, params: TokenRequest) -> impl IntoResponse + use<> {
     let client_id = match Ulid::from_string(&params.client_id) {
         Ok(id) => id,
         Err(_) => {
@@ -349,7 +349,7 @@ async fn handle_client_credentials_grant(pool: &PgPool, params: TokenRequest) ->
         user_id: None,
         client_id,
         name: None,
-        scopes: ScopeService::get_scope_names(&scopes).await,
+        scopes: ScopeService::get_scope_names(&scopes),
         expires_at: Some(Utc::now() + Duration::seconds(3600)), // 1 hour
     };
 
@@ -385,7 +385,7 @@ async fn handle_client_credentials_grant(pool: &PgPool, params: TokenRequest) ->
     }
 }
 
-pub async fn introspect(State(pool): State<PgPool>, Json(params): Json<IntrospectRequest>) -> impl IntoResponse {
+pub async fn introspect(State(pool): State<DbPool>, Json(params): Json<IntrospectRequest>) -> impl IntoResponse {
     let token_claims = match TokenService::decode_jwt_token(&params.token) {
         Ok(claims) => claims,
         Err(_) => {
@@ -452,7 +452,7 @@ pub async fn introspect(State(pool): State<PgPool>, Json(params): Json<Introspec
     (StatusCode::OK, ResponseJson(response)).into_response()
 }
 
-pub async fn revoke(State(pool): State<PgPool>, Form(params): Form<HashMap<String, String>>) -> impl IntoResponse {
+pub async fn revoke(State(pool): State<DbPool>, Form(params): Form<HashMap<String, String>>) -> impl IntoResponse {
     let token = match params.get("token") {
         Some(token) => token,
         None => {
@@ -505,7 +505,7 @@ pub async fn revoke(State(pool): State<PgPool>, Form(params): Form<HashMap<Strin
     (StatusCode::OK, ResponseJson(serde_json::json!({"revoked": true}))).into_response()
 }
 
-async fn get_user_from_token(_pool: &PgPool, auth_header: Option<&str>) -> anyhow::Result<Ulid> {
+async fn get_user_from_token(_pool: &DbPool, auth_header: Option<&str>) -> anyhow::Result<Ulid> {
     let token = TokenUtils::extract_token_from_header(auth_header)?;
     let claims = AuthService::decode_token(token, "jwt-secret")?;
 

@@ -10,7 +10,7 @@ pub mod scopes;
 pub mod cache;
 
 use serde::{Serialize, Deserialize};
-use sqlx::{FromRow, postgres::PgRow};
+// use sqlx::{FromRow, postgres::PgRow};
 use std::collections::HashMap;
 
 pub use builder::QueryBuilder;
@@ -37,7 +37,8 @@ impl Default for PaginationType {
 }
 
 /// Trait for models that can be queried with the QueryBuilder
-pub trait Queryable: for<'r> FromRow<'r, PgRow> + Send + Unpin + Serialize {
+// TODO: Convert to Diesel traits - temporarily using simpler trait during migration
+pub trait Queryable: Send + Unpin + Serialize {
     /// Get the table name for the model
     fn table_name() -> &'static str;
 

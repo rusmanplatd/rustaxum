@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Row, postgres::PgRow};
+use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
@@ -53,26 +53,6 @@ pub struct SysModelHasRoleResponse {
     pub scope_id: Option<Ulid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-}
-
-impl FromRow<'_, PgRow> for SysModelHasRole {
-    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
-        let id_str: String = row.try_get("id")?;
-        let model_id_str: String = row.try_get("model_id")?;
-        let role_id_str: String = row.try_get("role_id")?;
-        let scope_id_str: Option<String> = row.try_get("scope_id")?;
-
-        Ok(Self {
-            id: Ulid::from_string(&id_str).map_err(|_| sqlx::Error::Decode("Invalid ULID for id".into()))?,
-            model_type: row.try_get("model_type")?,
-            model_id: Ulid::from_string(&model_id_str).map_err(|_| sqlx::Error::Decode("Invalid ULID for model_id".into()))?,
-            role_id: Ulid::from_string(&role_id_str).map_err(|_| sqlx::Error::Decode("Invalid ULID for role_id".into()))?,
-            scope_type: row.try_get("scope_type")?,
-            scope_id: scope_id_str.map(|s| Ulid::from_string(&s)).transpose().map_err(|_| sqlx::Error::Decode("Invalid ULID for scope_id".into()))?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
-    }
 }
 
 impl Queryable for SysModelHasRole {

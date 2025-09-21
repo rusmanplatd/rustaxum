@@ -2,20 +2,20 @@ use crate::app::validation::errors::ValidationError;
 use serde_json::Value;
 use std::collections::HashMap;
 use regex::Regex;
-use sqlx::PgPool;
+use crate::database::DbPool;
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 
 #[async_trait]
 pub trait Rule: Send + Sync {
-    async fn validate(&self, field: &str, value: &Value, data: &HashMap<String, Value>, db: Option<&PgPool>) -> Result<(), ValidationError>;
+    async fn validate(&self, field: &str, value: &Value, data: &HashMap<String, Value>, db: Option<&DbPool>) -> Result<(), ValidationError>;
 }
 
 pub struct RequiredRule;
 
 #[async_trait]
 impl Rule for RequiredRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::Null => Err(ValidationError::new("required", &format!("{} is required.", field))),
             Value::String(s) if s.trim().is_empty() => Err(ValidationError::new("required", &format!("{} is required.", field))),
@@ -30,7 +30,7 @@ pub struct StringRule;
 
 #[async_trait]
 impl Rule for StringRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(_) => Ok(()),
             Value::Null => Ok(()), // Allow null values, use Required rule to enforce presence
@@ -51,7 +51,7 @@ impl MinRule {
 
 #[async_trait]
 impl Rule for MinRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 if s.len() < self.min {
@@ -96,7 +96,7 @@ impl MaxRule {
 
 #[async_trait]
 impl Rule for MaxRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 if s.len() > self.max {
@@ -133,7 +133,7 @@ pub struct EmailRule;
 
 #[async_trait]
 impl Rule for EmailRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 let email_regex = Regex::new(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").unwrap();
@@ -153,7 +153,7 @@ pub struct NumericRule;
 
 #[async_trait]
 impl Rule for NumericRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::Number(_) => Ok(()),
             Value::String(s) => {
@@ -173,7 +173,7 @@ pub struct IntegerRule;
 
 #[async_trait]
 impl Rule for IntegerRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::Number(n) => {
                 if n.is_i64() {
@@ -199,7 +199,7 @@ pub struct BooleanRule;
 
 #[async_trait]
 impl Rule for BooleanRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::Bool(_) => Ok(()),
             Value::String(s) => {
@@ -230,7 +230,7 @@ pub struct ArrayRule;
 
 #[async_trait]
 impl Rule for ArrayRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::Array(_) => Ok(()),
             Value::Null => Ok(()), // Allow null values
@@ -262,7 +262,7 @@ impl UniqueRule {
 
 #[async_trait]
 impl Rule for UniqueRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, db: Option<&DbPool>) -> Result<(), ValidationError> {
         if let Some(db) = db {
             let default_field = field.to_string();
             let column = self.column.as_ref().unwrap_or(&default_field);
@@ -301,7 +301,7 @@ pub struct AlphaRule;
 
 #[async_trait]
 impl Rule for AlphaRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 if s.chars().all(|c| c.is_alphabetic()) {
@@ -320,7 +320,7 @@ pub struct AlphaDashRule;
 
 #[async_trait]
 impl Rule for AlphaDashRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 if s.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
@@ -339,7 +339,7 @@ pub struct AlphaNumRule;
 
 #[async_trait]
 impl Rule for AlphaNumRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 if s.chars().all(|c| c.is_alphanumeric()) {
@@ -367,7 +367,7 @@ impl BetweenRule {
 
 #[async_trait]
 impl Rule for BetweenRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::Number(n) => {
                 if let Some(num) = n.as_f64() {
@@ -414,7 +414,7 @@ impl DigitsRule {
 
 #[async_trait]
 impl Rule for DigitsRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 if s.chars().all(|c| c.is_ascii_digit()) && s.len() == self.digits {
@@ -450,7 +450,7 @@ impl DigitsBetweenRule {
 
 #[async_trait]
 impl Rule for DigitsBetweenRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 if s.chars().all(|c| c.is_ascii_digit()) && s.len() >= self.min && s.len() <= self.max {
@@ -485,7 +485,7 @@ impl SizeRule {
 
 #[async_trait]
 impl Rule for SizeRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 if s.len() == self.size {
@@ -523,7 +523,7 @@ pub struct DateRule;
 
 #[async_trait]
 impl Rule for DateRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 // Try various date formats
@@ -568,7 +568,7 @@ impl BeforeRule {
 
 #[async_trait]
 impl Rule for BeforeRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 let compare_date = if self.date == "today" {
@@ -609,7 +609,7 @@ impl AfterRule {
 
 #[async_trait]
 impl Rule for AfterRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 let compare_date = if self.date == "today" {
@@ -650,7 +650,7 @@ impl DateFormatRule {
 
 #[async_trait]
 impl Rule for DateFormatRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 if NaiveDate::parse_from_str(s, &self.format).is_ok() ||
@@ -679,7 +679,7 @@ impl InRule {
 
 #[async_trait]
 impl Rule for InRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         let str_value = match value {
             Value::String(s) => s.clone(),
             Value::Number(n) => n.to_string(),
@@ -708,7 +708,7 @@ impl NotInRule {
 
 #[async_trait]
 impl Rule for NotInRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         let str_value = match value {
             Value::String(s) => s.clone(),
             Value::Number(n) => n.to_string(),
@@ -730,7 +730,7 @@ pub struct UrlRule;
 
 #[async_trait]
 impl Rule for UrlRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 let url_regex = Regex::new(r"^https?://[^\s/$.?#].[^\s]*$").unwrap();
@@ -750,7 +750,7 @@ pub struct UuidRule;
 
 #[async_trait]
 impl Rule for UuidRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 let uuid_regex = Regex::new(r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$").unwrap();
@@ -770,7 +770,7 @@ pub struct UlidRule;
 
 #[async_trait]
 impl Rule for UlidRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 // ULID format: 26 characters, base32 encoded
@@ -791,7 +791,7 @@ pub struct JsonRule;
 
 #[async_trait]
 impl Rule for JsonRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 if serde_json::from_str::<serde_json::Value>(s).is_ok() {
@@ -811,7 +811,7 @@ pub struct IpRule;
 
 #[async_trait]
 impl Rule for IpRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 if s.parse::<std::net::IpAddr>().is_ok() {
@@ -840,7 +840,7 @@ impl RegexRule {
 
 #[async_trait]
 impl Rule for RegexRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 match Regex::new(&self.pattern) {
@@ -865,7 +865,7 @@ pub struct FileRule;
 
 #[async_trait]
 impl Rule for FileRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 // Check if it's a valid file path or base64 encoded file
@@ -885,7 +885,7 @@ pub struct ImageRule;
 
 #[async_trait]
 impl Rule for ImageRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 let image_types = ["jpeg", "jpg", "png", "gif", "bmp", "svg", "webp"];
@@ -924,7 +924,7 @@ impl MimesRule {
 
 #[async_trait]
 impl Rule for MimesRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 if s.starts_with("data:") {
@@ -988,7 +988,7 @@ impl RequiredIfRule {
 
 #[async_trait]
 impl Rule for RequiredIfRule {
-    async fn validate(&self, field: &str, value: &Value, data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         if let Some(other_value) = data.get(&self.other_field) {
             let other_str = match other_value {
                 Value::String(s) => s.clone(),
@@ -1030,7 +1030,7 @@ impl RequiredUnlessRule {
 
 #[async_trait]
 impl Rule for RequiredUnlessRule {
-    async fn validate(&self, field: &str, value: &Value, data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         if let Some(other_value) = data.get(&self.other_field) {
             let other_str = match other_value {
                 Value::String(s) => s.clone(),
@@ -1066,7 +1066,7 @@ pub struct ConfirmedRule;
 
 #[async_trait]
 impl Rule for ConfirmedRule {
-    async fn validate(&self, field: &str, value: &Value, data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         let confirmation_field = format!("{}_confirmation", field);
 
         if let Some(confirmation_value) = data.get(&confirmation_field) {
@@ -1095,7 +1095,7 @@ impl SameRule {
 
 #[async_trait]
 impl Rule for SameRule {
-    async fn validate(&self, field: &str, value: &Value, data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         if let Some(other_value) = data.get(&self.other_field) {
             if value == other_value {
                 Ok(())
@@ -1122,7 +1122,7 @@ impl DifferentRule {
 
 #[async_trait]
 impl Rule for DifferentRule {
-    async fn validate(&self, field: &str, value: &Value, data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         if let Some(other_value) = data.get(&self.other_field) {
             if value != other_value {
                 Ok(())
@@ -1159,7 +1159,7 @@ impl ExistsRule {
 
 #[async_trait]
 impl Rule for ExistsRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, db: Option<&DbPool>) -> Result<(), ValidationError> {
         if let Some(db) = db {
             let default_field = field.to_string();
             let column = self.column.as_ref().unwrap_or(&default_field);
@@ -1208,7 +1208,7 @@ impl StartsWithRule {
 
 #[async_trait]
 impl Rule for StartsWithRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 if s.starts_with(&self.prefix) {
@@ -1237,7 +1237,7 @@ impl EndsWithRule {
 
 #[async_trait]
 impl Rule for EndsWithRule {
-    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&PgPool>) -> Result<(), ValidationError> {
+    async fn validate(&self, field: &str, value: &Value, _data: &HashMap<String, Value>, _db: Option<&DbPool>) -> Result<(), ValidationError> {
         match value {
             Value::String(s) => {
                 if s.ends_with(&self.suffix) {

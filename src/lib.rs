@@ -7,6 +7,7 @@ pub mod storage;
 pub mod query_builder;
 pub mod cache;
 pub mod logging;
+pub mod schema;
 
 // Re-export validation for convenient access
 pub use app::validation;
@@ -24,7 +25,7 @@ pub async fn create_app() -> anyhow::Result<Router> {
 
     // Create database pool
     tracing::debug!("Creating database connection pool...");
-    let pool = database::create_pool(&config).await?;
+    let pool = database::create_pool(&config)?;
     tracing::info!("Database pool created successfully");
 
     // Run migrations

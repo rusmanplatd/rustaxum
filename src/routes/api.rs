@@ -2,12 +2,12 @@ use axum::{
     routing::{get, post, put, delete},
     Router,
 };
-use sqlx::PgPool;
+use crate::database::DbPool;
 
 use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, role_controller, permission_controller, docs_controller, user_organization_controller, job_level_controller, job_position_controller, sys_model_has_permission_controller, sys_model_has_role_controller};
 use crate::app::http::controllers::web_push_controller::WebPushController;
 
-pub fn routes() -> Router<PgPool> {
+pub fn routes() -> Router<DbPool> {
     tracing::debug!("Creating API routes...");
     let router = Router::new()
         // Authentication routes

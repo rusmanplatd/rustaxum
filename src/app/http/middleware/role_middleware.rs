@@ -5,7 +5,7 @@ use axum::{
     response::{IntoResponse, Json, Response},
 };
 use serde_json::json;
-use sqlx::PgPool;
+use crate::database::DbPool;
 use ulid::Ulid;
 use std::collections::HashSet;
 use crate::app::services::sys_model_has_role_service::SysModelHasRoleService;
@@ -119,7 +119,7 @@ where
             let (parts, body) = req.into_parts();
 
             // Extract database pool from state
-            let pool = match parts.extensions.get::<State<PgPool>>() {
+            let pool = match parts.extensions.get::<State<DbPool>>() {
                 Some(State(pool)) => pool,
                 None => {
                     return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
@@ -192,7 +192,7 @@ where
             let (parts, body) = req.into_parts();
 
             // Extract database pool from state
-            let pool = match parts.extensions.get::<State<PgPool>>() {
+            let pool = match parts.extensions.get::<State<DbPool>>() {
                 Some(State(pool)) => pool,
                 None => {
                     return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
@@ -241,7 +241,7 @@ where
 }
 
 async fn check_user_permissions(
-    pool: &PgPool,
+    pool: &DbPool,
     user_id: Ulid,
     required_permissions: &[String],
     guard_name: Option<&str>,

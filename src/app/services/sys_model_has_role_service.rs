@@ -1,13 +1,15 @@
 use anyhow::Result;
 use ulid::Ulid;
-use sqlx::PgPool;
+use crate::database::DbPool;
+use diesel::prelude::*;
+use crate::schema::sys_model_has_roles;
 
 use crate::app::models::sys_model_has_role::{SysModelHasRole, CreateSysModelHasRole, UpdateSysModelHasRole};
 
 pub struct SysModelHasRoleService;
 
 impl SysModelHasRoleService {
-    pub async fn create(pool: &PgPool, data: CreateSysModelHasRole) -> Result<SysModelHasRole> {
+    pub fn create(pool: &DbPool, data: CreateSysModelHasRole) -> Result<SysModelHasRole> {
         let role = SysModelHasRole::new(
             data.model_type,
             data.model_id,
@@ -16,59 +18,57 @@ impl SysModelHasRoleService {
             data.scope_id,
         );
 
-        let query = r#"
-            INSERT INTO sys_model_has_roles (id, model_type, model_id, role_id, scope_type, scope_id, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING *
-        "#;
 
-        let result = sqlx::query_as::<_, SysModelHasRole>(query)
-            .bind(role.id.to_string())
-            .bind(&role.model_type)
-            .bind(role.model_id.to_string())
-            .bind(role.role_id.to_string())
-            .bind(&role.scope_type)
-            .bind(role.scope_id.map(|id| id.to_string()))
-            .bind(role.created_at)
-            .bind(role.updated_at)
-            .fetch_one(pool)
-            .await?;
+        let mut conn = pool.get()?;
+
+        let result = diesel::insert_into(sys_model_has_roles::table)
+            .values((
+                sys_model_has_roles::id.eq(role.id.to_string()),
+                sys_model_has_roles::model_type.eq(&role.model_type),
+                sys_model_has_roles::model_id.eq(role.model_id.to_string()),
+                sys_model_has_roles::role_id.eq(role.role_id.to_string()),
+                sys_model_has_roles::scope_type.eq(&role.scope_type),
+                sys_model_has_roles::scope_id.eq(role.scope_id.map(|id| id.to_string())),
+                sys_model_has_roles::created_at.eq(role.created_at),
+                sys_model_has_roles::updated_at.eq(role.updated_at),
+            ))
+            .get_result::<SysModelHasRole>(&mut conn)?;
 
         Ok(result)
     }
 
-    pub async fn find_by_id(pool: &PgPool, id: Ulid) -> Result<Option<SysModelHasRole>> {
-        let query = "SELECT * FROM sys_model_has_roles WHERE id = $1";
+    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<SysModelHasRole>> {
+        let mut conn = pool.get()?;
 
-        let result = sqlx::query_as::<_, SysModelHasRole>(query)
-            .bind(id.to_string())
-            .fetch_optional(pool)
-            .await?;
+        let result = sys_model_has_roles::table
+            .filter(sys_model_has_roles::id.eq(id.to_string()))
+            .first::<SysModelHasRole>(&mut conn)
+            .optional()?;
 
         Ok(result)
     }
 
-    pub async fn find_by_model(pool: &PgPool, model_type: &str, model_id: Ulid) -> Result<Vec<SysModelHasRole>> {
+    pub fn find_by_model(pool: &DbPool, model_type: &str, model_id: Ulid) -> Result<Vec<SysModelHasRole>> {
         let query = "SELECT * FROM sys_model_has_roles WHERE model_type = $1 AND model_id = $2 ORDER BY created_at DESC";
 
         let result = sqlx::query_as::<_, SysModelHasRole>(query)
             .bind(model_type)
             .bind(model_id.to_string())
             .fetch_all(pool)
-            .await?;
+            ?;
 
         Ok(result)
     }
 
-    pub async fn list(pool: &PgPool, _query_params: std::collections::HashMap<String, String>) -> Result<Vec<SysModelHasRole>> {
+    pub fn list(pool: &DbPool, _query_params: std::collections::HashMap<String, String>) -> Result<Vec<SysModelHasRole>> {
         let query = "SELECT * FROM sys_model_has_roles ORDER BY created_at DESC";
         let result = sqlx::query_as::<_, SysModelHasRole>(query)
             .fetch_all(pool)
-            .await?;
+            ?;
         Ok(result)
     }
 
-    pub async fn update(pool: &PgPool, id: Ulid, data: UpdateSysModelHasRole) -> Result<SysModelHasRole> {
+    pub fn update(pool: &DbPool, id: Ulid, data: UpdateSysModelHasRole) -> Result<SysModelHasRole> {
         let query = r#"
             UPDATE sys_model_has_roles
             SET model_type = COALESCE($2, model_type),
@@ -89,24 +89,23 @@ impl SysModelHasRoleService {
             .bind(data.scope_type)
             .bind(data.scope_id.map(|id| id.to_string()))
             .fetch_one(pool)
-            .await?;
+            ?;
 
         Ok(result)
     }
 
-    pub async fn delete(pool: &PgPool, id: Ulid) -> Result<()> {
-        let query = "DELETE FROM sys_model_has_roles WHERE id = $1";
+    pub fn delete(pool: &DbPool, id: Ulid) -> Result<()> {
+        let mut conn = pool.get()?;
 
-        sqlx::query(query)
-            .bind(id.to_string())
-            .execute(pool)
-            .await?;
+        diesel::delete(sys_model_has_roles::table)
+            .filter(sys_model_has_roles::id.eq(id.to_string()))
+            .execute(&mut conn)?;
 
         Ok(())
     }
 
-    pub async fn assign_role_to_model(
-        pool: &PgPool,
+    pub fn assign_role_to_model(
+        pool: &DbPool,
         model_type: &str,
         model_id: Ulid,
         role_id: Ulid,
@@ -120,11 +119,11 @@ impl SysModelHasRoleService {
             scope_type,
             scope_id,
         };
-        Self::create(pool, data).await
+        Self::create(pool, data)
     }
 
-    pub async fn remove_role_from_model(
-        pool: &PgPool,
+    pub fn remove_role_from_model(
+        pool: &DbPool,
         model_type: &str,
         model_id: Ulid,
         role_id: Ulid,
@@ -136,13 +135,13 @@ impl SysModelHasRoleService {
             .bind(model_id.to_string())
             .bind(role_id.to_string())
             .execute(pool)
-            .await?;
+            ?;
 
         Ok(())
     }
 
-    pub async fn get_model_roles(
-        pool: &PgPool,
+    pub fn get_model_roles(
+        pool: &DbPool,
         model_type: &str,
         model_id: Ulid,
         guard_name: Option<&str>,
@@ -163,7 +162,7 @@ impl SysModelHasRoleService {
             .bind(model_id.to_string())
             .bind(guard)
             .fetch_all(pool)
-            .await?
+            ?
         } else {
             sqlx::query_as::<_, Role>(
                 r#"
@@ -177,7 +176,7 @@ impl SysModelHasRoleService {
             .bind(model_type)
             .bind(model_id.to_string())
             .fetch_all(pool)
-            .await?
+            ?
         };
 
         Ok(query)

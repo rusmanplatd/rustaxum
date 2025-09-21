@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Row, postgres::PgRow};
+use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
@@ -8,7 +8,8 @@ use super::{HasModelType, HasRoles};
 
 /// Organization model representing an organizational entity
 /// Contains organizational information including hierarchy and metadata
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
+#[diesel(table_name = crate::schema::organizations)]
 pub struct Organization {
     /// Unique identifier for the organization
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
@@ -117,36 +118,6 @@ impl HasRoles for Organization {
     }
 }
 
-impl FromRow<'_, PgRow> for Organization {
-    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
-        let id_str: String = row.try_get("id")?;
-        let id = Ulid::from_string(&id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        let parent_id = match row.try_get::<String, _>("parent_id") { Ok(parent_id_str) => {
-            Some(Ulid::from_string(&parent_id_str).map_err(|e| sqlx::Error::ColumnDecode {
-                index: "parent_id".to_string(),
-                source: Box::new(e),
-            })?)
-        } _ => {
-            None
-        }};
-
-        Ok(Organization {
-            id,
-            name: row.try_get("name")?,
-            organization_type: row.try_get("organization_type")?,
-            parent_id,
-            code: row.try_get("code")?,
-            description: row.try_get("description")?,
-            is_active: row.try_get("is_active")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
-    }
-}
 
 impl Queryable for Organization {
     fn table_name() -> &'static str {

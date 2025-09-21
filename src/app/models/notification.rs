@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Row, postgres::PgRow};
+use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
@@ -105,29 +105,6 @@ impl Notification {
 
     pub fn is_unread(&self) -> bool {
         self.read_at.is_none()
-    }
-}
-
-impl FromRow<'_, PgRow> for Notification {
-    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
-        let id_str: String = row.try_get("id")?;
-        let id = Ulid::from_string(&id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        let data: serde_json::Value = row.try_get("data")?;
-
-        Ok(Notification {
-            id,
-            notification_type: row.try_get("notification_type")?,
-            notifiable_id: row.try_get("notifiable_id")?,
-            notifiable_type: row.try_get("notifiable_type")?,
-            data,
-            read_at: row.try_get("read_at")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
     }
 }
 

@@ -1,9 +1,11 @@
 use anyhow::Result;
-use sqlx::PgPool;
+use crate::database::DbPool;
 use ulid::Ulid;
 use chrono::{Utc, Duration};
 use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
+use diesel::prelude::*;
+use crate::schema::{oauth_access_tokens, oauth_refresh_tokens, oauth_auth_codes};
 
 use crate::app::models::oauth::{
     AccessToken, CreateAccessToken, RefreshToken,
@@ -41,7 +43,7 @@ pub struct TokenService;
 
 impl TokenService {
     pub async fn create_access_token(
-        pool: &PgPool,
+        pool: &DbPool,
         data: CreateAccessToken,
         expires_in_seconds: Option<i64>,
     ) -> Result<AccessToken> {
@@ -63,33 +65,28 @@ impl TokenService {
         Self::create_access_token_record(pool, token).await
     }
 
-    pub async fn create_access_token_record(pool: &PgPool, token: AccessToken) -> Result<AccessToken> {
-        sqlx::query(
-            r#"
-            INSERT INTO oauth_access_tokens (
-                id, user_id, client_id, name, scopes, revoked, expires_at,
-                created_at, updated_at
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            "#
-        )
-        .bind(token.id.to_string())
-        .bind(token.user_id.map(|id| id.to_string()))
-        .bind(token.client_id.to_string())
-        .bind(&token.name)
-        .bind(&token.scopes)
-        .bind(token.revoked)
-        .bind(token.expires_at)
-        .bind(token.created_at)
-        .bind(token.updated_at)
-        .execute(pool)
-        .await?;
+    pub async fn create_access_token_record(pool: &DbPool, token: AccessToken) -> Result<AccessToken> {
+        let mut conn = pool.get()?;
+
+        diesel::insert_into(oauth_access_tokens::table)
+            .values((
+                oauth_access_tokens::id.eq(token.id.to_string()),
+                oauth_access_tokens::user_id.eq(token.user_id.map(|id| id.to_string())),
+                oauth_access_tokens::client_id.eq(token.client_id.to_string()),
+                oauth_access_tokens::name.eq(&token.name),
+                oauth_access_tokens::scopes.eq(&token.scopes),
+                oauth_access_tokens::revoked.eq(token.revoked),
+                oauth_access_tokens::expires_at.eq(token.expires_at),
+                oauth_access_tokens::created_at.eq(token.created_at),
+                oauth_access_tokens::updated_at.eq(token.updated_at),
+            ))
+            .execute(&mut conn)?;
 
         Ok(token)
     }
 
-    pub async fn create_refresh_token(
-        pool: &PgPool,
+    pub fn create_refresh_token(
+        pool: &DbPool,
         access_token_id: Ulid,
         expires_in_seconds: Option<i64>,
     ) -> Result<RefreshToken> {
@@ -97,27 +94,23 @@ impl TokenService {
 
         let refresh_token = RefreshToken::new(access_token_id, expires_at);
 
-        sqlx::query(
-            r#"
-            INSERT INTO oauth_refresh_tokens (
-                id, access_token_id, revoked, expires_at, created_at, updated_at
-            )
-            VALUES ($1, $2, $3, $4, $5, $6)
-            "#
-        )
-        .bind(refresh_token.id.to_string())
-        .bind(refresh_token.access_token_id.to_string())
-        .bind(refresh_token.revoked)
-        .bind(refresh_token.expires_at)
-        .bind(refresh_token.created_at)
-        .bind(refresh_token.updated_at)
-        .execute(pool)
-        .await?;
+        let mut conn = pool.get()?;
+
+        diesel::insert_into(oauth_refresh_tokens::table)
+            .values((
+                oauth_refresh_tokens::id.eq(refresh_token.id.to_string()),
+                oauth_refresh_tokens::access_token_id.eq(refresh_token.access_token_id.to_string()),
+                oauth_refresh_tokens::revoked.eq(refresh_token.revoked),
+                oauth_refresh_tokens::expires_at.eq(refresh_token.expires_at),
+                oauth_refresh_tokens::created_at.eq(refresh_token.created_at),
+                oauth_refresh_tokens::updated_at.eq(refresh_token.updated_at),
+            ))
+            .execute(&mut conn)?;
 
         Ok(refresh_token)
     }
 
-    pub async fn create_auth_code(pool: &PgPool, data: CreateAuthCode) -> Result<AuthCode> {
+    pub fn create_auth_code(pool: &DbPool, data: CreateAuthCode) -> Result<AuthCode> {
         let scopes_str = if data.scopes.is_empty() {
             None
         } else {
@@ -134,117 +127,129 @@ impl TokenService {
             data.expires_at,
         );
 
-        sqlx::query(
-            r#"
-            INSERT INTO oauth_auth_codes (
-                id, user_id, client_id, scopes, revoked, expires_at,
-                challenge, challenge_method, redirect_uri,
-                created_at, updated_at
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            "#
-        )
-        .bind(auth_code.id.to_string())
-        .bind(auth_code.user_id.to_string())
-        .bind(auth_code.client_id.to_string())
-        .bind(&auth_code.scopes)
-        .bind(auth_code.revoked)
-        .bind(auth_code.expires_at)
-        .bind(&auth_code.challenge)
-        .bind(&auth_code.challenge_method)
-        .bind(&auth_code.redirect_uri)
-        .bind(auth_code.created_at)
-        .bind(auth_code.updated_at)
-        .execute(pool)
-        .await?;
+        let mut conn = pool.get()?;
+
+        diesel::insert_into(oauth_auth_codes::table)
+            .values((
+                oauth_auth_codes::id.eq(auth_code.id.to_string()),
+                oauth_auth_codes::user_id.eq(auth_code.user_id.to_string()),
+                oauth_auth_codes::client_id.eq(auth_code.client_id.to_string()),
+                oauth_auth_codes::scopes.eq(&auth_code.scopes),
+                oauth_auth_codes::revoked.eq(auth_code.revoked),
+                oauth_auth_codes::expires_at.eq(auth_code.expires_at),
+                oauth_auth_codes::challenge.eq(&auth_code.challenge),
+                oauth_auth_codes::challenge_method.eq(&auth_code.challenge_method),
+                oauth_auth_codes::redirect_uri.eq(&auth_code.redirect_uri),
+                oauth_auth_codes::created_at.eq(auth_code.created_at),
+                oauth_auth_codes::updated_at.eq(auth_code.updated_at),
+            ))
+            .execute(&mut conn)?;
 
         Ok(auth_code)
     }
 
-    pub async fn find_access_token_by_id(pool: &PgPool, id: Ulid) -> Result<Option<AccessToken>> {
-        let row = sqlx::query_as::<_, AccessToken>(
-            "SELECT * FROM oauth_access_tokens WHERE id = $1"
-        )
-        .bind(id.to_string())
-        .fetch_optional(pool)
-        .await?;
+    pub fn find_access_token_by_id(pool: &DbPool, id: Ulid) -> Result<Option<AccessToken>> {
+        let mut conn = pool.get()?;
 
-        Ok(row)
+        let result = oauth_access_tokens::table
+            .filter(oauth_access_tokens::id.eq(id.to_string()))
+            .first::<AccessToken>(&mut conn)
+            .optional()?;
+
+        Ok(result)
     }
 
-    pub async fn find_refresh_token_by_id(pool: &PgPool, id: Ulid) -> Result<Option<RefreshToken>> {
-        let row = sqlx::query_as::<_, RefreshToken>(
-            "SELECT * FROM oauth_refresh_tokens WHERE id = $1"
-        )
-        .bind(id.to_string())
-        .fetch_optional(pool)
-        .await?;
+    pub fn find_refresh_token_by_id(pool: &DbPool, id: Ulid) -> Result<Option<RefreshToken>> {
+        let mut conn = pool.get()?;
 
-        Ok(row)
+        let result = oauth_refresh_tokens::table
+            .filter(oauth_refresh_tokens::id.eq(id.to_string()))
+            .first::<RefreshToken>(&mut conn)
+            .optional()?;
+
+        Ok(result)
     }
 
-    pub async fn find_auth_code_by_id(pool: &PgPool, id: Ulid) -> Result<Option<AuthCode>> {
-        let row = sqlx::query_as::<_, AuthCode>(
-            "SELECT * FROM oauth_auth_codes WHERE id = $1"
-        )
-        .bind(id.to_string())
-        .fetch_optional(pool)
-        .await?;
+    pub fn find_auth_code_by_id(pool: &DbPool, id: Ulid) -> Result<Option<AuthCode>> {
+        let mut conn = pool.get()?;
 
-        Ok(row)
+        let result = oauth_auth_codes::table
+            .filter(oauth_auth_codes::id.eq(id.to_string()))
+            .first::<AuthCode>(&mut conn)
+            .optional()?;
+
+        Ok(result)
     }
 
-    pub async fn revoke_access_token(pool: &PgPool, id: Ulid) -> Result<()> {
-        sqlx::query(
-            "UPDATE oauth_access_tokens SET revoked = true, updated_at = NOW() WHERE id = $1"
-        )
-        .bind(id.to_string())
-        .execute(pool)
-        .await?;
+    pub fn revoke_access_token(pool: &DbPool, id: Ulid) -> Result<()> {
+        let mut conn = pool.get()?;
+        let now = Utc::now();
+
+        diesel::update(oauth_access_tokens::table)
+            .filter(oauth_access_tokens::id.eq(id.to_string()))
+            .set((
+                oauth_access_tokens::revoked.eq(true),
+                oauth_access_tokens::updated_at.eq(now),
+            ))
+            .execute(&mut conn)?;
 
         // Also revoke associated refresh tokens
-        sqlx::query(
-            "UPDATE oauth_refresh_tokens SET revoked = true, updated_at = NOW() WHERE access_token_id = $1"
-        )
-        .bind(id.to_string())
-        .execute(pool)
-        .await?;
+        diesel::update(oauth_refresh_tokens::table)
+            .filter(oauth_refresh_tokens::access_token_id.eq(id.to_string()))
+            .set((
+                oauth_refresh_tokens::revoked.eq(true),
+                oauth_refresh_tokens::updated_at.eq(now),
+            ))
+            .execute(&mut conn)?;
 
         Ok(())
     }
 
-    pub async fn revoke_refresh_token(pool: &PgPool, id: Ulid) -> Result<()> {
-        sqlx::query(
-            "UPDATE oauth_refresh_tokens SET revoked = true, updated_at = NOW() WHERE id = $1"
-        )
-        .bind(id.to_string())
-        .execute(pool)
-        .await?;
+    pub fn revoke_refresh_token(pool: &DbPool, id: Ulid) -> Result<()> {
+        let mut conn = pool.get()?;
+        let now = Utc::now();
+
+        diesel::update(oauth_refresh_tokens::table)
+            .filter(oauth_refresh_tokens::id.eq(id.to_string()))
+            .set((
+                oauth_refresh_tokens::revoked.eq(true),
+                oauth_refresh_tokens::updated_at.eq(now),
+            ))
+            .execute(&mut conn)?;
 
         Ok(())
     }
 
-    pub async fn revoke_auth_code(pool: &PgPool, id: Ulid) -> Result<()> {
-        sqlx::query(
-            "UPDATE oauth_auth_codes SET revoked = true, updated_at = NOW() WHERE id = $1"
-        )
-        .bind(id.to_string())
-        .execute(pool)
-        .await?;
+    pub fn revoke_auth_code(pool: &DbPool, id: Ulid) -> Result<()> {
+        let mut conn = pool.get()?;
+        let now = Utc::now();
+
+        diesel::update(oauth_auth_codes::table)
+            .filter(oauth_auth_codes::id.eq(id.to_string()))
+            .set((
+                oauth_auth_codes::revoked.eq(true),
+                oauth_auth_codes::updated_at.eq(now),
+            ))
+            .execute(&mut conn)?;
 
         Ok(())
     }
 
-    pub async fn revoke_all_user_tokens(pool: &PgPool, user_id: Ulid) -> Result<()> {
-        sqlx::query(
-            "UPDATE oauth_access_tokens SET revoked = true, updated_at = NOW() WHERE user_id = $1"
-        )
-        .bind(user_id.to_string())
-        .execute(pool)
-        .await?;
+    pub fn revoke_all_user_tokens(pool: &DbPool, user_id: Ulid) -> Result<()> {
+        let mut conn = pool.get()?;
+        let now = Utc::now();
+
+        diesel::update(oauth_access_tokens::table)
+            .filter(oauth_access_tokens::user_id.eq(Some(user_id.to_string())))
+            .set((
+                oauth_access_tokens::revoked.eq(true),
+                oauth_access_tokens::updated_at.eq(now),
+            ))
+            .execute(&mut conn)?;
 
         // Revoke refresh tokens through the access tokens
-        sqlx::query(
+        use diesel::sql_query;
+        sql_query(
             r#"
             UPDATE oauth_refresh_tokens
             SET revoked = true, updated_at = NOW()
@@ -253,22 +258,21 @@ impl TokenService {
             )
             "#
         )
-        .bind(user_id.to_string())
-        .execute(pool)
-        .await?;
+        .bind::<diesel::sql_types::Text, _>(user_id.to_string())
+        .execute(&mut conn)?;
 
         Ok(())
     }
 
     pub async fn create_personal_access_token(
-        pool: &PgPool,
+        pool: &DbPool,
         user_id: Ulid,
         name: String,
         scopes: Vec<String>,
         expires_in_seconds: Option<i64>,
     ) -> Result<PersonalAccessTokenResponse> {
         // Find or create personal access client
-        let client = match ClientService::find_personal_access_client(pool).await? {
+        let client = match ClientService::find_personal_access_client(pool)? {
             Some(client) => client,
             None => return Err(anyhow::anyhow!("No personal access client found. Please create one first.")),
         };
@@ -294,7 +298,7 @@ impl TokenService {
     }
 
     pub async fn exchange_auth_code_for_tokens(
-        pool: &PgPool,
+        pool: &DbPool,
         code: &str,
         client_id: Ulid,
         client_secret: Option<&str>,
@@ -306,12 +310,12 @@ impl TokenService {
             .map_err(|_| anyhow::anyhow!("Invalid authorization code format"))?;
 
         // Find auth code
-        let auth_code = Self::find_auth_code_by_id(pool, code_id).await?
+        let auth_code = Self::find_auth_code_by_id(pool, code_id)?
             .ok_or_else(|| anyhow::anyhow!("Invalid authorization code"))?;
 
         // Validate auth code
         if !auth_code.is_valid() {
-            Self::revoke_auth_code(pool, code_id).await?;
+            Self::revoke_auth_code(pool, code_id)?;
             return Err(anyhow::anyhow!("Authorization code is expired or revoked"));
         }
 
@@ -332,8 +336,8 @@ impl TokenService {
 
         // Verify client
         let client = match client_secret {
-            Some(secret) => ClientService::find_by_id_and_secret(pool, client_id, secret).await?,
-            None => ClientService::find_by_id(pool, client_id).await?,
+            Some(secret) => ClientService::find_by_id_and_secret(pool, client_id, secret)?,
+            None => ClientService::find_by_id(pool, client_id)?,
         };
 
         let client = client.ok_or_else(|| anyhow::anyhow!("Invalid client credentials"))?;
@@ -358,10 +362,10 @@ impl TokenService {
             pool,
             access_token.id,
             Some(604800), // 7 days
-        ).await?;
+        )?;
 
         // Revoke the auth code
-        Self::revoke_auth_code(pool, code_id).await?;
+        Self::revoke_auth_code(pool, code_id)?;
 
         // Generate JWT
         let jwt_token = Self::generate_jwt_token(&access_token, &client_id.to_string())?;
@@ -376,7 +380,7 @@ impl TokenService {
     }
 
     pub async fn refresh_access_token(
-        pool: &PgPool,
+        pool: &DbPool,
         refresh_token_id: &str,
         client_id: Ulid,
         client_secret: Option<&str>,
@@ -386,7 +390,7 @@ impl TokenService {
             .map_err(|_| anyhow::anyhow!("Invalid refresh token format"))?;
 
         // Find refresh token
-        let refresh_token = Self::find_refresh_token_by_id(pool, refresh_id).await?
+        let refresh_token = Self::find_refresh_token_by_id(pool, refresh_id)?
             .ok_or_else(|| anyhow::anyhow!("Invalid refresh token"))?;
 
         if !refresh_token.is_valid() {
@@ -394,7 +398,7 @@ impl TokenService {
         }
 
         // Find associated access token
-        let access_token = Self::find_access_token_by_id(pool, refresh_token.access_token_id).await?
+        let access_token = Self::find_access_token_by_id(pool, refresh_token.access_token_id)?
             .ok_or_else(|| anyhow::anyhow!("Associated access token not found"))?;
 
         if access_token.client_id != client_id {
@@ -403,14 +407,14 @@ impl TokenService {
 
         // Verify client
         let client = match client_secret {
-            Some(secret) => ClientService::find_by_id_and_secret(pool, client_id, secret).await?,
-            None => ClientService::find_by_id(pool, client_id).await?,
+            Some(secret) => ClientService::find_by_id_and_secret(pool, client_id, secret)?,
+            None => ClientService::find_by_id(pool, client_id)?,
         };
 
         let _client = client.ok_or_else(|| anyhow::anyhow!("Invalid client credentials"))?;
 
         // Revoke old tokens
-        Self::revoke_access_token(pool, access_token.id).await?;
+        Self::revoke_access_token(pool, access_token.id)?;
 
         // Create new access token
         let create_token = CreateAccessToken {
@@ -428,7 +432,7 @@ impl TokenService {
             pool,
             new_access_token.id,
             Some(604800), // 7 days
-        ).await?;
+        )?;
 
         // Generate JWT
         let jwt_token = Self::generate_jwt_token(&new_access_token, &client_id.to_string())?;
@@ -482,8 +486,8 @@ impl TokenService {
         Ok(token_data.claims)
     }
 
-    pub async fn validate_token_and_scopes(
-        pool: &PgPool,
+    pub fn validate_token_and_scopes(
+        pool: &DbPool,
         token: &str,
         required_scopes: &[&str],
     ) -> Result<(AccessToken, TokenClaims)> {
@@ -495,7 +499,7 @@ impl TokenService {
             .map_err(|_| anyhow::anyhow!("Invalid token ID in JWT"))?;
 
         // Find access token
-        let access_token = Self::find_access_token_by_id(pool, token_id).await?
+        let access_token = Self::find_access_token_by_id(pool, token_id)?
             .ok_or_else(|| anyhow::anyhow!("Access token not found"))?;
 
         // Validate token
@@ -513,7 +517,7 @@ impl TokenService {
         Ok((access_token, claims))
     }
 
-    pub async fn list_user_tokens(pool: &PgPool, user_id: Ulid) -> Result<Vec<AccessToken>> {
+    pub async fn list_user_tokens(pool: &DbPool, user_id: Ulid) -> Result<Vec<AccessToken>> {
         let mut request = crate::query_builder::QueryBuilderRequest::default();
         request.filters.insert("user_id".to_string(), user_id.to_string());
         request.filters.insert("revoked".to_string(), "false".to_string());

@@ -1,105 +1,91 @@
 use anyhow::Result;
 use ulid::Ulid;
-use sqlx::PgPool;
-
+use diesel::prelude::*;
+use crate::database::DbPool;
+use crate::schema::countries;
 use crate::app::models::country::{Country, CreateCountry, UpdateCountry};
 
 pub struct CountryService;
 
 impl CountryService {
-    pub async fn create(pool: &PgPool, data: CreateCountry) -> Result<Country> {
+    pub fn create(pool: &DbPool, data: CreateCountry) -> Result<Country> {
+        let mut conn = pool.get()?;
         let country = Country::new(data.name, data.iso_code, data.phone_code);
 
-        let query = r#"
-            INSERT INTO countries (id, name, iso_code, phone_code, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING *
-        "#;
-
-        let result = sqlx::query_as::<_, Country>(query)
-            .bind(country.id.to_string())
-            .bind(&country.name)
-            .bind(&country.iso_code)
-            .bind(&country.phone_code)
-            .bind(country.created_at)
-            .bind(country.updated_at)
-            .fetch_one(pool)
-            .await?;
+        let result = diesel::insert_into(countries::table)
+            .values((
+                countries::id.eq(country.id.to_string()),
+                countries::name.eq(&country.name),
+                countries::iso_code.eq(&country.iso_code),
+                countries::phone_code.eq(&country.phone_code),
+                countries::created_at.eq(country.created_at),
+                countries::updated_at.eq(country.updated_at),
+            ))
+            .get_result::<Country>(&mut conn)?;
 
         Ok(result)
     }
 
-    pub async fn find_by_id(pool: &PgPool, id: Ulid) -> Result<Option<Country>> {
-        let query = "SELECT * FROM countries WHERE id = $1";
+    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<Country>> {
+        let mut conn = pool.get()?;
 
-        let result = sqlx::query_as::<_, Country>(query)
-            .bind(id.to_string())
-            .fetch_optional(pool)
-            .await?;
-
-        Ok(result)
-    }
-
-    pub async fn find_by_iso_code(pool: &PgPool, iso_code: &str) -> Result<Option<Country>> {
-        let query = "SELECT * FROM countries WHERE iso_code = $1";
-
-        let result = sqlx::query_as::<_, Country>(query)
-            .bind(iso_code)
-            .fetch_optional(pool)
-            .await?;
+        let result = countries::table
+            .filter(countries::id.eq(id.to_string()))
+            .first::<Country>(&mut conn)
+            .optional()?;
 
         Ok(result)
     }
 
-    pub async fn list(pool: &PgPool, _query_params: std::collections::HashMap<String, String>) -> Result<Vec<Country>> {
-        // For now, use a simple query without the query builder to avoid SQL syntax issues
-        let query = "SELECT * FROM countries ORDER BY name ASC";
-        let result = sqlx::query_as::<_, Country>(query)
-            .fetch_all(pool)
-            .await?;
-        Ok(result)
-    }
+    pub fn find_by_iso_code(pool: &DbPool, iso_code: &str) -> Result<Option<Country>> {
+        let mut conn = pool.get()?;
 
-    pub async fn update(pool: &PgPool, id: Ulid, data: UpdateCountry) -> Result<Country> {
-        let query = r#"
-            UPDATE countries
-            SET name = COALESCE($2, name),
-                iso_code = COALESCE($3, iso_code),
-                phone_code = COALESCE($4, phone_code),
-                updated_at = NOW()
-            WHERE id = $1
-            RETURNING *
-        "#;
-
-        let result = sqlx::query_as::<_, Country>(query)
-            .bind(id.to_string())
-            .bind(data.name)
-            .bind(data.iso_code)
-            .bind(data.phone_code)
-            .fetch_one(pool)
-            .await?;
+        let result = countries::table
+            .filter(countries::iso_code.eq(iso_code))
+            .first::<Country>(&mut conn)
+            .optional()?;
 
         Ok(result)
     }
 
-    pub async fn delete(pool: &PgPool, id: Ulid) -> Result<()> {
-        let query = "DELETE FROM countries WHERE id = $1";
+    pub fn list(pool: &DbPool, _query_params: std::collections::HashMap<String, String>) -> Result<Vec<Country>> {
+        let mut conn = pool.get()?;
 
-        sqlx::query(query)
-            .bind(id.to_string())
-            .execute(pool)
-            .await?;
+        let result = countries::table
+            .order(countries::name.asc())
+            .load::<Country>(&mut conn)?;
+        Ok(result)
+    }
+
+    pub fn update(pool: &DbPool, id: Ulid, data: UpdateCountry) -> Result<Country> {
+        let mut conn = pool.get()?;
+
+        let result = diesel::update(countries::table.filter(countries::id.eq(id.to_string())))
+            .set((
+                data.name.map(|n| countries::name.eq(n)),
+                data.iso_code.map(|c| countries::iso_code.eq(c)),
+                data.phone_code.map(|p| countries::phone_code.eq(p)),
+                countries::updated_at.eq(chrono::Utc::now()),
+            ))
+            .get_result::<Country>(&mut conn)?;
+
+        Ok(result)
+    }
+
+    pub fn delete(pool: &DbPool, id: Ulid) -> Result<()> {
+        let mut conn = pool.get()?;
+
+        diesel::delete(countries::table.filter(countries::id.eq(id.to_string())))
+            .execute(&mut conn)?;
 
         Ok(())
     }
 
-    pub async fn count(pool: &PgPool) -> Result<i64> {
-        let query = "SELECT COUNT(*) FROM countries";
+    pub fn count(pool: &DbPool) -> Result<i64> {
+        let mut conn = pool.get()?;
 
-        let result: (i64,) = sqlx::query_as(query)
-            .fetch_one(pool)
-            .await?;
+        let result = countries::table.count().get_result::<i64>(&mut conn)?;
 
-        Ok(result.0)
+        Ok(result)
     }
 }

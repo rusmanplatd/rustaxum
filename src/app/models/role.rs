@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Row, postgres::PgRow};
+use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
+#[diesel(table_name = crate::schema::sys_roles)]
 pub struct Role {
     pub id: Ulid,
     pub name: String,
@@ -62,21 +63,3 @@ impl Role {
     }
 }
 
-impl FromRow<'_, PgRow> for Role {
-    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
-        let id_str: String = row.try_get("id")?;
-        let id = Ulid::from_string(&id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        Ok(Role {
-            id,
-            name: row.try_get("name")?,
-            description: row.try_get("description")?,
-            guard_name: row.try_get("guard_name")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
-    }
-}

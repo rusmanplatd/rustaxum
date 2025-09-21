@@ -1,4 +1,4 @@
-use sqlx::PgPool;
+use crate::database::DbPool;
 use anyhow::Result;
 use crate::database::seeder::{Seeder, SeederContext};
 use crate::database::seeders::{
@@ -22,7 +22,7 @@ impl Seeder for Databaseseeder {
         Some("Run all seeders including geographic data, users, RBAC, and ABAC")
     }
 
-    async fn run(&self, pool: &PgPool) -> Result<()> {
+    async fn run(&self, pool: &DbPool) -> Result<()> {
         let context = SeederContext::new(pool);
 
         println!("🌱 Database Seeding Started");

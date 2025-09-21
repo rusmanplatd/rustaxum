@@ -1,8 +1,7 @@
 use anyhow::Result;
-use sqlx::{PgPool, Row};
 use ulid::Ulid;
 use chrono::Utc;
-use crate::database::seeder::Seeder;
+use crate::database::{seeder::Seeder, DbPool};
 use crate::app::models::{HasModelType, user::User};
 
 pub struct RolePermissionSeeder;
@@ -16,7 +15,7 @@ impl Seeder for RolePermissionSeeder {
         Some("Seeds sys_roles, sys_permissions, and their relationships for RBAC")
     }
 
-    async fn run(&self, pool: &PgPool) -> Result<()> {
+    async fn run(&self, pool: &DbPool) -> Result<()> {
         println!("🌱 Seeding sys_roles and permissions...");
 
         let now = Utc::now().naive_utc();

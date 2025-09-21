@@ -77,7 +77,7 @@ fn generate_resource_controller(controller_name: &str) -> String {
     http::StatusCode,
     response::{{IntoResponse, Json}},
 }};
-use sqlx::PgPool;
+use crate::database::DbPool;
 use serde::{{Deserialize, Serialize}};
 use serde_json::json;
 
@@ -97,7 +97,7 @@ pub struct {}Response {{
     // Add your fields here
 }}
 
-pub async fn index(State(pool): State<PgPool>) -> impl IntoResponse {{
+pub async fn index(State(pool): State<DbPool>) -> impl IntoResponse {{
     // TODO: Implement index logic
     (StatusCode::OK, Json(json!({{
         "data": [],
@@ -106,7 +106,7 @@ pub async fn index(State(pool): State<PgPool>) -> impl IntoResponse {{
 }}
 
 pub async fn store(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Json(payload): Json<Create{}Request>
 ) -> impl IntoResponse {{
     // TODO: Implement store logic
@@ -116,7 +116,7 @@ pub async fn store(
 }}
 
 pub async fn show(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>
 ) -> impl IntoResponse {{
     // TODO: Implement show logic
@@ -127,7 +127,7 @@ pub async fn show(
 }}
 
 pub async fn update(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
     Json(payload): Json<Update{}Request>
 ) -> impl IntoResponse {{
@@ -138,7 +138,7 @@ pub async fn update(
 }}
 
 pub async fn destroy(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>
 ) -> impl IntoResponse {{
     // TODO: Implement destroy logic

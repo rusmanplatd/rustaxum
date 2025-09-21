@@ -5,7 +5,7 @@ use axum::{
 };
 use serde::Serialize;
 use ulid::Ulid;
-use sqlx::PgPool;
+use crate::database::DbPool;
 use std::collections::HashMap;
 
 use crate::app::models::province::{CreateProvince, UpdateProvince};
@@ -23,7 +23,7 @@ struct MessageResponse {
 }
 
 pub async fn index(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
     match ProvinceService::list(&pool, params).await {
@@ -40,7 +40,7 @@ pub async fn index(
     }
 }
 
-pub async fn show(State(pool): State<PgPool>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
     let province_id = match Ulid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
@@ -68,7 +68,7 @@ pub async fn show(State(pool): State<PgPool>, Path(id): Path<String>) -> impl In
     }
 }
 
-pub async fn store(State(pool): State<PgPool>, request: CreateProvinceRequest) -> impl IntoResponse {
+pub async fn store(State(pool): State<DbPool>, request: CreateProvinceRequest) -> impl IntoResponse {
     let payload = CreateProvince {
         country_id: request.country_id,
         name: request.name,
@@ -87,7 +87,7 @@ pub async fn store(State(pool): State<PgPool>, request: CreateProvinceRequest) -
 }
 
 pub async fn update(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
     request: UpdateProvinceRequest,
 ) -> impl IntoResponse {
@@ -118,7 +118,7 @@ pub async fn update(
     }
 }
 
-pub async fn destroy(State(pool): State<PgPool>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
     let province_id = match Ulid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
@@ -145,7 +145,7 @@ pub async fn destroy(State(pool): State<PgPool>, Path(id): Path<String>) -> impl
     }
 }
 
-pub async fn by_country(State(pool): State<PgPool>, Path(country_id): Path<String>) -> impl IntoResponse {
+pub async fn by_country(State(pool): State<DbPool>, Path(country_id): Path<String>) -> impl IntoResponse {
     let country_ulid = match Ulid::from_string(&country_id) {
         Ok(id) => id,
         Err(_) => {

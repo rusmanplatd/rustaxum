@@ -1,6 +1,6 @@
 use anyhow::Result;
 use ulid::Ulid;
-use sqlx::PgPool;
+use crate::database::DbPool;
 use std::collections::HashMap;
 
 use crate::app::models::joblevel::{JobLevel, CreateJobLevel, UpdateJobLevel};
@@ -8,7 +8,7 @@ use crate::app::models::joblevel::{JobLevel, CreateJobLevel, UpdateJobLevel};
 pub struct JobLevelService;
 
 impl JobLevelService {
-    pub async fn create(pool: &PgPool, data: CreateJobLevel) -> Result<JobLevel> {
+    pub fn create(pool: &DbPool, data: CreateJobLevel) -> Result<JobLevel> {
         let job_level = JobLevel::new(data.name, data.code, data.level, data.description);
 
         let query = r#"
@@ -27,44 +27,44 @@ impl JobLevelService {
             .bind(job_level.created_at)
             .bind(job_level.updated_at)
             .fetch_one(pool)
-            .await?;
+            ?;
 
         Ok(result)
     }
 
-    pub async fn find_by_id(pool: &PgPool, id: Ulid) -> Result<Option<JobLevel>> {
+    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<JobLevel>> {
         let query = "SELECT * FROM job_levels WHERE id = $1";
 
         let result = sqlx::query_as::<_, JobLevel>(query)
             .bind(id.to_string())
             .fetch_optional(pool)
-            .await?;
+            ?;
 
         Ok(result)
     }
 
-    pub async fn find_by_level(pool: &PgPool, level: i32) -> Result<Option<JobLevel>> {
+    pub fn find_by_level(pool: &DbPool, level: i32) -> Result<Option<JobLevel>> {
         let query = "SELECT * FROM job_levels WHERE level = $1";
 
         let result = sqlx::query_as::<_, JobLevel>(query)
             .bind(level)
             .fetch_optional(pool)
-            .await?;
+            ?;
 
         Ok(result)
     }
 
-    pub async fn list(pool: &PgPool, _query_params: HashMap<String, String>) -> Result<Vec<JobLevel>> {
+    pub fn list(pool: &DbPool, _query_params: HashMap<String, String>) -> Result<Vec<JobLevel>> {
         // For now, use a simple query without the query builder to avoid SQL syntax issues
         let query = "SELECT * FROM job_levels ORDER BY level ASC";
         let result = sqlx::query_as::<_, JobLevel>(query)
             .fetch_all(pool)
-            .await?;
+            ?;
         Ok(result)
     }
 
-    pub async fn update(pool: &PgPool, id: Ulid, data: UpdateJobLevel) -> Result<JobLevel> {
-        let current = Self::find_by_id(pool, id).await?
+    pub fn update(pool: &DbPool, id: Ulid, data: UpdateJobLevel) -> Result<JobLevel> {
+        let current = Self::find_by_id(pool, id)?
             .ok_or_else(|| anyhow::anyhow!("Job level not found"))?;
 
         let query = r#"
@@ -82,18 +82,18 @@ impl JobLevelService {
             .bind(data.description.or(current.description))
             .bind(data.is_active.unwrap_or(current.is_active))
             .fetch_one(pool)
-            .await?;
+            ?;
 
         Ok(result)
     }
 
-    pub async fn delete(pool: &PgPool, id: Ulid) -> Result<()> {
+    pub fn delete(pool: &DbPool, id: Ulid) -> Result<()> {
         let query = "DELETE FROM job_levels WHERE id = $1";
 
         let result = sqlx::query(query)
             .bind(id.to_string())
             .execute(pool)
-            .await?;
+            ?;
 
         if result.rows_affected() == 0 {
             return Err(anyhow::anyhow!("Job level not found"));
@@ -102,24 +102,24 @@ impl JobLevelService {
         Ok(())
     }
 
-    pub async fn find_active_levels(pool: &PgPool) -> Result<Vec<JobLevel>> {
+    pub fn find_active_levels(pool: &DbPool) -> Result<Vec<JobLevel>> {
         let query = "SELECT * FROM job_levels WHERE is_active = true ORDER BY level ASC";
 
         let results = sqlx::query_as::<_, JobLevel>(query)
             .fetch_all(pool)
-            .await?;
+            ?;
 
         Ok(results)
     }
 
-    pub async fn find_by_level_range(pool: &PgPool, min_level: i32, max_level: i32) -> Result<Vec<JobLevel>> {
+    pub fn find_by_level_range(pool: &DbPool, min_level: i32, max_level: i32) -> Result<Vec<JobLevel>> {
         let query = "SELECT * FROM job_levels WHERE level >= $1 AND level <= $2 ORDER BY level ASC";
 
         let results = sqlx::query_as::<_, JobLevel>(query)
             .bind(min_level)
             .bind(max_level)
             .fetch_all(pool)
-            .await?;
+            ?;
 
         Ok(results)
     }

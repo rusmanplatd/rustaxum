@@ -1,6 +1,6 @@
 use anyhow::Result;
 use ulid::Ulid;
-use sqlx::PgPool;
+use crate::database::DbPool;
 use rust_decimal::Decimal;
 
 use crate::app::models::city::{City, CreateCity, UpdateCity};
@@ -8,7 +8,7 @@ use crate::app::models::city::{City, CreateCity, UpdateCity};
 pub struct CityService;
 
 impl CityService {
-    pub async fn create(pool: &PgPool, data: CreateCity) -> Result<City> {
+    pub fn create(pool: &DbPool, data: CreateCity) -> Result<City> {
         let province_id = Ulid::from_string(&data.province_id)?;
         let city = City::new(province_id, data.name, data.code, data.latitude, data.longitude);
 
@@ -28,34 +28,34 @@ impl CityService {
             .bind(city.created_at)
             .bind(city.updated_at)
             .fetch_one(pool)
-            .await?;
+            ?;
 
         Ok(result)
     }
 
-    pub async fn find_by_id(pool: &PgPool, id: Ulid) -> Result<Option<City>> {
+    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<City>> {
         let query = "SELECT * FROM cities WHERE id = $1";
 
         let result = sqlx::query_as::<_, City>(query)
             .bind(id.to_string())
             .fetch_optional(pool)
-            .await?;
+            ?;
 
         Ok(result)
     }
 
-    pub async fn find_by_province_id(pool: &PgPool, province_id: Ulid) -> Result<Vec<City>> {
+    pub fn find_by_province_id(pool: &DbPool, province_id: Ulid) -> Result<Vec<City>> {
         let query = "SELECT * FROM cities WHERE province_id = $1 ORDER BY name ASC";
 
         let result = sqlx::query_as::<_, City>(query)
             .bind(province_id.to_string())
             .fetch_all(pool)
-            .await?;
+            ?;
 
         Ok(result)
     }
 
-    pub async fn find_by_coordinates(pool: &PgPool, lat: Decimal, lng: Decimal, radius_km: Decimal) -> Result<Vec<City>> {
+    pub fn find_by_coordinates(pool: &DbPool, lat: Decimal, lng: Decimal, radius_km: Decimal) -> Result<Vec<City>> {
         let query = r#"
             SELECT * FROM cities
             WHERE latitude IS NOT NULL
@@ -81,21 +81,21 @@ impl CityService {
             .bind(lng)
             .bind(radius_km)
             .fetch_all(pool)
-            .await?;
+            ?;
 
         Ok(result)
     }
 
-    pub async fn list(pool: &PgPool, _query_params: std::collections::HashMap<String, String>) -> Result<Vec<City>> {
+    pub fn list(pool: &DbPool, _query_params: std::collections::HashMap<String, String>) -> Result<Vec<City>> {
         // For now, use a simple query without the query builder to avoid SQL syntax issues
         let query = "SELECT * FROM cities ORDER BY name ASC";
         let result = sqlx::query_as::<_, City>(query)
             .fetch_all(pool)
-            .await?;
+            ?;
         Ok(result)
     }
 
-    pub async fn update(pool: &PgPool, id: Ulid, data: UpdateCity) -> Result<City> {
+    pub fn update(pool: &DbPool, id: Ulid, data: UpdateCity) -> Result<City> {
         let province_id = if let Some(province_id_str) = &data.province_id {
             Some(Ulid::from_string(province_id_str)?.to_string())
         } else {
@@ -122,39 +122,39 @@ impl CityService {
             .bind(data.latitude)
             .bind(data.longitude)
             .fetch_one(pool)
-            .await?;
+            ?;
 
         Ok(result)
     }
 
-    pub async fn delete(pool: &PgPool, id: Ulid) -> Result<()> {
+    pub fn delete(pool: &DbPool, id: Ulid) -> Result<()> {
         let query = "DELETE FROM cities WHERE id = $1";
 
         sqlx::query(query)
             .bind(id.to_string())
             .execute(pool)
-            .await?;
+            ?;
 
         Ok(())
     }
 
-    pub async fn count(pool: &PgPool) -> Result<i64> {
+    pub fn count(pool: &DbPool) -> Result<i64> {
         let query = "SELECT COUNT(*) FROM cities";
 
         let result: (i64,) = sqlx::query_as(query)
             .fetch_one(pool)
-            .await?;
+            ?;
 
         Ok(result.0)
     }
 
-    pub async fn count_by_province(pool: &PgPool, province_id: Ulid) -> Result<i64> {
+    pub fn count_by_province(pool: &DbPool, province_id: Ulid) -> Result<i64> {
         let query = "SELECT COUNT(*) FROM cities WHERE province_id = $1";
 
         let result: (i64,) = sqlx::query_as(query)
             .bind(province_id.to_string())
             .fetch_one(pool)
-            .await?;
+            ?;
 
         Ok(result.0)
     }

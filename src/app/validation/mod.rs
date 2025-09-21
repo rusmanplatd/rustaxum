@@ -8,7 +8,7 @@ pub use rules::Rule;
 
 use std::collections::HashMap;
 use serde_json::Value;
-use sqlx::PgPool;
+use crate::database::DbPool;
 
 pub type ValidationRules = HashMap<String, Vec<String>>;
 pub type ValidationData = HashMap<String, Value>;
@@ -21,7 +21,7 @@ pub trait Validatable: serde::Serialize {
         self.validate_with_db(None).await
     }
 
-    async fn validate_with_db(&self, db: Option<PgPool>) -> Result<(), ValidationErrors> {
+    async fn validate_with_db(&self, db: Option<DbPool>) -> Result<(), ValidationErrors> {
         let data = serde_json::to_value(self)
             .map_err(|_| {
                 let mut errors = ValidationErrors::new();
@@ -65,6 +65,6 @@ pub async fn validate_json_async(data: serde_json::Value, rules: ValidationRules
     make_validator(data, rules).validate().await
 }
 
-pub async fn validate_json_with_db(data: serde_json::Value, rules: ValidationRules, db: PgPool) -> Result<(), ValidationErrors> {
+pub async fn validate_json_with_db(data: serde_json::Value, rules: ValidationRules, db: DbPool) -> Result<(), ValidationErrors> {
     make_validator(data, rules).with_db(db).validate().await
 }

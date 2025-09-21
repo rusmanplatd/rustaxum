@@ -2,28 +2,30 @@ pub mod migration_runner;
 pub mod seeder;
 pub mod seeders;
 
-use sqlx::{PgPool, postgres::PgPoolOptions};
+use diesel::pg::PgConnection;
+use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use anyhow::Result;
 use crate::config::Config;
 
-pub async fn create_pool(config: &Config) -> Result<PgPool> {
-    let pool = PgPoolOptions::new()
-        .max_connections(config.database.pool_max_connections)
-        .min_connections(config.database.pool_min_connections)
-        .acquire_timeout(std::time::Duration::from_secs(config.database.pool_acquire_timeout_seconds))
-        .idle_timeout(std::time::Duration::from_secs(config.database.pool_idle_timeout_seconds))
-        .max_lifetime(std::time::Duration::from_secs(config.database.pool_max_lifetime_seconds))
-        .connect(&config.database.url)
-        .await?;
+pub type DbPool = Pool<ConnectionManager<PgConnection>>;
+pub type DbConnection = PooledConnection<ConnectionManager<PgConnection>>;
+
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+
+pub fn create_pool(config: &Config) -> Result<DbPool> {
+    let manager = ConnectionManager::<PgConnection>::new(&config.database.url);
+    let pool = Pool::builder()
+        .max_size(config.database.pool_max_connections)
+        .min_idle(Some(config.database.pool_min_connections))
+        .build(manager)?;
 
     Ok(pool)
 }
 
-pub async fn run_migrations(pool: &PgPool) -> Result<()> {
-    sqlx::migrate!("./src/database/migrations")
-        .run(pool)
-        .await?;
-
+pub fn run_migrations(pool: &DbPool) -> Result<()> {
+    let mut conn = pool.get()?;
+    conn.run_pending_migrations(MIGRATIONS)?;
     Ok(())
 }
 

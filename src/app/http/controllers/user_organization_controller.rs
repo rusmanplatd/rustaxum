@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json},
 };
-use sqlx::PgPool;
+use crate::database::DbPool;
 use ulid::Ulid;
 
 use crate::app::models::userorganization::UserOrganization;
@@ -32,7 +32,7 @@ use crate::query_builder::{QueryBuilder, QueryParams};
     )
 )]
 pub async fn index(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
     // Authentication is handled by middleware
@@ -69,7 +69,7 @@ pub async fn index(
     )
 )]
 pub async fn show(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     // Authentication is handled by middleware
@@ -120,7 +120,7 @@ pub async fn show(
     )
 )]
 pub async fn store(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     request: CreateUserOrganizationRequest,
 ) -> impl IntoResponse {
     // Authentication is handled by middleware
@@ -210,7 +210,7 @@ pub async fn store(
     )
 )]
 pub async fn update(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
     request: UpdateUserOrganizationRequest,
 ) -> impl IntoResponse {
@@ -329,7 +329,7 @@ pub async fn update(
     )
 )]
 pub async fn destroy(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     // Authentication is handled by middleware
@@ -399,7 +399,7 @@ pub async fn destroy(
     )
 )]
 pub async fn transfer(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
@@ -500,7 +500,7 @@ pub async fn transfer(
     )
 )]
 pub async fn activate(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     // Authentication is handled by middleware
@@ -565,7 +565,7 @@ pub async fn activate(
     )
 )]
 pub async fn deactivate(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     // Authentication is handled by middleware

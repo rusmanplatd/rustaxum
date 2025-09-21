@@ -5,7 +5,7 @@ use axum::{
 };
 use serde::Serialize;
 use ulid::Ulid;
-use sqlx::PgPool;
+use crate::database::DbPool;
 use std::collections::HashMap;
 
 use crate::app::models::country::{CreateCountry, UpdateCountry};
@@ -56,7 +56,7 @@ struct MessageResponse {
     )
 )]
 pub async fn index(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
     match CountryService::list(&pool, params).await {
@@ -101,7 +101,7 @@ pub async fn index(
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn show(State(pool): State<PgPool>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
     let country_id = match Ulid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
@@ -161,7 +161,7 @@ pub async fn show(State(pool): State<PgPool>, Path(id): Path<String>) -> impl In
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn store(State(pool): State<PgPool>, request: CreateCountryRequest) -> impl IntoResponse {
+pub async fn store(State(pool): State<DbPool>, request: CreateCountryRequest) -> impl IntoResponse {
     let payload = CreateCountry {
         name: request.name,
         iso_code: request.iso_code,
@@ -210,7 +210,7 @@ pub async fn store(State(pool): State<PgPool>, request: CreateCountryRequest) ->
     )
 )]
 pub async fn update(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
     request: UpdateCountryRequest,
 ) -> impl IntoResponse {
@@ -263,7 +263,7 @@ pub async fn update(
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn destroy(State(pool): State<PgPool>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
     let country_id = match Ulid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {

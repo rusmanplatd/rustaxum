@@ -62,7 +62,7 @@ fn to_snake_case(name: &str) -> String {
 fn generate_model_content(model_name: &str) -> String {
 
     format!(r#"use serde::{{Deserialize, Serialize}};
-use sqlx::{{FromRow, Row, postgres::PgRow}};
+// use sqlx::{{FromRow, Row, postgres::PgRow}};
 use ulid::Ulid;
 use chrono::{{DateTime, Utc}};
 
@@ -113,23 +113,7 @@ impl {} {{
     }}
 }}
 
-impl FromRow<'_, PgRow> for {} {{
-    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {{
-        let id_str: String = row.try_get("id")?;
-        let id = Ulid::from_string(&id_str).map_err(|e| sqlx::Error::ColumnDecode {{
-            index: "id".to_string(),
-            source: Box::new(e),
-        }})?;
-
-        Ok({} {{
-            id,
-            name: row.try_get("name")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        }})
-    }}
-}}
-"#, model_name, model_name, model_name, model_name, model_name, model_name, model_name, model_name, model_name)
+"#, model_name, model_name, model_name, model_name, model_name, model_name, model_name)
 }
 
 fn update_models_mod(file_name: &str) -> Result<()> {

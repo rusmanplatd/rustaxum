@@ -5,7 +5,7 @@ use axum::{
     response::{IntoResponse, Json, Response},
 };
 use serde_json::json;
-use sqlx::PgPool;
+use crate::database::DbPool;
 use ulid::Ulid;
 
 use crate::app::models::user::User;
@@ -19,7 +19,7 @@ pub struct AuthenticatedUser {
 }
 
 pub async fn passport_middleware(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     mut request: Request,
     next: Next,
 ) -> Result<Response, impl IntoResponse> {
@@ -37,7 +37,7 @@ pub async fn passport_middleware(
 
 async fn authenticate_request(
     headers: &HeaderMap,
-    pool: &PgPool,
+    pool: &DbPool,
 ) -> Result<AuthenticatedUser, (StatusCode, Json<serde_json::Value>)> {
     // Extract the Authorization header
     let auth_header = headers

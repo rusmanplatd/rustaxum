@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Json as ResponseJson},
 };
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use crate::database::DbPool;
 use ulid::Ulid;
 
 use crate::app::services::oauth::ClientService;
@@ -33,7 +33,7 @@ pub struct UpdateClientRequest {
 }
 
 pub async fn create_client(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     headers: HeaderMap,
     Json(payload): Json<CreateClientRequest>,
 ) -> impl IntoResponse {
@@ -67,7 +67,7 @@ pub async fn create_client(
 }
 
 pub async fn list_clients(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let user_id = match get_authenticated_user(&pool, &headers).await {
@@ -92,7 +92,7 @@ pub async fn list_clients(
 }
 
 pub async fn get_client(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     headers: HeaderMap,
     Path(client_id): Path<String>,
 ) -> impl IntoResponse {
@@ -145,7 +145,7 @@ pub async fn get_client(
 }
 
 pub async fn update_client(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     headers: HeaderMap,
     Path(client_id): Path<String>,
     Json(payload): Json<UpdateClientRequest>,
@@ -214,7 +214,7 @@ pub async fn update_client(
 }
 
 pub async fn delete_client(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     headers: HeaderMap,
     Path(client_id): Path<String>,
 ) -> impl IntoResponse {
@@ -276,7 +276,7 @@ pub async fn delete_client(
 }
 
 pub async fn regenerate_secret(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     headers: HeaderMap,
     Path(client_id): Path<String>,
 ) -> impl IntoResponse {
@@ -350,7 +350,7 @@ pub async fn regenerate_secret(
     }
 }
 
-async fn get_authenticated_user(_pool: &PgPool, headers: &HeaderMap) -> anyhow::Result<Ulid> {
+async fn get_authenticated_user(_pool: &DbPool, headers: &HeaderMap) -> anyhow::Result<Ulid> {
     let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
     let token = TokenUtils::extract_token_from_header(auth_header)?;
     let claims = AuthService::decode_token(token, "jwt-secret")?;

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use sqlx::PgPool;
+use crate::database::DbPool;
 use ulid::Ulid;
 
 use crate::cli::PassportCommands;
@@ -8,11 +8,7 @@ use crate::app::models::oauth::{CreateClient, CreateScope};
 use crate::config::Config;
 
 pub async fn handle_passport_command(cmd: PassportCommands) -> Result<()> {
-    let config = Config::load()?;
-    let pool = sqlx::postgres::PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&config.database.url)
-        .await?;
+    let pool = crate::database::create_pool()?;
 
     match cmd {
         PassportCommands::Install => handle_install(&pool).await,
@@ -34,19 +30,21 @@ pub async fn handle_passport_command(cmd: PassportCommands) -> Result<()> {
     }
 }
 
-async fn handle_install(pool: &PgPool) -> Result<()> {
+async fn handle_install(pool: &DbPool) -> Result<()> {
+    use diesel::prelude::*;
+    use crate::schema::{oauth_clients, oauth_scopes};
+
     println!("📦 Installing OAuth2/Passport...");
 
     // Check if tables already exist by trying to count records
-    let client_count = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM oauth_clients")
-        .fetch_optional(pool)
-        .await;
+    let mut conn = pool.get()?;
+    let client_count = oauth_clients::table.count().get_result::<i64>(&mut conn);
 
     match client_count {
-        Ok(Some(_)) => {
+        Ok(_) => {
             println!("✅ OAuth2 tables already exist!");
         },
-        _ => {
+        Err(_) => {
             println!("❌ OAuth2 tables do not exist. Please run migrations first:");
             println!("   cargo run --bin artisan migrate");
             return Ok(());
@@ -54,7 +52,7 @@ async fn handle_install(pool: &PgPool) -> Result<()> {
     }
 
     // Create default personal access client if none exists
-    match ClientService::find_personal_access_client(pool).await? {
+    match ClientService::find_personal_access_client(pool)? {
         Some(_) => {
             println!("✅ Personal access client already exists!");
         },
@@ -67,15 +65,13 @@ async fn handle_install(pool: &PgPool) -> Result<()> {
                 password_client: false,
             };
 
-            let client = ClientService::create_client(pool, create_client).await?;
+            let client = ClientService::create_client(pool, create_client)?;
             println!("✅ Created personal access client: {}", client.id);
         }
     }
 
     // Check if default scopes exist
-    let scope_count = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM oauth_scopes")
-        .fetch_one(pool)
-        .await?;
+    let scope_count = oauth_scopes::table.count().get_result::<i64>(&mut conn)?;
 
     if scope_count == 0 {
         println!("⚠️  No scopes found. Default scopes should be created via migrations.");
@@ -94,7 +90,7 @@ async fn handle_install(pool: &PgPool) -> Result<()> {
     Ok(())
 }
 
-async fn handle_create_client(pool: &PgPool, name: String, redirect_uris: String, personal: bool, password: bool) -> Result<()> {
+async fn handle_create_client(pool: &DbPool, name: String, redirect_uris: String, personal: bool, password: bool) -> Result<()> {
     println!("🔧 Creating OAuth2 client...");
 
     let redirect_uri_list: Vec<String> = redirect_uris
@@ -110,7 +106,7 @@ async fn handle_create_client(pool: &PgPool, name: String, redirect_uris: String
         password_client: password,
     };
 
-    let client = ClientService::create_client(pool, create_client).await?;
+    let client = ClientService::create_client(pool, create_client)?;
 
     println!("✅ Client created successfully!");
     println!("   Client ID: {}", client.id);
@@ -128,10 +124,10 @@ async fn handle_create_client(pool: &PgPool, name: String, redirect_uris: String
     Ok(())
 }
 
-async fn handle_list_clients(pool: &PgPool) -> Result<()> {
+async fn handle_list_clients(pool: &DbPool) -> Result<()> {
     println!("📋 Listing OAuth2 clients...");
 
-    let clients = ClientService::list_clients(pool, None).await?;
+    let clients = ClientService::list_clients(pool, None)?;
 
     if clients.is_empty() {
         println!("No OAuth2 clients found.");
@@ -155,13 +151,13 @@ async fn handle_list_clients(pool: &PgPool) -> Result<()> {
     Ok(())
 }
 
-async fn handle_revoke_client(pool: &PgPool, client_id: String) -> Result<()> {
+async fn handle_revoke_client(pool: &DbPool, client_id: String) -> Result<()> {
     println!("🔒 Revoking OAuth2 client...");
 
     let client_ulid = Ulid::from_string(&client_id)
         .map_err(|_| anyhow::anyhow!("Invalid client ID format"))?;
 
-    ClientService::revoke_client(pool, client_ulid).await?;
+    ClientService::revoke_client(pool, client_ulid)?;
 
     println!("✅ Client {} has been revoked!", client_id);
     println!("   All associated access tokens have also been revoked.");
@@ -169,14 +165,14 @@ async fn handle_revoke_client(pool: &PgPool, client_id: String) -> Result<()> {
     Ok(())
 }
 
-async fn handle_delete_client(pool: &PgPool, client_id: String) -> Result<()> {
+async fn handle_delete_client(pool: &DbPool, client_id: String) -> Result<()> {
     println!("🗑️  Deleting OAuth2 client...");
 
     let client_ulid = Ulid::from_string(&client_id)
         .map_err(|_| anyhow::anyhow!("Invalid client ID format"))?;
 
     // Check if client exists first
-    let client = ClientService::find_by_id(pool, client_ulid).await?;
+    let client = ClientService::find_by_id(pool, client_ulid)?;
     match client {
         Some(client) => {
             println!("   Found client: {}", client.name);
@@ -187,7 +183,7 @@ async fn handle_delete_client(pool: &PgPool, client_id: String) -> Result<()> {
         }
     }
 
-    ClientService::delete_client(pool, client_ulid).await?;
+    ClientService::delete_client(pool, client_ulid)?;
 
     println!("✅ Client {} has been deleted!", client_id);
     println!("   ⚠️  This action cannot be undone!");
@@ -195,13 +191,13 @@ async fn handle_delete_client(pool: &PgPool, client_id: String) -> Result<()> {
     Ok(())
 }
 
-async fn handle_regenerate_secret(pool: &PgPool, client_id: String) -> Result<()> {
+async fn handle_regenerate_secret(pool: &DbPool, client_id: String) -> Result<()> {
     println!("🔄 Regenerating client secret...");
 
     let client_ulid = Ulid::from_string(&client_id)
         .map_err(|_| anyhow::anyhow!("Invalid client ID format"))?;
 
-    let new_secret = ClientService::regenerate_secret(pool, client_ulid).await?;
+    let new_secret = ClientService::regenerate_secret(pool, client_ulid)?;
 
     println!("✅ New client secret generated!");
     println!("   Client ID: {}", client_id);
@@ -212,7 +208,7 @@ async fn handle_regenerate_secret(pool: &PgPool, client_id: String) -> Result<()
     Ok(())
 }
 
-async fn handle_create_scope(pool: &PgPool, name: String, description: Option<String>, default: bool) -> Result<()> {
+async fn handle_create_scope(pool: &DbPool, name: String, description: Option<String>, default: bool) -> Result<()> {
     println!("🏷️  Creating OAuth2 scope...");
 
     let create_scope = CreateScope {
@@ -221,7 +217,7 @@ async fn handle_create_scope(pool: &PgPool, name: String, description: Option<St
         is_default: default,
     };
 
-    let scope = ScopeService::create_scope(pool, create_scope).await?;
+    let scope = ScopeService::create_scope(pool, create_scope)?;
 
     println!("✅ Scope created successfully!");
     println!("   Name: {}", scope.name);
@@ -235,10 +231,10 @@ async fn handle_create_scope(pool: &PgPool, name: String, description: Option<St
     Ok(())
 }
 
-async fn handle_list_scopes(pool: &PgPool) -> Result<()> {
+async fn handle_list_scopes(pool: &DbPool) -> Result<()> {
     println!("📋 Listing OAuth2 scopes...");
 
-    let scopes = ScopeService::list_scopes(pool).await?;
+    let scopes = ScopeService::list_scopes(pool)?;
 
     if scopes.is_empty() {
         println!("No OAuth2 scopes found.");
@@ -266,7 +262,7 @@ async fn handle_list_scopes(pool: &PgPool) -> Result<()> {
     Ok(())
 }
 
-async fn handle_delete_scope(pool: &PgPool, scope: String) -> Result<()> {
+async fn handle_delete_scope(pool: &DbPool, scope: String) -> Result<()> {
     println!("🗑️  Deleting OAuth2 scope...");
 
     // Try to parse as ULID first, then fallback to name lookup
@@ -274,7 +270,7 @@ async fn handle_delete_scope(pool: &PgPool, scope: String) -> Result<()> {
         Ok(id) => id,
         Err(_) => {
             // Look up by name
-            match ScopeService::find_by_name(pool, &scope).await? {
+            match ScopeService::find_by_name(pool, &scope)? {
                 Some(found_scope) => found_scope.id,
                 None => {
                     println!("❌ Scope not found: {}", scope);
@@ -284,7 +280,7 @@ async fn handle_delete_scope(pool: &PgPool, scope: String) -> Result<()> {
         }
     };
 
-    ScopeService::delete_scope(pool, scope_id).await?;
+    ScopeService::delete_scope(pool, scope_id)?;
 
     println!("✅ Scope {} has been deleted!", scope);
     println!("   ⚠️  This action cannot be undone!");
@@ -292,7 +288,7 @@ async fn handle_delete_scope(pool: &PgPool, scope: String) -> Result<()> {
     Ok(())
 }
 
-async fn handle_list_tokens(pool: &PgPool, user_id: Option<String>) -> Result<()> {
+async fn handle_list_tokens(pool: &DbPool, user_id: Option<String>) -> Result<()> {
     println!("📋 Listing access tokens...");
 
     let tokens = match user_id {
@@ -339,26 +335,26 @@ async fn handle_list_tokens(pool: &PgPool, user_id: Option<String>) -> Result<()
     Ok(())
 }
 
-async fn handle_revoke_token(pool: &PgPool, token_id: String) -> Result<()> {
+async fn handle_revoke_token(pool: &DbPool, token_id: String) -> Result<()> {
     println!("🔒 Revoking access token...");
 
     let token_ulid = Ulid::from_string(&token_id)
         .map_err(|_| anyhow::anyhow!("Invalid token ID format"))?;
 
-    TokenService::revoke_access_token(pool, token_ulid).await?;
+    TokenService::revoke_access_token(pool, token_ulid)?;
 
     println!("✅ Token {} has been revoked!", token_id);
 
     Ok(())
 }
 
-async fn handle_revoke_all_user_tokens(pool: &PgPool, user_id: String) -> Result<()> {
+async fn handle_revoke_all_user_tokens(pool: &DbPool, user_id: String) -> Result<()> {
     println!("🔒 Revoking all tokens for user...");
 
     let user_ulid = Ulid::from_string(&user_id)
         .map_err(|_| anyhow::anyhow!("Invalid user ID format"))?;
 
-    TokenService::revoke_all_user_tokens(pool, user_ulid).await?;
+    TokenService::revoke_all_user_tokens(pool, user_ulid)?;
 
     println!("✅ All tokens for user {} have been revoked!", user_id);
 

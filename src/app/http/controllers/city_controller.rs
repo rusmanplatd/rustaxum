@@ -5,7 +5,7 @@ use axum::{
 };
 use serde::{Serialize, Deserialize};
 use ulid::Ulid;
-use sqlx::PgPool;
+use crate::database::DbPool;
 use std::collections::HashMap;
 use rust_decimal::Decimal;
 
@@ -31,7 +31,7 @@ pub struct NearbyQuery {
 }
 
 pub async fn index(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
     match CityService::list(&pool, params).await {
@@ -48,7 +48,7 @@ pub async fn index(
     }
 }
 
-pub async fn show(State(pool): State<PgPool>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
     let city_id = match Ulid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
@@ -76,7 +76,7 @@ pub async fn show(State(pool): State<PgPool>, Path(id): Path<String>) -> impl In
     }
 }
 
-pub async fn store(State(pool): State<PgPool>, request: CreateCityRequest) -> impl IntoResponse {
+pub async fn store(State(pool): State<DbPool>, request: CreateCityRequest) -> impl IntoResponse {
     let payload = CreateCity {
         province_id: request.province_id,
         name: request.name,
@@ -97,7 +97,7 @@ pub async fn store(State(pool): State<PgPool>, request: CreateCityRequest) -> im
 }
 
 pub async fn update(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
     request: UpdateCityRequest,
 ) -> impl IntoResponse {
@@ -130,7 +130,7 @@ pub async fn update(
     }
 }
 
-pub async fn destroy(State(pool): State<PgPool>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
     let city_id = match Ulid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
@@ -157,7 +157,7 @@ pub async fn destroy(State(pool): State<PgPool>, Path(id): Path<String>) -> impl
     }
 }
 
-pub async fn by_province(State(pool): State<PgPool>, Path(province_id): Path<String>) -> impl IntoResponse {
+pub async fn by_province(State(pool): State<DbPool>, Path(province_id): Path<String>) -> impl IntoResponse {
     let province_ulid = match Ulid::from_string(&province_id) {
         Ok(id) => id,
         Err(_) => {
@@ -183,7 +183,7 @@ pub async fn by_province(State(pool): State<PgPool>, Path(province_id): Path<Str
 }
 
 pub async fn nearby(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Query(query): Query<NearbyQuery>,
 ) -> impl IntoResponse {
     let radius = query.radius.unwrap_or(Decimal::from(10)); // Default 10km radius

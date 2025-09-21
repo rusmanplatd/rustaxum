@@ -2,14 +2,14 @@ use axum::{
     routing::{get, post, put, delete},
     Router,
 };
-use sqlx::PgPool;
+use crate::database::DbPool;
 
 use crate::app::http::controllers::oauth::{
     oauth_controller, client_controller, personal_access_token_controller
 };
 
 /// OAuth2/Passport routes
-pub fn oauth_routes() -> Router<PgPool> {
+pub fn oauth_routes() -> Router<DbPool> {
     tracing::debug!("Creating OAuth2/Passport routes...");
     let router = Router::new()
         // OAuth2 Core Endpoints

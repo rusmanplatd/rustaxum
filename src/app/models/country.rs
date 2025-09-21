@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Row, postgres::PgRow};
+use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
@@ -7,7 +7,8 @@ use crate::query_builder::{Queryable, SortDirection};
 
 /// Country model representing a country entity
 /// Contains country information including name, ISO code, and phone code
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
+#[diesel(table_name = crate::schema::countries)]
 pub struct Country {
     /// Unique identifier for the country
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
@@ -81,26 +82,8 @@ impl Country {
     }
 }
 
-impl FromRow<'_, PgRow> for Country {
-    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
-        let id_str: String = row.try_get("id")?;
-        let id = Ulid::from_string(&id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "id".to_string(),
-            source: Box::new(e),
-        })?;
 
-        Ok(Country {
-            id,
-            name: row.try_get("name")?,
-            iso_code: row.try_get("iso_code")?,
-            phone_code: row.try_get("phone_code")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
-    }
-}
-
-impl Queryable for Country {
+impl crate::query_builder::Queryable for Country {
     fn table_name() -> &'static str {
         "countries"
     }

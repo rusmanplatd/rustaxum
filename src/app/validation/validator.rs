@@ -2,12 +2,12 @@ use crate::app::validation::{ValidationRules, ValidationData, ValidationErrors};
 use crate::app::validation::rules::*;
 use serde_json::Value;
 use std::collections::HashMap;
-use sqlx::PgPool;
+use crate::database::DbPool;
 
 pub struct Validator {
     data: ValidationData,
     rules: ValidationRules,
-    db: Option<PgPool>,
+    db: Option<DbPool>,
 }
 
 impl Validator {
@@ -19,7 +19,7 @@ impl Validator {
         }
     }
 
-    pub fn with_db(mut self, db: PgPool) -> Self {
+    pub fn with_db(mut self, db: DbPool) -> Self {
         self.db = Some(db);
         self
     }

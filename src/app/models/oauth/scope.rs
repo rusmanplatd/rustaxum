@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Row, postgres::PgRow};
+use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use crate::query_builder::{Queryable, SortDirection};
@@ -68,25 +68,6 @@ impl Scope {
 
     pub fn implies(&self, other: &str) -> bool {
         self.is_wildcard() || self.name == other
-    }
-}
-
-impl FromRow<'_, PgRow> for Scope {
-    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
-        let id_str: String = row.try_get("id")?;
-        let id = Ulid::from_string(&id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        Ok(Scope {
-            id,
-            name: row.try_get("name")?,
-            description: row.try_get("description")?,
-            is_default: row.try_get("is_default")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
     }
 }
 

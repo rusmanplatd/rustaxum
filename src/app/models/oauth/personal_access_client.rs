@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Row, postgres::PgRow};
+use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use crate::query_builder::{Queryable, SortDirection};
@@ -43,29 +43,6 @@ impl PersonalAccessClient {
             created_at: self.created_at,
             updated_at: self.updated_at,
         }
-    }
-}
-
-impl FromRow<'_, PgRow> for PersonalAccessClient {
-    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
-        let id_str: String = row.try_get("id")?;
-        let id = Ulid::from_string(&id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        let client_id_str: String = row.try_get("client_id")?;
-        let client_id = Ulid::from_string(&client_id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "client_id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        Ok(PersonalAccessClient {
-            id,
-            client_id,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
     }
 }
 

@@ -81,7 +81,7 @@ impl EmailService {
             .header(lettre::message::header::ContentType::TEXT_HTML)
             .body(email_body)?;
 
-        let mailer = Self::get_mailer().await?;
+        let mailer = Self::get_mailer()?;
 
         match mailer.send(email).await {
             Ok(_) => {
@@ -143,7 +143,7 @@ impl EmailService {
             .header(lettre::message::header::ContentType::TEXT_HTML)
             .body(email_body)?;
 
-        let mailer = Self::get_mailer().await?;
+        let mailer = Self::get_mailer()?;
 
         match mailer.send(email).await {
             Ok(_) => {
@@ -206,7 +206,7 @@ impl EmailService {
             .header(lettre::message::header::ContentType::TEXT_HTML)
             .body(email_body)?;
 
-        let mailer = Self::get_mailer().await?;
+        let mailer = Self::get_mailer()?;
 
         match mailer.send(email).await {
             Ok(_) => {

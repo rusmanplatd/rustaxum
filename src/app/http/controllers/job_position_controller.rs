@@ -9,7 +9,7 @@ use crate::app::http::requests::job_position_requests::{
     CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest
 };
 use crate::app::services::job_position_service::JobPositionService;
-use sqlx::PgPool;
+use crate::database::DbPool;
 
 /// List job positions with filtering, sorting and pagination
 #[utoipa::path(
@@ -34,7 +34,7 @@ use sqlx::PgPool;
     )
 )]
 pub async fn index(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     request: IndexJobPositionRequest,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
@@ -72,7 +72,7 @@ pub async fn index(
     )
 )]
 pub async fn show(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
@@ -116,7 +116,7 @@ pub async fn show(
     )
 )]
 pub async fn store(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     request: CreateJobPositionRequest,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
@@ -179,7 +179,7 @@ pub async fn store(
     )
 )]
 pub async fn update(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
     request: UpdateJobPositionRequest,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -248,7 +248,7 @@ pub async fn update(
     )
 )]
 pub async fn destroy(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
@@ -299,7 +299,7 @@ pub async fn destroy(
     )
 )]
 pub async fn activate(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
@@ -345,7 +345,7 @@ pub async fn activate(
     )
 )]
 pub async fn deactivate(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
@@ -392,7 +392,7 @@ pub async fn deactivate(
     )
 )]
 pub async fn by_level(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(job_level_id): Path<String>,
     mut request: JobPositionsByLevelRequest,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {

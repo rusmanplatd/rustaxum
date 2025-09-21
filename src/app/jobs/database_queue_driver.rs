@@ -1,12 +1,15 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use sqlx::{PgPool, FromRow};
 use chrono::{DateTime, Utc};
 use serde_json;
+use diesel::prelude::*;
+use crate::database::DbPool;
+use crate::schema::jobs;
 use crate::app::jobs::{QueueDriver, JobMetadata, JobStatus};
 
 /// Database row representation for jobs table
-#[derive(Debug, FromRow)]
+#[derive(Debug, Queryable, Identifiable)]
+#[diesel(table_name = jobs)]
 struct JobRow {
     id: String,
     queue_name: String,
@@ -29,11 +32,11 @@ struct JobRow {
 /// Database-backed queue driver using PostgreSQL
 #[derive(Debug, Clone)]
 pub struct DatabaseQueueDriver {
-    pool: PgPool,
+    pool: DbPool,
 }
 
 impl DatabaseQueueDriver {
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(pool: DbPool) -> Self {
         Self { pool }
     }
 
@@ -53,7 +56,7 @@ impl DatabaseQueueDriver {
             job_name: row.job_name.clone(),
             queue_name: row.queue_name.clone(),
             status,
-            payload: row.payload.to_string(),
+            payload: serde_json::to_string(&row.payload)?,
             attempts: row.attempts as u32,
             max_attempts: row.max_attempts as u32,
             priority: row.priority,
@@ -77,42 +80,38 @@ impl QueueDriver for DatabaseQueueDriver {
             JobStatus::Retrying => "retrying",
         };
 
-        sqlx::query(
-            r#"
-            INSERT INTO jobs (
-                id, queue_name, job_name, payload, attempts, max_attempts,
-                status, priority, available_at, failed_at, error_message,
-                created_at, updated_at
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-            "#
-        )
-        .bind(&metadata.id)
-        .bind(&metadata.queue_name)
-        .bind(&metadata.job_name)
-        .bind(serde_json::from_str::<serde_json::Value>(&metadata.payload)?)
-        .bind(metadata.attempts as i32)
-        .bind(metadata.max_attempts as i32)
-        .bind(status_str)
-        .bind(metadata.priority)
-        .bind(metadata.scheduled_at.unwrap_or(metadata.created_at))
-        .bind(metadata.failed_at)
-        .bind(&metadata.error_message)
-        .bind(metadata.created_at)
-        .bind(metadata.updated_at)
-        .execute(&self.pool)
-        .await?;
+        let mut conn = self.pool.get()?;
+
+        diesel::insert_into(jobs::table)
+            .values((
+                jobs::id.eq(&metadata.id),
+                jobs::queue_name.eq(&metadata.queue_name),
+                jobs::job_name.eq(&metadata.job_name),
+                jobs::payload.eq(serde_json::from_str::<serde_json::Value>(&metadata.payload)?),
+                jobs::attempts.eq(metadata.attempts as i32),
+                jobs::max_attempts.eq(metadata.max_attempts as i32),
+                jobs::status.eq(status_str),
+                jobs::priority.eq(metadata.priority),
+                jobs::available_at.eq(metadata.scheduled_at.unwrap_or(metadata.created_at)),
+                jobs::failed_at.eq(metadata.failed_at),
+                jobs::error_message.eq(&metadata.error_message),
+                jobs::created_at.eq(metadata.created_at),
+                jobs::updated_at.eq(metadata.updated_at),
+            ))
+            .execute(&mut conn)?;
 
         tracing::info!("Job {} pushed to database queue '{}'", metadata.id, metadata.queue_name);
         Ok(())
     }
 
     async fn pop(&self, queue_name: &str) -> Result<Option<JobMetadata>> {
-        // Start a transaction to ensure atomicity
-        let mut tx = self.pool.begin().await?;
+        let mut conn = self.pool.get()?;
 
-        // Find the next available job and reserve it
-        let job_row = sqlx::query_as::<_, JobRow>(
+        // For this complex query with FOR UPDATE SKIP LOCKED, we use raw SQL
+        // since Diesel doesn't directly support these PostgreSQL-specific features
+        use diesel::sql_query;
+
+        let job_row: Option<JobRow> = sql_query(
             r#"
             UPDATE jobs
             SET status = 'processing',
@@ -131,37 +130,36 @@ impl QueueDriver for DatabaseQueueDriver {
             RETURNING *
             "#
         )
-        .bind(queue_name)
-        .fetch_optional(&mut *tx)
-        .await?;
+        .bind::<diesel::sql_types::Text, _>(queue_name)
+        .get_result(&mut conn)
+        .optional()?;
 
         if let Some(row) = job_row {
-            tx.commit().await?;
             let metadata = self.row_to_job_metadata(&row)?;
             tracing::info!("Job {} popped from queue '{}'", metadata.id, queue_name);
             Ok(Some(metadata))
         } else {
-            tx.rollback().await?;
             Ok(None)
         }
     }
 
     async fn size(&self, queue_name: &str) -> Result<u64> {
-        let count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM jobs WHERE queue_name = $1 AND status = 'pending'"
-        )
-        .bind(queue_name)
-        .fetch_one(&self.pool)
-        .await?;
+        let mut conn = self.pool.get()?;
 
-        Ok(count.0 as u64)
+        let count = jobs::table
+            .filter(jobs::queue_name.eq(queue_name))
+            .filter(jobs::status.eq("pending"))
+            .count()
+            .get_result::<i64>(&mut conn)?;
+
+        Ok(count as u64)
     }
 
     async fn delete(&self, job_id: &str) -> Result<()> {
-        sqlx::query("DELETE FROM jobs WHERE id = $1")
-            .bind(job_id)
-            .execute(&self.pool)
-            .await?;
+        let mut conn = self.pool.get()?;
+
+        diesel::delete(jobs::table.filter(jobs::id.eq(job_id)))
+            .execute(&mut conn)?;
 
         tracing::info!("Job {} deleted from database queue", job_id);
         Ok(())
@@ -176,44 +174,40 @@ impl QueueDriver for DatabaseQueueDriver {
             JobStatus::Retrying => "retrying",
         };
 
-        sqlx::query(
-            r#"
-            UPDATE jobs
-            SET status = $1,
-                attempts = $2,
-                failed_at = $3,
-                error_message = $4,
-                processed_at = CASE WHEN $1 = 'completed' THEN NOW() ELSE processed_at END,
-                updated_at = NOW()
-            WHERE id = $5
-            "#
-        )
-        .bind(status_str)
-        .bind(metadata.attempts as i32)
-        .bind(metadata.failed_at)
-        .bind(&metadata.error_message)
-        .bind(&metadata.id)
-        .execute(&self.pool)
-        .await?;
+        let mut conn = self.pool.get()?;
+        let now = chrono::Utc::now();
+
+        let processed_at = if status_str == "completed" {
+            Some(now)
+        } else {
+            None
+        };
+
+        diesel::update(jobs::table.filter(jobs::id.eq(&metadata.id)))
+            .set((
+                jobs::status.eq(status_str),
+                jobs::attempts.eq(metadata.attempts as i32),
+                jobs::failed_at.eq(metadata.failed_at),
+                jobs::error_message.eq(&metadata.error_message),
+                jobs::processed_at.eq(processed_at),
+                jobs::updated_at.eq(now),
+            ))
+            .execute(&mut conn)?;
 
         tracing::info!("Job {} updated in database queue", metadata.id);
         Ok(())
     }
 
     async fn failed_jobs(&self, limit: Option<u32>) -> Result<Vec<JobMetadata>> {
-        let limit = limit.unwrap_or(100) as i64;
+        let limit_val = limit.unwrap_or(100) as i64;
 
-        let rows = sqlx::query_as::<_, JobRow>(
-            r#"
-            SELECT * FROM jobs
-            WHERE status = 'failed'
-            ORDER BY failed_at DESC
-            LIMIT $1
-            "#
-        )
-        .bind(limit)
-        .fetch_all(&self.pool)
-        .await?;
+        let mut conn = self.pool.get()?;
+
+        let rows = jobs::table
+            .filter(jobs::status.eq("failed"))
+            .order(jobs::failed_at.desc())
+            .limit(limit_val)
+            .load::<JobRow>(&mut conn)?;
 
         let mut jobs = Vec::new();
         for row in rows {
@@ -224,23 +218,23 @@ impl QueueDriver for DatabaseQueueDriver {
     }
 
     async fn retry_job(&self, job_id: &str) -> Result<()> {
-        sqlx::query(
-            r#"
-            UPDATE jobs
-            SET status = 'pending',
-                attempts = 0,
-                failed_at = NULL,
-                error_message = NULL,
-                reserved_at = NULL,
-                processed_at = NULL,
-                available_at = NOW(),
-                updated_at = NOW()
-            WHERE id = $1 AND status = 'failed'
-            "#
-        )
-        .bind(job_id)
-        .execute(&self.pool)
-        .await?;
+        let mut conn = self.pool.get()?;
+        let now = chrono::Utc::now();
+
+        diesel::update(jobs::table
+            .filter(jobs::id.eq(job_id))
+            .filter(jobs::status.eq("failed")))
+            .set((
+                jobs::status.eq("pending"),
+                jobs::attempts.eq(0),
+                jobs::failed_at.eq::<Option<DateTime<Utc>>>(None),
+                jobs::error_message.eq::<Option<String>>(None),
+                jobs::reserved_at.eq::<Option<DateTime<Utc>>>(None),
+                jobs::processed_at.eq::<Option<DateTime<Utc>>>(None),
+                jobs::available_at.eq(now),
+                jobs::updated_at.eq(now),
+            ))
+            .execute(&mut conn)?;
 
         tracing::info!("Job {} retried in database queue", job_id);
         Ok(())
@@ -255,7 +249,7 @@ impl QueueDriver for DatabaseQueueDriver {
 impl DatabaseQueueDriver {
     /// Get all jobs in a specific queue
     pub async fn get_queue_jobs(&self, queue_name: &str, status: Option<JobStatus>, limit: Option<u32>) -> Result<Vec<JobMetadata>> {
-        let limit = limit.unwrap_or(100) as i64;
+        let limit_val = limit.unwrap_or(100) as i64;
 
         let status_str = status.map(|s| match s {
             JobStatus::Pending => "pending",
@@ -265,14 +259,20 @@ impl DatabaseQueueDriver {
             JobStatus::Retrying => "retrying",
         });
 
-        let rows = sqlx::query_as::<_, JobRow>(
-            "SELECT * FROM jobs WHERE queue_name = $1 AND ($2::text IS NULL OR status = $2) ORDER BY created_at DESC LIMIT $3"
-        )
-        .bind(queue_name)
-        .bind(status_str)
-        .bind(limit)
-        .fetch_all(&self.pool)
-        .await?;
+        let mut conn = self.pool.get()?;
+
+        let mut query = jobs::table
+            .filter(jobs::queue_name.eq(queue_name))
+            .into_boxed();
+
+        if let Some(status_filter) = status_str {
+            query = query.filter(jobs::status.eq(status_filter));
+        }
+
+        let rows = query
+            .order(jobs::created_at.desc())
+            .limit(limit_val)
+            .load::<JobRow>(&mut conn)?;
 
         let mut jobs = Vec::new();
         for row in rows {
@@ -284,48 +284,59 @@ impl DatabaseQueueDriver {
 
     /// Clean up old completed jobs
     pub async fn cleanup_completed_jobs(&self, older_than_days: u32) -> Result<u64> {
-        let interval = format!("{} days", older_than_days);
-        let result = sqlx::query(
-            r#"
-            DELETE FROM jobs
-            WHERE status = 'completed'
-              AND processed_at < NOW() - CAST($1 AS INTERVAL)
-            "#
-        )
-        .bind(interval)
-        .execute(&self.pool)
-        .await?;
+        let mut conn = self.pool.get()?;
+        let cutoff_date = chrono::Utc::now() - chrono::Duration::days(older_than_days as i64);
 
-        let deleted_count = result.rows_affected();
+        let deleted_count = diesel::delete(jobs::table
+            .filter(jobs::status.eq("completed"))
+            .filter(jobs::processed_at.lt(cutoff_date)))
+            .execute(&mut conn)?;
+
         tracing::info!("Cleaned up {} completed jobs older than {} days", deleted_count, older_than_days);
-        Ok(deleted_count)
+        Ok(deleted_count as u64)
     }
 
     /// Get queue statistics
     pub async fn get_queue_stats(&self, queue_name: &str) -> Result<QueueStats> {
-        let stats: (i64, i64, i64, i64, i64) = sqlx::query_as(
-            r#"
-            SELECT
-                COUNT(*) FILTER (WHERE status = 'pending') as pending,
-                COUNT(*) FILTER (WHERE status = 'processing') as processing,
-                COUNT(*) FILTER (WHERE status = 'completed') as completed,
-                COUNT(*) FILTER (WHERE status = 'failed') as failed,
-                COUNT(*) FILTER (WHERE status = 'retrying') as retrying
-            FROM jobs
-            WHERE queue_name = $1
-            "#
-        )
-        .bind(queue_name)
-        .fetch_one(&self.pool)
-        .await?;
+        let mut conn = self.pool.get()?;
+
+        let pending = jobs::table
+            .filter(jobs::queue_name.eq(queue_name))
+            .filter(jobs::status.eq("pending"))
+            .count()
+            .get_result::<i64>(&mut conn)?;
+
+        let processing = jobs::table
+            .filter(jobs::queue_name.eq(queue_name))
+            .filter(jobs::status.eq("processing"))
+            .count()
+            .get_result::<i64>(&mut conn)?;
+
+        let completed = jobs::table
+            .filter(jobs::queue_name.eq(queue_name))
+            .filter(jobs::status.eq("completed"))
+            .count()
+            .get_result::<i64>(&mut conn)?;
+
+        let failed = jobs::table
+            .filter(jobs::queue_name.eq(queue_name))
+            .filter(jobs::status.eq("failed"))
+            .count()
+            .get_result::<i64>(&mut conn)?;
+
+        let retrying = jobs::table
+            .filter(jobs::queue_name.eq(queue_name))
+            .filter(jobs::status.eq("retrying"))
+            .count()
+            .get_result::<i64>(&mut conn)?;
 
         Ok(QueueStats {
             queue_name: queue_name.to_string(),
-            pending: stats.0 as u64,
-            processing: stats.1 as u64,
-            completed: stats.2 as u64,
-            failed: stats.3 as u64,
-            retrying: stats.4 as u64,
+            pending: pending as u64,
+            processing: processing as u64,
+            completed: completed as u64,
+            failed: failed as u64,
+            retrying: retrying as u64,
         })
     }
 }

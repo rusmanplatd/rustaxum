@@ -1,5 +1,5 @@
 use anyhow::Result;
-use sqlx::PgPool;
+use crate::database::DbPool;
 use ulid::Ulid;
 use rand::{Rng, thread_rng};
 use rand::distributions::Alphanumeric;
@@ -13,7 +13,7 @@ use crate::query_builder::QueryBuilder;
 pub struct ClientService;
 
 impl ClientService {
-    pub async fn create_client(pool: &PgPool, data: CreateClient) -> Result<ClientResponse> {
+    pub fn create_client(pool: &DbPool, data: CreateClient) -> Result<ClientResponse> {
         let redirect_uris = data.redirect_uris.join(",");
 
         // Generate client secret if needed (not for personal access clients)
@@ -32,18 +32,18 @@ impl ClientService {
             data.password_client,
         );
 
-        let created_client = Self::create_client_record(pool, client).await?;
+        let created_client = Self::create_client_record(pool, client)?;
 
         // If this is a personal access client, create the personal access client record
         if data.personal_access_client {
             let pac = PersonalAccessClient::new(created_client.id);
-            Self::create_personal_access_client_record(pool, pac).await?;
+            Self::create_personal_access_client_record(pool, pac)?;
         }
 
         Ok(created_client.to_response())
     }
 
-    pub async fn create_client_record(pool: &PgPool, client: Client) -> Result<Client> {
+    pub fn create_client_record(pool: &DbPool, client: Client) -> Result<Client> {
         sqlx::query(
             r#"
             INSERT INTO oauth_clients (
@@ -66,13 +66,13 @@ impl ClientService {
         .bind(client.created_at)
         .bind(client.updated_at)
         .execute(pool)
-        .await?;
+        ?;
 
         Ok(client)
     }
 
-    pub async fn create_personal_access_client_record(
-        pool: &PgPool,
+    pub fn create_personal_access_client_record(
+        pool: &DbPool,
         pac: PersonalAccessClient
     ) -> Result<PersonalAccessClient> {
         sqlx::query(
@@ -88,35 +88,35 @@ impl ClientService {
         .bind(pac.created_at)
         .bind(pac.updated_at)
         .execute(pool)
-        .await?;
+        ?;
 
         Ok(pac)
     }
 
-    pub async fn find_by_id(pool: &PgPool, id: Ulid) -> Result<Option<Client>> {
+    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<Client>> {
         let row = sqlx::query_as::<_, Client>(
             "SELECT id, user_id, name, secret, provider, redirect_uris, personal_access_client, password_client, revoked, created_at, updated_at FROM oauth_clients WHERE id = $1 AND revoked = false"
         )
         .bind(id.to_string())
         .fetch_optional(pool)
-        .await?;
+        ?;
 
         Ok(row)
     }
 
-    pub async fn find_by_id_and_secret(pool: &PgPool, id: Ulid, secret: &str) -> Result<Option<Client>> {
+    pub fn find_by_id_and_secret(pool: &DbPool, id: Ulid, secret: &str) -> Result<Option<Client>> {
         let row = sqlx::query_as::<_, Client>(
             "SELECT id, user_id, name, secret, provider, redirect_uris, personal_access_client, password_client, revoked, created_at, updated_at FROM oauth_clients WHERE id = $1 AND secret = $2 AND revoked = false"
         )
         .bind(id.to_string())
         .bind(secret)
         .fetch_optional(pool)
-        .await?;
+        ?;
 
         Ok(row)
     }
 
-    pub async fn find_personal_access_client(pool: &PgPool) -> Result<Option<Client>> {
+    pub fn find_personal_access_client(pool: &DbPool) -> Result<Option<Client>> {
         let row = sqlx::query_as::<_, Client>(
             r#"
             SELECT c.id, c.user_id, c.name, c.secret, c.provider, c.redirect_uris, c.personal_access_client, c.password_client, c.revoked, c.created_at, c.updated_at
@@ -128,22 +128,22 @@ impl ClientService {
             "#
         )
         .fetch_optional(pool)
-        .await?;
+        ?;
 
         Ok(row)
     }
 
-    pub async fn find_password_client(pool: &PgPool) -> Result<Option<Client>> {
+    pub fn find_password_client(pool: &DbPool) -> Result<Option<Client>> {
         let row = sqlx::query_as::<_, Client>(
             "SELECT id, user_id, name, secret, provider, redirect_uris, personal_access_client, password_client, revoked, created_at, updated_at FROM oauth_clients WHERE password_client = true AND revoked = false ORDER BY created_at ASC LIMIT 1"
         )
         .fetch_optional(pool)
-        .await?;
+        ?;
 
         Ok(row)
     }
 
-    pub async fn list_clients(pool: &PgPool, user_id: Option<Ulid>) -> Result<Vec<ClientResponse>> {
+    pub fn list_clients(pool: &DbPool, user_id: Option<Ulid>) -> Result<Vec<ClientResponse>> {
         let mut request = crate::query_builder::QueryBuilderRequest::default();
 
         if let Some(user_id) = user_id {
@@ -153,12 +153,12 @@ impl ClientService {
         request.filters.insert("revoked".to_string(), "false".to_string());
 
         let query_builder = QueryBuilder::<Client>::new(pool.clone(), request);
-        let clients = query_builder.get().await?;
+        let clients = query_builder.get()?;
         Ok(clients.into_iter().map(|c| c.to_response_without_secret()).collect())
     }
 
-    pub async fn update_client(pool: &PgPool, id: Ulid, data: UpdateClient) -> Result<ClientResponse> {
-        let mut client = Self::find_by_id(pool, id).await?
+    pub fn update_client(pool: &DbPool, id: Ulid, data: UpdateClient) -> Result<ClientResponse> {
+        let mut client = Self::find_by_id(pool, id)?
             .ok_or_else(|| anyhow::anyhow!("Client not found"))?;
 
         if let Some(name) = data.name {
@@ -188,18 +188,18 @@ impl ClientService {
         .bind(client.updated_at)
         .bind(id.to_string())
         .execute(pool)
-        .await?;
+        ?;
 
         Ok(client.to_response())
     }
 
-    pub async fn revoke_client(pool: &PgPool, id: Ulid) -> Result<()> {
+    pub fn revoke_client(pool: &DbPool, id: Ulid) -> Result<()> {
         sqlx::query(
             "UPDATE oauth_clients SET revoked = true, updated_at = NOW() WHERE id = $1"
         )
         .bind(id.to_string())
         .execute(pool)
-        .await?;
+        ?;
 
         // Also revoke all access tokens for this client
         sqlx::query(
@@ -207,19 +207,19 @@ impl ClientService {
         )
         .bind(id.to_string())
         .execute(pool)
-        .await?;
+        ?;
 
         Ok(())
     }
 
-    pub async fn delete_client(pool: &PgPool, id: Ulid) -> Result<()> {
+    pub fn delete_client(pool: &DbPool, id: Ulid) -> Result<()> {
         // Delete personal access client record first if it exists
         sqlx::query(
             "DELETE FROM oauth_personal_access_clients WHERE client_id = $1"
         )
         .bind(id.to_string())
         .execute(pool)
-        .await?;
+        ?;
 
         // Delete the client (this will cascade to tokens due to foreign key constraints)
         sqlx::query(
@@ -227,13 +227,13 @@ impl ClientService {
         )
         .bind(id.to_string())
         .execute(pool)
-        .await?;
+        ?;
 
         Ok(())
     }
 
-    pub async fn regenerate_secret(pool: &PgPool, id: Ulid) -> Result<String> {
-        let client = Self::find_by_id(pool, id).await?
+    pub fn regenerate_secret(pool: &DbPool, id: Ulid) -> Result<String> {
+        let client = Self::find_by_id(pool, id)?
             .ok_or_else(|| anyhow::anyhow!("Client not found"))?;
 
         if client.personal_access_client {
@@ -248,7 +248,7 @@ impl ClientService {
         .bind(&new_secret)
         .bind(id.to_string())
         .execute(pool)
-        .await?;
+        ?;
 
         Ok(new_secret)
     }
@@ -261,8 +261,8 @@ impl ClientService {
             .collect()
     }
 
-    pub async fn is_valid_redirect_uri(pool: &PgPool, client_id: Ulid, redirect_uri: &str) -> Result<bool> {
-        if let Some(client) = Self::find_by_id(pool, client_id).await? {
+    pub fn is_valid_redirect_uri(pool: &DbPool, client_id: Ulid, redirect_uri: &str) -> Result<bool> {
+        if let Some(client) = Self::find_by_id(pool, client_id)? {
             Ok(client.is_valid_redirect_uri(redirect_uri))
         } else {
             Ok(false)

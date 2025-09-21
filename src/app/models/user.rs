@@ -1,14 +1,15 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Row, postgres::PgRow};
+use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
-use crate::query_builder::{Queryable, SortDirection};
+use crate::query_builder::SortDirection;
 use super::{HasModelType, HasRoles};
 
 /// User model representing a registered user
 /// Contains authentication, profile, and security information
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
+#[diesel(table_name = crate::schema::sys_users)]
 pub struct User {
     /// Unique user identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
@@ -188,37 +189,10 @@ impl HasRoles for User {
     }
 }
 
-impl FromRow<'_, PgRow> for User {
-    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
-        let id_str: String = row.try_get("id")?;
-        let id = Ulid::from_string(&id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "id".to_string(),
-            source: Box::new(e),
-        })?;
 
-        Ok(User {
-            id,
-            name: row.try_get("name")?,
-            email: row.try_get("email")?,
-            email_verified_at: row.try_get("email_verified_at")?,
-            password: row.try_get("password")?,
-            remember_token: row.try_get("remember_token")?,
-            refresh_token: row.try_get("refresh_token")?,
-            refresh_token_expires_at: row.try_get("refresh_token_expires_at")?,
-            password_reset_token: row.try_get("password_reset_token")?,
-            password_reset_expires_at: row.try_get("password_reset_expires_at")?,
-            last_login_at: row.try_get("last_login_at")?,
-            failed_login_attempts: row.try_get("failed_login_attempts")?,
-            locked_until: row.try_get("locked_until")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
-    }
-}
-
-impl Queryable for User {
+impl crate::query_builder::Queryable for User {
     fn table_name() -> &'static str {
-        "users"
+        "sys_users"
     }
 
     fn allowed_filters() -> Vec<&'static str> {

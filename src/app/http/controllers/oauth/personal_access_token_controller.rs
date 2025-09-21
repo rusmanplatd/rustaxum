@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Json as ResponseJson},
 };
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use crate::database::DbPool;
 use ulid::Ulid;
 
 use crate::app::services::oauth::TokenService;
@@ -24,7 +24,7 @@ pub struct CreatePersonalAccessTokenRequest {
 }
 
 pub async fn create_personal_access_token(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     headers: HeaderMap,
     Json(payload): Json<CreatePersonalAccessTokenRequest>,
 ) -> impl IntoResponse {
@@ -56,7 +56,7 @@ pub async fn create_personal_access_token(
 }
 
 pub async fn list_personal_access_tokens(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let user_id = match get_authenticated_user(&pool, &headers).await {
@@ -84,7 +84,7 @@ pub async fn list_personal_access_tokens(
 }
 
 pub async fn revoke_personal_access_token(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     headers: HeaderMap,
     Path(token_id): Path<String>,
 ) -> impl IntoResponse {
@@ -156,7 +156,7 @@ pub async fn revoke_personal_access_token(
     }
 }
 
-async fn get_authenticated_user(_pool: &PgPool, headers: &HeaderMap) -> anyhow::Result<Ulid> {
+async fn get_authenticated_user(_pool: &DbPool, headers: &HeaderMap) -> anyhow::Result<Ulid> {
     let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
     let token = TokenUtils::extract_token_from_header(auth_header)?;
     let claims = AuthService::decode_token(token, "jwt-secret")?;

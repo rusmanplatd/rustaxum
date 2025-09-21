@@ -1,60 +1,59 @@
 use anyhow::Result;
 use ulid::Ulid;
-use sqlx::PgPool;
+use diesel::prelude::*;
+use crate::database::{DbPool, DbConnection};
+use crate::schema::sys_roles;
 use crate::app::models::role::{Role, CreateRole, UpdateRole};
 use crate::app::models::HasRoles;
 
 pub struct RoleService;
 
 impl RoleService {
-    pub async fn create(pool: &PgPool, data: CreateRole) -> Result<Role> {
+    pub fn create(pool: &DbPool, data: CreateRole) -> Result<Role> {
+        let mut conn = pool.get()?;
         let role = Role::new(data.name, data.description, data.guard_name);
 
-        sqlx::query(
-            r#"
-            INSERT INTO sys_roles (id, name, description, guard_name, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            "#
-        )
-        .bind(role.id.to_string())
-        .bind(role.name.clone())
-        .bind(role.description.clone())
-        .bind(role.guard_name.clone())
-        .bind(role.created_at)
-        .bind(role.updated_at)
-        .execute(pool)
-        .await?;
+        diesel::insert_into(sys_roles::table)
+            .values((
+                sys_roles::id.eq(role.id.to_string()),
+                sys_roles::name.eq(&role.name),
+                sys_roles::description.eq(&role.description),
+                sys_roles::guard_name.eq(&role.guard_name),
+                sys_roles::created_at.eq(role.created_at),
+                sys_roles::updated_at.eq(role.updated_at),
+            ))
+            .execute(&mut conn)?;
 
         Ok(role)
     }
 
-    pub async fn find_by_id(pool: &PgPool, id: Ulid) -> Result<Option<Role>> {
-        let role = sqlx::query_as::<_, Role>(
-            "SELECT id, name, description, guard_name, created_at, updated_at FROM sys_roles WHERE id = $1"
-        )
-        .bind(id.to_string())
-        .fetch_optional(pool)
-        .await?;
+    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<Role>> {
+        let mut conn = pool.get()?;
+
+        let role = sys_roles::table
+            .filter(sys_roles::id.eq(id.to_string()))
+            .first::<Role>(&mut conn)
+            .optional()?;
 
         Ok(role)
     }
 
-    pub async fn find_by_name(pool: &PgPool, name: &str, guard_name: Option<&str>) -> Result<Option<Role>> {
+    pub fn find_by_name(pool: &DbPool, name: &str, guard_name: Option<&str>) -> Result<Option<Role>> {
+        let mut conn = pool.get()?;
         let guard = guard_name.unwrap_or("api");
 
-        let role = sqlx::query_as::<_, Role>(
-            "SELECT id, name, description, guard_name, created_at, updated_at FROM sys_roles WHERE name = $1 AND guard_name = $2"
-        )
-        .bind(name)
-        .bind(guard)
-        .fetch_optional(pool)
-        .await?;
+        let role = sys_roles::table
+            .filter(sys_roles::name.eq(name))
+            .filter(sys_roles::guard_name.eq(guard))
+            .first::<Role>(&mut conn)
+            .optional()?;
 
         Ok(role)
     }
 
-    pub async fn update(pool: &PgPool, id: Ulid, data: UpdateRole) -> Result<Role> {
-        let mut role = Self::find_by_id(pool, id).await?
+    pub fn update(pool: &DbPool, id: Ulid, data: UpdateRole) -> Result<Role> {
+        let mut conn = pool.get()?;
+        let mut role = Self::find_by_id(pool, id)?
             .ok_or_else(|| anyhow::anyhow!("Role not found"))?;
 
         if let Some(name) = data.name {
@@ -68,152 +67,123 @@ impl RoleService {
         }
         role.updated_at = chrono::Utc::now();
 
-        sqlx::query(
-            r#"
-            UPDATE sys_roles
-            SET name = $1, description = $2, guard_name = $3, updated_at = $4
-            WHERE id = $5
-            "#
-        )
-        .bind(role.name.clone())
-        .bind(role.description.clone())
-        .bind(role.guard_name.clone())
-        .bind(role.updated_at)
-        .bind(id.to_string())
-        .execute(pool)
-        .await?;
+        diesel::update(sys_roles::table.filter(sys_roles::id.eq(id.to_string())))
+            .set((
+                sys_roles::name.eq(&role.name),
+                sys_roles::description.eq(&role.description),
+                sys_roles::guard_name.eq(&role.guard_name),
+                sys_roles::updated_at.eq(role.updated_at),
+            ))
+            .execute(&mut conn)?;
 
         Ok(role)
     }
 
-    pub async fn delete(pool: &PgPool, id: Ulid) -> Result<()> {
-        sqlx::query(
-            "DELETE FROM sys_roles WHERE id = $1"
-        )
-        .bind(id.to_string())
-        .execute(pool)
-        .await?;
+    pub fn delete(pool: &DbPool, id: Ulid) -> Result<()> {
+        let mut conn = pool.get()?;
+
+        diesel::delete(sys_roles::table.filter(sys_roles::id.eq(id.to_string())))
+            .execute(&mut conn)?;
 
         Ok(())
     }
 
-    pub async fn list(pool: &PgPool, limit: i64, offset: i64) -> Result<Vec<Role>> {
-        let roles = sqlx::query_as::<_, Role>(
-            "SELECT id, name, description, guard_name, created_at, updated_at FROM sys_roles ORDER BY created_at DESC LIMIT $1 OFFSET $2"
-        )
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(pool)
-        .await?;
+    pub fn list(pool: &DbPool, limit: i64, offset: i64) -> Result<Vec<Role>> {
+        let mut conn = pool.get()?;
+
+        let roles = sys_roles::table
+            .order(sys_roles::created_at.desc())
+            .limit(limit)
+            .offset(offset)
+            .load::<Role>(&mut conn)?;
 
         Ok(roles)
     }
 
     /// Generic method to assign a role to any model that implements HasRoles
-    pub async fn assign_to_model<T: HasRoles>(pool: &PgPool, model: &T, role_id: Ulid) -> Result<()> {
+    pub fn assign_to_model<T: HasRoles>(pool: &DbPool, model: &T, role_id: Ulid) -> Result<()> {
+        use crate::schema::sys_model_has_roles;
+        let mut conn = pool.get()?;
         let model_role_id = Ulid::new();
         let now = chrono::Utc::now();
 
-        sqlx::query(
-            r#"
-            INSERT INTO sys_model_has_roles (id, model_type, model_id, role_id, scope_type, scope_id, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT (model_type, model_id, role_id) DO NOTHING
-            "#
-        )
-        .bind(model_role_id.to_string())
-        .bind(T::model_type())
-        .bind(model.model_id())
-        .bind(role_id.to_string())
-        .bind(Option::<String>::None)
-        .bind(Option::<String>::None)
-        .bind(now)
-        .bind(now)
-        .execute(pool)
-        .await?;
+        diesel::insert_into(sys_model_has_roles::table)
+            .values((
+                sys_model_has_roles::id.eq(model_role_id.to_string()),
+                sys_model_has_roles::model_type.eq(T::model_type()),
+                sys_model_has_roles::model_id.eq(model.model_id()),
+                sys_model_has_roles::role_id.eq(role_id.to_string()),
+                sys_model_has_roles::scope_type.eq::<Option<String>>(None),
+                sys_model_has_roles::scope_id.eq::<Option<String>>(None),
+                sys_model_has_roles::created_at.eq(now),
+                sys_model_has_roles::updated_at.eq(now),
+            ))
+            .on_conflict((sys_model_has_roles::model_type, sys_model_has_roles::model_id, sys_model_has_roles::role_id))
+            .do_nothing()
+            .execute(&mut conn)?;
 
         Ok(())
     }
 
     /// Generic method to remove a role from any model that implements HasRoles
-    pub async fn remove_from_model<T: HasRoles>(pool: &PgPool, model: &T, role_id: Ulid) -> Result<()> {
-        sqlx::query(
-            "DELETE FROM sys_model_has_roles WHERE model_type = $1 AND model_id = $2 AND role_id = $3"
+    pub fn remove_from_model<T: HasRoles>(pool: &DbPool, model: &T, role_id: Ulid) -> Result<()> {
+        use crate::schema::sys_model_has_roles;
+        let mut conn = pool.get()?;
+
+        diesel::delete(
+            sys_model_has_roles::table
+                .filter(sys_model_has_roles::model_type.eq(T::model_type()))
+                .filter(sys_model_has_roles::model_id.eq(model.model_id()))
+                .filter(sys_model_has_roles::role_id.eq(role_id.to_string()))
         )
-        .bind(T::model_type())
-        .bind(model.model_id())
-        .bind(role_id.to_string())
-        .execute(pool)
-        .await?;
+        .execute(&mut conn)?;
 
         Ok(())
     }
 
     /// Generic method to check if a model has a specific role
-    pub async fn model_has_role<T: HasRoles>(pool: &PgPool, model: &T, role_name: &str, guard_name: Option<&str>) -> Result<bool> {
+    pub fn model_has_role<T: HasRoles>(pool: &DbPool, model: &T, role_name: &str, guard_name: Option<&str>) -> Result<bool> {
+        use crate::schema::{sys_model_has_roles, sys_roles};
+        let mut conn = pool.get()?;
         let guard = guard_name.unwrap_or("api");
 
-        let count: Option<i64> = sqlx::query_scalar(
-            r#"
-            SELECT COUNT(*) as count
-            FROM sys_model_has_roles smhr
-            JOIN sys_roles r ON smhr.role_id = r.id
-            WHERE smhr.model_type = $1 AND smhr.model_id = $2 AND r.name = $3 AND r.guard_name = $4
-            "#
-        )
-        .bind(T::model_type())
-        .bind(model.model_id())
-        .bind(role_name)
-        .bind(guard)
-        .fetch_one(pool)
-        .await?;
+        let count = sys_model_has_roles::table
+            .inner_join(sys_roles::table.on(sys_model_has_roles::role_id.eq(sys_roles::id)))
+            .filter(sys_model_has_roles::model_type.eq(T::model_type()))
+            .filter(sys_model_has_roles::model_id.eq(model.model_id()))
+            .filter(sys_roles::name.eq(role_name))
+            .filter(sys_roles::guard_name.eq(guard))
+            .count()
+            .get_result::<i64>(&mut conn)?;
 
-        Ok(count.unwrap_or(0) > 0)
+        Ok(count > 0)
     }
 
     /// Generic method to get roles for any model that implements HasRoles
-    pub async fn get_model_roles<T: HasRoles>(pool: &PgPool, model: &T, guard_name: Option<&str>) -> Result<Vec<Role>> {
-        let query = if let Some(guard) = guard_name {
-            sqlx::query_as::<_, Role>(
-                r#"
-                SELECT r.id, r.name, r.description, r.guard_name, r.created_at, r.updated_at
-                FROM sys_roles r
-                JOIN sys_model_has_roles smhr ON r.id = smhr.role_id
-                WHERE smhr.model_type = $1 AND smhr.model_id = $2 AND r.guard_name = $3
-                ORDER BY r.name
-                "#
-            )
-            .bind(T::model_type())
-            .bind(model.model_id())
-            .bind(guard)
-            .fetch_all(pool)
-            .await?
-        } else {
-            sqlx::query_as::<_, Role>(
-                r#"
-                SELECT r.id, r.name, r.description, r.guard_name, r.created_at, r.updated_at
-                FROM sys_roles r
-                JOIN sys_model_has_roles smhr ON r.id = smhr.role_id
-                WHERE smhr.model_type = $1 AND smhr.model_id = $2
-                ORDER BY r.name
-                "#
-            )
-            .bind(T::model_type())
-            .bind(model.model_id())
-            .fetch_all(pool)
-            .await?
-        };
+    pub fn get_model_roles<T: HasRoles>(pool: &DbPool, model: &T, guard_name: Option<&str>) -> Result<Vec<Role>> {
+        use crate::schema::{sys_model_has_roles, sys_roles};
+        let mut conn = pool.get()?;
 
-        Ok(query)
+        let mut query = sys_roles::table
+            .inner_join(sys_model_has_roles::table.on(sys_roles::id.eq(sys_model_has_roles::role_id)))
+            .filter(sys_model_has_roles::model_type.eq(T::model_type()))
+            .filter(sys_model_has_roles::model_id.eq(model.model_id()))
+            .select(sys_roles::all_columns)
+            .order(sys_roles::name)
+            .into_boxed();
+
+        if let Some(guard) = guard_name {
+            query = query.filter(sys_roles::guard_name.eq(guard));
+        }
+
+        let roles = query.load::<Role>(&mut conn)?;
+        Ok(roles)
     }
 
-    pub async fn count(pool: &PgPool) -> Result<i64> {
-        let count: Option<i64> = sqlx::query_scalar(
-            "SELECT COUNT(*) as count FROM roles"
-        )
-        .fetch_one(pool)
-        .await?;
+    pub fn count(pool: &DbPool) -> Result<i64> {
+        let mut conn = pool.get()?;
 
-        Ok(count.unwrap_or(0))
+        let count = sys_roles::table.count().get_result::<i64>(&mut conn)?;
+        Ok(count)
     }
 }

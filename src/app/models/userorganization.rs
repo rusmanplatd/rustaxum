@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Row, postgres::PgRow, PgPool};
+use diesel::prelude::*;
+use crate::database::DbPool;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use anyhow::Result;
@@ -108,7 +109,7 @@ impl UserOrganization {
 
     /// Check if user has a specific role in an organization
     pub async fn user_has_role_in_organization(
-        pool: &PgPool,
+        pool: &DbPool,
         user_id: Ulid,
         organization_id: Ulid,
         role_name: &str,
@@ -134,7 +135,7 @@ impl UserOrganization {
 
     /// Check if user has a specific permission in an organization
     pub async fn user_has_permission_in_organization(
-        pool: &PgPool,
+        pool: &DbPool,
         user_id: Ulid,
         organization_id: Ulid,
         permission_name: &str,
@@ -162,7 +163,7 @@ impl UserOrganization {
 
     /// Assign a role to user in organization
     pub async fn assign_role_to_user_organization(
-        pool: &PgPool,
+        pool: &DbPool,
         user_organization_id: Ulid,
         role_id: Ulid,
     ) -> Result<()> {
@@ -187,7 +188,7 @@ impl UserOrganization {
 
     /// Remove a role from user in organization
     pub async fn remove_role_from_user_organization(
-        pool: &PgPool,
+        pool: &DbPool,
         user_organization_id: Ulid,
         role_id: Ulid,
     ) -> Result<()> {
@@ -245,7 +246,7 @@ impl UserOrganization {
     /// Check if user can access resource based on organization hierarchy
     pub async fn can_access_in_hierarchy(
         &self,
-        pool: &PgPool,
+        pool: &DbPool,
         target_organization_id: Ulid,
         access_level: u8, // 1 = same org, 2 = child orgs, 3 = parent orgs
     ) -> Result<bool> {
@@ -300,7 +301,7 @@ impl UserOrganization {
     }
 
     /// Activate user organization relationship
-    pub async fn activate(&mut self, pool: &PgPool) -> Result<()> {
+    pub async fn activate(&mut self, pool: &DbPool) -> Result<()> {
         self.is_active = true;
         self.updated_at = Utc::now();
 
@@ -315,7 +316,7 @@ impl UserOrganization {
     }
 
     /// Deactivate user organization relationship
-    pub async fn deactivate(&mut self, pool: &PgPool) -> Result<()> {
+    pub async fn deactivate(&mut self, pool: &DbPool) -> Result<()> {
         self.is_active = false;
         self.ended_at = Some(Utc::now());
         self.updated_at = Utc::now();
@@ -333,7 +334,7 @@ impl UserOrganization {
     /// Transfer user to different organization
     pub async fn transfer_to_organization(
         &mut self,
-        pool: &PgPool,
+        pool: &DbPool,
         new_organization_id: Ulid,
         new_job_position_id: Ulid,
     ) -> Result<()> {
@@ -367,46 +368,6 @@ impl UserOrganization {
         .await?;
 
         Ok(())
-    }
-}
-
-impl FromRow<'_, PgRow> for UserOrganization {
-    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
-        let id_str: String = row.try_get("id")?;
-        let id = Ulid::from_string(&id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        let user_id_str: String = row.try_get("user_id")?;
-        let user_id = Ulid::from_string(&user_id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "user_id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        let organization_id_str: String = row.try_get("organization_id")?;
-        let organization_id = Ulid::from_string(&organization_id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "organization_id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        let job_position_id_str: String = row.try_get("job_position_id")?;
-        let job_position_id = Ulid::from_string(&job_position_id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "job_position_id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        Ok(UserOrganization {
-            id,
-            user_id,
-            organization_id,
-            job_position_id,
-            is_active: row.try_get("is_active")?,
-            started_at: row.try_get("started_at")?,
-            ended_at: row.try_get("ended_at")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
     }
 }
 

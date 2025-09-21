@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Row, postgres::PgRow};
+use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 
@@ -65,25 +65,5 @@ impl Permission {
             created_at: self.created_at,
             updated_at: self.updated_at,
         }
-    }
-}
-
-impl FromRow<'_, PgRow> for Permission {
-    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
-        let id_str: String = row.try_get("id")?;
-        let id = Ulid::from_string(&id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        Ok(Permission {
-            id,
-            name: row.try_get("name")?,
-            guard_name: row.try_get("guard_name")?,
-            resource: row.try_get("resource")?,
-            action: row.try_get("action")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
     }
 }

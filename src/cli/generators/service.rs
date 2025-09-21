@@ -56,7 +56,7 @@ fn generate_service_content(service_name: &str) -> String {
 
     format!(r#"use anyhow::Result;
 use ulid::Ulid;
-use sqlx::PgPool;
+use crate::database::DbPool;
 
 // TODO: Import your model
 // use crate::app::models::{}::{{{}, Create{}, Update{}}};
@@ -64,27 +64,27 @@ use sqlx::PgPool;
 pub struct {};
 
 impl {} {{
-    pub async fn create(pool: &PgPool, data: Create{}) -> Result<{}> {{
+    pub async fn create(pool: &DbPool, data: Create{}) -> Result<{}> {{
         // TODO: Implement create logic
         todo!("Implement create method")
     }}
 
-    pub async fn find_by_id(pool: &PgPool, id: Ulid) -> Result<Option<{}>> {{
+    pub async fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<{}>> {{
         // TODO: Implement find by id logic
         todo!("Implement find_by_id method")
     }}
 
-    pub async fn update(pool: &PgPool, id: Ulid, data: Update{}) -> Result<{}> {{
+    pub async fn update(pool: &DbPool, id: Ulid, data: Update{}) -> Result<{}> {{
         // TODO: Implement update logic
         todo!("Implement update method")
     }}
 
-    pub async fn delete(pool: &PgPool, id: Ulid) -> Result<()> {{
+    pub async fn delete(pool: &DbPool, id: Ulid) -> Result<()> {{
         // TODO: Implement delete logic
         todo!("Implement delete method")
     }}
 
-    pub async fn list(pool: &PgPool, limit: i64, offset: i64) -> Result<Vec<{}>> {{
+    pub async fn list(pool: &DbPool, limit: i64, offset: i64) -> Result<Vec<{}>> {{
         // TODO: Implement list logic
         todo!("Implement list method")
     }}

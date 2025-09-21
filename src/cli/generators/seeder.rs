@@ -55,7 +55,7 @@ fn to_snake_case(name: &str) -> String {
 }
 
 fn generate_seeder_content(seeder_name: &str) -> String {
-    format!(r#"use sqlx::PgPool;
+    format!(r#"use crate::database::DbPool;
 use anyhow::Result;
 use crate::database::seeder::Seeder;
 
@@ -70,7 +70,7 @@ impl Seeder for {} {{
         Some("TODO: Add description for this seeder")
     }}
 
-    async fn run(&self, pool: &PgPool) -> Result<()> {{
+    async fn run(&self, pool: &DbPool) -> Result<()> {{
         // TODO: Add your seeding logic here
         // Example:
         // sqlx::query(

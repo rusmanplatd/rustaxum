@@ -1,6 +1,6 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use crate::database::DbPool;
 use crate::app::notifications::channels::web_push_channel::{PushSubscription, WebPushChannel};
 use crate::config::Config;
 
@@ -51,7 +51,7 @@ impl WebPushService {
     }
 
     /// Get VAPID public key for client-side subscription
-    pub async fn get_vapid_public_key() -> Result<String> {
+    pub fn get_vapid_public_key() -> Result<String> {
         let config = Config::load()?;
 
         config.webpush.vapid_public_key
@@ -143,7 +143,7 @@ impl WebPushService {
     }
 
     /// Test if web push is configured and working
-    pub async fn test_web_push_configuration(&self) -> Result<bool> {
+    pub fn test_web_push_configuration(&self) -> Result<bool> {
         let config = Config::load()?;
 
         // Check if VAPID keys are configured
@@ -212,26 +212,24 @@ impl WebPushService {
 
     /// Clean up invalid subscriptions (run periodically)
     pub async fn cleanup_invalid_subscriptions(&self) -> Result<u64> {
+        use diesel::prelude::*;
+        use crate::schema::push_subscriptions;
+
         let pool = Self::get_database_pool().await?;
+        let mut conn = pool.get()?;
+        let cutoff_date = chrono::Utc::now() - chrono::Duration::days(30);
 
-        // Remove subscriptions older than 30 days that haven't been updated
-        let query = r#"
-            DELETE FROM push_subscriptions
-            WHERE updated_at < NOW() - INTERVAL '30 days'
-        "#;
+        let deleted_count = diesel::delete(
+            push_subscriptions::table
+                .filter(push_subscriptions::updated_at.lt(cutoff_date))
+        ).execute(&mut conn)?;
 
-        let result = sqlx::query(query)
-            .execute(&pool)
-            .await?;
-
-        tracing::info!("Cleaned up {} old push subscriptions", result.rows_affected());
-        Ok(result.rows_affected())
+        tracing::info!("Cleaned up {} old push subscriptions", deleted_count);
+        Ok(deleted_count as u64)
     }
 
-    async fn get_database_pool() -> Result<PgPool> {
-        let config = Config::load()?;
-        let pool = PgPool::connect(&config.database.url).await?;
-        Ok(pool)
+    async fn get_database_pool() -> Result<DbPool> {
+        crate::database::create_pool()
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::database::seeder::Seeder;
-use sqlx::PgPool;
+use crate::database::DbPool;
 use anyhow::Result;
 use ulid::Ulid;
 
@@ -10,7 +10,7 @@ impl Seeder for OrganizationSeeder {
         "OrganizationSeeder"
     }
 
-    async fn run(&self, pool: &PgPool) -> Result<()> {
+    async fn run(&self, pool: &DbPool) -> Result<()> {
         println!("Seeding organizations...");
 
         // Create holding company

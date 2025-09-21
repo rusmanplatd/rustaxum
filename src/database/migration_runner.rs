@@ -1,11 +1,11 @@
-use sqlx::{PgPool, Row};
 use anyhow::{Result, anyhow};
 use std::fs;
 use std::path::Path;
+use crate::database::DbPool;
 use crate::app::models::migration::Migration;
 
 pub struct MigrationRunner {
-    pool: PgPool,
+    pool: DbPool,
     migrations_path: String,
 }
 
@@ -18,7 +18,7 @@ pub struct MigrationFile {
 }
 
 impl MigrationRunner {
-    pub fn new(pool: PgPool, migrations_path: String) -> Self {
+    pub fn new(pool: DbPool, migrations_path: String) -> Self {
         Self {
             pool,
             migrations_path,

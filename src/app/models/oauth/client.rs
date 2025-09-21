@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Row, postgres::PgRow};
+use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use crate::query_builder::{Queryable, SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
+#[diesel(table_name = crate::schema::oauth_clients)]
 pub struct Client {
     pub id: Ulid,
     pub user_id: Option<Ulid>,
@@ -119,37 +120,6 @@ impl Client {
     }
 }
 
-impl FromRow<'_, PgRow> for Client {
-    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
-        let id_str: String = row.try_get("id")?;
-        let id = Ulid::from_string(&id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        let user_id = match row.try_get::<Option<String>, _>("user_id")? {
-            Some(user_id_str) => Some(Ulid::from_string(&user_id_str).map_err(|e| sqlx::Error::ColumnDecode {
-                index: "user_id".to_string(),
-                source: Box::new(e),
-            })?),
-            None => None,
-        };
-
-        Ok(Client {
-            id,
-            user_id,
-            name: row.try_get("name")?,
-            secret: row.try_get("secret")?,
-            provider: row.try_get("provider")?,
-            redirect_uris: row.try_get("redirect_uris")?,
-            personal_access_client: row.try_get("personal_access_client")?,
-            password_client: row.try_get("password_client")?,
-            revoked: row.try_get("revoked")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
-    }
-}
 
 impl Queryable for Client {
     fn table_name() -> &'static str {

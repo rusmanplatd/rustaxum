@@ -1,5 +1,5 @@
 use anyhow::Result;
-use sqlx::PgPool;
+use crate::database::DbPool;
 use ulid::Ulid;
 use chrono::Utc;
 use serde_json::{json, Value};
@@ -12,7 +12,7 @@ use crate::app::http::requests::job_position_requests::{
 pub struct JobPositionService;
 
 impl JobPositionService {
-    pub async fn index(pool: &PgPool, request: &IndexJobPositionRequest) -> Result<Value> {
+    pub fn index(pool: &DbPool, request: &IndexJobPositionRequest) -> Result<Value> {
         let mut query = "SELECT * FROM job_positions WHERE 1=1".to_string();
         let mut _param_index = 1;
 
@@ -44,11 +44,11 @@ impl JobPositionService {
         // This is a simplified version - in production you'd want proper parameter binding
         let job_positions = sqlx::query_as::<_, JobPosition>("SELECT id, name, code, job_level_id, description, is_active, created_at, updated_at FROM job_positions ORDER BY created_at DESC LIMIT 15")
             .fetch_all(pool)
-            .await?;
+            ?;
 
         let total = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM job_positions")
             .fetch_one(pool)
-            .await?;
+            ?;
 
         Ok(json!({
             "data": job_positions,
@@ -61,19 +61,19 @@ impl JobPositionService {
         }))
     }
 
-    pub async fn show(pool: &PgPool, id: &str) -> Result<JobPosition> {
+    pub fn show(pool: &DbPool, id: &str) -> Result<JobPosition> {
         let job_position = sqlx::query_as::<_, JobPosition>(
             "SELECT id, name, code, job_level_id, description, is_active, created_at, updated_at FROM job_positions WHERE id = $1"
         )
         .bind(id)
         .fetch_optional(pool)
-        .await?
+        ?
         .ok_or_else(|| anyhow::anyhow!("Job position not found"))?;
 
         Ok(job_position)
     }
 
-    pub async fn create(pool: &PgPool, request: &CreateJobPositionRequest) -> Result<JobPosition> {
+    pub fn create(pool: &DbPool, request: &CreateJobPositionRequest) -> Result<JobPosition> {
         let id = Ulid::new();
         let now = Utc::now();
 
@@ -92,12 +92,12 @@ impl JobPositionService {
         .bind(now)
         .bind(now)
         .fetch_one(pool)
-        .await?;
+        ?;
 
         Ok(job_position)
     }
 
-    pub async fn update(pool: &PgPool, id: &str, request: &UpdateJobPositionRequest) -> Result<JobPosition> {
+    pub fn update(pool: &DbPool, id: &str, request: &UpdateJobPositionRequest) -> Result<JobPosition> {
         let now = Utc::now();
 
         let job_position = sqlx::query_as::<_, JobPosition>(
@@ -121,17 +121,17 @@ impl JobPositionService {
         .bind(request.is_active)
         .bind(now)
         .fetch_optional(pool)
-        .await?
+        ?
         .ok_or_else(|| anyhow::anyhow!("Job position not found"))?;
 
         Ok(job_position)
     }
 
-    pub async fn delete(pool: &PgPool, id: &str) -> Result<()> {
+    pub fn delete(pool: &DbPool, id: &str) -> Result<()> {
         let rows_affected = sqlx::query("DELETE FROM job_positions WHERE id = $1")
             .bind(id)
             .execute(pool)
-            .await?
+            ?
             .rows_affected();
 
         if rows_affected == 0 {
@@ -141,7 +141,7 @@ impl JobPositionService {
         Ok(())
     }
 
-    pub async fn activate(pool: &PgPool, id: &str) -> Result<JobPosition> {
+    pub fn activate(pool: &DbPool, id: &str) -> Result<JobPosition> {
         let now = Utc::now();
 
         let job_position = sqlx::query_as::<_, JobPosition>(
@@ -155,13 +155,13 @@ impl JobPositionService {
         .bind(id)
         .bind(now)
         .fetch_optional(pool)
-        .await?
+        ?
         .ok_or_else(|| anyhow::anyhow!("Job position not found"))?;
 
         Ok(job_position)
     }
 
-    pub async fn deactivate(pool: &PgPool, id: &str) -> Result<JobPosition> {
+    pub fn deactivate(pool: &DbPool, id: &str) -> Result<JobPosition> {
         let now = Utc::now();
 
         let job_position = sqlx::query_as::<_, JobPosition>(
@@ -175,13 +175,13 @@ impl JobPositionService {
         .bind(id)
         .bind(now)
         .fetch_optional(pool)
-        .await?
+        ?
         .ok_or_else(|| anyhow::anyhow!("Job position not found"))?;
 
         Ok(job_position)
     }
 
-    pub async fn by_level(pool: &PgPool, request: &JobPositionsByLevelRequest) -> Result<Value> {
+    pub fn by_level(pool: &DbPool, request: &JobPositionsByLevelRequest) -> Result<Value> {
         let include_inactive = request.include_inactive.unwrap_or(false);
 
         let mut query = r#"
@@ -199,7 +199,7 @@ impl JobPositionService {
         let job_positions = sqlx::query_as::<_, JobPosition>(&query)
             .bind(&request.job_level_id)
             .fetch_all(pool)
-            .await?;
+            ?;
 
         Ok(json!({
             "data": job_positions.into_iter().map(|jp| jp.to_response()).collect::<Vec<_>>(),

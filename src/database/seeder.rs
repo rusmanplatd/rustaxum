@@ -1,4 +1,4 @@
-use sqlx::PgPool;
+use crate::database::DbPool;
 use anyhow::Result;
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -7,7 +7,7 @@ use std::future::Future;
 /// Base trait for database seeders, similar to Laravel's Seeder class
 pub trait Seeder {
     /// Run the database seeds
-    fn run(&self, pool: &PgPool) -> impl Future<Output = Result<()>> + Send;
+    fn run(&self, pool: &DbPool) -> impl Future<Output = Result<()>> + Send;
 
     /// Get the seeder class name
     fn class_name(&self) -> &'static str;
@@ -20,11 +20,11 @@ pub trait Seeder {
 
 /// Seeder context provides Laravel-like helper methods for seeders
 pub struct SeederContext<'a> {
-    pool: &'a PgPool,
+    pool: &'a DbPool,
 }
 
 impl<'a> SeederContext<'a> {
-    pub fn new(pool: &'a PgPool) -> Self {
+    pub fn new(pool: &'a DbPool) -> Self {
         Self { pool }
     }
 
@@ -49,7 +49,7 @@ impl<'a> SeederContext<'a> {
     }
 
     /// Get the database pool reference
-    pub fn db(&self) -> &PgPool {
+    pub fn db(&self) -> &DbPool {
         self.pool
     }
 }
@@ -68,7 +68,7 @@ pub enum RegisteredSeeder {
 }
 
 impl RegisteredSeeder {
-    pub async fn run(&self, pool: &PgPool) -> Result<()> {
+    pub async fn run(&self, pool: &DbPool) -> Result<()> {
         use crate::database::seeders::{
             countryseeder::Countryseeder,
             provinceseeder::Provinceseeder,
@@ -192,7 +192,7 @@ pub fn registry() -> &'static SeederRegistry {
 }
 
 /// Run a specific seeder by class name
-pub async fn call(class_name: &str, pool: &PgPool) -> Result<()> {
+pub async fn call(class_name: &str, pool: &DbPool) -> Result<()> {
     let registry = registry();
 
     match registry.find(class_name) {
@@ -214,7 +214,7 @@ pub async fn call(class_name: &str, pool: &PgPool) -> Result<()> {
 }
 
 /// Run all seeders using DatabaseSeeder as entry point (Laravel approach)
-pub async fn seed(pool: &PgPool) -> Result<()> {
+pub async fn seed(pool: &DbPool) -> Result<()> {
     // Try to run DatabaseSeeder first (Laravel convention)
     if registry().exists("DatabaseSeeder") {
         return call("DatabaseSeeder", pool).await;

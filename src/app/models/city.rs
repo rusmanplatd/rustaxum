@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Row, postgres::PgRow};
+use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
@@ -96,32 +96,6 @@ impl City {
     }
 }
 
-impl FromRow<'_, PgRow> for City {
-    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
-        let id_str: String = row.try_get("id")?;
-        let id = Ulid::from_string(&id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        let province_id_str: String = row.try_get("province_id")?;
-        let province_id = Ulid::from_string(&province_id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "province_id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        Ok(City {
-            id,
-            province_id,
-            name: row.try_get("name")?,
-            code: row.try_get("code")?,
-            latitude: row.try_get("latitude")?,
-            longitude: row.try_get("longitude")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
-    }
-}
 
 impl Queryable for City {
     fn table_name() -> &'static str {

@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Row, postgres::PgRow};
+use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use crate::query_builder::{Queryable, SortDirection};
@@ -63,31 +63,6 @@ impl RefreshToken {
 
     pub fn is_valid(&self) -> bool {
         !self.revoked && !self.is_expired()
-    }
-}
-
-impl FromRow<'_, PgRow> for RefreshToken {
-    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
-        let id_str: String = row.try_get("id")?;
-        let id = Ulid::from_string(&id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        let access_token_id_str: String = row.try_get("access_token_id")?;
-        let access_token_id = Ulid::from_string(&access_token_id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "access_token_id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        Ok(RefreshToken {
-            id,
-            access_token_id,
-            revoked: row.try_get("revoked")?,
-            expires_at: row.try_get("expires_at")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
     }
 }
 

@@ -6,7 +6,7 @@ use axum::{
 };
 use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use crate::database::DbPool;
 use sha2::{Digest, Sha256};
 
 use crate::config::Config;
@@ -19,7 +19,7 @@ pub struct Claims {
 }
 
 pub async fn auth_middleware(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     headers: HeaderMap,
     request: Request,
     next: Next,
@@ -41,7 +41,7 @@ pub async fn auth_middleware(
     }
 }
 
-async fn is_valid_token(_pool: &PgPool, token: &str) -> bool {
+async fn is_valid_token(_pool: &DbPool, token: &str) -> bool {
     // Load config for JWT secret
     let config = match Config::load() {
         Ok(config) => config,

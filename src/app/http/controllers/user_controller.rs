@@ -3,9 +3,11 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json},
 };
-use sqlx::PgPool;
+use ulid::Ulid;
+use crate::database::DbPool;
 use crate::query_builder::{QueryBuilder, QueryParams};
 use crate::app::models::user::User;
+use crate::app::services::user_service::UserService;
 
 /// Get all users with filtering and pagination
 ///
@@ -36,7 +38,7 @@ use crate::app::models::user::User;
     )
 )]
 pub async fn index(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
     let request = params.parse();
@@ -77,15 +79,19 @@ pub async fn index(
     )
 )]
 pub async fn show(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let query = "SELECT * FROM sys_users WHERE id = $1";
+    let user_ulid = match Ulid::from_string(&id) {
+        Ok(ulid) => ulid,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
+                "error": "Invalid user ID format"
+            }))).into_response();
+        }
+    };
 
-    match sqlx::query_as::<_, User>(query)
-        .bind(&id)
-        .fetch_optional(&pool)
-        .await
+    match UserService::find_by_id(&pool, user_ulid)
     {
         Ok(Some(user)) => {
             (StatusCode::OK, Json(serde_json::json!(user.to_response()))).into_response()

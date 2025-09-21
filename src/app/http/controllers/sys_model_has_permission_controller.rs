@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Json as ResponseJson},
 };
 use ulid::Ulid;
-use sqlx::PgPool;
+use crate::database::DbPool;
 use std::collections::HashMap;
 
 use crate::app::models::sys_model_has_permission::{CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse};
@@ -31,7 +31,7 @@ use crate::app::docs::{ErrorResponse, MessageResponse};
     )
 )]
 pub async fn index(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
     match SysModelHasPermissionService::list(&pool, params).await {
@@ -64,7 +64,7 @@ pub async fn index(
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn show(State(pool): State<PgPool>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
     let permission_id = match Ulid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
@@ -105,7 +105,7 @@ pub async fn show(State(pool): State<PgPool>, Path(id): Path<String>) -> impl In
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn store(State(pool): State<PgPool>, request: CreateSysModelHasPermissionRequest) -> impl IntoResponse {
+pub async fn store(State(pool): State<DbPool>, request: CreateSysModelHasPermissionRequest) -> impl IntoResponse {
     let payload = CreateSysModelHasPermission {
         model_type: request.model_type,
         model_id: request.model_id,
@@ -143,7 +143,7 @@ pub async fn store(State(pool): State<PgPool>, request: CreateSysModelHasPermiss
     )
 )]
 pub async fn update(
-    State(pool): State<PgPool>,
+    State(pool): State<DbPool>,
     Path(id): Path<String>,
     request: UpdateSysModelHasPermissionRequest,
 ) -> impl IntoResponse {
@@ -192,7 +192,7 @@ pub async fn update(
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn destroy(State(pool): State<PgPool>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
     let permission_id = match Ulid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
@@ -235,7 +235,7 @@ pub async fn destroy(State(pool): State<PgPool>, Path(id): Path<String>) -> impl
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn by_model(State(pool): State<PgPool>, Path((model_type, model_id)): Path<(String, String)>) -> impl IntoResponse {
+pub async fn by_model(State(pool): State<DbPool>, Path((model_type, model_id)): Path<(String, String)>) -> impl IntoResponse {
     let model_ulid = match Ulid::from_string(&model_id) {
         Ok(id) => id,
         Err(_) => {

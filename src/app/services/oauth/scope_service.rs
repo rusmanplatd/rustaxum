@@ -1,5 +1,5 @@
 use anyhow::Result;
-use sqlx::PgPool;
+use crate::database::DbPool;
 use ulid::Ulid;
 
 use crate::app::models::oauth::{Scope, CreateScope, UpdateScope, ScopeResponse};
@@ -8,19 +8,19 @@ use crate::query_builder::QueryBuilder;
 pub struct ScopeService;
 
 impl ScopeService {
-    pub async fn create_scope(pool: &PgPool, data: CreateScope) -> Result<ScopeResponse> {
+    pub fn create_scope(pool: &DbPool, data: CreateScope) -> Result<ScopeResponse> {
         // Check if scope already exists
-        if Self::find_by_name(pool, &data.name).await?.is_some() {
+        if Self::find_by_name(pool, &data.name)?.is_some() {
             return Err(anyhow::anyhow!("Scope with this name already exists"));
         }
 
         let scope = Scope::new(data.name, data.description, data.is_default);
 
-        let created_scope = Self::create_scope_record(pool, scope).await?;
+        let created_scope = Self::create_scope_record(pool, scope)?;
         Ok(created_scope.to_response())
     }
 
-    pub async fn create_scope_record(pool: &PgPool, scope: Scope) -> Result<Scope> {
+    pub fn create_scope_record(pool: &DbPool, scope: Scope) -> Result<Scope> {
         sqlx::query(
             r#"
             INSERT INTO oauth_scopes (
@@ -36,54 +36,54 @@ impl ScopeService {
         .bind(scope.created_at)
         .bind(scope.updated_at)
         .execute(pool)
-        .await?;
+        ?;
 
         Ok(scope)
     }
 
-    pub async fn find_by_id(pool: &PgPool, id: Ulid) -> Result<Option<Scope>> {
+    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<Scope>> {
         let row = sqlx::query_as::<_, Scope>(
             "SELECT * FROM oauth_scopes WHERE id = $1"
         )
         .bind(id.to_string())
         .fetch_optional(pool)
-        .await?;
+        ?;
 
         Ok(row)
     }
 
-    pub async fn find_by_name(pool: &PgPool, name: &str) -> Result<Option<Scope>> {
+    pub fn find_by_name(pool: &DbPool, name: &str) -> Result<Option<Scope>> {
         let row = sqlx::query_as::<_, Scope>(
             "SELECT * FROM oauth_scopes WHERE name = $1"
         )
         .bind(name)
         .fetch_optional(pool)
-        .await?;
+        ?;
 
         Ok(row)
     }
 
-    pub async fn list_scopes(pool: &PgPool) -> Result<Vec<ScopeResponse>> {
+    pub fn list_scopes(pool: &DbPool) -> Result<Vec<ScopeResponse>> {
         let request = crate::query_builder::QueryBuilderRequest::default();
         let query_builder = QueryBuilder::<Scope>::new(pool.clone(), request);
-        let scopes = query_builder.get().await?;
+        let scopes = query_builder.get()?;
         Ok(scopes.into_iter().map(|s| s.to_response()).collect())
     }
 
-    pub async fn list_default_scopes(pool: &PgPool) -> Result<Vec<Scope>> {
+    pub async fn list_default_scopes(pool: &DbPool) -> Result<Vec<Scope>> {
         let mut request = crate::query_builder::QueryBuilderRequest::default();
         request.filters.insert("is_default".to_string(), "true".to_string());
         let query_builder = QueryBuilder::<Scope>::new(pool.clone(), request);
         query_builder.get().await
     }
 
-    pub async fn update_scope(pool: &PgPool, id: Ulid, data: UpdateScope) -> Result<ScopeResponse> {
-        let mut scope = Self::find_by_id(pool, id).await?
+    pub fn update_scope(pool: &DbPool, id: Ulid, data: UpdateScope) -> Result<ScopeResponse> {
+        let mut scope = Self::find_by_id(pool, id)?
             .ok_or_else(|| anyhow::anyhow!("Scope not found"))?;
 
         if let Some(name) = data.name {
             // Check if new name conflicts with existing scope
-            if let Some(existing) = Self::find_by_name(pool, &name).await? {
+            if let Some(existing) = Self::find_by_name(pool, &name)? {
                 if existing.id != scope.id {
                     return Err(anyhow::anyhow!("Scope with this name already exists"));
                 }
@@ -114,13 +114,13 @@ impl ScopeService {
         .bind(scope.updated_at)
         .bind(id.to_string())
         .execute(pool)
-        .await?;
+        ?;
 
         Ok(scope.to_response())
     }
 
-    pub async fn delete_scope(pool: &PgPool, id: Ulid) -> Result<()> {
-        let scope = Self::find_by_id(pool, id).await?
+    pub fn delete_scope(pool: &DbPool, id: Ulid) -> Result<()> {
+        let scope = Self::find_by_id(pool, id)?
             .ok_or_else(|| anyhow::anyhow!("Scope not found"))?;
 
         // Prevent deletion of wildcard scope
@@ -133,12 +133,12 @@ impl ScopeService {
         )
         .bind(id.to_string())
         .execute(pool)
-        .await?;
+        ?;
 
         Ok(())
     }
 
-    pub async fn validate_scopes(pool: &PgPool, scope_names: &[String]) -> Result<Vec<Scope>> {
+    pub async fn validate_scopes(pool: &DbPool, scope_names: &[String]) -> Result<Vec<Scope>> {
         if scope_names.is_empty() {
             // Return default scopes if none specified
             return Self::list_default_scopes(pool).await;
@@ -147,7 +147,7 @@ impl ScopeService {
         let mut valid_scopes = Vec::new();
 
         for scope_name in scope_names {
-            if let Some(scope) = Self::find_by_name(pool, scope_name).await? {
+            if let Some(scope) = Self::find_by_name(pool, scope_name)? {
                 valid_scopes.push(scope);
             } else {
                 return Err(anyhow::anyhow!("Invalid scope: {}", scope_name));
@@ -157,7 +157,7 @@ impl ScopeService {
         Ok(valid_scopes)
     }
 
-    pub async fn get_scope_names(scopes: &[Scope]) -> Vec<String> {
+    pub fn get_scope_names(scopes: &[Scope]) -> Vec<String> {
         scopes.iter().map(|s| s.name.clone()).collect()
     }
 
