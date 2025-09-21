@@ -4,7 +4,7 @@ use axum::{
 };
 use crate::database::DbPool;
 
-use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, role_controller, permission_controller, docs_controller, user_organization_controller, job_level_controller, job_position_controller, sys_model_has_permission_controller, sys_model_has_role_controller};
+use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, role_controller, permission_controller, docs_controller, user_organization_controller, organization_position_level_controller, organization_position_controller, sys_model_has_permission_controller, sys_model_has_role_controller};
 use crate::app::http::controllers::web_push_controller::WebPushController;
 
 pub fn routes() -> Router<DbPool> {
@@ -73,22 +73,22 @@ pub fn routes() -> Router<DbPool> {
         .route("/api/user-organizations/{id}/activate", post(user_organization_controller::activate))
         .route("/api/user-organizations/{id}/deactivate", post(user_organization_controller::deactivate))
         // Job Level routes
-        .route("/api/job-levels", get(job_level_controller::index))
-        .route("/api/job-levels", post(job_level_controller::store))
-        .route("/api/job-levels/{id}", get(job_level_controller::show))
-        .route("/api/job-levels/{id}", put(job_level_controller::update))
-        .route("/api/job-levels/{id}", delete(job_level_controller::destroy))
-        .route("/api/job-levels/{id}/activate", post(job_level_controller::activate))
-        .route("/api/job-levels/{id}/deactivate", post(job_level_controller::deactivate))
+        .route("/api/organization-position-levels", get(organization_position_level_controller::index))
+        .route("/api/organization-position-levels", post(organization_position_level_controller::store))
+        .route("/api/organization-position-levels/{id}", get(organization_position_level_controller::show))
+        .route("/api/organization-position-levels/{id}", put(organization_position_level_controller::update))
+        .route("/api/organization-position-levels/{id}", delete(organization_position_level_controller::destroy))
+        .route("/api/organization-position-levels/{id}/activate", post(organization_position_level_controller::activate))
+        .route("/api/organization-position-levels/{id}/deactivate", post(organization_position_level_controller::deactivate))
         // Job Position routes
-        .route("/api/job-positions", get(job_position_controller::index))
-        .route("/api/job-positions", post(job_position_controller::store))
-        .route("/api/job-positions/{id}", get(job_position_controller::show))
-        .route("/api/job-positions/{id}", put(job_position_controller::update))
-        .route("/api/job-positions/{id}", delete(job_position_controller::destroy))
-        .route("/api/job-positions/{id}/activate", post(job_position_controller::activate))
-        .route("/api/job-positions/{id}/deactivate", post(job_position_controller::deactivate))
-        .route("/api/job-levels/{job_level_id}/positions", get(job_position_controller::by_level))
+        .route("/api/organization-positions", get(organization_position_controller::index))
+        .route("/api/organization-positions", post(organization_position_controller::store))
+        .route("/api/organization-positions/{id}", get(organization_position_controller::show))
+        .route("/api/organization-positions/{id}", put(organization_position_controller::update))
+        .route("/api/organization-positions/{id}", delete(organization_position_controller::destroy))
+        .route("/api/organization-positions/{id}/activate", post(organization_position_controller::activate))
+        .route("/api/organization-positions/{id}/deactivate", post(organization_position_controller::deactivate))
+        .route("/api/organization-levels/{organization_position_level_id}/positions", get(organization_position_controller::by_level))
         // Web Push routes
         .route("/api/web-push/vapid-public-key", get(WebPushController::get_vapid_public_key))
         .route("/api/web-push/subscribe", post(WebPushController::subscribe))

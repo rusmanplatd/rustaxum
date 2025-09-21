@@ -27,13 +27,13 @@ impl UserOrganizationService {
             .map_err(|_| anyhow::anyhow!("Invalid user ID format"))?;
         let organization_id = Ulid::from_string(&data.organization_id)
             .map_err(|_| anyhow::anyhow!("Invalid organization ID format"))?;
-        let job_position_id = Ulid::from_string(&data.job_position_id)
-            .map_err(|_| anyhow::anyhow!("Invalid job position ID format"))?;
+        let organization_position_id = Ulid::from_string(&data.organization_position_id)
+            .map_err(|_| anyhow::anyhow!("Invalid organization position ID format"))?;
 
         let user_org = UserOrganization::new(
             user_id,
             organization_id,
-            job_position_id,
+            organization_position_id,
             data.started_at,
         );
 
@@ -42,7 +42,7 @@ impl UserOrganizationService {
                 user_organizations::id.eq(user_org.id.to_string()),
                 user_organizations::user_id.eq(user_org.user_id.to_string()),
                 user_organizations::organization_id.eq(user_org.organization_id.to_string()),
-                user_organizations::job_position_id.eq(user_org.job_position_id.to_string()),
+                user_organizations::organization_position_id.eq(user_org.organization_position_id.to_string()),
                 user_organizations::is_active.eq(user_org.is_active),
                 user_organizations::started_at.eq(user_org.started_at),
                 user_organizations::ended_at.eq(user_org.ended_at),
@@ -67,10 +67,10 @@ impl UserOrganizationService {
                 .map_err(|_| anyhow::anyhow!("Invalid organization ID format"))?;
             user_org.organization_id = organization_id;
         }
-        if let Some(job_position_id_str) = data.job_position_id {
-            let job_position_id = Ulid::from_string(&job_position_id_str)
-                .map_err(|_| anyhow::anyhow!("Invalid job position ID format"))?;
-            user_org.job_position_id = job_position_id;
+        if let Some(organization_position_id_str) = data.organization_position_id {
+            let organization_position_id = Ulid::from_string(&organization_position_id_str)
+                .map_err(|_| anyhow::anyhow!("Invalid organization position ID format"))?;
+            user_org.organization_position_id = organization_position_id;
         }
         if let Some(is_active) = data.is_active {
             user_org.is_active = is_active;
@@ -87,7 +87,7 @@ impl UserOrganizationService {
         diesel::update(user_organizations::table.filter(user_organizations::id.eq(id.to_string())))
             .set((
                 user_organizations::organization_id.eq(user_org.organization_id.to_string()),
-                user_organizations::job_position_id.eq(user_org.job_position_id.to_string()),
+                user_organizations::organization_position_id.eq(user_org.organization_position_id.to_string()),
                 user_organizations::is_active.eq(user_org.is_active),
                 user_organizations::started_at.eq(user_org.started_at),
                 user_organizations::ended_at.eq(user_org.ended_at),

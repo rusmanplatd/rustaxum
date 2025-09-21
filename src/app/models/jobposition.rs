@@ -5,26 +5,26 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::query_builder::{Queryable, SortDirection};
 
-/// Job position model representing specific sys_roles within job levels
-/// Contains position information and relationship to job level hierarchy
+/// Organization position model representing specific sys_roles within organization position levels
+/// Contains position information and relationship to organization position level hierarchy
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct JobPosition {
-    /// Unique identifier for the job position
+    /// Unique identifier for the organization position
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub id: Ulid,
-    /// Job position name
+    /// Organization position name
     #[schema(example = "Software Engineering Manager")]
     pub name: String,
-    /// Optional job position code
+    /// Optional organization position code
     #[schema(example = "SEM")]
     pub code: Option<String>,
-    /// ID of the job level this position belongs to
+    /// ID of the organization position level this position belongs to
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub job_level_id: Ulid,
-    /// Optional description of the job position
+    pub organization_position_level_id: Ulid,
+    /// Optional description of the organization position
     #[schema(example = "Manages software engineering teams and technical projects")]
     pub description: Option<String>,
-    /// Whether the job position is currently active
+    /// Whether the organization position is currently active
     #[schema(example = true)]
     pub is_active: bool,
     /// Creation timestamp
@@ -35,32 +35,32 @@ pub struct JobPosition {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Create job position payload for service layer
+/// Create organization position payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateJobPosition {
     pub name: String,
     pub code: Option<String>,
-    pub job_level_id: String,
+    pub organization_position_level_id: String,
     pub description: Option<String>,
 }
 
-/// Update job position payload for service layer
+/// Update organization position payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateJobPosition {
     pub name: Option<String>,
     pub code: Option<String>,
-    pub job_level_id: Option<String>,
+    pub organization_position_level_id: Option<String>,
     pub description: Option<String>,
     pub is_active: Option<bool>,
 }
 
-/// Job position response payload for API endpoints
+/// Organization position response payload for API endpoints
 #[derive(Debug, Serialize, ToSchema)]
 pub struct JobPositionResponse {
     pub id: String,
     pub name: String,
     pub code: Option<String>,
-    pub job_level_id: String,
+    pub organization_position_level_id: String,
     pub description: Option<String>,
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
@@ -68,13 +68,13 @@ pub struct JobPositionResponse {
 }
 
 impl JobPosition {
-    pub fn new(name: String, code: Option<String>, job_level_id: Ulid, description: Option<String>) -> Self {
+    pub fn new(name: String, code: Option<String>, organization_position_level_id: Ulid, description: Option<String>) -> Self {
         let now = Utc::now();
         Self {
             id: Ulid::new(),
             name,
             code,
-            job_level_id,
+            organization_position_level_id,
             description,
             is_active: true,
             created_at: now,
@@ -87,7 +87,7 @@ impl JobPosition {
             id: self.id.to_string(),
             name: self.name.clone(),
             code: self.code.clone(),
-            job_level_id: self.job_level_id.to_string(),
+            organization_position_level_id: self.organization_position_level_id.to_string(),
             description: self.description.clone(),
             is_active: self.is_active,
             created_at: self.created_at,
@@ -98,7 +98,7 @@ impl JobPosition {
 
 impl Queryable for JobPosition {
     fn table_name() -> &'static str {
-        "job_positions"
+        "organization_positions"
     }
 
     fn allowed_filters() -> Vec<&'static str> {
@@ -106,7 +106,7 @@ impl Queryable for JobPosition {
             "id",
             "name",
             "code",
-            "job_level_id",
+            "organization_position_level_id",
             "description",
             "is_active",
             "created_at",
@@ -119,7 +119,7 @@ impl Queryable for JobPosition {
             "id",
             "name",
             "code",
-            "job_level_id",
+            "organization_position_level_id",
             "description",
             "is_active",
             "created_at",
@@ -132,7 +132,7 @@ impl Queryable for JobPosition {
             "id",
             "name",
             "code",
-            "job_level_id",
+            "organization_position_level_id",
             "description",
             "is_active",
             "created_at",

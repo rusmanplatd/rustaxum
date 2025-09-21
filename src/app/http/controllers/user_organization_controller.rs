@@ -140,11 +140,11 @@ pub async fn store(
         }
     };
 
-    let job_position_id = match Ulid::from_string(&request.job_position_id) {
+    let organization_position_id = match Ulid::from_string(&request.organization_position_id) {
         Ok(id) => id,
         Err(_) => {
             return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
-                "error": "Invalid job position ID format"
+                "error": "Invalid organization position ID format"
             }))).into_response();
         }
     };
@@ -153,7 +153,7 @@ pub async fn store(
     let create_data = crate::app::models::userorganization::CreateUserOrganization {
         user_id: user_id.to_string(),
         organization_id: organization_id.to_string(),
-        job_position_id: job_position_id.to_string(),
+        organization_position_id: organization_position_id.to_string(),
         started_at: request.started_at,
     };
 
@@ -223,7 +223,7 @@ pub async fn update(
     // Create update data structure and validate
     let update_data = crate::app::models::userorganization::UpdateUserOrganization {
         organization_id: request.organization_id,
-        job_position_id: request.job_position_id,
+        organization_position_id: request.organization_position_id,
         is_active: request.is_active,
         started_at: request.started_at,
         ended_at: request.ended_at,
@@ -336,7 +336,7 @@ pub async fn transfer(
         }
     };
 
-    // Extract new organization and job position IDs from payload
+    // Extract new organization and organization position IDs from payload
     let new_organization_id = match payload.get("organization_id").and_then(|v| v.as_str()) {
         Some(id_str) => match Ulid::from_string(id_str) {
             Ok(id) => id,
@@ -353,18 +353,18 @@ pub async fn transfer(
         }
     };
 
-    let new_job_position_id = match payload.get("job_position_id").and_then(|v| v.as_str()) {
+    let new_organization_position_id = match payload.get("organization_position_id").and_then(|v| v.as_str()) {
         Some(id_str) => match Ulid::from_string(id_str) {
             Ok(id) => id,
             Err(_) => {
                 return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
-                    "error": "Invalid new job position ID format"
+                    "error": "Invalid new organization position ID format"
                 }))).into_response();
             }
         },
         None => {
             return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
-                "error": "New job position ID is required"
+                "error": "New organization position ID is required"
             }))).into_response();
         }
     };
@@ -386,7 +386,7 @@ pub async fn transfer(
     };
 
     // Perform the transfer
-    match user_org.transfer_to_organization(&pool, new_organization_id, new_job_position_id) {
+    match user_org.transfer_to_organization(&pool, new_organization_id, new_organization_position_id) {
         Ok(_) => {
             (StatusCode::OK, Json(serde_json::json!({
                 "message": "User transferred successfully"

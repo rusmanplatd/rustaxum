@@ -63,7 +63,7 @@ pub enum RegisteredSeeder {
     User,
     RolePermission,
     Organization,
-    JobLevelPosition,
+    OrganizationPositionLevel,
 }
 
 impl RegisteredSeeder {
@@ -76,7 +76,7 @@ impl RegisteredSeeder {
             userseeder::UserSeeder,
             rolepermissionseeder::RolePermissionSeeder,
             organizationseeder::OrganizationSeeder,
-            joblevelpositionseeder::JobLevelPositionSeeder,
+            joblevelpositionseeder::OrganizationPositionLevelSeeder,
         };
 
         match self {
@@ -108,8 +108,8 @@ impl RegisteredSeeder {
                 let seeder = OrganizationSeeder;
                 seeder.run(pool)
             }
-            RegisteredSeeder::JobLevelPosition => {
-                let seeder = JobLevelPositionSeeder;
+            RegisteredSeeder::OrganizationPositionLevel => {
+                let seeder = OrganizationPositionLevelSeeder;
                 seeder.run(pool)
             }
         }
@@ -124,7 +124,7 @@ impl RegisteredSeeder {
             RegisteredSeeder::User => "UserSeeder",
             RegisteredSeeder::RolePermission => "RolePermissionSeeder",
             RegisteredSeeder::Organization => "OrganizationSeeder",
-            RegisteredSeeder::JobLevelPosition => "JobLevelPositionSeeder",
+            RegisteredSeeder::OrganizationPositionLevel => "OrganizationPositionLevelSeeder",
         }
     }
 
@@ -137,7 +137,7 @@ impl RegisteredSeeder {
             RegisteredSeeder::User => Some("Seed default users"),
             RegisteredSeeder::RolePermission => Some("Seed sys_roles and permissions for RBAC"),
             RegisteredSeeder::Organization => Some("Seed organization data"),
-            RegisteredSeeder::JobLevelPosition => Some("Seed job levels and positions"),
+            RegisteredSeeder::OrganizationPositionLevel => Some("Seed organization position levels and positions"),
         }
     }
 }
@@ -161,7 +161,7 @@ impl SeederRegistry {
         registry.register_seeder("UserSeeder", RegisteredSeeder::User);
         registry.register_seeder("RolePermissionSeeder", RegisteredSeeder::RolePermission);
         registry.register_seeder("OrganizationSeeder", RegisteredSeeder::Organization);
-        registry.register_seeder("JobLevelPositionSeeder", RegisteredSeeder::JobLevelPosition);
+        registry.register_seeder("OrganizationPositionLevelSeeder", RegisteredSeeder::OrganizationPositionLevel);
 
         registry
     }

@@ -20,7 +20,7 @@ pub struct CreateUserOrganizationRequest {
     pub organization_id: String,
     /// Job Position ID (ULID format)
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub job_position_id: String,
+    pub organization_position_id: String,
     /// Start date of the relationship (defaults to current time)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "2024-01-01T00:00:00Z")]
@@ -33,7 +33,7 @@ impl FormRequest for CreateUserOrganizationRequest {
         validation_rules! {
             "user_id" => ["required", "string", "ulid_format"],
             "organization_id" => ["required", "string", "ulid_format"],
-            "job_position_id" => ["required", "string", "ulid_format"],
+            "organization_position_id" => ["required", "string", "ulid_format"],
             "started_at" => ["date"]
         }
     }
@@ -44,8 +44,8 @@ impl FormRequest for CreateUserOrganizationRequest {
         messages.insert("user_id.ulid_format", "User ID must be a valid ULID");
         messages.insert("organization_id.required", "Organization ID is required");
         messages.insert("organization_id.ulid_format", "Organization ID must be a valid ULID");
-        messages.insert("job_position_id.required", "Job Position ID is required");
-        messages.insert("job_position_id.ulid_format", "Job Position ID must be a valid ULID");
+        messages.insert("organization_position_id.required", "Job Position ID is required");
+        messages.insert("organization_position_id.ulid_format", "Job Position ID must be a valid ULID");
         messages.insert("started_at.date", "Started at must be a valid date");
         messages
     }
@@ -54,7 +54,7 @@ impl FormRequest for CreateUserOrganizationRequest {
         let mut attributes = HashMap::new();
         attributes.insert("user_id", "user");
         attributes.insert("organization_id", "organization");
-        attributes.insert("job_position_id", "job position");
+        attributes.insert("organization_position_id", "organization position");
         attributes.insert("started_at", "start date");
         attributes
     }
@@ -72,7 +72,7 @@ pub struct UpdateUserOrganizationRequest {
     /// Job Position ID (ULID format) - optional for updates
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub job_position_id: Option<String>,
+    pub organization_position_id: Option<String>,
     /// Active status of the relationship
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = true)]
@@ -92,7 +92,7 @@ impl FormRequest for UpdateUserOrganizationRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
             "organization_id" => ["string", "ulid_format"],
-            "job_position_id" => ["string", "ulid_format"],
+            "organization_position_id" => ["string", "ulid_format"],
             "is_active" => ["boolean"],
             "started_at" => ["date"],
             "ended_at" => ["date"]
@@ -102,7 +102,7 @@ impl FormRequest for UpdateUserOrganizationRequest {
     fn messages() -> HashMap<&'static str, &'static str> {
         let mut messages = HashMap::new();
         messages.insert("organization_id.ulid_format", "Organization ID must be a valid ULID");
-        messages.insert("job_position_id.ulid_format", "Job Position ID must be a valid ULID");
+        messages.insert("organization_position_id.ulid_format", "Job Position ID must be a valid ULID");
         messages.insert("is_active.boolean", "Active status must be true or false");
         messages.insert("started_at.date", "Started at must be a valid date");
         messages.insert("ended_at.date", "Ended at must be a valid date");
@@ -112,7 +112,7 @@ impl FormRequest for UpdateUserOrganizationRequest {
     fn attributes() -> HashMap<&'static str, &'static str> {
         let mut attributes = HashMap::new();
         attributes.insert("organization_id", "organization");
-        attributes.insert("job_position_id", "job position");
+        attributes.insert("organization_position_id", "organization position");
         attributes.insert("is_active", "active status");
         attributes.insert("started_at", "start date");
         attributes.insert("ended_at", "end date");
@@ -156,10 +156,10 @@ pub struct IndexUserOrganizationRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub organization_id: Option<String>,
-    /// Filter by job position ID (ULID format)
+    /// Filter by organization position ID (ULID format)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub job_position_id: Option<String>,
+    pub organization_position_id: Option<String>,
     /// Filter by active status
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = true)]
@@ -180,7 +180,7 @@ impl FormRequest for IndexUserOrganizationRequest {
             "sort_direction" => ["string", "in:asc,desc"],
             "user_id" => ["string", "ulid_format"],
             "organization_id" => ["string", "ulid_format"],
-            "job_position_id" => ["string", "ulid_format"],
+            "organization_position_id" => ["string", "ulid_format"],
             "is_active" => ["boolean"],
             "organization_type" => ["string", "in:company,boc,bod,division,department,branch,subbranch,section"]
         }
@@ -195,7 +195,7 @@ impl FormRequest for IndexUserOrganizationRequest {
         messages.insert("sort_direction.in", "Sort direction must be either asc or desc");
         messages.insert("user_id.ulid_format", "User ID must be a valid ULID");
         messages.insert("organization_id.ulid_format", "Organization ID must be a valid ULID");
-        messages.insert("job_position_id.ulid_format", "Job Position ID must be a valid ULID");
+        messages.insert("organization_position_id.ulid_format", "Job Position ID must be a valid ULID");
         messages.insert("is_active.boolean", "Active status must be true or false");
         messages.insert("organization_type.in", "Organization type must be one of: company, boc, bod, division, department, branch, subbranch, section");
         messages
@@ -228,7 +228,7 @@ pub struct TransferUserOrganizationRequest {
     pub organization_id: String,
     /// New Job Position ID (ULID format)
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub job_position_id: String,
+    pub organization_position_id: String,
     /// Transfer date (defaults to current time)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "2024-01-01T00:00:00Z")]
@@ -244,7 +244,7 @@ impl FormRequest for TransferUserOrganizationRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
             "organization_id" => ["required", "string", "ulid_format"],
-            "job_position_id" => ["required", "string", "ulid_format"],
+            "organization_position_id" => ["required", "string", "ulid_format"],
             "transfer_date" => ["date"],
             "reason" => ["string", "max:500"]
         }
@@ -254,8 +254,8 @@ impl FormRequest for TransferUserOrganizationRequest {
         let mut messages = HashMap::new();
         messages.insert("organization_id.required", "New organization ID is required");
         messages.insert("organization_id.ulid_format", "Organization ID must be a valid ULID");
-        messages.insert("job_position_id.required", "New job position ID is required");
-        messages.insert("job_position_id.ulid_format", "Job Position ID must be a valid ULID");
+        messages.insert("organization_position_id.required", "New organization position ID is required");
+        messages.insert("organization_position_id.ulid_format", "Job Position ID must be a valid ULID");
         messages.insert("transfer_date.date", "Transfer date must be a valid date");
         messages.insert("reason.max", "Transfer reason cannot exceed 500 characters");
         messages
@@ -264,7 +264,7 @@ impl FormRequest for TransferUserOrganizationRequest {
     fn attributes() -> HashMap<&'static str, &'static str> {
         let mut attributes = HashMap::new();
         attributes.insert("organization_id", "new organization");
-        attributes.insert("job_position_id", "new job position");
+        attributes.insert("organization_position_id", "new organization position");
         attributes.insert("transfer_date", "transfer date");
         attributes.insert("reason", "transfer reason");
         attributes

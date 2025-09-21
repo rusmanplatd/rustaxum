@@ -14,10 +14,10 @@ use crate::app::http::requests::province_requests::{CreateProvinceRequest, Updat
 use crate::app::http::requests::city_requests::{CreateCityRequest, UpdateCityRequest};
 
 // Adding back simple models that don't have circular dependencies
-use crate::app::models::joblevel::{JobLevel, CreateJobLevel, UpdateJobLevel, JobLevelResponse};
+use crate::app::models::joblevel::{OrganizationPositionLevel, CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel, OrganizationPositionLevelResponse};
 use crate::app::models::jobposition::{JobPosition, CreateJobPosition, UpdateJobPosition, JobPositionResponse};
-use crate::app::http::requests::job_level_requests::{CreateJobLevelRequest, UpdateJobLevelRequest, IndexJobLevelRequest};
-use crate::app::http::requests::job_position_requests::{CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest};
+use crate::app::http::requests::organization_position_level_requests::{CreateOrganizationPositionLevelRequest, UpdateOrganizationPositionLevelRequest, IndexOrganizationPositionLevelRequest};
+use crate::app::http::requests::organization_position_requests::{CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest};
 
 // Role and permission models need ToSchema trait implementation - commented out for now
 // use crate::app::models::role::{Role, CreateRole, UpdateRole, RoleResponse};
@@ -85,8 +85,8 @@ use crate::app::models::organization::{Organization, CreateOrganization, UpdateO
             // TransferUserOrganizationRequest, AssignRoleRequest, RemoveRoleRequest,
 
             // Job models - safe to include as they have minimal dependencies
-            JobLevel, CreateJobLevel, UpdateJobLevel, JobLevelResponse,
-            CreateJobLevelRequest, UpdateJobLevelRequest, IndexJobLevelRequest,
+            OrganizationPositionLevel, CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel, OrganizationPositionLevelResponse,
+            CreateOrganizationPositionLevelRequest, UpdateOrganizationPositionLevelRequest, IndexOrganizationPositionLevelRequest,
             JobPosition, CreateJobPosition, UpdateJobPosition, JobPositionResponse,
             CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest,
 
@@ -104,7 +104,7 @@ use crate::app::models::organization::{Organization, CreateOrganization, UpdateO
             // Complex resource models - commented out due to circular dependencies
             // UserOrganizationResource, UserOrganizationResourceWithRelations, UserOrganizationCollection,
             // UserOrganizationSummaryResource, UserOrganizationActivityResource, OrganizationHierarchyResource,
-            // UserBasicInfo, OrganizationBasicInfo, JobPositionBasicInfo, JobLevelBasicInfo, RoleBasicInfo,
+            // UserBasicInfo, OrganizationBasicInfo, JobPositionBasicInfo, OrganizationPositionLevelBasicInfo, RoleBasicInfo,
             // UserOrgPaginationMeta, OrganizationTypeCount,
 
             // Common response types - basic ones only
@@ -122,7 +122,7 @@ use crate::app::models::organization::{Organization, CreateOrganization, UpdateO
         (name = "User Organizations", description = "User-Organization relationship management with hierarchical access control, RBAC/ABAC authorization, and transfer operations"),
         (name = "Organizations", description = "Hierarchical organization structure management (holding, subsidiary, divisions, departments, branches, etc.)"),
         (name = "Job Levels", description = "Job level hierarchy management for career progression"),
-        (name = "Job Positions", description = "Job position management linked to job levels"),
+        (name = "Organization Positions", description = "Organization position management linked to organization position levels"),
         (name = "Roles", description = "Role-based access control operations"),
         (name = "Permissions", description = "Permission management operations"),
         (name = "Model Permissions", description = "Polymorphic model permission assignments - assign permissions to any model type"),

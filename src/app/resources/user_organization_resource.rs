@@ -16,9 +16,9 @@ pub struct UserOrganizationResource {
     /// Organization ID associated with this relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub organization_id: String,
-    /// Job position ID for this relationship
+    /// Organization position ID for this relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub job_position_id: String,
+    pub organization_position_id: String,
     /// Whether this relationship is currently active
     #[schema(example = true)]
     pub is_active: bool,
@@ -43,7 +43,7 @@ impl UserOrganizationResource {
             id: model.id.to_string(),
             user_id: model.user_id.to_string(),
             organization_id: model.organization_id.to_string(),
-            job_position_id: model.job_position_id.to_string(),
+            organization_position_id: model.organization_position_id.to_string(),
             is_active: model.is_active,
             started_at: model.started_at,
             ended_at: model.ended_at,
@@ -70,9 +70,9 @@ pub struct UserOrganizationResourceWithRelations {
     /// Organization ID associated with this relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub organization_id: String,
-    /// Job position ID for this relationship
+    /// Organization position ID for this relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub job_position_id: String,
+    pub organization_position_id: String,
     /// Whether this relationship is currently active
     #[schema(example = true)]
     pub is_active: bool,
@@ -92,8 +92,8 @@ pub struct UserOrganizationResourceWithRelations {
     pub user: Option<UserBasicInfo>,
     /// Organization information
     pub organization: Option<OrganizationBasicInfo>,
-    /// Job position information
-    pub job_position: Option<JobPositionBasicInfo>,
+    /// Organization position information
+    pub organization_position: Option<JobPositionBasicInfo>,
 }
 
 /// Basic user information for relations
@@ -127,25 +127,25 @@ pub struct OrganizationBasicInfo {
     pub code: Option<String>,
 }
 
-/// Basic job position information for relations
+/// Basic organization position information for relations
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct JobPositionBasicInfo {
-    /// Job position ID
+    /// Organization position ID
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub id: String,
-    /// Job position name
+    /// Organization position name
     #[schema(example = "Senior Software Engineer")]
     pub name: String,
-    /// Job position code
+    /// Organization position code
     #[schema(example = "SSE-001")]
     pub code: Option<String>,
     /// Job level
-    pub job_level: Option<JobLevelBasicInfo>,
+    pub organization_position_level: Option<OrganizationPositionLevelBasicInfo>,
 }
 
-/// Basic job level information for relations
+/// Basic organization position level information for relations
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct JobLevelBasicInfo {
+pub struct OrganizationPositionLevelBasicInfo {
     /// Job level ID
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub id: String,

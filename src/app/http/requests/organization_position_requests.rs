@@ -8,20 +8,20 @@ use crate::app::validation::ValidationRules;
 use crate::validation_rules;
 use crate::impl_form_request_extractor;
 
-/// Create job position form request
+/// Create organization position form request
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct CreateJobPositionRequest {
-    /// Job position name (2-100 characters)
+    /// Organization position name (2-100 characters)
     #[schema(example = "Senior Software Engineer")]
     pub name: String,
-    /// Job position code (optional, 2-20 characters)
+    /// Organization position code (optional, 2-20 characters)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "SSE001")]
     pub code: Option<String>,
     /// Job level ID (ULID format)
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub job_level_id: String,
-    /// Job position description (optional, max 500 characters)
+    pub organization_position_level_id: String,
+    /// Organization position description (optional, max 500 characters)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "Senior software engineer responsible for system architecture")]
     pub description: Option<String>,
@@ -33,52 +33,52 @@ impl FormRequest for CreateJobPositionRequest {
         validation_rules! {
             "name" => ["required", "string", "min:2", "max:100"],
             "code" => ["string", "min:2", "max:20"],
-            "job_level_id" => ["required", "string", "ulid_format"],
+            "organization_position_level_id" => ["required", "string", "ulid_format"],
             "description" => ["string", "max:500"]
         }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
         let mut messages = HashMap::new();
-        messages.insert("name.required", "Job position name is required");
-        messages.insert("name.min", "Job position name must be at least 2 characters");
-        messages.insert("name.max", "Job position name cannot exceed 100 characters");
-        messages.insert("code.min", "Job position code must be at least 2 characters");
-        messages.insert("code.max", "Job position code cannot exceed 20 characters");
-        messages.insert("job_level_id.required", "Job level ID is required");
-        messages.insert("job_level_id.ulid_format", "Job level ID must be a valid ULID");
+        messages.insert("name.required", "Organization position name is required");
+        messages.insert("name.min", "Organization position name must be at least 2 characters");
+        messages.insert("name.max", "Organization position name cannot exceed 100 characters");
+        messages.insert("code.min", "Organization position code must be at least 2 characters");
+        messages.insert("code.max", "Organization position code cannot exceed 20 characters");
+        messages.insert("organization_position_level_id.required", "Job level ID is required");
+        messages.insert("organization_position_level_id.ulid_format", "Job level ID must be a valid ULID");
         messages.insert("description.max", "Description cannot exceed 500 characters");
         messages
     }
 
     fn attributes() -> HashMap<&'static str, &'static str> {
         let mut attributes = HashMap::new();
-        attributes.insert("name", "job position name");
-        attributes.insert("code", "job position code");
-        attributes.insert("job_level_id", "job level");
-        attributes.insert("description", "job position description");
+        attributes.insert("name", "organization position name");
+        attributes.insert("code", "organization position code");
+        attributes.insert("organization_position_level_id", "organization position level");
+        attributes.insert("description", "organization position description");
         attributes
     }
 }
 
 impl_form_request_extractor!(CreateJobPositionRequest);
 
-/// Update job position form request
+/// Update organization position form request
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct UpdateJobPositionRequest {
-    /// Job position name (optional, 2-100 characters)
+    /// Organization position name (optional, 2-100 characters)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "Senior Software Engineer")]
     pub name: Option<String>,
-    /// Job position code (optional, 2-20 characters)
+    /// Organization position code (optional, 2-20 characters)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "SSE001")]
     pub code: Option<String>,
     /// Job level ID (optional, ULID format)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub job_level_id: Option<String>,
-    /// Job position description (optional, max 500 characters)
+    pub organization_position_level_id: Option<String>,
+    /// Organization position description (optional, max 500 characters)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "Senior software engineer responsible for system architecture")]
     pub description: Option<String>,
@@ -94,7 +94,7 @@ impl FormRequest for UpdateJobPositionRequest {
         validation_rules! {
             "name" => ["string", "min:2", "max:100"],
             "code" => ["string", "min:2", "max:20"],
-            "job_level_id" => ["string", "ulid_format"],
+            "organization_position_level_id" => ["string", "ulid_format"],
             "description" => ["string", "max:500"],
             "is_active" => ["boolean"]
         }
@@ -102,11 +102,11 @@ impl FormRequest for UpdateJobPositionRequest {
 
     fn messages() -> HashMap<&'static str, &'static str> {
         let mut messages = HashMap::new();
-        messages.insert("name.min", "Job position name must be at least 2 characters");
-        messages.insert("name.max", "Job position name cannot exceed 100 characters");
-        messages.insert("code.min", "Job position code must be at least 2 characters");
-        messages.insert("code.max", "Job position code cannot exceed 20 characters");
-        messages.insert("job_level_id.ulid_format", "Job level ID must be a valid ULID");
+        messages.insert("name.min", "Organization position name must be at least 2 characters");
+        messages.insert("name.max", "Organization position name cannot exceed 100 characters");
+        messages.insert("code.min", "Organization position code must be at least 2 characters");
+        messages.insert("code.max", "Organization position code cannot exceed 20 characters");
+        messages.insert("organization_position_level_id.ulid_format", "Job level ID must be a valid ULID");
         messages.insert("description.max", "Description cannot exceed 500 characters");
         messages.insert("is_active.boolean", "Active status must be true or false");
         messages
@@ -114,10 +114,10 @@ impl FormRequest for UpdateJobPositionRequest {
 
     fn attributes() -> HashMap<&'static str, &'static str> {
         let mut attributes = HashMap::new();
-        attributes.insert("name", "job position name");
-        attributes.insert("code", "job position code");
-        attributes.insert("job_level_id", "job level");
-        attributes.insert("description", "job position description");
+        attributes.insert("name", "organization position name");
+        attributes.insert("code", "organization position code");
+        attributes.insert("organization_position_level_id", "organization position level");
+        attributes.insert("description", "organization position description");
         attributes.insert("is_active", "active status");
         attributes
     }
@@ -125,7 +125,7 @@ impl FormRequest for UpdateJobPositionRequest {
 
 impl_form_request_extractor!(UpdateJobPositionRequest);
 
-/// Index/list job positions form request
+/// Index/list organization positions form request
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct IndexJobPositionRequest {
     /// Page number (default: 1)
@@ -148,10 +148,10 @@ pub struct IndexJobPositionRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = true)]
     pub is_active: Option<bool>,
-    /// Filter by job level ID (ULID format)
+    /// Filter by organization position level ID (ULID format)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub job_level_id: Option<String>,
+    pub organization_position_level_id: Option<String>,
     /// Filter by name (partial match)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "engineer")]
@@ -167,7 +167,7 @@ impl FormRequest for IndexJobPositionRequest {
             "sort_by" => ["string", "in:name,code,created_at,updated_at"],
             "sort_direction" => ["string", "in:asc,desc"],
             "is_active" => ["boolean"],
-            "job_level_id" => ["string", "ulid_format"],
+            "organization_position_level_id" => ["string", "ulid_format"],
             "name_search" => ["string", "min:2", "max:100"]
         }
     }
@@ -180,7 +180,7 @@ impl FormRequest for IndexJobPositionRequest {
         messages.insert("sort_by.in", "Sort by must be one of: name, code, created_at, updated_at");
         messages.insert("sort_direction.in", "Sort direction must be either asc or desc");
         messages.insert("is_active.boolean", "Active status must be true or false");
-        messages.insert("job_level_id.ulid_format", "Job level ID must be a valid ULID");
+        messages.insert("organization_position_level_id.ulid_format", "Job level ID must be a valid ULID");
         messages.insert("name_search.min", "Name search must be at least 2 characters");
         messages.insert("name_search.max", "Name search cannot exceed 100 characters");
         messages
@@ -205,12 +205,12 @@ impl FormRequest for IndexJobPositionRequest {
 
 impl_form_request_extractor!(IndexJobPositionRequest);
 
-/// Job positions by job level form request
+/// Organization positions by organization position level form request
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct JobPositionsByLevelRequest {
     /// Job level ID (ULID format)
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub job_level_id: String,
+    pub organization_position_level_id: String,
     /// Include inactive positions
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = false)]
@@ -221,22 +221,22 @@ pub struct JobPositionsByLevelRequest {
 impl FormRequest for JobPositionsByLevelRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
-            "job_level_id" => ["required", "string", "ulid_format"],
+            "organization_position_level_id" => ["required", "string", "ulid_format"],
             "include_inactive" => ["boolean"]
         }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
         let mut messages = HashMap::new();
-        messages.insert("job_level_id.required", "Job level ID is required");
-        messages.insert("job_level_id.ulid_format", "Job level ID must be a valid ULID");
+        messages.insert("organization_position_level_id.required", "Job level ID is required");
+        messages.insert("organization_position_level_id.ulid_format", "Job level ID must be a valid ULID");
         messages.insert("include_inactive.boolean", "Include inactive must be true or false");
         messages
     }
 
     fn attributes() -> HashMap<&'static str, &'static str> {
         let mut attributes = HashMap::new();
-        attributes.insert("job_level_id", "job level");
+        attributes.insert("organization_position_level_id", "organization position level");
         attributes.insert("include_inactive", "include inactive flag");
         attributes
     }

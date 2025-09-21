@@ -8,9 +8,9 @@ use crate::app::validation::ValidationRules;
 use crate::validation_rules;
 use crate::impl_form_request_extractor;
 
-/// Create job level form request
+/// Create organization position level form request
 #[derive(Deserialize, Serialize, ToSchema)]
-pub struct CreateJobLevelRequest {
+pub struct CreateOrganizationPositionLevelRequest {
     /// Job level name (2-100 characters)
     #[schema(example = "Senior Level")]
     pub name: String,
@@ -28,7 +28,7 @@ pub struct CreateJobLevelRequest {
 }
 
 #[async_trait]
-impl FormRequest for CreateJobLevelRequest {
+impl FormRequest for CreateOrganizationPositionLevelRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
             "name" => ["required", "string", "min:2", "max:100"],
@@ -54,19 +54,19 @@ impl FormRequest for CreateJobLevelRequest {
 
     fn attributes() -> HashMap<&'static str, &'static str> {
         let mut attributes = HashMap::new();
-        attributes.insert("name", "job level name");
-        attributes.insert("code", "job level code");
+        attributes.insert("name", "organization position level name");
+        attributes.insert("code", "organization position level code");
         attributes.insert("level", "level number");
-        attributes.insert("description", "job level description");
+        attributes.insert("description", "organization position level description");
         attributes
     }
 }
 
-impl_form_request_extractor!(CreateJobLevelRequest);
+impl_form_request_extractor!(CreateOrganizationPositionLevelRequest);
 
-/// Update job level form request
+/// Update organization position level form request
 #[derive(Deserialize, Serialize, ToSchema)]
-pub struct UpdateJobLevelRequest {
+pub struct UpdateOrganizationPositionLevelRequest {
     /// Job level name (optional, 2-100 characters)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "Senior Level")]
@@ -90,7 +90,7 @@ pub struct UpdateJobLevelRequest {
 }
 
 #[async_trait]
-impl FormRequest for UpdateJobLevelRequest {
+impl FormRequest for UpdateOrganizationPositionLevelRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
             "name" => ["string", "min:2", "max:100"],
@@ -116,20 +116,20 @@ impl FormRequest for UpdateJobLevelRequest {
 
     fn attributes() -> HashMap<&'static str, &'static str> {
         let mut attributes = HashMap::new();
-        attributes.insert("name", "job level name");
-        attributes.insert("code", "job level code");
+        attributes.insert("name", "organization position level name");
+        attributes.insert("code", "organization position level code");
         attributes.insert("level", "level number");
-        attributes.insert("description", "job level description");
+        attributes.insert("description", "organization position level description");
         attributes.insert("is_active", "active status");
         attributes
     }
 }
 
-impl_form_request_extractor!(UpdateJobLevelRequest);
+impl_form_request_extractor!(UpdateOrganizationPositionLevelRequest);
 
-/// Index/list job levels form request
+/// Index/list organization position levels form request
 #[derive(Deserialize, Serialize, ToSchema, Clone)]
-pub struct IndexJobLevelRequest {
+pub struct IndexOrganizationPositionLevelRequest {
     /// Page number (default: 1)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = 1)]
@@ -161,7 +161,7 @@ pub struct IndexJobLevelRequest {
 }
 
 #[async_trait]
-impl FormRequest for IndexJobLevelRequest {
+impl FormRequest for IndexOrganizationPositionLevelRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
             "page" => ["numeric", "min:1"],
@@ -206,4 +206,4 @@ impl FormRequest for IndexJobLevelRequest {
     }
 }
 
-impl_form_request_extractor!(IndexJobLevelRequest);
+impl_form_request_extractor!(IndexOrganizationPositionLevelRequest);

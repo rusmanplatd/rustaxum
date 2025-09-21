@@ -23,9 +23,16 @@ CREATE TABLE sys_users (
     phone_verified_at TIMESTAMPTZ,
     zoneinfo VARCHAR,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ,
+    created_by CHAR(26) REFERENCES sys_users(id),
+    updated_by CHAR(26) REFERENCES sys_users(id),
+    deleted_by CHAR(26) REFERENCES sys_users(id)
 );
 
 -- Add indexes
-CREATE INDEX idx_users_name ON sys_users (name);
-CREATE INDEX idx_users_created_at ON sys_users (created_at);
+CREATE INDEX idx_sys_users_name ON sys_sys_users (name);
+CREATE INDEX idx_sys_users_created_at ON sys_sys_users (created_at);
+CREATE INDEX idx_sys_users_created_by ON sys_users (created_by);
+CREATE INDEX idx_sys_users_updated_by ON sys_users (updated_by);
+CREATE INDEX idx_sys_users_deleted_by ON sys_users (deleted_by);

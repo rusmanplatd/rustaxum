@@ -5,23 +5,23 @@ use ulid::Ulid;
 use diesel::prelude::*;
 use chrono::Utc;
 
-pub struct JobLevelPositionSeeder;
+pub struct OrganizationPositionLevelSeeder;
 
-impl Seeder for JobLevelPositionSeeder {
+impl Seeder for OrganizationPositionLevelSeeder {
     fn class_name(&self) -> &'static str {
-        "JobLevelPositionSeeder"
+        "OrganizationPositionLevelSeeder"
     }
 
     fn run(&self, pool: &DbPool) -> Result<()> {
-        println!("Seeding job levels and positions...");
+        println!("Seeding organization position levels and positions...");
         let mut conn = pool.get()?;
         let now = Utc::now();
 
-        // Create job levels
+        // Create organization position levels
         let junior_level_id = Ulid::new();
         diesel::sql_query(
             r#"
-            INSERT INTO job_levels (id, name, code, level, description, is_active, created_at, updated_at)
+            INSERT INTO OrganizationPositionLevel (id, name, code, level, description, is_active, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO NOTHING
             "#
@@ -39,7 +39,7 @@ impl Seeder for JobLevelPositionSeeder {
         let mid_level_id = Ulid::new();
         diesel::sql_query(
             r#"
-            INSERT INTO job_levels (id, name, code, level, description, is_active, created_at, updated_at)
+            INSERT INTO OrganizationPositionLevel (id, name, code, level, description, is_active, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO NOTHING
             "#
@@ -57,7 +57,7 @@ impl Seeder for JobLevelPositionSeeder {
         let senior_level_id = Ulid::new();
         diesel::sql_query(
             r#"
-            INSERT INTO job_levels (id, name, code, level, description, is_active, created_at, updated_at)
+            INSERT INTO OrganizationPositionLevel (id, name, code, level, description, is_active, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO NOTHING
             "#
@@ -75,7 +75,7 @@ impl Seeder for JobLevelPositionSeeder {
         let lead_level_id = Ulid::new();
         diesel::sql_query(
             r#"
-            INSERT INTO job_levels (id, name, code, level, description, is_active, created_at, updated_at)
+            INSERT INTO OrganizationPositionLevel (id, name, code, level, description, is_active, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO NOTHING
             "#
@@ -93,7 +93,7 @@ impl Seeder for JobLevelPositionSeeder {
         let exec_level_id = Ulid::new();
         diesel::sql_query(
             r#"
-            INSERT INTO job_levels (id, name, code, level, description, is_active, created_at, updated_at)
+            INSERT INTO OrganizationPositionLevel (id, name, code, level, description, is_active, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO NOTHING
             "#
@@ -108,12 +108,12 @@ impl Seeder for JobLevelPositionSeeder {
         .bind::<diesel::sql_types::Timestamptz, _>(now)
         .execute(&mut conn)?;
 
-        // Create job positions
+        // Create organization positions
         // Junior positions
         let junior_dev_id = Ulid::new();
         diesel::sql_query(
             r#"
-            INSERT INTO job_positions (id, name, code, job_level_id, description, is_active, created_at, updated_at)
+            INSERT INTO organization_positions (id, name, code, organization_position_level_id, description, is_active, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO NOTHING
             "#
@@ -132,7 +132,7 @@ impl Seeder for JobLevelPositionSeeder {
         let software_dev_id = Ulid::new();
         diesel::sql_query(
             r#"
-            INSERT INTO job_positions (id, name, code, job_level_id, description, is_active, created_at, updated_at)
+            INSERT INTO organization_positions (id, name, code, organization_position_level_id, description, is_active, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO NOTHING
             "#
@@ -150,7 +150,7 @@ impl Seeder for JobLevelPositionSeeder {
         let backend_dev_id = Ulid::new();
         diesel::sql_query(
             r#"
-            INSERT INTO job_positions (id, name, code, job_level_id, description, is_active, created_at, updated_at)
+            INSERT INTO organization_positions (id, name, code, organization_position_level_id, description, is_active, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO NOTHING
             "#
@@ -169,7 +169,7 @@ impl Seeder for JobLevelPositionSeeder {
         let senior_dev_id = Ulid::new();
         diesel::sql_query(
             r#"
-            INSERT INTO job_positions (id, name, code, job_level_id, description, is_active, created_at, updated_at)
+            INSERT INTO organization_positions (id, name, code, organization_position_level_id, description, is_active, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO NOTHING
             "#
@@ -187,7 +187,7 @@ impl Seeder for JobLevelPositionSeeder {
         let architect_id = Ulid::new();
         diesel::sql_query(
             r#"
-            INSERT INTO job_positions (id, name, code, job_level_id, description, is_active, created_at, updated_at)
+            INSERT INTO organization_positions (id, name, code, organization_position_level_id, description, is_active, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO NOTHING
             "#
@@ -206,7 +206,7 @@ impl Seeder for JobLevelPositionSeeder {
         let tech_lead_id = Ulid::new();
         diesel::sql_query(
             r#"
-            INSERT INTO job_positions (id, name, code, job_level_id, description, is_active, created_at, updated_at)
+            INSERT INTO organization_positions (id, name, code, organization_position_level_id, description, is_active, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO NOTHING
             "#
@@ -224,7 +224,7 @@ impl Seeder for JobLevelPositionSeeder {
         let engineering_mgr_id = Ulid::new();
         diesel::sql_query(
             r#"
-            INSERT INTO job_positions (id, name, code, job_level_id, description, is_active, created_at, updated_at)
+            INSERT INTO organization_positions (id, name, code, organization_position_level_id, description, is_active, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO NOTHING
             "#
@@ -243,7 +243,7 @@ impl Seeder for JobLevelPositionSeeder {
         let cto_id = Ulid::new();
         diesel::sql_query(
             r#"
-            INSERT INTO job_positions (id, name, code, job_level_id, description, is_active, created_at, updated_at)
+            INSERT INTO organization_positions (id, name, code, organization_position_level_id, description, is_active, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO NOTHING
             "#
@@ -261,7 +261,7 @@ impl Seeder for JobLevelPositionSeeder {
         let vp_eng_id = Ulid::new();
         diesel::sql_query(
             r#"
-            INSERT INTO job_positions (id, name, code, job_level_id, description, is_active, created_at, updated_at)
+            INSERT INTO organization_positions (id, name, code, organization_position_level_id, description, is_active, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO NOTHING
             "#

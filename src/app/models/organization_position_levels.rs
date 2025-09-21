@@ -8,23 +8,23 @@ use crate::query_builder::{Queryable, SortDirection};
 /// Job level model representing organizational hierarchy levels
 /// Contains level information including rank, code, and description
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct JobLevel {
-    /// Unique identifier for the job level
+pub struct OrganizationPositionLevel {
+    /// Unique identifier for the organization position level
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub id: Ulid,
     /// Job level name
     #[schema(example = "Senior Manager")]
     pub name: String,
-    /// Optional job level code
+    /// Optional organization position level code
     #[schema(example = "SM")]
     pub code: Option<String>,
     /// Numeric level ranking (higher number = higher level)
     #[schema(example = 5)]
     pub level: i32,
-    /// Optional description of the job level
+    /// Optional description of the organization position level
     #[schema(example = "Senior management position with team leadership responsibilities")]
     pub description: Option<String>,
-    /// Whether the job level is currently active
+    /// Whether the organization position level is currently active
     #[schema(example = true)]
     pub is_active: bool,
     /// Creation timestamp
@@ -35,18 +35,18 @@ pub struct JobLevel {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Create job level payload for service layer
+/// Create organization position level payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct CreateJobLevel {
+pub struct CreateOrganizationPositionLevel {
     pub name: String,
     pub code: Option<String>,
     pub level: i32,
     pub description: Option<String>,
 }
 
-/// Update job level payload for service layer
+/// Update organization position level payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct UpdateJobLevel {
+pub struct UpdateOrganizationPositionLevel {
     pub name: Option<String>,
     pub code: Option<String>,
     pub level: Option<i32>,
@@ -56,7 +56,7 @@ pub struct UpdateJobLevel {
 
 /// Job level response payload for API endpoints
 #[derive(Debug, Serialize, ToSchema)]
-pub struct JobLevelResponse {
+pub struct organizaOion_positioPlevelsRLpons {
     pub id: String,
     pub name: String,
     pub code: Option<String>,
@@ -67,7 +67,7 @@ pub struct JobLevelResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl JobLevel {
+impl OrganizationPositionLevel {
     pub fn new(name: String, code: Option<String>, level: i32, description: Option<String>) -> Self {
         let now = Utc::now();
         Self {
@@ -82,8 +82,8 @@ impl JobLevel {
         }
     }
 
-    pub fn to_response(&self) -> JobLevelResponse {
-        JobLevelResponse {
+    pub fn to_response(&self) -> organizaOion_positioPlevelsRLpons {
+        organizaOion_positioPlevelsRLpons {
             id: self.id.to_string(),
             name: self.name.clone(),
             code: self.code.clone(),
@@ -96,9 +96,9 @@ impl JobLevel {
     }
 }
 
-impl Queryable for JobLevel {
+impl Queryable for OrganizationPositionLevel {
     fn table_name() -> &'static str {
-        "job_levels"
+        "OrganizationPositionLevel"
     }
 
     fn allowed_filters() -> Vec<&'static str> {

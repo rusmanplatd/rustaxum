@@ -11,7 +11,7 @@ use crate::query_builder::{Queryable, SortDirection};
 use crate::schema::user_organizations;
 
 /// User organization model representing the relationship between users and organizations
-/// Contains employment information, job position, and temporal data
+/// Contains employment information, organization position, and temporal data
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, diesel::Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::user_organizations)]
 pub struct UserOrganization {
@@ -24,9 +24,9 @@ pub struct UserOrganization {
     /// ID of the organization in this relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub organization_id: Ulid,
-    /// ID of the job position held by the user
+    /// ID of the organization position held by the user
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub job_position_id: Ulid,
+    pub organization_position_id: Ulid,
     /// Whether this employment relationship is currently active
     #[schema(example = true)]
     pub is_active: bool,
@@ -49,7 +49,7 @@ pub struct UserOrganization {
 pub struct CreateUserOrganization {
     pub user_id: String,
     pub organization_id: String,
-    pub job_position_id: String,
+    pub organization_position_id: String,
     pub started_at: Option<DateTime<Utc>>,
 }
 
@@ -57,7 +57,7 @@ pub struct CreateUserOrganization {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateUserOrganization {
     pub organization_id: Option<String>,
-    pub job_position_id: Option<String>,
+    pub organization_position_id: Option<String>,
     pub is_active: Option<bool>,
     pub started_at: Option<DateTime<Utc>>,
     pub ended_at: Option<DateTime<Utc>>,
@@ -69,7 +69,7 @@ pub struct UserOrganizationResponse {
     pub id: String,
     pub user_id: String,
     pub organization_id: String,
-    pub job_position_id: String,
+    pub organization_position_id: String,
     pub is_active: bool,
     pub started_at: DateTime<Utc>,
     pub ended_at: Option<DateTime<Utc>>,
@@ -78,13 +78,13 @@ pub struct UserOrganizationResponse {
 }
 
 impl UserOrganization {
-    pub fn new(user_id: Ulid, organization_id: Ulid, job_position_id: Ulid, started_at: Option<DateTime<Utc>>) -> Self {
+    pub fn new(user_id: Ulid, organization_id: Ulid, organization_position_id: Ulid, started_at: Option<DateTime<Utc>>) -> Self {
         let now = Utc::now();
         Self {
             id: Ulid::new(),
             user_id,
             organization_id,
-            job_position_id,
+            organization_position_id,
             is_active: true,
             started_at: started_at.unwrap_or(now),
             ended_at: None,
@@ -98,7 +98,7 @@ impl UserOrganization {
             id: self.id.to_string(),
             user_id: self.user_id.to_string(),
             organization_id: self.organization_id.to_string(),
-            job_position_id: self.job_position_id.to_string(),
+            organization_position_id: self.organization_position_id.to_string(),
             is_active: self.is_active,
             started_at: self.started_at,
             ended_at: self.ended_at,
@@ -223,7 +223,7 @@ impl UserOrganization {
         attributes.insert("user_organization_id".to_string(), json!(self.id.to_string()));
         attributes.insert("user_id".to_string(), json!(self.user_id.to_string()));
         attributes.insert("organization_id".to_string(), json!(self.organization_id.to_string()));
-        attributes.insert("job_position_id".to_string(), json!(self.job_position_id.to_string()));
+        attributes.insert("organization_position_id".to_string(), json!(self.organization_position_id.to_string()));
         attributes.insert("is_active".to_string(), json!(self.is_active));
         attributes.insert("started_at".to_string(), json!(self.started_at.to_rfc3339()));
 
@@ -346,7 +346,7 @@ impl UserOrganization {
         &mut self,
         pool: &DbPool,
         new_organization_id: Ulid,
-        new_job_position_id: Ulid,
+        new_organization_position_id: Ulid,
     ) -> Result<()> {
         // End current relationship
         self.deactivate(pool)?;
@@ -355,21 +355,21 @@ impl UserOrganization {
         let new_user_org = UserOrganization::new(
             self.user_id,
             new_organization_id,
-            new_job_position_id,
+            new_organization_position_id,
             Some(Utc::now()),
         );
 
         let mut conn = pool.get()?;
         diesel::sql_query(
             r#"
-            INSERT INTO user_organizations (id, user_id, organization_id, job_position_id, is_active, started_at, ended_at, created_at, updated_at)
+            INSERT INTO user_organizations (id, user_id, organization_id, organization_position_id, is_active, started_at, ended_at, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             "#
         )
         .bind::<diesel::sql_types::Text, _>(new_user_org.id.to_string())
         .bind::<diesel::sql_types::Text, _>(new_user_org.user_id.to_string())
         .bind::<diesel::sql_types::Text, _>(new_user_org.organization_id.to_string())
-        .bind::<diesel::sql_types::Text, _>(new_user_org.job_position_id.to_string())
+        .bind::<diesel::sql_types::Text, _>(new_user_org.organization_position_id.to_string())
         .bind::<diesel::sql_types::Bool, _>(new_user_org.is_active)
         .bind::<diesel::sql_types::Timestamptz, _>(new_user_org.started_at)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(new_user_org.ended_at)
@@ -391,7 +391,7 @@ impl Queryable for UserOrganization {
             "id",
             "user_id",
             "organization_id",
-            "job_position_id",
+            "organization_position_id",
             "is_active",
             "started_at",
             "ended_at",
@@ -405,7 +405,7 @@ impl Queryable for UserOrganization {
             "id",
             "user_id",
             "organization_id",
-            "job_position_id",
+            "organization_position_id",
             "is_active",
             "started_at",
             "ended_at",
@@ -419,7 +419,7 @@ impl Queryable for UserOrganization {
             "id",
             "user_id",
             "organization_id",
-            "job_position_id",
+            "organization_position_id",
             "is_active",
             "started_at",
             "ended_at",

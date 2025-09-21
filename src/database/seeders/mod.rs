@@ -1,10 +1,10 @@
 // This file will be automatically updated when new seeders are generated
-pub mod userseeder;
-pub mod databaseseeder;
-pub mod countryseeder;
-pub mod provinceseeder;
-pub mod cityseeder;
+pub mod user_seeder;
+pub mod database_seeder;
+pub mod country_seeder;
+pub mod province_seeder;
+pub mod city_seeder;
 // pub mod testseeder;
-pub mod rolepermissionseeder;
-pub mod organizationseeder;
-pub mod joblevelpositionseeder;
+pub mod role_permission_seeder;
+pub mod organization_seeder;
+pub mod organization_position_level_seeder;

@@ -5,7 +5,7 @@ use chrono::Utc;
 use serde_json::{json, Value};
 
 use crate::app::models::jobposition::JobPosition;
-use crate::app::http::requests::job_position_requests::{
+use crate::app::http::requests::organization_position_requests::{
     CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest
 };
 
@@ -13,7 +13,7 @@ pub struct JobPositionService;
 
 impl JobPositionService {
     pub fn index(pool: &DbPool, request: &IndexJobPositionRequest) -> Result<Value> {
-        let mut query = "SELECT * FROM job_positions WHERE 1=1".to_string();
+        let mut query = "SELECT * FROM organization_positions WHERE 1=1".to_string();
         let mut _param_index = 1;
 
         // Add filters
@@ -21,8 +21,8 @@ impl JobPositionService {
             query.push_str(&format!(" AND is_active = {}", is_active));
         }
 
-        if let Some(job_level_id) = &request.job_level_id {
-            query.push_str(&format!(" AND job_level_id = '{}'", job_level_id));
+        if let Some(organization_position_level_id) = &request.organization_position_level_id {
+            query.push_str(&format!(" AND organization_position_level_id = '{}'", organization_position_level_id));
         }
 
         if let Some(name_search) = &request.name_search {
@@ -42,16 +42,16 @@ impl JobPositionService {
         query.push_str(&format!(" LIMIT {} OFFSET {}", per_page, offset));
 
         // This is a simplified version - in production you'd want proper parameter binding
-        let job_positions = sqlx::query_as::<_, JobPosition>("SELECT id, name, code, job_level_id, description, is_active, created_at, updated_at FROM job_positions ORDER BY created_at DESC LIMIT 15")
+        let organization_positions = sqlx::query_as::<_, JobPosition>("SELECT id, name, code, organization_position_level_id, description, is_active, created_at, updated_at FROM organization_positions ORDER BY created_at DESC LIMIT 15")
             .fetch_all(pool)
             ?;
 
-        let total = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM job_positions")
+        let total = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM organization_positions")
             .fetch_one(pool)
             ?;
 
         Ok(json!({
-            "data": job_positions,
+            "data": organization_positions,
             "meta": {
                 "total": total,
                 "page": page,
@@ -62,80 +62,80 @@ impl JobPositionService {
     }
 
     pub fn show(pool: &DbPool, id: &str) -> Result<JobPosition> {
-        let job_position = sqlx::query_as::<_, JobPosition>(
-            "SELECT id, name, code, job_level_id, description, is_active, created_at, updated_at FROM job_positions WHERE id = $1"
+        let organization_position = sqlx::query_as::<_, JobPosition>(
+            "SELECT id, name, code, organization_position_level_id, description, is_active, created_at, updated_at FROM organization_positions WHERE id = $1"
         )
         .bind(id)
         .fetch_optional(pool)
         ?
-        .ok_or_else(|| anyhow::anyhow!("Job position not found"))?;
+        .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
 
-        Ok(job_position)
+        Ok(organization_position)
     }
 
     pub fn create(pool: &DbPool, request: &CreateJobPositionRequest) -> Result<JobPosition> {
         let id = Ulid::new();
         let now = Utc::now();
 
-        let job_position = sqlx::query_as::<_, JobPosition>(
+        let organization_position = sqlx::query_as::<_, JobPosition>(
             r#"
-            INSERT INTO job_positions (id, name, code, job_level_id, description, is_active, created_at, updated_at)
+            INSERT INTO organization_positions (id, name, code, organization_position_level_id, description, is_active, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, true, $6, $7)
-            RETURNING id, name, code, job_level_id, description, is_active, created_at, updated_at
+            RETURNING id, name, code, organization_position_level_id, description, is_active, created_at, updated_at
             "#
         )
         .bind(id.to_string())
         .bind(&request.name)
         .bind(&request.code)
-        .bind(&request.job_level_id)
+        .bind(&request.organization_position_level_id)
         .bind(&request.description)
         .bind(now)
         .bind(now)
         .fetch_one(pool)
         ?;
 
-        Ok(job_position)
+        Ok(organization_position)
     }
 
     pub fn update(pool: &DbPool, id: &str, request: &UpdateJobPositionRequest) -> Result<JobPosition> {
         let now = Utc::now();
 
-        let job_position = sqlx::query_as::<_, JobPosition>(
+        let organization_position = sqlx::query_as::<_, JobPosition>(
             r#"
-            UPDATE job_positions
+            UPDATE organization_positions
             SET name = COALESCE($2, name),
                 code = COALESCE($3, code),
-                job_level_id = COALESCE($4, job_level_id),
+                organization_position_level_id = COALESCE($4, organization_position_level_id),
                 description = COALESCE($5, description),
                 is_active = COALESCE($6, is_active),
                 updated_at = $7
             WHERE id = $1
-            RETURNING id, name, code, job_level_id, description, is_active, created_at, updated_at
+            RETURNING id, name, code, organization_position_level_id, description, is_active, created_at, updated_at
             "#
         )
         .bind(id)
         .bind(&request.name)
         .bind(&request.code)
-        .bind(&request.job_level_id)
+        .bind(&request.organization_position_level_id)
         .bind(&request.description)
         .bind(request.is_active)
         .bind(now)
         .fetch_optional(pool)
         ?
-        .ok_or_else(|| anyhow::anyhow!("Job position not found"))?;
+        .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
 
-        Ok(job_position)
+        Ok(organization_position)
     }
 
     pub fn delete(pool: &DbPool, id: &str) -> Result<()> {
-        let rows_affected = sqlx::query("DELETE FROM job_positions WHERE id = $1")
+        let rows_affected = sqlx::query("DELETE FROM organization_positions WHERE id = $1")
             .bind(id)
             .execute(pool)
             ?
             .rows_affected();
 
         if rows_affected == 0 {
-            return Err(anyhow::anyhow!("Job position not found"));
+            return Err(anyhow::anyhow!("Organization position not found"));
         }
 
         Ok(())
@@ -144,50 +144,50 @@ impl JobPositionService {
     pub fn activate(pool: &DbPool, id: &str) -> Result<JobPosition> {
         let now = Utc::now();
 
-        let job_position = sqlx::query_as::<_, JobPosition>(
+        let organization_position = sqlx::query_as::<_, JobPosition>(
             r#"
-            UPDATE job_positions
+            UPDATE organization_positions
             SET is_active = true, updated_at = $2
             WHERE id = $1
-            RETURNING id, name, code, job_level_id, description, is_active, created_at, updated_at
+            RETURNING id, name, code, organization_position_level_id, description, is_active, created_at, updated_at
             "#
         )
         .bind(id)
         .bind(now)
         .fetch_optional(pool)
         ?
-        .ok_or_else(|| anyhow::anyhow!("Job position not found"))?;
+        .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
 
-        Ok(job_position)
+        Ok(organization_position)
     }
 
     pub fn deactivate(pool: &DbPool, id: &str) -> Result<JobPosition> {
         let now = Utc::now();
 
-        let job_position = sqlx::query_as::<_, JobPosition>(
+        let organization_position = sqlx::query_as::<_, JobPosition>(
             r#"
-            UPDATE job_positions
+            UPDATE organization_positions
             SET is_active = false, updated_at = $2
             WHERE id = $1
-            RETURNING id, name, code, job_level_id, description, is_active, created_at, updated_at
+            RETURNING id, name, code, organization_position_level_id, description, is_active, created_at, updated_at
             "#
         )
         .bind(id)
         .bind(now)
         .fetch_optional(pool)
         ?
-        .ok_or_else(|| anyhow::anyhow!("Job position not found"))?;
+        .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
 
-        Ok(job_position)
+        Ok(organization_position)
     }
 
     pub fn by_level(pool: &DbPool, request: &JobPositionsByLevelRequest) -> Result<Value> {
         let include_inactive = request.include_inactive.unwrap_or(false);
 
         let mut query = r#"
-            SELECT id, name, code, job_level_id, description, is_active, created_at, updated_at
-            FROM job_positions
-            WHERE job_level_id = $1
+            SELECT id, name, code, organization_position_level_id, description, is_active, created_at, updated_at
+            FROM organization_positions
+            WHERE organization_position_level_id = $1
         "#.to_string();
 
         if !include_inactive {
@@ -196,13 +196,13 @@ impl JobPositionService {
 
         query.push_str(" ORDER BY created_at DESC");
 
-        let job_positions = sqlx::query_as::<_, JobPosition>(&query)
-            .bind(&request.job_level_id)
+        let organization_positions = sqlx::query_as::<_, JobPosition>(&query)
+            .bind(&request.organization_position_level_id)
             .fetch_all(pool)
             ?;
 
         Ok(json!({
-            "data": job_positions.into_iter().map(|jp| jp.to_response()).collect::<Vec<_>>(),
+            "data": organization_positions.into_iter().map(|jp| jp.to_response()).collect::<Vec<_>>(),
         }))
     }
 }

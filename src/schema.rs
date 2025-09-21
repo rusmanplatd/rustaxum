@@ -46,7 +46,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    job_levels (id) {
+    organization_position_levels (id) {
         #[max_length = 26]
         id -> Bpchar,
         name -> Varchar,
@@ -60,13 +60,13 @@ diesel::table! {
 }
 
 diesel::table! {
-    job_positions (id) {
+    organization_positions (id) {
         #[max_length = 26]
         id -> Bpchar,
         name -> Varchar,
         code -> Nullable<Varchar>,
         #[max_length = 26]
-        job_level_id -> Bpchar,
+        organization_position_level_id -> Bpchar,
         description -> Nullable<Text>,
         is_active -> Bool,
         created_at -> Timestamptz,
@@ -376,7 +376,7 @@ diesel::table! {
         #[max_length = 26]
         organization_id -> Bpchar,
         #[max_length = 26]
-        job_position_id -> Bpchar,
+        organization_position_id -> Bpchar,
         is_active -> Bool,
         started_at -> Timestamptz,
         ended_at -> Nullable<Timestamptz>,
@@ -386,7 +386,7 @@ diesel::table! {
 }
 
 diesel::joinable!(cities -> provinces (province_id));
-diesel::joinable!(job_positions -> job_levels (job_level_id));
+diesel::joinable!(organization_positions -> organization_position_levels (organization_position_level_id));
 diesel::joinable!(oauth_access_tokens -> oauth_clients (client_id));
 diesel::joinable!(oauth_access_tokens -> sys_users (user_id));
 diesel::joinable!(oauth_auth_codes -> oauth_clients (client_id));
@@ -397,7 +397,7 @@ diesel::joinable!(oauth_refresh_tokens -> oauth_access_tokens (access_token_id))
 diesel::joinable!(provinces -> countries (country_id));
 diesel::joinable!(sys_model_has_permissions -> sys_permissions (permission_id));
 diesel::joinable!(sys_model_has_roles -> sys_roles (role_id));
-diesel::joinable!(user_organizations -> job_positions (job_position_id));
+diesel::joinable!(user_organizations -> organization_positions (organization_position_id));
 diesel::joinable!(user_organizations -> organizations (organization_id));
 diesel::joinable!(user_organizations -> sys_users (user_id));
 
@@ -405,8 +405,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     cities,
     countries,
     events,
-    job_levels,
-    job_positions,
+    organization_position_levels,
+    organization_positions,
     jobs,
     migrations,
     notifications,

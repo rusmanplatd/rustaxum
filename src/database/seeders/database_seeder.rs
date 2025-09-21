@@ -8,7 +8,7 @@ use crate::database::seeders::{
     userseeder::UserSeeder,
     rolepermissionseeder::RolePermissionSeeder,
     organizationseeder::OrganizationSeeder,
-    joblevelpositionseeder::JobLevelPositionSeeder,
+    joblevelpositionseeder::OrganizationPositionLevelSeeder,
 };
 
 pub struct Databaseseeder;
@@ -38,9 +38,9 @@ impl Seeder for Databaseseeder {
         context.call(Provinceseeder)?;
         context.call(Cityseeder)?;
 
-        // Organization and job structure
+        // Organization and position structure
         context.call(OrganizationSeeder)?;
-        context.call(JobLevelPositionSeeder)?;
+        context.call(OrganizationPositionLevelSeeder)?;
 
 
         println!("───────────────────────────");
