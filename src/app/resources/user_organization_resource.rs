@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use chrono::{DateTime, Utc};
 
-use crate::app::models::userorganization::UserOrganization;
+use crate::app::models::user_organization::UserOrganization;
 
 /// User Organization Resource for API responses
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

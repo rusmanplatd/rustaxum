@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
-use crate::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{Queryable, SortDirection};
 
 /// Job level model representing organizational hierarchy levels
 /// Contains level information including rank, code, and description
@@ -111,7 +111,7 @@ impl OrganizationPositionLevel {
     }
 }
 
-impl Queryable for OrganizationPositionLevel {
+impl crate::app::query_builder::Queryable for OrganizationPositionLevel {
     fn table_name() -> &'static str {
         "OrganizationPositionLevel"
     }
@@ -158,4 +158,13 @@ impl Queryable for OrganizationPositionLevel {
     fn default_sort() -> Option<(&'static str, SortDirection)> {
         Some(("level", SortDirection::Asc))
     }
+
+    fn allowed_includes() -> Vec<&'static str> {
+        vec![
+            "positions",
+        ]
+    }
 }
+
+// Implement the query builder service for OrganizationPositionLevel
+crate::impl_query_builder_service!(OrganizationPositionLevel);

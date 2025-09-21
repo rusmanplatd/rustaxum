@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
-use crate::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{Queryable, SortDirection};
 use crate::schema::notifications;
 
 /// Database notification model
@@ -135,7 +135,7 @@ impl Notification {
     }
 }
 
-impl Queryable for Notification {
+impl crate::app::query_builder::Queryable for Notification {
     fn table_name() -> &'static str {
         "notifications"
     }
@@ -181,3 +181,6 @@ impl Queryable for Notification {
         Some(("created_at", SortDirection::Desc))
     }
 }
+
+// Implement the query builder service for Notification
+crate::impl_query_builder_service!(Notification);

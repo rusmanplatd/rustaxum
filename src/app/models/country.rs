@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
-use crate::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{Queryable, SortDirection};
 
 /// Country model representing a country entity
 /// Contains country information including name, ISO code, and phone code
@@ -83,7 +83,7 @@ impl Country {
 }
 
 
-impl crate::query_builder::Queryable for Country {
+impl crate::app::query_builder::Queryable for Country {
     fn table_name() -> &'static str {
         "countries"
     }
@@ -125,3 +125,6 @@ impl crate::query_builder::Queryable for Country {
         Some(("name", SortDirection::Asc))
     }
 }
+
+// Implement the query builder service for Country
+crate::impl_query_builder_service!(Country);

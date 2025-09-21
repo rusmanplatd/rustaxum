@@ -11,7 +11,7 @@ use crate::config::Config;
 pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 pub type DbConnection = PooledConnection<ConnectionManager<PgConnection>>;
 
-pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("src/database/migrations");
 
 pub fn create_pool(config: &Config) -> Result<DbPool> {
     let manager = ConnectionManager::<PgConnection>::new(&config.database.url);

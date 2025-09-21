@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
-use crate::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{Queryable, SortDirection};
 
 /// Province model representing a state/province within a country
 /// Contains geographical and administrative information
@@ -81,7 +81,7 @@ impl Province {
     }
 }
 
-impl Queryable for Province {
+impl crate::app::query_builder::Queryable for Province {
     fn table_name() -> &'static str {
         "provinces"
     }
@@ -123,3 +123,6 @@ impl Queryable for Province {
         Some(("name", SortDirection::Asc))
     }
 }
+
+// Implement the query builder service for Province
+crate::impl_query_builder_service!(Province);

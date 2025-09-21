@@ -4,7 +4,6 @@ pub mod routes;
 pub mod database;
 pub mod cli;
 pub mod storage;
-pub mod query_builder;
 pub mod cache;
 pub mod logging;
 pub mod schema;

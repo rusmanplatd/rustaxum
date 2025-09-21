@@ -7,7 +7,7 @@ use anyhow::Result;
 use std::collections::HashMap;
 use serde_json::{json, Value};
 use utoipa::ToSchema;
-use crate::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{Queryable, SortDirection};
 use crate::app::models::{HasModelType, HasRoles};
 use crate::schema::{user_organizations, sys_roles, sys_model_has_roles, sys_permissions, sys_model_has_permissions};
 
@@ -381,7 +381,7 @@ impl UserOrganization {
     }
 }
 
-impl Queryable for UserOrganization {
+impl crate::app::query_builder::Queryable for UserOrganization {
     fn table_name() -> &'static str {
         "user_organizations"
     }
@@ -431,7 +431,18 @@ impl Queryable for UserOrganization {
     fn default_sort() -> Option<(&'static str, SortDirection)> {
         Some(("created_at", SortDirection::Desc))
     }
+
+    fn allowed_includes() -> Vec<&'static str> {
+        vec![
+            "user",
+            "organization",
+            "position",
+        ]
+    }
 }
+
+// Implement the query builder service for UserOrganization
+crate::impl_query_builder_service!(UserOrganization);
 
 impl HasModelType for UserOrganization {
     fn model_type() -> &'static str {

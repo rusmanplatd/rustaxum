@@ -2,8 +2,10 @@ use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
+use utoipa::ToSchema;
+use crate::app::query_builder::SortDirection;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::sys_roles)]
 pub struct Role {
     pub id: Ulid,
@@ -14,21 +16,21 @@ pub struct Role {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateRole {
     pub name: String,
     pub description: Option<String>,
     pub guard_name: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateRole {
     pub name: Option<String>,
     pub description: Option<String>,
     pub guard_name: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct RoleResponse {
     pub id: String,
     pub name: String,
@@ -62,4 +64,57 @@ impl Role {
         }
     }
 }
+
+impl crate::app::query_builder::Queryable for Role {
+    fn table_name() -> &'static str {
+        "sys_roles"
+    }
+
+    fn allowed_filters() -> Vec<&'static str> {
+        vec![
+            "id",
+            "name",
+            "description",
+            "guard_name",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn allowed_sorts() -> Vec<&'static str> {
+        vec![
+            "id",
+            "name",
+            "description",
+            "guard_name",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn allowed_fields() -> Vec<&'static str> {
+        vec![
+            "id",
+            "name",
+            "description",
+            "guard_name",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn default_sort() -> Option<(&'static str, SortDirection)> {
+        Some(("name", SortDirection::Asc))
+    }
+
+    fn allowed_includes() -> Vec<&'static str> {
+        vec![
+            "permissions",
+            "users",
+        ]
+    }
+}
+
+// Implement the query builder service for Role
+crate::impl_query_builder_service!(Role);
 

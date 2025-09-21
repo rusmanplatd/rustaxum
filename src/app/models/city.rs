@@ -4,7 +4,7 @@ use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use utoipa::ToSchema;
-use crate::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{Queryable, SortDirection};
 
 /// City model representing a city within a province
 /// Contains geographical coordinates and administrative information
@@ -97,7 +97,7 @@ impl City {
 }
 
 
-impl Queryable for City {
+impl crate::app::query_builder::Queryable for City {
     fn table_name() -> &'static str {
         "cities"
     }
@@ -145,3 +145,6 @@ impl Queryable for City {
         Some(("name", SortDirection::Asc))
     }
 }
+
+// Implement the query builder service for City
+crate::impl_query_builder_service!(City);

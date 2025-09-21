@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
-use crate::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{Queryable, SortDirection};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, QueryableByName)]
 #[diesel(table_name = crate::schema::oauth_clients)]
@@ -121,7 +121,7 @@ impl Client {
 }
 
 
-impl Queryable for Client {
+impl crate::app::query_builder::Queryable for Client {
     fn table_name() -> &'static str {
         "oauth_clients"
     }
@@ -165,4 +165,15 @@ impl Queryable for Client {
     fn default_sort() -> Option<(&'static str, SortDirection)> {
         Some(("created_at", SortDirection::Desc))
     }
+
+    fn allowed_includes() -> Vec<&'static str> {
+        vec![
+            "user",
+            "access_tokens",
+            "refresh_tokens",
+        ]
+    }
 }
+
+// Implement the query builder service for Client
+crate::impl_query_builder_service!(Client);

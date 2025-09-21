@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
-use crate::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{Queryable, SortDirection};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersonalAccessClient {
@@ -46,7 +46,7 @@ impl PersonalAccessClient {
     }
 }
 
-impl Queryable for PersonalAccessClient {
+impl crate::app::query_builder::Queryable for PersonalAccessClient {
     fn table_name() -> &'static str {
         "oauth_personal_access_clients"
     }
@@ -80,4 +80,13 @@ impl Queryable for PersonalAccessClient {
     fn default_sort() -> Option<(&'static str, SortDirection)> {
         Some(("created_at", SortDirection::Desc))
     }
+
+    fn allowed_includes() -> Vec<&'static str> {
+        vec![
+            "client",
+        ]
+    }
 }
+
+// Implement the query builder service for PersonalAccessClient
+crate::impl_query_builder_service!(PersonalAccessClient);

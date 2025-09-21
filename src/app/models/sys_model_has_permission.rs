@@ -3,7 +3,8 @@ use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
-use crate::query_builder::Queryable;
+use crate::app::query_builder::SortDirection;
+use crate::app::query_builder::Queryable;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct SysModelHasPermission {
@@ -55,7 +56,7 @@ pub struct SysModelHasPermissionResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl Queryable for SysModelHasPermission {
+impl crate::app::query_builder::Queryable for SysModelHasPermission {
     fn table_name() -> &'static str {
         "sys_model_has_permissions"
     }
@@ -125,3 +126,61 @@ impl SysModelHasPermission {
         }
     }
 }
+
+impl crate::app::query_builder::Queryable for SysModelHasPermission {
+    fn table_name() -> &'static str {
+        "sys_model_has_permissions"
+    }
+
+    fn allowed_filters() -> Vec<&'static str> {
+        vec![
+            "id",
+            "model_type",
+            "model_id",
+            "permission_id",
+            "scope_type",
+            "scope_id",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn allowed_sorts() -> Vec<&'static str> {
+        vec![
+            "id",
+            "model_type",
+            "model_id",
+            "permission_id",
+            "scope_type",
+            "scope_id",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn allowed_fields() -> Vec<&'static str> {
+        vec![
+            "id",
+            "model_type",
+            "model_id",
+            "permission_id",
+            "scope_type",
+            "scope_id",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn default_sort() -> Option<(&'static str, SortDirection)> {
+        Some(("created_at", SortDirection::Desc))
+    }
+
+    fn allowed_includes() -> Vec<&'static str> {
+        vec![
+            "permission",
+        ]
+    }
+}
+
+// Implement the query builder service for SysModelHasPermission
+crate::impl_query_builder_service!(SysModelHasPermission);

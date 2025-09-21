@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
-use crate::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{Queryable, SortDirection};
 use super::{HasModelType, HasRoles};
 
 /// Organization model representing an organizational entity
@@ -119,7 +119,7 @@ impl HasRoles for Organization {
 }
 
 
-impl Queryable for Organization {
+impl crate::app::query_builder::Queryable for Organization {
     fn table_name() -> &'static str {
         "organizations"
     }
@@ -169,4 +169,16 @@ impl Queryable for Organization {
     fn default_sort() -> Option<(&'static str, SortDirection)> {
         Some(("name", SortDirection::Asc))
     }
+
+    fn allowed_includes() -> Vec<&'static str> {
+        vec![
+            "parent",
+            "children",
+            "positions",
+            "users",
+        ]
+    }
 }
+
+// Implement the query builder service for Organization
+crate::impl_query_builder_service!(Organization);

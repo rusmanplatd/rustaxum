@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
-use crate::query_builder::Queryable;
+use crate::app::query_builder::Queryable;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct SysModelHasRole {
@@ -55,7 +55,7 @@ pub struct SysModelHasRoleResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl Queryable for SysModelHasRole {
+impl crate::app::query_builder::Queryable for SysModelHasRole {
     fn table_name() -> &'static str {
         "sys_model_has_roles"
     }
@@ -125,3 +125,6 @@ impl SysModelHasRole {
         }
     }
 }
+
+// Implement the query builder service for SysModelHasRole
+crate::impl_query_builder_service!(SysModelHasRole);

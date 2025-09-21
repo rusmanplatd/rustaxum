@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
-use crate::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{Queryable, SortDirection};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthCode {
@@ -137,7 +137,7 @@ impl AuthCode {
     }
 }
 
-impl Queryable for AuthCode {
+impl crate::app::query_builder::Queryable for AuthCode {
     fn table_name() -> &'static str {
         "oauth_auth_codes"
     }
@@ -180,4 +180,14 @@ impl Queryable for AuthCode {
     fn default_sort() -> Option<(&'static str, SortDirection)> {
         Some(("created_at", SortDirection::Desc))
     }
+
+    fn allowed_includes() -> Vec<&'static str> {
+        vec![
+            "client",
+            "user",
+        ]
+    }
 }
+
+// Implement the query builder service for AuthCode
+crate::impl_query_builder_service!(AuthCode);

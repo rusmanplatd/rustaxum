@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
-use crate::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{Queryable, SortDirection};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, QueryableByName)]
 #[diesel(table_name = crate::schema::oauth_refresh_tokens)]
@@ -67,7 +67,7 @@ impl RefreshToken {
     }
 }
 
-impl Queryable for RefreshToken {
+impl crate::app::query_builder::Queryable for RefreshToken {
     fn table_name() -> &'static str {
         "oauth_refresh_tokens"
     }
@@ -106,4 +106,13 @@ impl Queryable for RefreshToken {
     fn default_sort() -> Option<(&'static str, SortDirection)> {
         Some(("created_at", SortDirection::Desc))
     }
+
+    fn allowed_includes() -> Vec<&'static str> {
+        vec![
+            "access_token",
+        ]
+    }
 }
+
+// Implement the query builder service for RefreshToken
+crate::impl_query_builder_service!(RefreshToken);

@@ -2,8 +2,11 @@ use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
+use utoipa::ToSchema;
+use crate::app::query_builder::SortDirection;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
+#[diesel(table_name = crate::schema::sys_permissions)]
 pub struct Permission {
     pub id: Ulid,
     pub name: String,
@@ -14,7 +17,7 @@ pub struct Permission {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreatePermission {
     pub name: String,
     pub guard_name: Option<String>,
@@ -22,7 +25,7 @@ pub struct CreatePermission {
     pub action: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdatePermission {
     pub name: Option<String>,
     pub guard_name: Option<String>,
@@ -30,7 +33,7 @@ pub struct UpdatePermission {
     pub action: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct PermissionResponse {
     pub id: String,
     pub name: String,
@@ -67,3 +70,52 @@ impl Permission {
         }
     }
 }
+
+impl crate::app::query_builder::Queryable for Permission {
+    fn table_name() -> &'static str {
+        "sys_permissions"
+    }
+
+    fn allowed_filters() -> Vec<&'static str> {
+        vec![
+            "id",
+            "name",
+            "guard_name",
+            "resource",
+            "action",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn allowed_sorts() -> Vec<&'static str> {
+        vec![
+            "id",
+            "name",
+            "guard_name",
+            "resource",
+            "action",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn allowed_fields() -> Vec<&'static str> {
+        vec![
+            "id",
+            "name",
+            "guard_name",
+            "resource",
+            "action",
+            "created_at",
+            "updated_at",
+        ]
+    }
+
+    fn default_sort() -> Option<(&'static str, SortDirection)> {
+        Some(("name", SortDirection::Asc))
+    }
+}
+
+// Implement the query builder service for Permission
+crate::impl_query_builder_service!(Permission);

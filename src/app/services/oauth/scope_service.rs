@@ -5,7 +5,7 @@ use diesel::prelude::*;
 use crate::schema::oauth_scopes;
 
 use crate::app::models::oauth::{Scope, CreateScope, UpdateScope, ScopeResponse};
-use crate::query_builder::QueryBuilder;
+use crate::app::query_builder::QueryBuilder;
 
 pub struct ScopeService;
 
@@ -62,7 +62,7 @@ impl ScopeService {
     }
 
     pub fn list_scopes(pool: &DbPool) -> Result<Vec<ScopeResponse>> {
-        let request = crate::query_builder::QueryBuilderRequest::default();
+        let request = crate::app::query_builder::QueryBuilderRequest::default();
         let query_builder = QueryBuilder::<Scope>::new(pool.clone(), request);
         let scopes = query_builder.get()?;
         Ok(scopes.into_iter().map(|s| s.to_response()).collect())

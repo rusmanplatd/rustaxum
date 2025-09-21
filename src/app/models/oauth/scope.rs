@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
-use crate::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{Queryable, SortDirection};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Scope {
@@ -71,7 +71,7 @@ impl Scope {
     }
 }
 
-impl Queryable for Scope {
+impl crate::app::query_builder::Queryable for Scope {
     fn table_name() -> &'static str {
         "oauth_scopes"
     }
@@ -110,3 +110,6 @@ impl Queryable for Scope {
         Some(("name", SortDirection::Asc))
     }
 }
+
+// Implement the query builder service for Scope
+crate::impl_query_builder_service!(Scope);

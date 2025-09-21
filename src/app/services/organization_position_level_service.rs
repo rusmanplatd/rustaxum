@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use diesel::prelude::*;
 use crate::schema::OrganizationPositionLevel;
 
-use crate::app::models::joblevel::{OrganizationPositionLevel, CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel};
+use crate::app::models::organization_position_level::{OrganizationPositionLevel, CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel};
 
 pub struct OrganizationPositionLevelService;
 

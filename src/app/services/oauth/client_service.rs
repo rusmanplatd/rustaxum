@@ -10,7 +10,7 @@ use crate::app::models::oauth::{
     Client, CreateClient, UpdateClient, ClientResponse,
     PersonalAccessClient
 };
-use crate::query_builder::QueryBuilder;
+use crate::app::query_builder::QueryBuilder;
 
 pub struct ClientService;
 
@@ -138,7 +138,7 @@ impl ClientService {
     }
 
     pub fn list_clients(pool: &DbPool, user_id: Option<Ulid>) -> Result<Vec<ClientResponse>> {
-        let mut request = crate::query_builder::QueryBuilderRequest::default();
+        let mut request = crate::app::query_builder::QueryBuilderRequest::default();
 
         if let Some(user_id) = user_id {
             request.filters.insert("user_id".to_string(), user_id.to_string());

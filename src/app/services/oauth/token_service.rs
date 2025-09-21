@@ -12,7 +12,7 @@ use crate::app::models::oauth::{
     AuthCode, CreateAuthCode
 };
 use crate::app::services::oauth::client_service::ClientService;
-use crate::query_builder::QueryBuilder;
+use crate::app::query_builder::QueryBuilder;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenClaims {
@@ -518,7 +518,7 @@ impl TokenService {
     }
 
     pub async fn list_user_tokens(pool: &DbPool, user_id: Ulid) -> Result<Vec<AccessToken>> {
-        let mut request = crate::query_builder::QueryBuilderRequest::default();
+        let mut request = crate::app::query_builder::QueryBuilderRequest::default();
         request.filters.insert("user_id".to_string(), user_id.to_string());
         request.filters.insert("revoked".to_string(), "false".to_string());
 

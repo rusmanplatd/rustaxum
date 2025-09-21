@@ -4,7 +4,7 @@ use ulid::Ulid;
 use diesel::prelude::*;
 use crate::schema::user_organizations;
 
-use crate::app::models::userorganization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization};
+use crate::app::models::user_organization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization};
 
 pub struct UserOrganizationService;
 

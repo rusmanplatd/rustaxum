@@ -27,7 +27,7 @@ use crate::app::http::requests::organization_position_requests::{CreateOrganizat
 use crate::app::models::organization::{Organization, CreateOrganization, UpdateOrganization, OrganizationResponse};
 
 // More complex models with potential circular dependencies - kept commented for now
-// use crate::app::models::userorganization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization, UserOrganizationResponse};
+// use crate::app::models::user_organization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization, UserOrganizationResponse};
 // use crate::app::models::sys_model_has_permission::{SysModelHasPermission, CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse};
 // use crate::app::models::sys_model_has_role::{SysModelHasRole, CreateSysModelHasRole, UpdateSysModelHasRole, SysModelHasRoleResponse};
 

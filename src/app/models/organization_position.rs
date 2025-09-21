@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
-use crate::query_builder::{Queryable, SortDirection};
+use crate::app::query_builder::{Queryable, SortDirection};
 
 /// Organization position model representing specific sys_roles within organization position levels
 /// Contains position information and relationship to organization position level hierarchy
@@ -111,7 +111,7 @@ impl OrganizationPosition {
     }
 }
 
-impl Queryable for OrganizationPosition {
+impl crate::app::query_builder::Queryable for OrganizationPosition {
     fn table_name() -> &'static str {
         "organization_positions"
     }
@@ -158,4 +158,15 @@ impl Queryable for OrganizationPosition {
     fn default_sort() -> Option<(&'static str, SortDirection)> {
         Some(("name", SortDirection::Asc))
     }
+
+    fn allowed_includes() -> Vec<&'static str> {
+        vec![
+            "organization",
+            "level",
+            "users",
+        ]
+    }
 }
+
+// Implement the query builder service for OrganizationPosition
+crate::impl_query_builder_service!(OrganizationPosition);

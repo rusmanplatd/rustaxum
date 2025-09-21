@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
-use crate::query_builder::SortDirection;
+use crate::app::query_builder::SortDirection;
 use super::{HasModelType, HasRoles};
 
 /// User model representing a registered user
@@ -210,7 +210,7 @@ impl HasRoles for User {
 }
 
 
-impl crate::query_builder::Queryable for User {
+impl crate::app::query_builder::Queryable for User {
     fn table_name() -> &'static str {
         "sys_users"
     }
@@ -257,4 +257,15 @@ impl crate::query_builder::Queryable for User {
     fn default_sort() -> Option<(&'static str, SortDirection)> {
         Some(("created_at", SortDirection::Desc))
     }
+
+    fn allowed_includes() -> Vec<&'static str> {
+        vec![
+            "roles",
+            "permissions",
+            "organization",
+        ]
+    }
 }
+
+// Implement the query builder service for User
+crate::impl_query_builder_service!(User);

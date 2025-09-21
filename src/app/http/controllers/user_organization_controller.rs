@@ -6,13 +6,13 @@ use axum::{
 use crate::database::DbPool;
 use ulid::Ulid;
 
-use crate::app::models::userorganization::UserOrganization;
+use crate::app::models::user_organization::UserOrganization;
 use crate::app::http::requests::user_organization_requests::{
     CreateUserOrganizationRequest,
     UpdateUserOrganizationRequest,
 };
 use crate::app::services::user_organization_service::UserOrganizationService;
-use crate::query_builder::{QueryBuilder, QueryParams};
+use crate::app::query_builder::{QueryParams, QueryBuilderService};
 
 /// Get all user organization relationships with filtering and pagination
 #[utoipa::path(
@@ -28,7 +28,7 @@ use crate::query_builder::{QueryBuilder, QueryParams};
         ("direction" = Option<String>, Query, description = "Sort direction (asc/desc)"),
     ),
     responses(
-        (status = 200, description = "List of user organization relationships", body = Vec<crate::app::models::userorganization::UserOrganizationResponse>),
+        (status = 200, description = "List of user organization relationships", body = Vec<crate::app::models::user_organization::UserOrganizationResponse>),
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
@@ -64,7 +64,7 @@ pub async fn index(
         ("id" = String, Path, description = "User organization relationship unique identifier (ULID format)")
     ),
     responses(
-        (status = 200, description = "User organization relationship details", body = crate::app::models::userorganization::UserOrganizationResponse),
+        (status = 200, description = "User organization relationship details", body = crate::app::models::user_organization::UserOrganizationResponse),
         (status = 404, description = "User organization relationship not found", body = crate::app::docs::ErrorResponse),
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
@@ -110,7 +110,7 @@ pub async fn show(
     description = "Create a new user organization relationship with validation",
     request_body = CreateUserOrganizationRequest,
     responses(
-        (status = 201, description = "User organization relationship created successfully", body = crate::app::models::userorganization::UserOrganizationResponse),
+        (status = 201, description = "User organization relationship created successfully", body = crate::app::models::user_organization::UserOrganizationResponse),
         (status = 422, description = "Validation error", body = crate::app::http::form_request::ValidationErrorResponse),
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
@@ -150,7 +150,7 @@ pub async fn store(
     };
 
     // Create the user organization relationship using service
-    let create_data = crate::app::models::userorganization::CreateUserOrganization {
+    let create_data = crate::app::models::user_organization::CreateUserOrganization {
         user_id: user_id.to_string(),
         organization_id: organization_id.to_string(),
         organization_position_id: organization_position_id.to_string(),
@@ -182,7 +182,7 @@ pub async fn store(
     ),
     request_body = UpdateUserOrganizationRequest,
     responses(
-        (status = 200, description = "User organization relationship updated successfully", body = crate::app::models::userorganization::UserOrganizationResponse),
+        (status = 200, description = "User organization relationship updated successfully", body = crate::app::models::user_organization::UserOrganizationResponse),
         (status = 404, description = "User organization relationship not found", body = crate::app::docs::ErrorResponse),
         (status = 422, description = "Validation error", body = crate::app::http::form_request::ValidationErrorResponse),
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
@@ -221,7 +221,7 @@ pub async fn update(
     };
 
     // Create update data structure and validate
-    let update_data = crate::app::models::userorganization::UpdateUserOrganization {
+    let update_data = crate::app::models::user_organization::UpdateUserOrganization {
         organization_id: request.organization_id,
         organization_position_id: request.organization_position_id,
         is_active: request.is_active,
@@ -411,7 +411,7 @@ pub async fn transfer(
         ("id" = String, Path, description = "User organization relationship unique identifier (ULID format)")
     ),
     responses(
-        (status = 200, description = "User organization relationship activated successfully", body = crate::app::models::userorganization::UserOrganizationResponse),
+        (status = 200, description = "User organization relationship activated successfully", body = crate::app::models::user_organization::UserOrganizationResponse),
         (status = 404, description = "User organization relationship not found", body = crate::app::docs::ErrorResponse),
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
@@ -471,7 +471,7 @@ pub async fn activate(
         ("id" = String, Path, description = "User organization relationship unique identifier (ULID format)")
     ),
     responses(
-        (status = 200, description = "User organization relationship deactivated successfully", body = crate::app::models::userorganization::UserOrganizationResponse),
+        (status = 200, description = "User organization relationship deactivated successfully", body = crate::app::models::user_organization::UserOrganizationResponse),
         (status = 404, description = "User organization relationship not found", body = crate::app::docs::ErrorResponse),
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
