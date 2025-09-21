@@ -13,11 +13,21 @@ use crate::app::http::requests::user_requests::{UpdateUserRequest, SearchUsersRe
 use crate::app::http::requests::province_requests::{CreateProvinceRequest, UpdateProvinceRequest};
 use crate::app::http::requests::city_requests::{CreateCityRequest, UpdateCityRequest};
 
-// Complex models commented out to prevent stack overflow during OpenAPI generation
+// Adding back simple models that don't have circular dependencies
+use crate::app::models::joblevel::{JobLevel, CreateJobLevel, UpdateJobLevel, JobLevelResponse};
+use crate::app::models::jobposition::{JobPosition, CreateJobPosition, UpdateJobPosition, JobPositionResponse};
+use crate::app::http::requests::job_level_requests::{CreateJobLevelRequest, UpdateJobLevelRequest, IndexJobLevelRequest};
+use crate::app::http::requests::job_position_requests::{CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest};
+
+// Role and permission models need ToSchema trait implementation - commented out for now
+// use crate::app::models::role::{Role, CreateRole, UpdateRole, RoleResponse};
+// use crate::app::models::permission::{Permission, CreatePermission, UpdatePermission, PermissionResponse};
+
+// Adding organization model - should be safe as it has ToSchema implemented
+use crate::app::models::organization::{Organization, CreateOrganization, UpdateOrganization, OrganizationResponse};
+
+// More complex models with potential circular dependencies - kept commented for now
 // use crate::app::models::userorganization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization, UserOrganizationResponse};
-// use crate::app::models::organization::{Organization, CreateOrganization, UpdateOrganization, OrganizationResponse};
-// use crate::app::models::joblevel::{JobLevel, CreateJobLevel, UpdateJobLevel, JobLevelResponse};
-// use crate::app::models::jobposition::{JobPosition, CreateJobPosition, UpdateJobPosition, JobPositionResponse};
 // use crate::app::models::sys_model_has_permission::{SysModelHasPermission, CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse};
 // use crate::app::models::sys_model_has_role::{SysModelHasRole, CreateSysModelHasRole, UpdateSysModelHasRole, SysModelHasRoleResponse};
 
@@ -66,21 +76,25 @@ use crate::app::http::requests::city_requests::{CreateCityRequest, UpdateCityReq
             // Note: Complex schemas with potential circular dependencies are commented out
             // to prevent stack overflow during OpenAPI generation
 
-            // Organization models - commented out due to potential circular references
-            // Organization, CreateOrganization, UpdateOrganization, OrganizationResponse,
+            // Organization models - safe to include with ToSchema implemented
+            Organization, CreateOrganization, UpdateOrganization, OrganizationResponse,
 
             // User Organization models - commented out due to complex relationships
             // UserOrganization, CreateUserOrganization, UpdateUserOrganization, UserOrganizationResponse,
             // CreateUserOrganizationRequest, UpdateUserOrganizationRequest, IndexUserOrganizationRequest,
             // TransferUserOrganizationRequest, AssignRoleRequest, RemoveRoleRequest,
 
-            // Job models - commented out due to potential circular references
-            // JobLevel, CreateJobLevel, UpdateJobLevel, JobLevelResponse,
-            // CreateJobLevelRequest, UpdateJobLevelRequest, IndexJobLevelRequest,
-            // JobPosition, CreateJobPosition, UpdateJobPosition, JobPositionResponse,
-            // CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest,
+            // Job models - safe to include as they have minimal dependencies
+            JobLevel, CreateJobLevel, UpdateJobLevel, JobLevelResponse,
+            CreateJobLevelRequest, UpdateJobLevelRequest, IndexJobLevelRequest,
+            JobPosition, CreateJobPosition, UpdateJobPosition, JobPositionResponse,
+            CreateJobPositionRequest, UpdateJobPositionRequest, IndexJobPositionRequest, JobPositionsByLevelRequest,
 
-            // Permission models - commented out due to potential circular references
+            // Role and Permission models - commented out until ToSchema is implemented
+            // Role, CreateRole, UpdateRole, RoleResponse,
+            // Permission, CreatePermission, UpdatePermission, PermissionResponse,
+
+            // Polymorphic permission models - commented out due to potential circular references
             // SysModelHasPermission, CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse,
             // Role and Permission models - commented out due to potential circular references
             // CreateSysModelHasPermissionRequest, UpdateSysModelHasPermissionRequest,
