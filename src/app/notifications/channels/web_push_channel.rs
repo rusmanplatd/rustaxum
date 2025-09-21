@@ -6,6 +6,8 @@ use web_push::{WebPushMessageBuilder, SubscriptionInfo, VapidSignatureBuilder};
 use crate::app::notifications::channels::Channel;
 use crate::app::notifications::notification::{Notification, Notifiable, NotificationChannel};
 use crate::config::Config;
+use diesel::prelude::*;
+use crate::schema::push_subscriptions;
 
 #[derive(Debug)]
 pub struct WebPushChannel {
@@ -70,25 +72,19 @@ impl WebPushChannel {
         Ok(pool)
     }
 
-    pub async fn get_user_subscriptions(user_id: &str) -> Result<Vec<PushSubscription>> {
+    pub fn get_user_subscriptions(user_id: &str) -> Result<Vec<PushSubscription>> {
         let pool = Self::get_database_pool()?;
+        let mut conn = pool.get()?;
 
-        let query = r#"
-            SELECT id, user_id, endpoint, p256dh_key, auth_key, user_agent, created_at, updated_at
-            FROM push_subscriptions
-            WHERE user_id = $1
-            ORDER BY created_at DESC
-        "#;
-
-        let subscriptions = sqlx::query_as::<_, PushSubscription>(query)
-            .bind(user_id)
-            .fetch_all(&pool)
-            .await?;
+        let subscriptions = push_subscriptions::table
+            .filter(push_subscriptions::user_id.eq(user_id))
+            .order(push_subscriptions::created_at.desc())
+            .load::<PushSubscription>(&mut conn)?;
 
         Ok(subscriptions)
     }
 
-    pub async fn save_subscription(
+    pub fn save_subscription(
         user_id: &str,
         endpoint: &str,
         p256dh_key: &str,
@@ -96,78 +92,62 @@ impl WebPushChannel {
         user_agent: Option<&str>,
     ) -> Result<PushSubscription> {
         let pool = Self::get_database_pool()?;
+        let mut conn = pool.get()?;
         let now = chrono::Utc::now();
         let id = ulid::Ulid::new();
 
         // Check if subscription already exists
-        let existing_query = r#"
-            SELECT id FROM push_subscriptions
-            WHERE user_id = $1 AND endpoint = $2
-        "#;
+        let existing = push_subscriptions::table
+            .filter(push_subscriptions::user_id.eq(user_id))
+            .filter(push_subscriptions::endpoint.eq(endpoint))
+            .first::<PushSubscription>(&mut conn)
+            .optional()?;
 
-        let existing = sqlx::query(existing_query)
-            .bind(user_id)
-            .bind(endpoint)
-            .fetch_optional(&pool)
-            .await?;
-
-        if existing.is_some() {
+        if let Some(_existing_sub) = existing {
             // Update existing subscription
-            let update_query = r#"
-                UPDATE push_subscriptions
-                SET p256dh_key = $3, auth_key = $4, user_agent = $5, updated_at = $6
-                WHERE user_id = $1 AND endpoint = $2
-                RETURNING id, user_id, endpoint, p256dh_key, auth_key, user_agent, created_at, updated_at
-            "#;
-
-            let subscription = sqlx::query_as::<_, PushSubscription>(update_query)
-                .bind(user_id)
-                .bind(endpoint)
-                .bind(p256dh_key)
-                .bind(auth_key)
-                .bind(user_agent)
-                .bind(now)
-                .fetch_one(&pool)
-                .await?;
+            let subscription = diesel::update(
+                push_subscriptions::table
+                    .filter(push_subscriptions::user_id.eq(user_id))
+                    .filter(push_subscriptions::endpoint.eq(endpoint))
+            )
+            .set((
+                push_subscriptions::p256dh_key.eq(p256dh_key),
+                push_subscriptions::auth_key.eq(auth_key),
+                push_subscriptions::user_agent.eq(user_agent),
+                push_subscriptions::updated_at.eq(now),
+            ))
+            .get_result::<PushSubscription>(&mut conn)?;
 
             return Ok(subscription);
         }
 
         // Insert new subscription
-        let insert_query = r#"
-            INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, user_agent, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING id, user_id, endpoint, p256dh_key, auth_key, user_agent, created_at, updated_at
-        "#;
-
-        let subscription = sqlx::query_as::<_, PushSubscription>(insert_query)
-            .bind(id.to_string())
-            .bind(user_id)
-            .bind(endpoint)
-            .bind(p256dh_key)
-            .bind(auth_key)
-            .bind(user_agent)
-            .bind(now)
-            .bind(now)
-            .fetch_one(&pool)
-            .await?;
+        let subscription = diesel::insert_into(push_subscriptions::table)
+            .values((
+                push_subscriptions::id.eq(id.to_string()),
+                push_subscriptions::user_id.eq(user_id),
+                push_subscriptions::endpoint.eq(endpoint),
+                push_subscriptions::p256dh_key.eq(p256dh_key),
+                push_subscriptions::auth_key.eq(auth_key),
+                push_subscriptions::user_agent.eq(user_agent),
+                push_subscriptions::created_at.eq(now),
+                push_subscriptions::updated_at.eq(now),
+            ))
+            .get_result::<PushSubscription>(&mut conn)?;
 
         Ok(subscription)
     }
 
-    pub async fn remove_subscription(user_id: &str, endpoint: &str) -> Result<()> {
+    pub fn remove_subscription(user_id: &str, endpoint: &str) -> Result<()> {
         let pool = Self::get_database_pool()?;
+        let mut conn = pool.get()?;
 
-        let query = r#"
-            DELETE FROM push_subscriptions
-            WHERE user_id = $1 AND endpoint = $2
-        "#;
-
-        sqlx::query(query)
-            .bind(user_id)
-            .bind(endpoint)
-            .execute(&pool)
-            .await?;
+        diesel::delete(
+            push_subscriptions::table
+                .filter(push_subscriptions::user_id.eq(user_id))
+                .filter(push_subscriptions::endpoint.eq(endpoint))
+        )
+        .execute(&mut conn)?;
 
         Ok(())
     }
@@ -223,7 +203,7 @@ impl Channel for WebPushChannel {
         let web_push_message = notification.to_web_push(notifiable)?;
 
         // Get user's push subscriptions
-        let subscriptions = Self::get_user_subscriptions(user_id).await?;
+        let subscriptions = Self::get_user_subscriptions(user_id)?;
 
         if subscriptions.is_empty() {
             tracing::info!("No push subscriptions found for user: {}", user_id);

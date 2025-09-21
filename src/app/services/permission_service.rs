@@ -152,126 +152,97 @@ impl PermissionService {
     }
 
     pub fn role_has_permission(pool: &DbPool, role_id: Ulid, permission_name: &str, guard_name: Option<&str>) -> Result<bool> {
+        let mut conn = pool.get()?;
         let guard = guard_name.unwrap_or("api");
 
-        let count: Option<i64> = sqlx::query_scalar(
-            r#"
-            SELECT COUNT(*) as count
-            FROM sys_model_has_permissions smhp
-            JOIN sys_permissions p ON smhp.permission_id = p.id
-            WHERE smhp.model_type = 'Role' AND smhp.model_id = $1 AND p.name = $2 AND p.guard_name = $3
-            "#
-        )
-        .bind(role_id.to_string())
-        .bind(permission_name)
-        .bind(guard)
-        .fetch_one(pool)
-        ?;
+        let count = sys_model_has_permissions::table
+            .inner_join(sys_permissions::table.on(sys_model_has_permissions::permission_id.eq(sys_permissions::id)))
+            .filter(sys_model_has_permissions::model_type.eq("Role"))
+            .filter(sys_model_has_permissions::model_id.eq(role_id.to_string()))
+            .filter(sys_permissions::name.eq(permission_name))
+            .filter(sys_permissions::guard_name.eq(guard))
+            .count()
+            .get_result::<i64>(&mut conn)?;
 
-        Ok(count.unwrap_or(0) > 0)
+        Ok(count > 0)
     }
 
     /// Generic method to check if a model has a specific permission
     pub fn model_has_permission<T: HasRoles>(pool: &DbPool, model: &T, permission_name: &str, guard_name: Option<&str>) -> Result<bool> {
+        let mut conn = pool.get()?;
         let guard = guard_name.unwrap_or("api");
 
-        let count: Option<i64> = sqlx::query_scalar(
-            r#"
-            SELECT COUNT(*) as count
-            FROM sys_model_has_roles smhr
-            JOIN sys_model_has_permissions smhp ON smhr.role_id = smhp.model_id AND smhp.model_type = 'Role'
-            JOIN sys_permissions p ON smhp.permission_id = p.id
-            WHERE smhr.model_type = $1 AND smhr.model_id = $2 AND p.name = $3 AND p.guard_name = $4
-            "#
-        )
-        .bind(T::model_type())
-        .bind(model.model_id())
-        .bind(permission_name)
-        .bind(guard)
-        .fetch_one(pool)
-        ?;
+        let count = sys_model_has_roles::table
+            .inner_join(sys_model_has_permissions::table.on(
+                sys_model_has_roles::role_id.eq(sys_model_has_permissions::model_id)
+                .and(sys_model_has_permissions::model_type.eq("Role"))
+            ))
+            .inner_join(sys_permissions::table.on(sys_model_has_permissions::permission_id.eq(sys_permissions::id)))
+            .filter(sys_model_has_roles::model_type.eq(T::model_type()))
+            .filter(sys_model_has_roles::model_id.eq(model.model_id()))
+            .filter(sys_permissions::name.eq(permission_name))
+            .filter(sys_permissions::guard_name.eq(guard))
+            .count()
+            .get_result::<i64>(&mut conn)?;
 
-        Ok(count.unwrap_or(0) > 0)
+        Ok(count > 0)
     }
 
     pub fn get_role_permissions(pool: &DbPool, role_id: Ulid, guard_name: Option<&str>) -> Result<Vec<Permission>> {
-        let query = if let Some(guard) = guard_name {
-            sqlx::query_as::<_, Permission>(
-                r#"
-                SELECT p.id, p.name, p.guard_name, p.resource, p.action, p.created_at, p.updated_at
-                FROM sys_permissions p
-                JOIN sys_model_has_permissions smhp ON p.id = smhp.permission_id
-                WHERE smhp.model_type = 'Role' AND smhp.model_id = $1 AND p.guard_name = $2
-                ORDER BY p.name
-                "#
-            )
-            .bind(role_id.to_string())
-            .bind(guard)
-            .fetch_all(pool)
-            ?
-        } else {
-            sqlx::query_as::<_, Permission>(
-                r#"
-                SELECT p.id, p.name, p.guard_name, p.resource, p.action, p.created_at, p.updated_at
-                FROM sys_permissions p
-                JOIN sys_model_has_permissions smhp ON p.id = smhp.permission_id
-                WHERE smhp.model_type = 'Role' AND smhp.model_id = $1
-                ORDER BY p.name
-                "#
-            )
-            .bind(role_id.to_string())
-            .fetch_all(pool)
-            ?
-        };
+        let mut conn = pool.get()?;
 
-        Ok(query)
+        let mut query = sys_permissions::table
+            .inner_join(sys_model_has_permissions::table.on(sys_permissions::id.eq(sys_model_has_permissions::permission_id)))
+            .filter(sys_model_has_permissions::model_type.eq("Role"))
+            .filter(sys_model_has_permissions::model_id.eq(role_id.to_string()))
+            .into_boxed();
+
+        if let Some(guard) = guard_name {
+            query = query.filter(sys_permissions::guard_name.eq(guard));
+        }
+
+        let permissions = query
+            .order(sys_permissions::name.asc())
+            .select(sys_permissions::all_columns)
+            .load::<Permission>(&mut conn)?;
+
+        Ok(permissions)
     }
 
     /// Generic method to get permissions for any model that implements HasRoles
     pub fn get_model_permissions<T: HasRoles>(pool: &DbPool, model: &T, guard_name: Option<&str>) -> Result<Vec<Permission>> {
-        let query = if let Some(guard) = guard_name {
-            sqlx::query_as::<_, Permission>(
-                r#"
-                SELECT DISTINCT p.id, p.name, p.guard_name, p.resource, p.action, p.created_at, p.updated_at
-                FROM sys_permissions p
-                JOIN sys_model_has_permissions smhp ON p.id = smhp.permission_id AND smhp.model_type = 'Role'
-                JOIN sys_model_has_roles smhr ON smhp.model_id = smhr.role_id
-                WHERE smhr.model_type = $1 AND smhr.model_id = $2 AND p.guard_name = $3
-                ORDER BY p.name
-                "#
-            )
-            .bind(T::model_type())
-            .bind(model.model_id())
-            .bind(guard)
-            .fetch_all(pool)
-            ?
-        } else {
-            sqlx::query_as::<_, Permission>(
-                r#"
-                SELECT DISTINCT p.id, p.name, p.guard_name, p.resource, p.action, p.created_at, p.updated_at
-                FROM sys_permissions p
-                JOIN sys_model_has_permissions smhp ON p.id = smhp.permission_id AND smhp.model_type = 'Role'
-                JOIN sys_model_has_roles smhr ON smhp.model_id = smhr.role_id
-                WHERE smhr.model_type = $1 AND smhr.model_id = $2
-                ORDER BY p.name
-                "#
-            )
-            .bind(T::model_type())
-            .bind(model.model_id())
-            .fetch_all(pool)
-            ?
-        };
+        let mut conn = pool.get()?;
 
-        Ok(query)
+        let mut query = sys_permissions::table
+            .inner_join(sys_model_has_permissions::table.on(
+                sys_permissions::id.eq(sys_model_has_permissions::permission_id)
+                .and(sys_model_has_permissions::model_type.eq("Role"))
+            ))
+            .inner_join(sys_model_has_roles::table.on(sys_model_has_permissions::model_id.eq(sys_model_has_roles::role_id)))
+            .filter(sys_model_has_roles::model_type.eq(T::model_type()))
+            .filter(sys_model_has_roles::model_id.eq(model.model_id()))
+            .into_boxed();
+
+        if let Some(guard) = guard_name {
+            query = query.filter(sys_permissions::guard_name.eq(guard));
+        }
+
+        let permissions = query
+            .order(sys_permissions::name.asc())
+            .select(sys_permissions::all_columns)
+            .distinct()
+            .load::<Permission>(&mut conn)?;
+
+        Ok(permissions)
     }
 
     pub fn count(pool: &DbPool) -> Result<i64> {
-        let count: Option<i64> = sqlx::query_scalar(
-            "SELECT COUNT(*) as count FROM sys_permissions"
-        )
-        .fetch_one(pool)
-        ?;
+        let mut conn = pool.get()?;
 
-        Ok(count.unwrap_or(0))
+        let count = sys_permissions::table
+            .count()
+            .get_result::<i64>(&mut conn)?;
+
+        Ok(count)
     }
 }

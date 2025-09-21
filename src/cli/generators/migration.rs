@@ -1,7 +1,7 @@
 use anyhow::Result;
+use chrono::Utc;
 use std::fs;
 use std::path::Path;
-use chrono::Utc;
 
 pub async fn generate_migration(name: &str) -> Result<()> {
     let timestamp = Utc::now().format("%Y_%m_%d_%H%M%S").to_string();
@@ -38,22 +38,43 @@ fn generate_migration_content(name: &str) -> (String, String) {
             .strip_suffix("_table")
             .unwrap();
 
-        let up_content = format!(r#"-- Create {} table
+        let up_content = format!(
+            r#"-- Create {} table
 CREATE TABLE {} (
     id CHAR(26) PRIMARY KEY,
     name VARCHAR NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ,
+    created_by CHAR(26) NOT NULL REFERENCES sys_users(id),
+    updated_by CHAR(26) NOT NULL REFERENCES sys_users(id),
+    deleted_by CHAR(26) REFERENCES sys_users(id)
 );
 
 -- Add indexes
 CREATE INDEX idx_{}_name ON {} (name);
 CREATE INDEX idx_{}_created_at ON {} (created_at);
-"#, table_name, table_name, table_name, table_name, table_name, table_name);
+CREATE INDEX idx_{}_created_by ON sys_users (created_by);
+CREATE INDEX idx_{}_updated_by ON sys_users (updated_by);
+CREATE INDEX idx_{}_deleted_by ON sys_users (deleted_by);
+"#,
+            table_name,
+            table_name,
+            table_name,
+            table_name,
+            table_name,
+            table_name,
+            table_name,
+            table_name,
+            table_name
+        );
 
-        let down_content = format!(r#"-- Drop {} table
+        let down_content = format!(
+            r#"-- Drop {} table
 DROP TABLE IF EXISTS {};
-"#, table_name, table_name);
+"#,
+            table_name, table_name
+        );
 
         (up_content, down_content)
     } else if name.starts_with("add_") && name.contains("_to_") {
@@ -62,19 +83,31 @@ DROP TABLE IF EXISTS {};
             let column_part = parts[0].strip_prefix("add_").unwrap_or("");
             let table_name = parts[1];
 
-            let up_content = format!(r#"-- Add column(s) to {} table
+            let up_content = format!(
+                r#"-- Add column(s) to {} table
 ALTER TABLE {} ADD COLUMN {} VARCHAR;
 
 -- Add any necessary indexes
 -- CREATE INDEX idx_{}_{} ON {} ({});
-"#, table_name, table_name, column_part, table_name, column_part, table_name, column_part);
+"#,
+                table_name,
+                table_name,
+                column_part,
+                table_name,
+                column_part,
+                table_name,
+                column_part
+            );
 
-            let down_content = format!(r#"-- Remove column(s) from {} table
+            let down_content = format!(
+                r#"-- Remove column(s) from {} table
 ALTER TABLE {} DROP COLUMN IF EXISTS {};
 
 -- Drop any indexes
 -- DROP INDEX IF EXISTS idx_{}_{};
-"#, table_name, table_name, column_part, table_name, column_part);
+"#,
+                table_name, table_name, column_part, table_name, column_part
+            );
 
             (up_content, down_content)
         } else {
@@ -87,18 +120,24 @@ ALTER TABLE {} DROP COLUMN IF EXISTS {};
             .strip_suffix("_table")
             .unwrap();
 
-        let up_content = format!(r#"-- Drop {} table
+        let up_content = format!(
+            r#"-- Drop {} table
 DROP TABLE IF EXISTS {};
-"#, table_name, table_name);
+"#,
+            table_name, table_name
+        );
 
-        let down_content = format!(r#"-- Recreate {} table (you may need to customize this)
+        let down_content = format!(
+            r#"-- Recreate {} table (you may need to customize this)
 CREATE TABLE {} (
     id CHAR(26) PRIMARY KEY,
     -- Add columns here
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-"#, table_name, table_name);
+"#,
+            table_name, table_name
+        );
 
         (up_content, down_content)
     } else {
@@ -107,7 +146,8 @@ CREATE TABLE {} (
 }
 
 fn generate_generic_migration(name: &str) -> (String, String) {
-    let up_content = format!(r#"-- {}
+    let up_content = format!(
+        r#"-- {}
 -- Add your SQL statements here
 
 -- Example:
@@ -120,9 +160,12 @@ fn generate_generic_migration(name: &str) -> (String, String) {
 -- ALTER TABLE example ADD COLUMN new_column VARCHAR;
 
 -- DROP TABLE IF EXISTS old_table;
-"#, name.replace('_', " ").to_uppercase());
+"#,
+        name.replace('_', " ").to_uppercase()
+    );
 
-    let down_content = format!(r#"-- Rollback {}
+    let down_content = format!(
+        r#"-- Rollback {}
 -- Add rollback SQL statements here
 
 -- Example:
@@ -134,7 +177,9 @@ fn generate_generic_migration(name: &str) -> (String, String) {
 --     id CHAR(26) PRIMARY KEY,
 --     name VARCHAR NOT NULL
 -- );
-"#, name.replace('_', " ").to_uppercase());
+"#,
+        name.replace('_', " ").to_uppercase()
+    );
 
     (up_content, down_content)
 }

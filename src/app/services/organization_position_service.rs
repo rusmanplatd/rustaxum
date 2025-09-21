@@ -3,6 +3,8 @@ use crate::database::DbPool;
 use ulid::Ulid;
 use chrono::Utc;
 use serde_json::{json, Value};
+use diesel::prelude::*;
+use crate::schema::organization_positions;
 
 use crate::app::models::jobposition::JobPosition;
 use crate::app::http::requests::organization_position_requests::{
@@ -13,42 +15,46 @@ pub struct JobPositionService;
 
 impl JobPositionService {
     pub fn index(pool: &DbPool, request: &IndexJobPositionRequest) -> Result<Value> {
-        let mut query = "SELECT * FROM organization_positions WHERE 1=1".to_string();
-        let mut _param_index = 1;
+        let mut conn = pool.get()?;
+
+        let mut query = organization_positions::table.into_boxed();
 
         // Add filters
         if let Some(is_active) = request.is_active {
-            query.push_str(&format!(" AND is_active = {}", is_active));
+            query = query.filter(organization_positions::is_active.eq(is_active));
         }
 
         if let Some(organization_position_level_id) = &request.organization_position_level_id {
-            query.push_str(&format!(" AND organization_position_level_id = '{}'", organization_position_level_id));
+            query = query.filter(organization_positions::organization_position_level_id.eq(organization_position_level_id));
         }
 
         if let Some(name_search) = &request.name_search {
-            query.push_str(&format!(" AND name ILIKE '%{}%'", name_search));
+            query = query.filter(organization_positions::name.ilike(format!("%{}%", name_search)));
         }
 
         // Add sorting
         let sort_by = request.sort_by.as_deref().unwrap_or("created_at");
         let sort_direction = request.sort_direction.as_deref().unwrap_or("desc");
-        query.push_str(&format!(" ORDER BY {} {}", sort_by, sort_direction));
+
+        query = match (sort_by, sort_direction) {
+            ("created_at", "asc") => query.order(organization_positions::created_at.asc()),
+            ("created_at", "desc") => query.order(organization_positions::created_at.desc()),
+            ("name", "asc") => query.order(organization_positions::name.asc()),
+            ("name", "desc") => query.order(organization_positions::name.desc()),
+            _ => query.order(organization_positions::created_at.desc()),
+        };
 
         // Add pagination
         let page = request.page.unwrap_or(1);
         let per_page = request.per_page.unwrap_or(15).min(100);
         let offset = (page - 1) * per_page;
 
-        query.push_str(&format!(" LIMIT {} OFFSET {}", per_page, offset));
+        let organization_positions = query
+            .limit(per_page as i64)
+            .offset(offset as i64)
+            .load::<JobPosition>(&mut conn)?;
 
-        // This is a simplified version - in production you'd want proper parameter binding
-        let organization_positions = sqlx::query_as::<_, JobPosition>("SELECT id, name, code, organization_position_level_id, description, is_active, created_at, updated_at FROM organization_positions ORDER BY created_at DESC LIMIT 15")
-            .fetch_all(pool)
-            ?;
-
-        let total = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM organization_positions")
-            .fetch_one(pool)
-            ?;
+        let total = organization_positions::table.count().get_result::<i64>(&mut conn)?;
 
         Ok(json!({
             "data": organization_positions,
@@ -62,77 +68,65 @@ impl JobPositionService {
     }
 
     pub fn show(pool: &DbPool, id: &str) -> Result<JobPosition> {
-        let organization_position = sqlx::query_as::<_, JobPosition>(
-            "SELECT id, name, code, organization_position_level_id, description, is_active, created_at, updated_at FROM organization_positions WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(pool)
-        ?
-        .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
+        let mut conn = pool.get()?;
+
+        let organization_position = organization_positions::table
+            .filter(organization_positions::id.eq(id))
+            .first::<JobPosition>(&mut conn)
+            .optional()?
+            .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
 
         Ok(organization_position)
     }
 
     pub fn create(pool: &DbPool, request: &CreateJobPositionRequest) -> Result<JobPosition> {
+        let mut conn = pool.get()?;
         let id = Ulid::new();
         let now = Utc::now();
 
-        let organization_position = sqlx::query_as::<_, JobPosition>(
-            r#"
-            INSERT INTO organization_positions (id, name, code, organization_position_level_id, description, is_active, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, true, $6, $7)
-            RETURNING id, name, code, organization_position_level_id, description, is_active, created_at, updated_at
-            "#
-        )
-        .bind(id.to_string())
-        .bind(&request.name)
-        .bind(&request.code)
-        .bind(&request.organization_position_level_id)
-        .bind(&request.description)
-        .bind(now)
-        .bind(now)
-        .fetch_one(pool)
-        ?;
+        let organization_position = diesel::insert_into(organization_positions::table)
+            .values((
+                organization_positions::id.eq(id.to_string()),
+                organization_positions::name.eq(&request.name),
+                organization_positions::code.eq(&request.code),
+                organization_positions::organization_position_level_id.eq(&request.organization_position_level_id),
+                organization_positions::description.eq(&request.description),
+                organization_positions::is_active.eq(true),
+                organization_positions::created_at.eq(now),
+                organization_positions::updated_at.eq(now),
+            ))
+            .get_result::<JobPosition>(&mut conn)?;
 
         Ok(organization_position)
     }
 
     pub fn update(pool: &DbPool, id: &str, request: &UpdateJobPositionRequest) -> Result<JobPosition> {
+        let mut conn = pool.get()?;
         let now = Utc::now();
 
-        let organization_position = sqlx::query_as::<_, JobPosition>(
-            r#"
-            UPDATE organization_positions
-            SET name = COALESCE($2, name),
-                code = COALESCE($3, code),
-                organization_position_level_id = COALESCE($4, organization_position_level_id),
-                description = COALESCE($5, description),
-                is_active = COALESCE($6, is_active),
-                updated_at = $7
-            WHERE id = $1
-            RETURNING id, name, code, organization_position_level_id, description, is_active, created_at, updated_at
-            "#
-        )
-        .bind(id)
-        .bind(&request.name)
-        .bind(&request.code)
-        .bind(&request.organization_position_level_id)
-        .bind(&request.description)
-        .bind(request.is_active)
-        .bind(now)
-        .fetch_optional(pool)
-        ?
-        .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
+        let mut changeset = organization_positions::table.filter(organization_positions::id.eq(id));
+
+        let organization_position = diesel::update(changeset)
+            .set((
+                organization_positions::name.eq(request.name.as_ref().unwrap_or(&"".to_string())),
+                organization_positions::code.eq(request.code.as_ref().unwrap_or(&"".to_string())),
+                organization_positions::organization_position_level_id.eq(request.organization_position_level_id.as_ref().unwrap_or(&"".to_string())),
+                organization_positions::description.eq(request.description.as_ref().unwrap_or(&"".to_string())),
+                organization_positions::is_active.eq(request.is_active.unwrap_or(true)),
+                organization_positions::updated_at.eq(now),
+            ))
+            .get_result::<JobPosition>(&mut conn)
+            .optional()?
+            .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
 
         Ok(organization_position)
     }
 
     pub fn delete(pool: &DbPool, id: &str) -> Result<()> {
-        let rows_affected = sqlx::query("DELETE FROM organization_positions WHERE id = $1")
-            .bind(id)
-            .execute(pool)
-            ?
-            .rows_affected();
+        let mut conn = pool.get()?;
+
+        let rows_affected = diesel::delete(organization_positions::table.filter(organization_positions::id.eq(id)))
+            .execute(&mut conn)?;
 
         if rows_affected == 0 {
             return Err(anyhow::anyhow!("Organization position not found"));
@@ -142,64 +136,52 @@ impl JobPositionService {
     }
 
     pub fn activate(pool: &DbPool, id: &str) -> Result<JobPosition> {
+        let mut conn = pool.get()?;
         let now = Utc::now();
 
-        let organization_position = sqlx::query_as::<_, JobPosition>(
-            r#"
-            UPDATE organization_positions
-            SET is_active = true, updated_at = $2
-            WHERE id = $1
-            RETURNING id, name, code, organization_position_level_id, description, is_active, created_at, updated_at
-            "#
-        )
-        .bind(id)
-        .bind(now)
-        .fetch_optional(pool)
-        ?
-        .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
+        let organization_position = diesel::update(organization_positions::table.filter(organization_positions::id.eq(id)))
+            .set((
+                organization_positions::is_active.eq(true),
+                organization_positions::updated_at.eq(now),
+            ))
+            .get_result::<JobPosition>(&mut conn)
+            .optional()?
+            .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
 
         Ok(organization_position)
     }
 
     pub fn deactivate(pool: &DbPool, id: &str) -> Result<JobPosition> {
+        let mut conn = pool.get()?;
         let now = Utc::now();
 
-        let organization_position = sqlx::query_as::<_, JobPosition>(
-            r#"
-            UPDATE organization_positions
-            SET is_active = false, updated_at = $2
-            WHERE id = $1
-            RETURNING id, name, code, organization_position_level_id, description, is_active, created_at, updated_at
-            "#
-        )
-        .bind(id)
-        .bind(now)
-        .fetch_optional(pool)
-        ?
-        .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
+        let organization_position = diesel::update(organization_positions::table.filter(organization_positions::id.eq(id)))
+            .set((
+                organization_positions::is_active.eq(false),
+                organization_positions::updated_at.eq(now),
+            ))
+            .get_result::<JobPosition>(&mut conn)
+            .optional()?
+            .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
 
         Ok(organization_position)
     }
 
     pub fn by_level(pool: &DbPool, request: &JobPositionsByLevelRequest) -> Result<Value> {
+        let mut conn = pool.get()?;
         let include_inactive = request.include_inactive.unwrap_or(false);
 
-        let mut query = r#"
-            SELECT id, name, code, organization_position_level_id, description, is_active, created_at, updated_at
-            FROM organization_positions
-            WHERE organization_position_level_id = $1
-        "#.to_string();
+        let mut query = organization_positions::table
+            .filter(organization_positions::organization_position_level_id.eq(&request.organization_position_level_id))
+            .into_boxed();
 
         if !include_inactive {
-            query.push_str(" AND is_active = true");
+            query = query.filter(organization_positions::is_active.eq(true));
         }
 
-        query.push_str(" ORDER BY created_at DESC");
-
-        let organization_positions = sqlx::query_as::<_, JobPosition>(&query)
-            .bind(&request.organization_position_level_id)
-            .fetch_all(pool)
-            ?;
+        let organization_positions = query
+            .order(organization_positions::created_at.desc())
+            .load::<JobPosition>(&mut conn)?;
 
         Ok(json!({
             "data": organization_positions.into_iter().map(|jp| jp.to_response()).collect::<Vec<_>>(),

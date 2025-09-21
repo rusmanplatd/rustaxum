@@ -62,7 +62,6 @@ fn to_snake_case(name: &str) -> String {
 fn generate_model_content(model_name: &str) -> String {
 
     format!(r#"use serde::{{Deserialize, Serialize}};
-// use sqlx::{{FromRow, Row, postgres::PgRow}};
 use ulid::Ulid;
 use chrono::{{DateTime, Utc}};
 

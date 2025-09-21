@@ -44,6 +44,7 @@ tests/                     # Test files
 ### Option 1: Docker (Recommended)
 
 1. **Start the application with Docker Compose**:
+
    ```bash
    docker-compose up -d
    ```
@@ -54,6 +55,7 @@ tests/                     # Test files
    - Email Testing (Mailpit): `http://localhost:8025`
 
 3. **Stop the application**:
+
    ```bash
    docker-compose down
    ```
@@ -61,17 +63,20 @@ tests/                     # Test files
 ### Option 2: Local Development
 
 1. **Install dependencies**:
+
    ```bash
    cargo build
    ```
 
 2. **Set up environment**:
+
    ```bash
    cp .env.example .env
    # Edit .env with your configuration
    ```
 
 3. **Run the application**:
+
    ```bash
    cargo run
    ```
@@ -81,14 +86,17 @@ The server will start on `http://localhost:3000`.
 ## API Endpoints
 
 ### Authentication
+
 - `POST /api/auth/login` - User login
 - `POST /api/auth/register` - User registration
 
 ### Users
+
 - `GET /api/users` - List all users
 - `GET /api/users/:id` - Get user by ID
 
 ### Web Routes
+
 - `GET /` - Welcome page
 - `GET /health` - Health check
 
@@ -99,9 +107,11 @@ See `.env.example` for all available configuration options.
 ## Database Setup
 
 ### With Docker
+
 The PostgreSQL database is automatically set up when using `docker-compose up`.
 
 ### Local Development
+
 1. Create a PostgreSQL database
 2. Update `DATABASE_URL` in your `.env` file
 3. Run migrations (when implemented)
@@ -149,7 +159,7 @@ The project follows Laravel conventions adapted for Rust:
 
 - **axum**: Web framework
 - **tokio**: Async runtime
-- **sqlx**: Database toolkit
+- **diesel**: Database ORM
 - **serde**: Serialization
 - **tower**: Middleware
 - **tracing**: Logging

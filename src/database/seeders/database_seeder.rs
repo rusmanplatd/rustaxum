@@ -2,18 +2,18 @@ use crate::database::DbPool;
 use anyhow::Result;
 use crate::database::seeder::{Seeder, SeederContext};
 use crate::database::seeders::{
-    countryseeder::Countryseeder,
-    provinceseeder::Provinceseeder,
-    cityseeder::Cityseeder,
-    userseeder::UserSeeder,
-    rolepermissionseeder::RolePermissionSeeder,
-    organizationseeder::OrganizationSeeder,
-    joblevelpositionseeder::OrganizationPositionLevelSeeder,
+    country_seeder::Countryseeder,
+    province_seeder::Provinceseeder,
+    city_seeder::Cityseeder,
+    user_seeder::UserSeeder,
+    role_permission_seeder::RolePermissionSeeder,
+    organization_seeder::OrganizationSeeder,
+    organization_position_level_seeder::OrganizationPositionLevelSeeder,
 };
 
-pub struct Databaseseeder;
+pub struct DatabaseSeeder;
 
-impl Seeder for Databaseseeder {
+impl Seeder for DatabaseSeeder {
     fn class_name(&self) -> &'static str {
         "DatabaseSeeder"
     }

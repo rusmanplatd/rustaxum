@@ -69,14 +69,14 @@ pub enum RegisteredSeeder {
 impl RegisteredSeeder {
     pub fn run(&self, pool: &DbPool) -> Result<()> {
         use crate::database::seeders::{
-            countryseeder::Countryseeder,
-            provinceseeder::Provinceseeder,
-            cityseeder::Cityseeder,
-            databaseseeder::Databaseseeder,
-            userseeder::UserSeeder,
-            rolepermissionseeder::RolePermissionSeeder,
-            organizationseeder::OrganizationSeeder,
-            joblevelpositionseeder::OrganizationPositionLevelSeeder,
+            country_seeder::Countryseeder,
+            province_seeder::Provinceseeder,
+            city_seeder::Cityseeder,
+            database_seeder::DatabaseSeeder,
+            user_seeder::UserSeeder,
+            role_permission_seeder::RolePermissionSeeder,
+            organization_seeder::OrganizationSeeder,
+            organization_position_level_seeder::OrganizationPositionLevelSeeder,
         };
 
         match self {
@@ -93,7 +93,7 @@ impl RegisteredSeeder {
                 seeder.run(pool)
             }
             RegisteredSeeder::Database => {
-                let seeder = Databaseseeder;
+                let seeder = DatabaseSeeder;
                 seeder.run(pool)
             }
             RegisteredSeeder::User => {
@@ -191,7 +191,7 @@ pub fn registry() -> &'static SeederRegistry {
 }
 
 /// Run a specific seeder by class name
-pub async fn call(class_name: &str, pool: &DbPool) -> Result<()> {
+pub fn call(class_name: &str, pool: &DbPool) -> Result<()> {
     let registry = registry();
 
     match registry.find(class_name) {
@@ -201,7 +201,7 @@ pub async fn call(class_name: &str, pool: &DbPool) -> Result<()> {
                 println!("   {}", desc);
             }
             let start = std::time::Instant::now();
-            seeder.run(pool).await?;
+            seeder.run(pool)?;
             let duration = start.elapsed();
             println!("✅ Seeded: {} ({:?})", seeder.class_name(), duration);
             Ok(())
@@ -213,10 +213,10 @@ pub async fn call(class_name: &str, pool: &DbPool) -> Result<()> {
 }
 
 /// Run all seeders using DatabaseSeeder as entry point (Laravel approach)
-pub async fn seed(pool: &DbPool) -> Result<()> {
+pub fn seed(pool: &DbPool) -> Result<()> {
     // Try to run DatabaseSeeder first (Laravel convention)
     if registry().exists("DatabaseSeeder") {
-        return call("DatabaseSeeder", pool).await;
+        return call("DatabaseSeeder", pool);
     }
 
     // Fallback: run all registered seeders if no DatabaseSeeder exists
@@ -232,7 +232,7 @@ pub async fn seed(pool: &DbPool) -> Result<()> {
 
     for name in seeder_names {
         if name != "DatabaseSeeder" { // Avoid infinite recursion
-            call(&name, pool).await?;
+            call(&name, pool)?;
         }
     }
 

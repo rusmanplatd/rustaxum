@@ -10,7 +10,6 @@ pub mod scopes;
 pub mod cache;
 
 use serde::{Serialize, Deserialize};
-// use sqlx::{FromRow, postgres::PgRow};
 use std::collections::HashMap;
 
 pub use builder::QueryBuilder;

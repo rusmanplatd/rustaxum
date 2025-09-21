@@ -113,23 +113,24 @@ impl OrganizationPositionLevelService {
     }
 
     pub fn find_active_levels(pool: &DbPool) -> Result<Vec<OrganizationPositionLevel>> {
-        let query = "SELECT * FROM OrganizationPositionLevel WHERE is_active = true ORDER BY level ASC";
+        let mut conn = pool.get()?;
 
-        let results = sqlx::query_as::<_, OrganizationPositionLevel>(query)
-            .fetch_all(pool)
-            ?;
+        let results = OrganizationPositionLevel::table
+            .filter(OrganizationPositionLevel::is_active.eq(true))
+            .order(OrganizationPositionLevel::level.asc())
+            .load::<OrganizationPositionLevel>(&mut conn)?;
 
         Ok(results)
     }
 
     pub fn find_by_level_range(pool: &DbPool, min_level: i32, max_level: i32) -> Result<Vec<OrganizationPositionLevel>> {
-        let query = "SELECT * FROM OrganizationPositionLevel WHERE level >= $1 AND level <= $2 ORDER BY level ASC";
+        let mut conn = pool.get()?;
 
-        let results = sqlx::query_as::<_, OrganizationPositionLevel>(query)
-            .bind(min_level)
-            .bind(max_level)
-            .fetch_all(pool)
-            ?;
+        let results = OrganizationPositionLevel::table
+            .filter(OrganizationPositionLevel::level.ge(min_level))
+            .filter(OrganizationPositionLevel::level.le(max_level))
+            .order(OrganizationPositionLevel::level.asc())
+            .load::<OrganizationPositionLevel>(&mut conn)?;
 
         Ok(results)
     }
