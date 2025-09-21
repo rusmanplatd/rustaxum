@@ -1,9 +1,6 @@
 pub mod validator;
 pub mod errors;
 pub mod rules;
-pub mod examples;
-pub mod usage_example;
-pub mod complete_rules_example;
 
 pub use validator::{Validator, make_validator};
 pub use errors::{ValidationError, ValidationErrors};
@@ -58,10 +55,10 @@ macro_rules! validation_rules {
 }
 
 // Helper functions for common validation scenarios
-pub fn validate_json(data: serde_json::Value, rules: ValidationRules) -> Result<(), ValidationErrors> {
-    tokio::runtime::Runtime::new().unwrap().block_on(async {
-        make_validator(data, rules).validate().await
-    })
+pub async fn validate_json(data: serde_json::Value, rules: ValidationRules) -> Result<(), ValidationErrors> {
+    // tokio::runtime::Runtime::new().unwrap().block_on(async {
+    // })
+    make_validator(data, rules).validate().await
 }
 
 pub async fn validate_json_async(data: serde_json::Value, rules: ValidationRules) -> Result<(), ValidationErrors> {

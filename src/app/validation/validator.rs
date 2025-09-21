@@ -60,6 +60,14 @@ impl Validator {
     }
 
     async fn validate_nested_object(&self, base_field: &str, obj: &Value, _rules: &[String], errors: &mut ValidationErrors) {
+        // Add recursion depth limit to prevent stack overflow
+        const MAX_DEPTH: usize = 10;
+        let depth = base_field.matches('.').count() + base_field.matches('[').count();
+
+        if depth >= MAX_DEPTH {
+            return;
+        }
+
         if let Value::Object(map) = obj {
             for (key, value) in map {
                 let nested_field = format!("{}.{}", base_field, key);
@@ -81,36 +89,44 @@ impl Validator {
 
     fn validate_deep_nested<'a>(&'a self, base_field: &'a str, value: &'a Value, errors: &'a mut ValidationErrors) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'a>> {
         Box::pin(async move {
-        match value {
-            Value::Object(map) => {
-                for (key, val) in map {
-                    let nested_field = format!("{}.{}", base_field, key);
+            // Add recursion depth limit to prevent stack overflow
+            const MAX_DEPTH: usize = 10;
+            let depth = base_field.matches('.').count() + base_field.matches('[').count();
 
-                    // Check for wildcard rules that match this path
-                    for (rule_field, rules) in &self.rules {
-                        if self.matches_wildcard_pattern(rule_field, &nested_field) {
-                            if let Err(validation_error) = self.validate_nested_rule(&nested_field, rules, val).await {
-                                errors.add(&nested_field, &validation_error.rule, &validation_error.message);
+            if depth >= MAX_DEPTH {
+                return;
+            }
+
+            match value {
+                Value::Object(map) => {
+                    for (key, val) in map {
+                        let nested_field = format!("{}.{}", base_field, key);
+
+                        // Check for wildcard rules that match this path
+                        for (rule_field, rules) in &self.rules {
+                            if self.matches_wildcard_pattern(rule_field, &nested_field) {
+                                if let Err(validation_error) = self.validate_nested_rule(&nested_field, rules, val).await {
+                                    errors.add(&nested_field, &validation_error.rule, &validation_error.message);
+                                }
                             }
                         }
-                    }
 
-                    if val.is_object() || val.is_array() {
-                        self.validate_deep_nested(&nested_field, val, errors).await;
+                        if val.is_object() || val.is_array() {
+                            self.validate_deep_nested(&nested_field, val, errors).await;
+                        }
                     }
-                }
-            },
-            Value::Array(arr) => {
-                for (index, item) in arr.iter().enumerate() {
-                    let indexed_field = format!("{}[{}]", base_field, index);
+                },
+                Value::Array(arr) => {
+                    for (index, item) in arr.iter().enumerate() {
+                        let indexed_field = format!("{}[{}]", base_field, index);
 
-                    if item.is_object() || item.is_array() {
-                        self.validate_deep_nested(&indexed_field, item, errors).await;
+                        if item.is_object() || item.is_array() {
+                            self.validate_deep_nested(&indexed_field, item, errors).await;
+                        }
                     }
-                }
-            },
-            _ => {}
-        }
+                },
+                _ => {}
+            }
         })
     }
 
