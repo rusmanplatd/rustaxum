@@ -87,9 +87,9 @@ pub async fn index(
     let limit = params.limit.unwrap_or(20);
     let offset = params.offset.unwrap_or(0);
 
-    match PermissionService::list(&pool, limit, offset).await {
+    match PermissionService::list(&pool, limit, offset) {
         Ok(permissions) => {
-            let total = PermissionService::count(&pool).await.unwrap_or(0);
+            let total = PermissionService::count(&pool).unwrap_or(0);
             let permission_data: Vec<PermissionData> = permissions.into_iter().map(PermissionData::from).collect();
             let response = PermissionListResponse {
                 data: permission_data,
@@ -121,7 +121,7 @@ pub async fn store(
         action: payload.action,
     };
 
-    match PermissionService::create(&pool, create_permission).await {
+    match PermissionService::create(&pool, create_permission) {
         Ok(permission) => {
             let permission_data = PermissionData::from(permission);
             (StatusCode::CREATED, Json(json!({
@@ -151,7 +151,7 @@ pub async fn show(
         }
     };
 
-    match PermissionService::find_by_id(&pool, permission_id).await {
+    match PermissionService::find_by_id(&pool, permission_id) {
         Ok(Some(permission)) => {
             let permission_data = PermissionData::from(permission);
             (StatusCode::OK, Json(json!({
@@ -194,7 +194,7 @@ pub async fn update(
         action: payload.action,
     };
 
-    match PermissionService::update(&pool, permission_id, update_permission).await {
+    match PermissionService::update(&pool, permission_id, update_permission) {
         Ok(permission) => {
             let permission_data = PermissionData::from(permission);
             (StatusCode::OK, Json(json!({
@@ -224,7 +224,7 @@ pub async fn destroy(
         }
     };
 
-    match PermissionService::delete(&pool, permission_id).await {
+    match PermissionService::delete(&pool, permission_id) {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Permission deleted successfully"
@@ -262,7 +262,7 @@ pub async fn assign_to_role(
         }
     };
 
-    match PermissionService::assign_to_role(&pool, role_id, permission_id).await {
+    match PermissionService::assign_to_role(&pool, role_id, permission_id) {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Permission assigned to role successfully"
@@ -299,7 +299,7 @@ pub async fn remove_from_role(
         }
     };
 
-    match PermissionService::remove_from_role(&pool, role_id, permission_id).await {
+    match PermissionService::remove_from_role(&pool, role_id, permission_id) {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Permission removed from role successfully"
@@ -327,7 +327,7 @@ pub async fn get_role_permissions(
         }
     };
 
-    match PermissionService::get_role_permissions(&pool, role_id, None).await {
+    match PermissionService::get_role_permissions(&pool, role_id, None) {
         Ok(permissions) => {
             let permission_data: Vec<PermissionData> = permissions.into_iter().map(PermissionData::from).collect();
             (StatusCode::OK, Json(json!({
@@ -357,7 +357,7 @@ pub async fn get_user_permissions(
         }
     };
 
-    match SysModelHasPermissionService::get_model_permissions(&pool, User::model_type(), user_id, None).await {
+    match SysModelHasPermissionService::get_model_permissions(&pool, User::model_type(), user_id, None) {
         Ok(permissions) => {
             let permission_data: Vec<PermissionData> = permissions.into_iter().map(PermissionData::from).collect();
             (StatusCode::OK, Json(json!({

@@ -35,7 +35,7 @@ pub async fn index(
     State(pool): State<DbPool>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    match SysModelHasRoleService::list(&pool, params).await {
+    match SysModelHasRoleService::list(&pool, params) {
         Ok(roles) => {
             let responses: Vec<_> = roles.into_iter().map(|r| r.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()
@@ -76,7 +76,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         }
     };
 
-    match SysModelHasRoleService::find_by_id(&pool, role_id).await {
+    match SysModelHasRoleService::find_by_id(&pool, role_id) {
         Ok(Some(role)) => (StatusCode::OK, ResponseJson(role.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -115,7 +115,7 @@ pub async fn store(State(pool): State<DbPool>, request: CreateSysModelHasRoleReq
         scope_id: request.scope_id,
     };
 
-    match SysModelHasRoleService::create(&pool, payload).await {
+    match SysModelHasRoleService::create(&pool, payload) {
         Ok(role) => (StatusCode::CREATED, ResponseJson(role.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -166,7 +166,7 @@ pub async fn update(
         scope_id: request.scope_id,
     };
 
-    match SysModelHasRoleService::update(&pool, role_id, payload).await {
+    match SysModelHasRoleService::update(&pool, role_id, payload) {
         Ok(role) => (StatusCode::OK, ResponseJson(role.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -204,7 +204,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     };
 
-    match SysModelHasRoleService::delete(&pool, role_id).await {
+    match SysModelHasRoleService::delete(&pool, role_id) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Model role deleted successfully".to_string(),
@@ -255,7 +255,7 @@ pub async fn by_model(State(pool): State<DbPool>, Path((model_type, model_id)): 
         }
     };
 
-    match SysModelHasRoleService::find_by_model(&pool, &model_type, model_ulid).await {
+    match SysModelHasRoleService::find_by_model(&pool, &model_type, model_ulid) {
         Ok(roles) => {
             let responses: Vec<_> = roles.into_iter().map(|r| r.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()

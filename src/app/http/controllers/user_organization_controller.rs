@@ -11,6 +11,7 @@ use crate::app::http::requests::user_organization_requests::{
     CreateUserOrganizationRequest,
     UpdateUserOrganizationRequest,
 };
+use crate::app::services::user_organization_service::UserOrganizationService;
 use crate::query_builder::{QueryBuilder, QueryParams};
 
 /// Get all user organization relationships with filtering and pagination
@@ -82,13 +83,8 @@ pub async fn show(
         }
     };
 
-    match sqlx::query_as::<_, UserOrganization>(
-        "SELECT * FROM user_organizations WHERE id = $1"
-    )
-    .bind(user_org_id.to_string())
-    .fetch_optional(&pool)
-    .await
-    {
+    match UserOrganizationService::find_by_id(&pool, user_org_id)
+        {
         Ok(Some(user_org)) => {
             (StatusCode::OK, Json(serde_json::json!(user_org.to_response()))).into_response()
         },
@@ -153,34 +149,17 @@ pub async fn store(
         }
     };
 
-    // Create the user organization relationship
-    let user_org = UserOrganization::new(
-        user_id,
-        organization_id,
-        job_position_id,
-        request.started_at,
-    );
+    // Create the user organization relationship using service
+    let create_data = crate::app::models::userorganization::CreateUserOrganization {
+        user_id: user_id.to_string(),
+        organization_id: organization_id.to_string(),
+        job_position_id: job_position_id.to_string(),
+        started_at: request.started_at,
+    };
 
-    // Insert into database
-    match sqlx::query(
-        r#"
-        INSERT INTO user_organizations (id, user_id, organization_id, job_position_id, is_active, started_at, ended_at, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        "#
-    )
-    .bind(user_org.id.to_string())
-    .bind(user_org.user_id.to_string())
-    .bind(user_org.organization_id.to_string())
-    .bind(user_org.job_position_id.to_string())
-    .bind(user_org.is_active)
-    .bind(user_org.started_at)
-    .bind(user_org.ended_at)
-    .bind(user_org.created_at)
-    .bind(user_org.updated_at)
-    .execute(&pool)
-    .await
-    {
-        Ok(_) => {
+    match UserOrganizationService::create(&pool, create_data)
+        {
+        Ok(user_org) => {
             (StatusCode::CREATED, Json(serde_json::json!(user_org.to_response()))).into_response()
         },
         Err(_) => {
@@ -226,13 +205,8 @@ pub async fn update(
     };
 
     // Fetch the existing user organization relationship
-    let mut user_org = match sqlx::query_as::<_, UserOrganization>(
-        "SELECT * FROM user_organizations WHERE id = $1"
-    )
-    .bind(user_org_id.to_string())
-    .fetch_optional(&pool)
-    .await
-    {
+    let mut user_org = match UserOrganizationService::find_by_id(&pool, user_org_id)
+        {
         Ok(Some(user_org)) => user_org,
         Ok(None) => {
             return (StatusCode::NOT_FOUND, Json(serde_json::json!({
@@ -246,63 +220,20 @@ pub async fn update(
         }
     };
 
-    // Update fields if provided
-    if let Some(organization_id_str) = &request.organization_id {
-        match Ulid::from_string(organization_id_str) {
-            Ok(org_id) => user_org.organization_id = org_id,
-            Err(_) => {
-                return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
-                    "error": "Invalid organization ID format"
-                }))).into_response();
-            }
-        }
-    }
+    // Create update data structure and validate
+    let update_data = crate::app::models::userorganization::UpdateUserOrganization {
+        organization_id: request.organization_id,
+        job_position_id: request.job_position_id,
+        is_active: request.is_active,
+        started_at: request.started_at,
+        ended_at: request.ended_at,
+    };
 
-    if let Some(job_position_id_str) = &request.job_position_id {
-        match Ulid::from_string(job_position_id_str) {
-            Ok(pos_id) => user_org.job_position_id = pos_id,
-            Err(_) => {
-                return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
-                    "error": "Invalid job position ID format"
-                }))).into_response();
-            }
-        }
-    }
-
-    if let Some(is_active) = request.is_active {
-        user_org.is_active = is_active;
-    }
-
-    if let Some(started_at) = request.started_at {
-        user_org.started_at = started_at;
-    }
-
-    if let Some(ended_at) = request.ended_at {
-        user_org.ended_at = Some(ended_at);
-    }
-
-    user_org.updated_at = chrono::Utc::now();
-
-    // Update in database
-    match sqlx::query(
-        r#"
-        UPDATE user_organizations
-        SET organization_id = $2, job_position_id = $3, is_active = $4, started_at = $5, ended_at = $6, updated_at = $7
-        WHERE id = $1
-        "#
-    )
-    .bind(user_org.id.to_string())
-    .bind(user_org.organization_id.to_string())
-    .bind(user_org.job_position_id.to_string())
-    .bind(user_org.is_active)
-    .bind(user_org.started_at)
-    .bind(user_org.ended_at)
-    .bind(user_org.updated_at)
-    .execute(&pool)
-    .await
-    {
-        Ok(_) => {
-            (StatusCode::OK, Json(serde_json::json!(user_org.to_response()))).into_response()
+    // Update in database using service
+    match UserOrganizationService::update(&pool, user_org_id, update_data)
+        {
+        Ok(updated_user_org) => {
+            (StatusCode::OK, Json(serde_json::json!(updated_user_org.to_response()))).into_response()
         },
         Err(_) => {
             (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
@@ -343,15 +274,9 @@ pub async fn destroy(
         }
     };
 
-    // Check if exists first
-    let exists = match sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM user_organizations WHERE id = $1"
-    )
-    .bind(user_org_id.to_string())
-    .fetch_one(&pool)
-    .await
-    {
-        Ok(count) => count > 0,
+    // Check if exists first and delete if found
+    let exists = match UserOrganizationService::find_by_id(&pool, user_org_id) {
+        Ok(result) => result.is_some(),
         Err(_) => {
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
                 "error": "Failed to check if user organization relationship exists"
@@ -365,12 +290,9 @@ pub async fn destroy(
         }))).into_response();
     }
 
-    // Delete from database
-    match sqlx::query("DELETE FROM user_organizations WHERE id = $1")
-        .bind(user_org_id.to_string())
-        .execute(&pool)
-        .await
-    {
+    // Delete from database using service
+    match UserOrganizationService::delete(&pool, user_org_id)
+            {
         Ok(_) => {
             (StatusCode::NO_CONTENT, Json(serde_json::json!({}))).into_response()
         },
@@ -448,13 +370,8 @@ pub async fn transfer(
     };
 
     // Fetch the current user organization relationship
-    let mut user_org = match sqlx::query_as::<_, UserOrganization>(
-        "SELECT * FROM user_organizations WHERE id = $1"
-    )
-    .bind(user_org_id.to_string())
-    .fetch_optional(&pool)
-    .await
-    {
+    let mut user_org = match UserOrganizationService::find_by_id(&pool, user_org_id)
+        {
         Ok(Some(user_org)) => user_org,
         Ok(None) => {
             return (StatusCode::NOT_FOUND, Json(serde_json::json!({
@@ -469,7 +386,7 @@ pub async fn transfer(
     };
 
     // Perform the transfer
-    match user_org.transfer_to_organization(&pool, new_organization_id, new_job_position_id).await {
+    match user_org.transfer_to_organization(&pool, new_organization_id, new_job_position_id) {
         Ok(_) => {
             (StatusCode::OK, Json(serde_json::json!({
                 "message": "User transferred successfully"
@@ -515,13 +432,8 @@ pub async fn activate(
     };
 
     // Fetch the user organization relationship
-    let mut user_org = match sqlx::query_as::<_, UserOrganization>(
-        "SELECT * FROM user_organizations WHERE id = $1"
-    )
-    .bind(user_org_id.to_string())
-    .fetch_optional(&pool)
-    .await
-    {
+    let mut user_org = match UserOrganizationService::find_by_id(&pool, user_org_id)
+        {
         Ok(Some(user_org)) => user_org,
         Ok(None) => {
             return (StatusCode::NOT_FOUND, Json(serde_json::json!({
@@ -536,7 +448,7 @@ pub async fn activate(
     };
 
     // Activate the relationship
-    match user_org.activate(&pool).await {
+    match user_org.activate(&pool) {
         Ok(_) => {
             (StatusCode::OK, Json(serde_json::json!(user_org.to_response()))).into_response()
         },
@@ -580,13 +492,8 @@ pub async fn deactivate(
     };
 
     // Fetch the user organization relationship
-    let mut user_org = match sqlx::query_as::<_, UserOrganization>(
-        "SELECT * FROM user_organizations WHERE id = $1"
-    )
-    .bind(user_org_id.to_string())
-    .fetch_optional(&pool)
-    .await
-    {
+    let mut user_org = match UserOrganizationService::find_by_id(&pool, user_org_id)
+        {
         Ok(Some(user_org)) => user_org,
         Ok(None) => {
             return (StatusCode::NOT_FOUND, Json(serde_json::json!({
@@ -601,7 +508,7 @@ pub async fn deactivate(
     };
 
     // Deactivate the relationship
-    match user_org.deactivate(&pool).await {
+    match user_org.deactivate(&pool) {
         Ok(_) => {
             (StatusCode::OK, Json(serde_json::json!(user_org.to_response()))).into_response()
         },

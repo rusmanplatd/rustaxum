@@ -5,6 +5,7 @@ use regex::Regex;
 use crate::database::DbPool;
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
+use diesel::prelude::*;
 
 #[async_trait]
 pub trait Rule: Send + Sync {
@@ -275,13 +276,13 @@ impl Rule for UniqueRule {
             };
 
             let query = format!("SELECT COUNT(*) as count FROM {} WHERE {} = $1", self.table, column);
+            let mut conn = db.get().map_err(|_| ValidationError::new("unique", "Unable to get database connection."))?;
 
-            match sqlx::query_scalar::<_, i64>(&query)
-                .bind(&str_value)
-                .fetch_one(db)
-                .await
+            match diesel::sql_query(query)
+                .bind::<diesel::sql_types::Text, _>(&str_value)
+                .get_result::<(i64,)>(&mut conn)
             {
-                Ok(count) => {
+                Ok((count,)) => {
                     if count > 0 {
                         Err(ValidationError::new("unique", &format!("The {} has already been taken.", field)))
                     } else {
@@ -1172,13 +1173,13 @@ impl Rule for ExistsRule {
             };
 
             let query = format!("SELECT COUNT(*) as count FROM {} WHERE {} = $1", self.table, column);
+            let mut conn = db.get().map_err(|_| ValidationError::new("exists", "Unable to get database connection."))?;
 
-            match sqlx::query_scalar::<_, i64>(&query)
-                .bind(&str_value)
-                .fetch_one(db)
-                .await
+            match diesel::sql_query(query)
+                .bind::<diesel::sql_types::Text, _>(&str_value)
+                .get_result::<(i64,)>(&mut conn)
             {
-                Ok(count) => {
+                Ok((count,)) => {
                     if count > 0 {
                         Ok(())
                     } else {

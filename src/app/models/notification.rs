@@ -4,27 +4,46 @@ use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::query_builder::{Queryable, SortDirection};
+use crate::schema::notifications;
 
 /// Database notification model
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, diesel::Queryable, Identifiable, QueryableByName)]
+#[diesel(table_name = crate::schema::notifications)]
 pub struct Notification {
     /// Unique notification identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub id: Ulid,
-    /// Type of notification (class name)
+    /// Type of notification (class name) - maps to schema type_ field
     #[schema(example = "InvoicePaidNotification")]
+    #[diesel(column_name = type_)]
     pub notification_type: String,
-    /// ID of the notifiable entity
-    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub notifiable_id: String,
     /// Type of the notifiable entity
     #[schema(example = "User")]
     pub notifiable_type: String,
+    /// ID of the notifiable entity
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub notifiable_id: String,
     /// Notification data as JSON
     pub data: serde_json::Value,
+    /// Channels where notification will be sent
+    pub channels: Option<Vec<Option<String>>>,
     /// When the notification was read
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub read_at: Option<DateTime<Utc>>,
+    /// When the notification was sent
+    pub sent_at: Option<DateTime<Utc>>,
+    /// When the notification failed
+    pub failed_at: Option<DateTime<Utc>>,
+    /// Number of retry attempts
+    pub retry_count: Option<i32>,
+    /// Maximum number of retries
+    pub max_retries: Option<i32>,
+    /// Error message if failed
+    pub error_message: Option<String>,
+    /// Notification priority
+    pub priority: Option<i32>,
+    /// When notification should be sent
+    pub scheduled_at: Option<DateTime<Utc>>,
     /// Notification creation timestamp
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub created_at: DateTime<Utc>,
@@ -72,10 +91,18 @@ impl Notification {
         Self {
             id: Ulid::new(),
             notification_type,
-            notifiable_id,
             notifiable_type,
+            notifiable_id,
             data,
+            channels: None,
             read_at: None,
+            sent_at: None,
+            failed_at: None,
+            retry_count: None,
+            max_retries: None,
+            error_message: None,
+            priority: None,
+            scheduled_at: None,
             created_at: now,
             updated_at: now,
         }

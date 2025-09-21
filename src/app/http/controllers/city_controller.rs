@@ -34,7 +34,7 @@ pub async fn index(
     State(pool): State<DbPool>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    match CityService::list(&pool, params).await {
+    match CityService::list(&pool, params) {
         Ok(cities) => {
             let responses: Vec<_> = cities.into_iter().map(|c| c.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()
@@ -59,7 +59,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         }
     };
 
-    match CityService::find_by_id(&pool, city_id).await {
+    match CityService::find_by_id(&pool, city_id) {
         Ok(Some(city)) => (StatusCode::OK, ResponseJson(city.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -85,7 +85,7 @@ pub async fn store(State(pool): State<DbPool>, request: CreateCityRequest) -> im
         longitude: request.longitude,
     };
 
-    match CityService::create(&pool, payload).await {
+    match CityService::create(&pool, payload) {
         Ok(city) => (StatusCode::CREATED, ResponseJson(city.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -119,7 +119,7 @@ pub async fn update(
         longitude: request.longitude,
     };
 
-    match CityService::update(&pool, city_id, payload).await {
+    match CityService::update(&pool, city_id, payload) {
         Ok(city) => (StatusCode::OK, ResponseJson(city.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -141,7 +141,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     };
 
-    match CityService::delete(&pool, city_id).await {
+    match CityService::delete(&pool, city_id) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "City deleted successfully".to_string(),
@@ -168,7 +168,7 @@ pub async fn by_province(State(pool): State<DbPool>, Path(province_id): Path<Str
         }
     };
 
-    match CityService::find_by_province_id(&pool, province_ulid).await {
+    match CityService::find_by_province_id(&pool, province_ulid) {
         Ok(cities) => {
             let responses: Vec<_> = cities.into_iter().map(|c| c.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()
@@ -188,7 +188,7 @@ pub async fn nearby(
 ) -> impl IntoResponse {
     let radius = query.radius.unwrap_or(Decimal::from(10)); // Default 10km radius
 
-    match CityService::find_by_coordinates(&pool, query.lat, query.lng, radius).await {
+    match CityService::find_by_coordinates(&pool, query.lat, query.lng, radius) {
         Ok(cities) => {
             let responses: Vec<_> = cities.into_iter().map(|c| c.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()

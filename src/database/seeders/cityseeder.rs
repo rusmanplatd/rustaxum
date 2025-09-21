@@ -9,6 +9,8 @@ use serde::Deserialize;
 use ulid::Ulid;
 use rust_decimal::Decimal;
 use std::str::FromStr;
+use diesel::prelude::*;
+use crate::schema::cities;
 
 #[derive(Debug, Deserialize)]
 struct CityRecord {
@@ -31,13 +33,16 @@ impl Seeder for Cityseeder {
         Some("Seeds cities table from CSV data with coordinates, requires provinces")
     }
 
-    async fn run(&self, pool: &DbPool) -> Result<()> {
+    fn run(&self, pool: &DbPool) -> Result<()> {
         println!("Seeding cities from CSV...");
+        let mut conn = pool.get()?;
 
         // Check if cities already exist
-        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM cities")
-            .fetch_one(pool)
-            .await?;
+        let count: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM cities")
+            .load::<(i64,)>(&mut conn)?
+            .first()
+            .map(|(c,)| *c)
+            .unwrap_or(0);
 
         if count > 0 {
             println!("Cities table already has {} records. Skipping seeding.", count);
@@ -45,13 +50,12 @@ impl Seeder for Cityseeder {
         }
 
         // Get province mappings from database with country info
-        let provinces: Vec<(String, String, String)> = sqlx::query_as(
+        let provinces: Vec<(String, String, String)> = diesel::sql_query(
             "SELECT p.code, p.id, c.iso_code
              FROM provinces p
              JOIN countries c ON p.country_id = c.id"
         )
-        .fetch_all(pool)
-        .await?;
+        .load::<(String, String, String)>(&mut conn)?;
 
         let province_map: HashMap<String, Ulid> = provinces
             .into_iter()
@@ -94,20 +98,18 @@ impl Seeder for Cityseeder {
                 longitude,
             );
 
-            sqlx::query(
-                "INSERT INTO cities (id, province_id, name, code, latitude, longitude, created_at, updated_at)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
-            )
-            .bind(city.id.to_string())
-            .bind(city.province_id.to_string())
-            .bind(city.name)
-            .bind(city.code)
-            .bind(city.latitude)
-            .bind(city.longitude)
-            .bind(city.created_at)
-            .bind(city.updated_at)
-            .execute(pool)
-            .await?;
+            diesel::insert_into(cities::table)
+                .values((
+                    cities::id.eq(city.id.to_string()),
+                    cities::province_id.eq(city.province_id.to_string()),
+                    cities::name.eq(&city.name),
+                    cities::code.eq(&city.code),
+                    cities::latitude.eq(city.latitude),
+                    cities::longitude.eq(city.longitude),
+                    cities::created_at.eq(city.created_at),
+                    cities::updated_at.eq(city.updated_at),
+                ))
+                .execute(&mut conn)?;
 
             inserted_count += 1;
         }

@@ -26,7 +26,7 @@ pub async fn index(
     State(pool): State<DbPool>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    match ProvinceService::list(&pool, params).await {
+    match ProvinceService::list(&pool, params) {
         Ok(provinces) => {
             let responses: Vec<_> = provinces.into_iter().map(|p| p.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()
@@ -51,7 +51,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         }
     };
 
-    match ProvinceService::find_by_id(&pool, province_id).await {
+    match ProvinceService::find_by_id(&pool, province_id) {
         Ok(Some(province)) => (StatusCode::OK, ResponseJson(province.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -75,7 +75,7 @@ pub async fn store(State(pool): State<DbPool>, request: CreateProvinceRequest) -
         code: request.code,
     };
 
-    match ProvinceService::create(&pool, payload).await {
+    match ProvinceService::create(&pool, payload) {
         Ok(province) => (StatusCode::CREATED, ResponseJson(province.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -107,7 +107,7 @@ pub async fn update(
         code: request.code,
     };
 
-    match ProvinceService::update(&pool, province_id, payload).await {
+    match ProvinceService::update(&pool, province_id, payload) {
         Ok(province) => (StatusCode::OK, ResponseJson(province.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -129,7 +129,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     };
 
-    match ProvinceService::delete(&pool, province_id).await {
+    match ProvinceService::delete(&pool, province_id) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Province deleted successfully".to_string(),
@@ -156,7 +156,7 @@ pub async fn by_country(State(pool): State<DbPool>, Path(country_id): Path<Strin
         }
     };
 
-    match ProvinceService::find_by_country_id(&pool, country_ulid).await {
+    match ProvinceService::find_by_country_id(&pool, country_ulid) {
         Ok(provinces) => {
             let responses: Vec<_> = provinces.into_iter().map(|p| p.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()

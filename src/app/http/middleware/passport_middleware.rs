@@ -77,26 +77,21 @@ async fn authenticate_request(
             )
         })?;
 
-    // Fetch user from database using query_as to avoid SQLx macro issues
-    let user = sqlx::query_as::<_, User>(
-        "SELECT id, email, name, email_verified_at, password_hash, created_at, updated_at FROM sys_users WHERE id = $1 AND deleted_at IS NULL"
-    )
-    .bind(user_id.to_string())
-    .fetch_optional(pool)
-    .await
-    .map_err(|e| {
-        tracing::error!("Database error fetching user: {}", e);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"error": "Authentication service error"})),
-        )
-    })?
-    .ok_or_else(|| {
-        (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({"error": "User not found or account deactivated"})),
-        )
-    })?;
+    // Fetch user from database using UserService
+    let user = crate::app::services::user_service::UserService::find_by_id(pool, user_id)
+        .map_err(|e| {
+            tracing::error!("Database error fetching user: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": "Authentication service error"})),
+            )
+        })?
+        .ok_or_else(|| {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"error": "User not found or account deactivated"})),
+            )
+        })?;
 
     Ok(AuthenticatedUser {
         user,

@@ -144,7 +144,7 @@ where
                 User::model_type(),
                 user_id,
                 requirement.guard_name.as_deref()
-            ).await {
+            ) {
                 Ok(roles) => roles,
                 Err(_) => {
                     return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
@@ -247,7 +247,7 @@ async fn check_user_permissions(
     guard_name: Option<&str>,
     require_all: bool,
 ) -> Result<bool, anyhow::Error> {
-    let user_permissions = SysModelHasPermissionService::get_model_permissions(pool, User::model_type(), user_id, guard_name).await?;
+    let user_permissions = SysModelHasPermissionService::get_model_permissions(pool, User::model_type(), user_id, guard_name)?;
 
     let user_permission_names: HashSet<String> = user_permissions
         .into_iter()

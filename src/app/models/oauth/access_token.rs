@@ -4,7 +4,8 @@ use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use crate::query_builder::{Queryable, SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, QueryableByName)]
+#[diesel(table_name = crate::schema::oauth_access_tokens)]
 pub struct AccessToken {
     pub id: Ulid,
     pub user_id: Option<Ulid>,

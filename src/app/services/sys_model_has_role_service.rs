@@ -49,26 +49,30 @@ impl SysModelHasRoleService {
     }
 
     pub fn find_by_model(pool: &DbPool, model_type: &str, model_id: Ulid) -> Result<Vec<SysModelHasRole>> {
-        let query = "SELECT * FROM sys_model_has_roles WHERE model_type = $1 AND model_id = $2 ORDER BY created_at DESC";
+        let mut conn = pool.get()?;
 
-        let result = sqlx::query_as::<_, SysModelHasRole>(query)
-            .bind(model_type)
-            .bind(model_id.to_string())
-            .fetch_all(pool)
-            ?;
+        let result = sys_model_has_roles::table
+            .filter(sys_model_has_roles::model_type.eq(model_type))
+            .filter(sys_model_has_roles::model_id.eq(model_id.to_string()))
+            .order(sys_model_has_roles::created_at.desc())
+            .load::<SysModelHasRole>(&mut conn)?;
 
         Ok(result)
     }
 
     pub fn list(pool: &DbPool, _query_params: std::collections::HashMap<String, String>) -> Result<Vec<SysModelHasRole>> {
-        let query = "SELECT * FROM sys_model_has_roles ORDER BY created_at DESC";
-        let result = sqlx::query_as::<_, SysModelHasRole>(query)
-            .fetch_all(pool)
-            ?;
+        let mut conn = pool.get()?;
+
+        let result = sys_model_has_roles::table
+            .order(sys_model_has_roles::created_at.desc())
+            .load::<SysModelHasRole>(&mut conn)?;
+
         Ok(result)
     }
 
     pub fn update(pool: &DbPool, id: Ulid, data: UpdateSysModelHasRole) -> Result<SysModelHasRole> {
+        let mut conn = pool.get()?;
+
         let query = r#"
             UPDATE sys_model_has_roles
             SET model_type = COALESCE($2, model_type),
@@ -78,18 +82,17 @@ impl SysModelHasRoleService {
                 scope_id = COALESCE($6, scope_id),
                 updated_at = NOW()
             WHERE id = $1
-            RETURNING *
+            RETURNING id, model_type, model_id, role_id, scope_type, scope_id, created_at, updated_at
         "#;
 
-        let result = sqlx::query_as::<_, SysModelHasRole>(query)
-            .bind(id.to_string())
-            .bind(data.model_type)
-            .bind(data.model_id.map(|id| id.to_string()))
-            .bind(data.role_id.map(|id| id.to_string()))
-            .bind(data.scope_type)
-            .bind(data.scope_id.map(|id| id.to_string()))
-            .fetch_one(pool)
-            ?;
+        let result = diesel::sql_query(query)
+            .bind::<diesel::sql_types::Text, _>(id.to_string())
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(data.model_type)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(data.model_id.map(|id| id.to_string()))
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(data.role_id.map(|id| id.to_string()))
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(data.scope_type)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(data.scope_id.map(|id| id.to_string()))
+            .get_result::<SysModelHasRole>(&mut conn)?;
 
         Ok(result)
     }
@@ -128,14 +131,13 @@ impl SysModelHasRoleService {
         model_id: Ulid,
         role_id: Ulid,
     ) -> Result<()> {
-        let query = "DELETE FROM sys_model_has_roles WHERE model_type = $1 AND model_id = $2 AND role_id = $3";
+        let mut conn = pool.get()?;
 
-        sqlx::query(query)
-            .bind(model_type)
-            .bind(model_id.to_string())
-            .bind(role_id.to_string())
-            .execute(pool)
-            ?;
+        diesel::delete(sys_model_has_roles::table)
+            .filter(sys_model_has_roles::model_type.eq(model_type))
+            .filter(sys_model_has_roles::model_id.eq(model_id.to_string()))
+            .filter(sys_model_has_roles::role_id.eq(role_id.to_string()))
+            .execute(&mut conn)?;
 
         Ok(())
     }
@@ -147,38 +149,22 @@ impl SysModelHasRoleService {
         guard_name: Option<&str>,
     ) -> Result<Vec<crate::app::models::role::Role>> {
         use crate::app::models::role::Role;
+        use crate::schema::sys_roles;
+        let mut conn = pool.get()?;
 
-        let query = if let Some(guard) = guard_name {
-            sqlx::query_as::<_, Role>(
-                r#"
-                SELECT r.id, r.name, r.description, r.guard_name, r.created_at, r.updated_at
-                FROM sys_roles r
-                JOIN sys_model_has_roles smhr ON r.id = smhr.role_id
-                WHERE smhr.model_type = $1 AND smhr.model_id = $2 AND r.guard_name = $3
-                ORDER BY r.name
-                "#
-            )
-            .bind(model_type)
-            .bind(model_id.to_string())
-            .bind(guard)
-            .fetch_all(pool)
-            ?
-        } else {
-            sqlx::query_as::<_, Role>(
-                r#"
-                SELECT r.id, r.name, r.description, r.guard_name, r.created_at, r.updated_at
-                FROM sys_roles r
-                JOIN sys_model_has_roles smhr ON r.id = smhr.role_id
-                WHERE smhr.model_type = $1 AND smhr.model_id = $2
-                ORDER BY r.name
-                "#
-            )
-            .bind(model_type)
-            .bind(model_id.to_string())
-            .fetch_all(pool)
-            ?
-        };
+        let mut query = sys_roles::table
+            .inner_join(sys_model_has_roles::table.on(sys_roles::id.eq(sys_model_has_roles::role_id)))
+            .filter(sys_model_has_roles::model_type.eq(model_type))
+            .filter(sys_model_has_roles::model_id.eq(model_id.to_string()))
+            .select(sys_roles::all_columns)
+            .order(sys_roles::name)
+            .into_boxed();
 
-        Ok(query)
+        if let Some(guard) = guard_name {
+            query = query.filter(sys_roles::guard_name.eq(guard));
+        }
+
+        let result = query.load::<Role>(&mut conn)?;
+        Ok(result)
     }
 }

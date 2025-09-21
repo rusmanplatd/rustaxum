@@ -55,7 +55,7 @@ pub async fn create_client(
         password_client: payload.password_client.unwrap_or(false),
     };
 
-    match ClientService::create_client(&pool, create_data).await {
+    match ClientService::create_client(&pool, create_data) {
         Ok(response) => (StatusCode::CREATED, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -80,7 +80,7 @@ pub async fn list_clients(
         }
     };
 
-    match ClientService::list_clients(&pool, user_id).await {
+    match ClientService::list_clients(&pool, user_id) {
         Ok(clients) => (StatusCode::OK, ResponseJson(clients)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -116,7 +116,7 @@ pub async fn get_client(
         }
     };
 
-    match ClientService::find_by_id(&pool, client_ulid).await {
+    match ClientService::find_by_id(&pool, client_ulid) {
         Ok(Some(client)) => {
             // Check if user owns this client or if it's a system client
             if let Some(owner_id) = client.user_id {
@@ -171,7 +171,7 @@ pub async fn update_client(
     };
 
     // Check if user owns this client
-    match ClientService::find_by_id(&pool, client_ulid).await {
+    match ClientService::find_by_id(&pool, client_ulid) {
         Ok(Some(client)) => {
             if let Some(owner_id) = client.user_id {
                 if owner_id != user_id {
@@ -202,7 +202,7 @@ pub async fn update_client(
         revoked: payload.revoked,
     };
 
-    match ClientService::update_client(&pool, client_ulid, update_data).await {
+    match ClientService::update_client(&pool, client_ulid, update_data) {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -239,7 +239,7 @@ pub async fn delete_client(
     };
 
     // Check if user owns this client
-    match ClientService::find_by_id(&pool, client_ulid).await {
+    match ClientService::find_by_id(&pool, client_ulid) {
         Ok(Some(client)) => {
             if let Some(owner_id) = client.user_id {
                 if owner_id != user_id {
@@ -264,7 +264,7 @@ pub async fn delete_client(
         }
     }
 
-    match ClientService::delete_client(&pool, client_ulid).await {
+    match ClientService::delete_client(&pool, client_ulid) {
         Ok(_) => (StatusCode::NO_CONTENT, "").into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -301,7 +301,7 @@ pub async fn regenerate_secret(
     };
 
     // Check if user owns this client
-    match ClientService::find_by_id(&pool, client_ulid).await {
+    match ClientService::find_by_id(&pool, client_ulid) {
         Ok(Some(client)) => {
             if let Some(owner_id) = client.user_id {
                 if owner_id != user_id {
@@ -326,7 +326,7 @@ pub async fn regenerate_secret(
         }
     }
 
-    match ClientService::regenerate_secret(&pool, client_ulid).await {
+    match ClientService::regenerate_secret(&pool, client_ulid) {
         Ok(new_secret) => {
             #[derive(Serialize)]
             struct SecretResponse {

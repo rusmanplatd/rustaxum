@@ -302,8 +302,8 @@ async fn handle_client_credentials_grant(pool: &DbPool, params: TokenRequest) ->
 
     // Verify client credentials
     let client = match params.client_secret {
-        Some(ref secret) => ClientService::find_by_id_and_secret(pool, client_id, secret).await,
-        None => ClientService::find_by_id(pool, client_id).await,
+        Some(ref secret) => ClientService::find_by_id_and_secret(pool, client_id, secret),
+        None => ClientService::find_by_id(pool, client_id),
     };
 
     let client = match client {
@@ -362,7 +362,7 @@ async fn handle_client_credentials_grant(pool: &DbPool, params: TokenRequest) ->
                         token_type: "Bearer".to_string(),
                         expires_in: 3600,
                         refresh_token: None,
-                        scope: ScopeService::get_scope_names(&scopes).await.join(" "),
+                        scope: ScopeService::get_scope_names(&scopes).join(" "),
                     };
                     (StatusCode::OK, ResponseJson(token_response)).into_response()
                 },
@@ -421,7 +421,7 @@ pub async fn introspect(State(pool): State<DbPool>, Json(params): Json<Introspec
         }
     };
 
-    let access_token = match TokenService::find_access_token_by_id(&pool, token_id).await {
+    let access_token = match TokenService::find_access_token_by_id(&pool, token_id) {
         Ok(Some(token)) => token,
         _ => {
             let response = IntrospectResponse {
@@ -492,12 +492,12 @@ pub async fn revoke(State(pool): State<DbPool>, Form(params): Form<HashMap<Strin
     };
 
     // Try to revoke as access token first
-    if let Ok(_) = TokenService::revoke_access_token(&pool, token_id).await {
+    if let Ok(_) = TokenService::revoke_access_token(&pool, token_id) {
         return (StatusCode::OK, ResponseJson(serde_json::json!({"revoked": true}))).into_response();
     }
 
     // Try to revoke as refresh token
-    if let Ok(_) = TokenService::revoke_refresh_token(&pool, token_id).await {
+    if let Ok(_) = TokenService::revoke_refresh_token(&pool, token_id) {
         return (StatusCode::OK, ResponseJson(serde_json::json!({"revoked": true}))).into_response();
     }
 

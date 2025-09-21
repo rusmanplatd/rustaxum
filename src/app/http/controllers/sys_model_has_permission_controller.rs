@@ -34,7 +34,7 @@ pub async fn index(
     State(pool): State<DbPool>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    match SysModelHasPermissionService::list(&pool, params).await {
+    match SysModelHasPermissionService::list(&pool, params) {
         Ok(permissions) => {
             let responses: Vec<_> = permissions.into_iter().map(|p| p.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()
@@ -75,7 +75,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         }
     };
 
-    match SysModelHasPermissionService::find_by_id(&pool, permission_id).await {
+    match SysModelHasPermissionService::find_by_id(&pool, permission_id) {
         Ok(Some(permission)) => (StatusCode::OK, ResponseJson(permission.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -114,7 +114,7 @@ pub async fn store(State(pool): State<DbPool>, request: CreateSysModelHasPermiss
         scope_id: request.scope_id,
     };
 
-    match SysModelHasPermissionService::create(&pool, payload).await {
+    match SysModelHasPermissionService::create(&pool, payload) {
         Ok(permission) => (StatusCode::CREATED, ResponseJson(permission.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -165,7 +165,7 @@ pub async fn update(
         scope_id: request.scope_id,
     };
 
-    match SysModelHasPermissionService::update(&pool, permission_id, payload).await {
+    match SysModelHasPermissionService::update(&pool, permission_id, payload) {
         Ok(permission) => (StatusCode::OK, ResponseJson(permission.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -203,7 +203,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     };
 
-    match SysModelHasPermissionService::delete(&pool, permission_id).await {
+    match SysModelHasPermissionService::delete(&pool, permission_id) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Model permission deleted successfully".to_string(),
@@ -246,7 +246,7 @@ pub async fn by_model(State(pool): State<DbPool>, Path((model_type, model_id)): 
         }
     };
 
-    match SysModelHasPermissionService::find_by_model(&pool, &model_type, model_ulid).await {
+    match SysModelHasPermissionService::find_by_model(&pool, &model_type, model_ulid) {
         Ok(permissions) => {
             let responses: Vec<_> = permissions.into_iter().map(|p| p.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()

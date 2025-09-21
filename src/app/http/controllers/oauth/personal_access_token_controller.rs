@@ -109,7 +109,7 @@ pub async fn revoke_personal_access_token(
     };
 
     // Verify the token belongs to the user
-    match TokenService::find_access_token_by_id(&pool, token_ulid).await {
+    match TokenService::find_access_token_by_id(&pool, token_ulid) {
         Ok(Some(token)) => {
             if let Some(owner_id) = token.user_id {
                 if owner_id != user_id {
@@ -134,7 +134,7 @@ pub async fn revoke_personal_access_token(
         }
     }
 
-    match TokenService::revoke_access_token(&pool, token_ulid).await {
+    match TokenService::revoke_access_token(&pool, token_ulid) {
         Ok(_) => {
             #[derive(Serialize)]
             struct RevokeResponse {

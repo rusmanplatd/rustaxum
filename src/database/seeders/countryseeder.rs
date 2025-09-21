@@ -6,6 +6,8 @@ use csv::Reader;
 use std::fs::File;
 use std::collections::HashMap;
 use serde::Deserialize;
+use diesel::prelude::*;
+use crate::schema::countries;
 
 #[derive(Debug, Deserialize)]
 struct CountryRecord {
@@ -25,13 +27,16 @@ impl Seeder for Countryseeder {
         Some("Seeds countries table from CSV data")
     }
 
-    async fn run(&self, pool: &DbPool) -> Result<()> {
+    fn run(&self, pool: &DbPool) -> Result<()> {
         println!("Seeding countries from CSV...");
+        let mut conn = pool.get()?;
 
         // Check if countries already exist
-        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM countries")
-            .fetch_one(pool)
-            .await?;
+        let count: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM countries")
+            .load::<(i64,)>(&mut conn)?
+            .first()
+            .map(|(c,)| *c)
+            .unwrap_or(0);
 
         if count > 0 {
             println!("Countries table already has {} records. Skipping seeding.", count);
@@ -54,18 +59,16 @@ impl Seeder for Countryseeder {
                 Some(record.phone_code),
             );
 
-            sqlx::query(
-                "INSERT INTO countries (id, name, iso_code, phone_code, created_at, updated_at)
-                 VALUES ($1, $2, $3, $4, $5, $6)"
-            )
-            .bind(country.id.to_string())
-            .bind(country.name)
-            .bind(country.iso_code)
-            .bind(country.phone_code)
-            .bind(country.created_at)
-            .bind(country.updated_at)
-            .execute(pool)
-            .await?;
+            diesel::insert_into(countries::table)
+                .values((
+                    countries::id.eq(country.id.to_string()),
+                    countries::name.eq(&country.name),
+                    countries::iso_code.eq(&country.iso_code),
+                    countries::phone_code.eq(&country.phone_code),
+                    countries::created_at.eq(country.created_at),
+                    countries::updated_at.eq(country.updated_at),
+                ))
+                .execute(&mut conn)?;
 
             country_map.insert(record.iso_code, country.id.to_string());
             inserted_count += 1;

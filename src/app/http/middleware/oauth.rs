@@ -23,7 +23,7 @@ pub async fn oauth_middleware(
 ) -> Result<Response, Response> {
     let headers = req.headers().clone();
 
-    match validate_oauth_token(&pool, &headers).await {
+    match validate_oauth_token(&pool, &headers) {
         Ok((access_token, claims)) => {
             // Add token info to request extensions so controllers can access it
             req.extensions_mut().insert(access_token);
@@ -46,7 +46,7 @@ pub fn require_scopes(required_scopes: Vec<&'static str>) -> impl Fn(State<DbPoo
         Box::pin(async move {
             let headers = req.headers().clone();
 
-            match validate_oauth_token(&pool, &headers).await {
+            match validate_oauth_token(&pool, &headers) {
                 Ok((access_token, claims)) => {
                     // Check if token has required scopes
                     let has_required_scopes = required_scopes.iter().all(|required_scope| {
@@ -85,7 +85,7 @@ pub fn require_scope(required_scope: &'static str) -> impl Fn(State<DbPool>, Req
     require_scopes(vec![required_scope])
 }
 
-async fn validate_oauth_token(
+fn validate_oauth_token(
     pool: &DbPool,
     headers: &HeaderMap,
 ) -> anyhow::Result<(crate::app::models::oauth::AccessToken, crate::app::services::oauth::TokenClaims)> {
@@ -94,7 +94,7 @@ async fn validate_oauth_token(
     let token = TokenUtils::extract_token_from_header(auth_header)?;
 
     // Validate token and check scopes
-    let (access_token, claims) = TokenService::validate_token_and_scopes(pool, token, &[]).await?;
+    let (access_token, claims) = TokenService::validate_token_and_scopes(pool, token, &[])?;
 
     Ok((access_token, claims))
 }

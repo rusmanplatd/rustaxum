@@ -23,33 +23,53 @@ pub struct User {
     /// Email verification timestamp
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub email_verified_at: Option<DateTime<Utc>>,
+    /// Username (optional)
+    pub username: Option<String>,
     /// Hashed password (never exposed in responses)
     #[schema(example = "$2b$12$...")]
     pub password: String,
     /// Remember me token for persistent sessions
     pub remember_token: Option<String>,
-    /// JWT refresh token for authentication
-    pub refresh_token: Option<String>,
-    /// Refresh token expiration timestamp
-    pub refresh_token_expires_at: Option<DateTime<Utc>>,
     /// Password reset token
     pub password_reset_token: Option<String>,
     /// Password reset token expiration
     pub password_reset_expires_at: Option<DateTime<Utc>>,
-    /// Last successful login timestamp
-    #[schema(example = "2023-01-01T00:00:00Z")]
-    pub last_login_at: Option<DateTime<Utc>>,
+    /// JWT refresh token for authentication
+    pub refresh_token: Option<String>,
+    /// Refresh token expiration timestamp
+    pub refresh_token_expires_at: Option<DateTime<Utc>>,
+    /// User avatar URL
+    pub avatar: Option<String>,
+    /// User's birthdate
+    pub birthdate: Option<chrono::NaiveDate>,
     /// Number of consecutive failed login attempts
     #[schema(example = 0)]
     pub failed_login_attempts: i32,
+    /// Google OAuth ID
+    pub google_id: Option<String>,
+    /// Last successful login timestamp
+    #[schema(example = "2023-01-01T00:00:00Z")]
+    pub last_login_at: Option<DateTime<Utc>>,
+    /// Last seen timestamp
+    pub last_seen_at: DateTime<Utc>,
+    /// User's locale preference
+    pub locale: Option<String>,
     /// Account lock expiration timestamp
     pub locked_until: Option<DateTime<Utc>>,
+    /// User's phone number
+    pub phone_number: Option<String>,
+    /// Phone verification timestamp
+    pub phone_verified_at: Option<DateTime<Utc>>,
+    /// User's timezone
+    pub zoneinfo: Option<String>,
     /// User creation timestamp
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub created_at: DateTime<Utc>,
     /// Last update timestamp
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
+    /// Soft delete timestamp
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 /// Create user payload for service layer

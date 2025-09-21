@@ -64,14 +64,14 @@ impl WebPushChannel {
         })
     }
 
-    async fn get_database_pool() -> Result<DbPool> {
+    fn get_database_pool() -> Result<DbPool> {
         let config = Config::load()?;
-        let pool = DbPool::connect(&config.database.url).await?;
+        let pool = crate::database::create_pool(&config.database.url)?;
         Ok(pool)
     }
 
     pub async fn get_user_subscriptions(user_id: &str) -> Result<Vec<PushSubscription>> {
-        let pool = Self::get_database_pool().await?;
+        let pool = Self::get_database_pool()?;
 
         let query = r#"
             SELECT id, user_id, endpoint, p256dh_key, auth_key, user_agent, created_at, updated_at
@@ -95,7 +95,7 @@ impl WebPushChannel {
         auth_key: &str,
         user_agent: Option<&str>,
     ) -> Result<PushSubscription> {
-        let pool = Self::get_database_pool().await?;
+        let pool = Self::get_database_pool()?;
         let now = chrono::Utc::now();
         let id = ulid::Ulid::new();
 
@@ -156,7 +156,7 @@ impl WebPushChannel {
     }
 
     pub async fn remove_subscription(user_id: &str, endpoint: &str) -> Result<()> {
-        let pool = Self::get_database_pool().await?;
+        let pool = Self::get_database_pool()?;
 
         let query = r#"
             DELETE FROM push_subscriptions
@@ -318,28 +318,3 @@ impl NotificationAction {
     }
 }
 
-// TODO: Implement Diesel equivalent for PushSubscription
-/*
-impl sqlx::FromRow<'_, sqlx::postgres::PgRow> for PushSubscription {
-    fn from_row(row: &sqlx::postgres::PgRow) -> Result<Self, sqlx::Error> {
-        use sqlx::Row;
-
-        let id_str: String = row.try_get("id")?;
-        let id = ulid::Ulid::from_string(&id_str).map_err(|e| sqlx::Error::ColumnDecode {
-            index: "id".to_string(),
-            source: Box::new(e),
-        })?;
-
-        Ok(PushSubscription {
-            id,
-            user_id: row.try_get("user_id")?,
-            endpoint: row.try_get("endpoint")?,
-            p256dh_key: row.try_get("p256dh_key")?,
-            auth_key: row.try_get("auth_key")?,
-            user_agent: row.try_get("user_agent")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
-    }
-}
-*/

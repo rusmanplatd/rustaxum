@@ -59,7 +59,7 @@ pub async fn index(
     State(pool): State<DbPool>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    match CountryService::list(&pool, params).await {
+    match CountryService::list(&pool, params) {
         Ok(countries) => {
             let responses: Vec<_> = countries.into_iter().map(|c| c.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()
@@ -112,7 +112,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         }
     };
 
-    match CountryService::find_by_id(&pool, country_id).await {
+    match CountryService::find_by_id(&pool, country_id) {
         Ok(Some(country)) => (StatusCode::OK, ResponseJson(country.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -168,7 +168,7 @@ pub async fn store(State(pool): State<DbPool>, request: CreateCountryRequest) ->
         phone_code: request.phone_code,
     };
 
-    match CountryService::create(&pool, payload).await {
+    match CountryService::create(&pool, payload) {
         Ok(country) => (StatusCode::CREATED, ResponseJson(country.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -230,7 +230,7 @@ pub async fn update(
         phone_code: request.phone_code,
     };
 
-    match CountryService::update(&pool, country_id, payload).await {
+    match CountryService::update(&pool, country_id, payload) {
         Ok(country) => (StatusCode::OK, ResponseJson(country.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -274,7 +274,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     };
 
-    match CountryService::delete(&pool, country_id).await {
+    match CountryService::delete(&pool, country_id) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Country deleted successfully".to_string(),

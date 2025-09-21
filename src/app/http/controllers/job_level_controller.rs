@@ -59,7 +59,7 @@ pub async fn index(
     State(pool): State<DbPool>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    match JobLevelService::list(&pool, params).await {
+    match JobLevelService::list(&pool, params) {
         Ok(job_levels) => {
             let responses: Vec<_> = job_levels.into_iter().map(|jl| jl.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()
@@ -112,7 +112,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         }
     };
 
-    match JobLevelService::find_by_id(&pool, job_level_id).await {
+    match JobLevelService::find_by_id(&pool, job_level_id) {
         Ok(Some(job_level)) => (StatusCode::OK, ResponseJson(job_level.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -171,7 +171,7 @@ pub async fn store(State(pool): State<DbPool>, request: CreateJobLevelRequest) -
         description: request.description,
     };
 
-    match JobLevelService::create(&pool, payload).await {
+    match JobLevelService::create(&pool, payload) {
         Ok(job_level) => (StatusCode::CREATED, ResponseJson(job_level.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -237,7 +237,7 @@ pub async fn update(
         is_active: request.is_active,
     };
 
-    match JobLevelService::update(&pool, job_level_id, payload).await {
+    match JobLevelService::update(&pool, job_level_id, payload) {
         Ok(job_level) => (StatusCode::OK, ResponseJson(job_level.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -281,7 +281,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     };
 
-    match JobLevelService::delete(&pool, job_level_id).await {
+    match JobLevelService::delete(&pool, job_level_id) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Job level deleted successfully".to_string(),
@@ -331,7 +331,7 @@ pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> imp
     };
 
     // Get current job level and update its active status
-    match JobLevelService::find_by_id(&pool, job_level_id).await {
+    match JobLevelService::find_by_id(&pool, job_level_id) {
         Ok(Some(_job_level)) => {
             let payload = UpdateJobLevel {
                 name: None,
@@ -341,7 +341,7 @@ pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> imp
                 is_active: Some(true),
             };
 
-            match JobLevelService::update(&pool, job_level_id, payload).await {
+            match JobLevelService::update(&pool, job_level_id, payload) {
                 Ok(updated_job_level) => (StatusCode::OK, ResponseJson(updated_job_level.to_response())).into_response(),
                 Err(e) => {
                     let error = ErrorResponse {
@@ -400,7 +400,7 @@ pub async fn deactivate(State(pool): State<DbPool>, Path(id): Path<String>) -> i
     };
 
     // Get current job level and update its active status
-    match JobLevelService::find_by_id(&pool, job_level_id).await {
+    match JobLevelService::find_by_id(&pool, job_level_id) {
         Ok(Some(_job_level)) => {
             let payload = UpdateJobLevel {
                 name: None,
@@ -410,7 +410,7 @@ pub async fn deactivate(State(pool): State<DbPool>, Path(id): Path<String>) -> i
                 is_active: Some(false),
             };
 
-            match JobLevelService::update(&pool, job_level_id, payload).await {
+            match JobLevelService::update(&pool, job_level_id, payload) {
                 Ok(updated_job_level) => (StatusCode::OK, ResponseJson(updated_job_level.to_response())).into_response(),
                 Err(e) => {
                     let error = ErrorResponse {

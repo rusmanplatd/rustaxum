@@ -8,25 +8,25 @@ use crate::schema::jobs;
 use crate::app::jobs::{QueueDriver, JobMetadata, JobStatus};
 
 /// Database row representation for jobs table
-#[derive(Debug, Queryable, Identifiable)]
+#[derive(Debug, Queryable, Identifiable, QueryableByName)]
 #[diesel(table_name = jobs)]
 struct JobRow {
-    id: String,
-    queue_name: String,
-    job_name: String,
-    payload: serde_json::Value,
-    attempts: i32,
-    max_attempts: i32,
-    status: String,
-    priority: i32,
-    available_at: DateTime<Utc>,
-    reserved_at: Option<DateTime<Utc>>,
-    processed_at: Option<DateTime<Utc>>,
-    failed_at: Option<DateTime<Utc>>,
-    error_message: Option<String>,
-    timeout_seconds: Option<i32>,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    id: String,          // Bpchar maps to String
+    queue_name: String,  // Varchar maps to String
+    job_name: String,    // Varchar maps to String
+    payload: serde_json::Value, // Jsonb maps to serde_json::Value
+    attempts: i32,       // Int4 maps to i32
+    max_attempts: i32,   // Int4 maps to i32
+    status: String,      // Varchar maps to String
+    priority: i32,       // Int4 maps to i32
+    available_at: DateTime<Utc>,        // Timestamptz maps to DateTime<Utc>
+    reserved_at: Option<DateTime<Utc>>,  // Nullable<Timestamptz> maps to Option<DateTime<Utc>>
+    processed_at: Option<DateTime<Utc>>, // Nullable<Timestamptz> maps to Option<DateTime<Utc>>
+    failed_at: Option<DateTime<Utc>>,    // Nullable<Timestamptz> maps to Option<DateTime<Utc>>
+    error_message: Option<String>,       // Nullable<Text> maps to Option<String>
+    timeout_seconds: Option<i32>,        // Nullable<Int4> maps to Option<i32>
+    created_at: DateTime<Utc>,           // Timestamptz maps to DateTime<Utc>
+    updated_at: DateTime<Utc>,           // Timestamptz maps to DateTime<Utc>
 }
 
 /// Database-backed queue driver using PostgreSQL
@@ -87,7 +87,7 @@ impl QueueDriver for DatabaseQueueDriver {
                 jobs::id.eq(&metadata.id),
                 jobs::queue_name.eq(&metadata.queue_name),
                 jobs::job_name.eq(&metadata.job_name),
-                jobs::payload.eq(serde_json::from_str::<serde_json::Value>(&metadata.payload)?),
+                jobs::payload.eq(&metadata.payload),
                 jobs::attempts.eq(metadata.attempts as i32),
                 jobs::max_attempts.eq(metadata.max_attempts as i32),
                 jobs::status.eq(status_str),

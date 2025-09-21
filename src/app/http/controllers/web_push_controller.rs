@@ -25,7 +25,7 @@ impl WebPushController {
     /// Get VAPID public key for client-side subscription
     /// GET /api/web-push/vapid-public-key
     pub async fn get_vapid_public_key() -> Result<Json<VapidPublicKeyResponse>, StatusCode> {
-        match WebPushService::get_vapid_public_key().await {
+        match WebPushService::get_vapid_public_key() {
             Ok(public_key) => Ok(Json(VapidPublicKeyResponse { public_key })),
             Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
         }
@@ -126,7 +126,7 @@ impl WebPushController {
     pub async fn get_status() -> Result<Json<serde_json::Value>, StatusCode> {
         let service = WebPushService::new().await;
 
-        match service.test_web_push_configuration().await {
+        match service.test_web_push_configuration() {
             Ok(is_configured) => {
                 let response = serde_json::json!({
                     "success": true,

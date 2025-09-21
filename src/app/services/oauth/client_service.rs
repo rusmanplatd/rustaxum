@@ -3,6 +3,8 @@ use crate::database::DbPool;
 use ulid::Ulid;
 use rand::{Rng, thread_rng};
 use rand::distributions::Alphanumeric;
+use diesel::prelude::*;
+use crate::schema::{oauth_clients, oauth_personal_access_clients};
 
 use crate::app::models::oauth::{
     Client, CreateClient, UpdateClient, ClientResponse,
@@ -44,29 +46,23 @@ impl ClientService {
     }
 
     pub fn create_client_record(pool: &DbPool, client: Client) -> Result<Client> {
-        sqlx::query(
-            r#"
-            INSERT INTO oauth_clients (
-                id, user_id, name, secret, provider, redirect_uris,
-                personal_access_client, password_client, revoked,
-                created_at, updated_at
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            "#
-        )
-        .bind(client.id.to_string())
-        .bind(client.user_id.map(|id| id.to_string()))
-        .bind(&client.name)
-        .bind(&client.secret)
-        .bind(&client.provider)
-        .bind(&client.redirect_uris)
-        .bind(client.personal_access_client)
-        .bind(client.password_client)
-        .bind(client.revoked)
-        .bind(client.created_at)
-        .bind(client.updated_at)
-        .execute(pool)
-        ?;
+        let mut conn = pool.get()?;
+
+        diesel::insert_into(oauth_clients::table)
+            .values((
+                oauth_clients::id.eq(client.id.to_string()),
+                oauth_clients::user_id.eq(client.user_id.map(|id| id.to_string())),
+                oauth_clients::name.eq(&client.name),
+                oauth_clients::secret.eq(&client.secret),
+                oauth_clients::provider.eq(&client.provider),
+                oauth_clients::redirect_uris.eq(&client.redirect_uris),
+                oauth_clients::personal_access_client.eq(client.personal_access_client),
+                oauth_clients::password_client.eq(client.password_client),
+                oauth_clients::revoked.eq(client.revoked),
+                oauth_clients::created_at.eq(client.created_at),
+                oauth_clients::updated_at.eq(client.updated_at),
+            ))
+            .execute(&mut conn)?;
 
         Ok(client)
     }
@@ -75,70 +71,68 @@ impl ClientService {
         pool: &DbPool,
         pac: PersonalAccessClient
     ) -> Result<PersonalAccessClient> {
-        sqlx::query(
-            r#"
-            INSERT INTO oauth_personal_access_clients (
-                id, client_id, created_at, updated_at
-            )
-            VALUES ($1, $2, $3, $4)
-            "#
-        )
-        .bind(pac.id.to_string())
-        .bind(pac.client_id.to_string())
-        .bind(pac.created_at)
-        .bind(pac.updated_at)
-        .execute(pool)
-        ?;
+        let mut conn = pool.get()?;
+
+        diesel::insert_into(oauth_personal_access_clients::table)
+            .values((
+                oauth_personal_access_clients::id.eq(pac.id.to_string()),
+                oauth_personal_access_clients::client_id.eq(pac.client_id.to_string()),
+                oauth_personal_access_clients::created_at.eq(pac.created_at),
+                oauth_personal_access_clients::updated_at.eq(pac.updated_at),
+            ))
+            .execute(&mut conn)?;
 
         Ok(pac)
     }
 
     pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<Client>> {
-        let row = sqlx::query_as::<_, Client>(
-            "SELECT id, user_id, name, secret, provider, redirect_uris, personal_access_client, password_client, revoked, created_at, updated_at FROM oauth_clients WHERE id = $1 AND revoked = false"
-        )
-        .bind(id.to_string())
-        .fetch_optional(pool)
-        ?;
+        let mut conn = pool.get()?;
+
+        let row = oauth_clients::table
+            .filter(oauth_clients::id.eq(id.to_string()))
+            .filter(oauth_clients::revoked.eq(false))
+            .first::<Client>(&mut conn)
+            .optional()?;
 
         Ok(row)
     }
 
     pub fn find_by_id_and_secret(pool: &DbPool, id: Ulid, secret: &str) -> Result<Option<Client>> {
-        let row = sqlx::query_as::<_, Client>(
-            "SELECT id, user_id, name, secret, provider, redirect_uris, personal_access_client, password_client, revoked, created_at, updated_at FROM oauth_clients WHERE id = $1 AND secret = $2 AND revoked = false"
-        )
-        .bind(id.to_string())
-        .bind(secret)
-        .fetch_optional(pool)
-        ?;
+        let mut conn = pool.get()?;
+
+        let row = oauth_clients::table
+            .filter(oauth_clients::id.eq(id.to_string()))
+            .filter(oauth_clients::secret.eq(secret))
+            .filter(oauth_clients::revoked.eq(false))
+            .first::<Client>(&mut conn)
+            .optional()?;
 
         Ok(row)
     }
 
     pub fn find_personal_access_client(pool: &DbPool) -> Result<Option<Client>> {
-        let row = sqlx::query_as::<_, Client>(
-            r#"
-            SELECT c.id, c.user_id, c.name, c.secret, c.provider, c.redirect_uris, c.personal_access_client, c.password_client, c.revoked, c.created_at, c.updated_at
-            FROM oauth_clients c
-            INNER JOIN oauth_personal_access_clients pac ON pac.client_id = c.id
-            WHERE c.revoked = false
-            ORDER BY c.created_at ASC
-            LIMIT 1
-            "#
-        )
-        .fetch_optional(pool)
-        ?;
+        let mut conn = pool.get()?;
+
+        let row = oauth_clients::table
+            .inner_join(oauth_personal_access_clients::table)
+            .filter(oauth_clients::revoked.eq(false))
+            .order(oauth_clients::created_at.asc())
+            .select(oauth_clients::all_columns)
+            .first::<Client>(&mut conn)
+            .optional()?;
 
         Ok(row)
     }
 
     pub fn find_password_client(pool: &DbPool) -> Result<Option<Client>> {
-        let row = sqlx::query_as::<_, Client>(
-            "SELECT id, user_id, name, secret, provider, redirect_uris, personal_access_client, password_client, revoked, created_at, updated_at FROM oauth_clients WHERE password_client = true AND revoked = false ORDER BY created_at ASC LIMIT 1"
-        )
-        .fetch_optional(pool)
-        ?;
+        let mut conn = pool.get()?;
+
+        let row = oauth_clients::table
+            .filter(oauth_clients::password_client.eq(true))
+            .filter(oauth_clients::revoked.eq(false))
+            .order(oauth_clients::created_at.asc())
+            .first::<Client>(&mut conn)
+            .optional()?;
 
         Ok(row)
     }
@@ -175,59 +169,55 @@ impl ClientService {
 
         client.updated_at = chrono::Utc::now();
 
-        sqlx::query(
-            r#"
-            UPDATE oauth_clients
-            SET name = $1, redirect_uris = $2, revoked = $3, updated_at = $4
-            WHERE id = $5
-            "#
-        )
-        .bind(&client.name)
-        .bind(&client.redirect_uris)
-        .bind(client.revoked)
-        .bind(client.updated_at)
-        .bind(id.to_string())
-        .execute(pool)
-        ?;
+        let mut conn = pool.get()?;
+
+        diesel::update(oauth_clients::table.filter(oauth_clients::id.eq(id.to_string())))
+            .set((
+                oauth_clients::name.eq(&client.name),
+                oauth_clients::redirect_uris.eq(&client.redirect_uris),
+                oauth_clients::revoked.eq(client.revoked),
+                oauth_clients::updated_at.eq(client.updated_at),
+            ))
+            .execute(&mut conn)?;
 
         Ok(client.to_response())
     }
 
     pub fn revoke_client(pool: &DbPool, id: Ulid) -> Result<()> {
-        sqlx::query(
-            "UPDATE oauth_clients SET revoked = true, updated_at = NOW() WHERE id = $1"
-        )
-        .bind(id.to_string())
-        .execute(pool)
-        ?;
+        let mut conn = pool.get()?;
+        let now = chrono::Utc::now();
+
+        diesel::update(oauth_clients::table.filter(oauth_clients::id.eq(id.to_string())))
+            .set((
+                oauth_clients::revoked.eq(true),
+                oauth_clients::updated_at.eq(now),
+            ))
+            .execute(&mut conn)?;
 
         // Also revoke all access tokens for this client
-        sqlx::query(
-            "UPDATE oauth_access_tokens SET revoked = true, updated_at = NOW() WHERE client_id = $1"
-        )
-        .bind(id.to_string())
-        .execute(pool)
-        ?;
+        use crate::schema::oauth_access_tokens;
+        diesel::update(oauth_access_tokens::table.filter(oauth_access_tokens::client_id.eq(id.to_string())))
+            .set((
+                oauth_access_tokens::revoked.eq(true),
+                oauth_access_tokens::updated_at.eq(now),
+            ))
+            .execute(&mut conn)?;
 
         Ok(())
     }
 
     pub fn delete_client(pool: &DbPool, id: Ulid) -> Result<()> {
+        let mut conn = pool.get()?;
+
         // Delete personal access client record first if it exists
-        sqlx::query(
-            "DELETE FROM oauth_personal_access_clients WHERE client_id = $1"
-        )
-        .bind(id.to_string())
-        .execute(pool)
-        ?;
+        diesel::delete(oauth_personal_access_clients::table
+            .filter(oauth_personal_access_clients::client_id.eq(id.to_string())))
+            .execute(&mut conn)?;
 
         // Delete the client (this will cascade to tokens due to foreign key constraints)
-        sqlx::query(
-            "DELETE FROM oauth_clients WHERE id = $1"
-        )
-        .bind(id.to_string())
-        .execute(pool)
-        ?;
+        diesel::delete(oauth_clients::table
+            .filter(oauth_clients::id.eq(id.to_string())))
+            .execute(&mut conn)?;
 
         Ok(())
     }
@@ -242,13 +232,14 @@ impl ClientService {
 
         let new_secret = Self::generate_client_secret();
 
-        sqlx::query(
-            "UPDATE oauth_clients SET secret = $1, updated_at = NOW() WHERE id = $2"
-        )
-        .bind(&new_secret)
-        .bind(id.to_string())
-        .execute(pool)
-        ?;
+        let mut conn = pool.get()?;
+
+        diesel::update(oauth_clients::table.filter(oauth_clients::id.eq(id.to_string())))
+            .set((
+                oauth_clients::secret.eq(&new_secret),
+                oauth_clients::updated_at.eq(chrono::Utc::now()),
+            ))
+            .execute(&mut conn)?;
 
         Ok(new_secret)
     }

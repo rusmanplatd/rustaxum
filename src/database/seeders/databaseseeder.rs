@@ -22,25 +22,25 @@ impl Seeder for Databaseseeder {
         Some("Run all seeders including geographic data, users, RBAC, and ABAC")
     }
 
-    async fn run(&self, pool: &DbPool) -> Result<()> {
+    fn run(&self, pool: &DbPool) -> Result<()> {
         let context = SeederContext::new(pool);
 
         println!("🌱 Database Seeding Started");
         println!("───────────────────────────");
 
         // User management
-        context.call(UserSeeder).await?;
+        context.call(UserSeeder)?;
         // Authorization systems
-        context.call(RolePermissionSeeder).await?;
+        context.call(RolePermissionSeeder)?;
 
         // Geographic data seeders (order matters due to foreign keys)
-        context.call(Countryseeder).await?;
-        context.call(Provinceseeder).await?;
-        context.call(Cityseeder).await?;
+        context.call(Countryseeder)?;
+        context.call(Provinceseeder)?;
+        context.call(Cityseeder)?;
 
         // Organization and job structure
-        context.call(OrganizationSeeder).await?;
-        context.call(JobLevelPositionSeeder).await?;
+        context.call(OrganizationSeeder)?;
+        context.call(JobLevelPositionSeeder)?;
 
 
         println!("───────────────────────────");

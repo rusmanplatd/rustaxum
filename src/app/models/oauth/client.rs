@@ -4,7 +4,7 @@ use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use crate::query_builder::{Queryable, SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, QueryableByName)]
 #[diesel(table_name = crate::schema::oauth_clients)]
 pub struct Client {
     pub id: Ulid,

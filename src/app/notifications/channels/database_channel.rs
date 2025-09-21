@@ -5,6 +5,8 @@ use crate::app::notifications::channels::Channel;
 use crate::app::notifications::notification::{Notification, Notifiable, NotificationChannel};
 use crate::app::models::notification::Notification as NotificationModel;
 use crate::config::Config;
+use diesel::prelude::*;
+use crate::schema::notifications;
 
 #[derive(Debug)]
 pub struct DatabaseChannel;
@@ -14,9 +16,9 @@ impl DatabaseChannel {
         Self
     }
 
-    async fn get_database_pool() -> Result<DbPool> {
+    fn get_database_pool() -> Result<DbPool> {
         let config = Config::load()?;
-        let pool = DbPool::connect(&config.database.url).await?;
+        let pool = crate::database::create_pool(&config)?;
         Ok(pool)
     }
 }
@@ -38,23 +40,20 @@ impl Channel for DatabaseChannel {
         );
 
         // Save to database
-        let pool = Self::get_database_pool().await?;
+        let pool = Self::get_database_pool()?;
+        let mut conn = pool.get()?;
 
-        let query = r#"
-            INSERT INTO notifications (id, notification_type, notifiable_id, notifiable_type, data, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-        "#;
-
-        sqlx::query(query)
-            .bind(notification_model.id.to_string())
-            .bind(&notification_model.notification_type)
-            .bind(&notification_model.notifiable_id)
-            .bind(&notification_model.notifiable_type)
-            .bind(&notification_model.data)
-            .bind(notification_model.created_at)
-            .bind(notification_model.updated_at)
-            .execute(&pool)
-            .await?;
+        diesel::insert_into(notifications::table)
+            .values((
+                notifications::id.eq(notification_model.id.to_string()),
+                notifications::type_.eq(&notification_model.notification_type),
+                notifications::notifiable_id.eq(&notification_model.notifiable_id),
+                notifications::notifiable_type.eq(&notification_model.notifiable_type),
+                notifications::data.eq(serde_json::to_value(&notification_model.data).unwrap()),
+                notifications::created_at.eq(notification_model.created_at),
+                notifications::updated_at.eq(notification_model.updated_at),
+            ))
+            .execute(&mut conn)?;
 
         tracing::info!(
             "Database notification stored for entity: {} (type: {})",
@@ -72,40 +71,43 @@ impl Channel for DatabaseChannel {
 
 impl DatabaseChannel {
     /// Get unread notifications for a notifiable entity
-    pub async fn get_unread_notifications(
+    pub fn get_unread_notifications(
         notifiable_type: &str,
         notifiable_id: &str,
     ) -> Result<Vec<NotificationModel>> {
-        let pool = Self::get_database_pool().await?;
+        let pool = Self::get_database_pool()?;
+        let mut conn = pool.get()?;
 
         let query = r#"
-            SELECT id, notification_type, notifiable_id, notifiable_type, data, read_at, created_at, updated_at
+            SELECT id, type as notification_type, notifiable_id, notifiable_type, data, read_at, created_at, updated_at,
+                   channels, sent_at, failed_at, retry_count, max_retries, error_message, priority, scheduled_at
             FROM notifications
             WHERE notifiable_type = $1 AND notifiable_id = $2 AND read_at IS NULL
             ORDER BY created_at DESC
         "#;
 
-        let notifications = sqlx::query_as::<_, NotificationModel>(query)
-            .bind(notifiable_type)
-            .bind(notifiable_id)
-            .fetch_all(&pool)
-            .await?;
+        let notifications = diesel::sql_query(query)
+            .bind::<diesel::sql_types::Text, _>(notifiable_type)
+            .bind::<diesel::sql_types::Text, _>(notifiable_id)
+            .load::<NotificationModel>(&mut conn)?;
 
         Ok(notifications)
     }
 
     /// Get all notifications for a notifiable entity
-    pub async fn get_notifications(
+    pub fn get_notifications(
         notifiable_type: &str,
         notifiable_id: &str,
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<NotificationModel>> {
-        let pool = Self::get_database_pool().await?;
+        let pool = Self::get_database_pool()?;
+        let mut conn = pool.get()?;
 
         let query = if let (Some(limit), Some(offset)) = (limit, offset) {
             format!(r#"
-                SELECT id, notification_type, notifiable_id, notifiable_type, data, read_at, created_at, updated_at
+                SELECT id, type as notification_type, notifiable_id, notifiable_type, data, read_at, created_at, updated_at,
+                       channels, sent_at, failed_at, retry_count, max_retries, error_message, priority, scheduled_at
                 FROM notifications
                 WHERE notifiable_type = $1 AND notifiable_id = $2
                 ORDER BY created_at DESC
@@ -113,25 +115,26 @@ impl DatabaseChannel {
             "#, limit, offset)
         } else {
             r#"
-                SELECT id, notification_type, notifiable_id, notifiable_type, data, read_at, created_at, updated_at
+                SELECT id, type as notification_type, notifiable_id, notifiable_type, data, read_at, created_at, updated_at,
+                       channels, sent_at, failed_at, retry_count, max_retries, error_message, priority, scheduled_at
                 FROM notifications
                 WHERE notifiable_type = $1 AND notifiable_id = $2
                 ORDER BY created_at DESC
             "#.to_string()
         };
 
-        let notifications = sqlx::query_as::<_, NotificationModel>(&query)
-            .bind(notifiable_type)
-            .bind(notifiable_id)
-            .fetch_all(&pool)
-            .await?;
+        let notifications = diesel::sql_query(query)
+            .bind::<diesel::sql_types::Text, _>(notifiable_type)
+            .bind::<diesel::sql_types::Text, _>(notifiable_id)
+            .load::<NotificationModel>(&mut conn)?;
 
         Ok(notifications)
     }
 
     /// Mark notification as read
-    pub async fn mark_as_read(notification_id: &str) -> Result<()> {
-        let pool = Self::get_database_pool().await?;
+    pub fn mark_as_read(notification_id: &str) -> Result<()> {
+        let pool = Self::get_database_pool()?;
+        let mut conn = pool.get()?;
 
         let query = r#"
             UPDATE notifications
@@ -139,17 +142,17 @@ impl DatabaseChannel {
             WHERE id = $1
         "#;
 
-        sqlx::query(query)
-            .bind(notification_id)
-            .execute(&pool)
-            .await?;
+        diesel::sql_query(query)
+            .bind::<diesel::sql_types::Text, _>(notification_id)
+            .execute(&mut conn)?;
 
         Ok(())
     }
 
     /// Mark all notifications as read for a notifiable entity
-    pub async fn mark_all_as_read(notifiable_type: &str, notifiable_id: &str) -> Result<()> {
-        let pool = Self::get_database_pool().await?;
+    pub fn mark_all_as_read(notifiable_type: &str, notifiable_id: &str) -> Result<()> {
+        let pool = Self::get_database_pool()?;
+        let mut conn = pool.get()?;
 
         let query = r#"
             UPDATE notifications
@@ -157,25 +160,21 @@ impl DatabaseChannel {
             WHERE notifiable_type = $1 AND notifiable_id = $2 AND read_at IS NULL
         "#;
 
-        sqlx::query(query)
-            .bind(notifiable_type)
-            .bind(notifiable_id)
-            .execute(&pool)
-            .await?;
+        diesel::sql_query(query)
+            .bind::<diesel::sql_types::Text, _>(notifiable_type)
+            .bind::<diesel::sql_types::Text, _>(notifiable_id)
+            .execute(&mut conn)?;
 
         Ok(())
     }
 
     /// Delete notification
-    pub async fn delete_notification(notification_id: &str) -> Result<()> {
-        let pool = Self::get_database_pool().await?;
+    pub fn delete_notification(notification_id: &str) -> Result<()> {
+        let pool = Self::get_database_pool()?;
+        let mut conn = pool.get()?;
 
-        let query = "DELETE FROM notifications WHERE id = $1";
-
-        sqlx::query(query)
-            .bind(notification_id)
-            .execute(&pool)
-            .await?;
+        diesel::delete(notifications::table.filter(notifications::id.eq(notification_id)))
+            .execute(&mut conn)?;
 
         Ok(())
     }

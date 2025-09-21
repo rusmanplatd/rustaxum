@@ -59,7 +59,7 @@ pub async fn index(
     State(pool): State<DbPool>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    match OrganizationService::list(&pool, params).await {
+    match OrganizationService::list(&pool, params) {
         Ok(organizations) => {
             let responses: Vec<_> = organizations.into_iter().map(|o| o.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()
@@ -112,7 +112,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         }
     };
 
-    match OrganizationService::find_by_id(&pool, organization_id).await {
+    match OrganizationService::find_by_id(&pool, organization_id) {
         Ok(Some(organization)) => (StatusCode::OK, ResponseJson(organization.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -173,7 +173,7 @@ pub async fn store(State(pool): State<DbPool>, request: CreateOrganizationReques
         description: request.description,
     };
 
-    match OrganizationService::create(&pool, payload).await {
+    match OrganizationService::create(&pool, payload) {
         Ok(organization) => (StatusCode::CREATED, ResponseJson(organization.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -241,7 +241,7 @@ pub async fn update(
         is_active: request.is_active,
     };
 
-    match OrganizationService::update(&pool, organization_id, payload).await {
+    match OrganizationService::update(&pool, organization_id, payload) {
         Ok(organization) => (StatusCode::OK, ResponseJson(organization.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -285,7 +285,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     };
 
-    match OrganizationService::delete(&pool, organization_id).await {
+    match OrganizationService::delete(&pool, organization_id) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Organization deleted successfully".to_string(),
@@ -333,7 +333,7 @@ pub async fn children(State(pool): State<DbPool>, Path(id): Path<String>) -> imp
         }
     };
 
-    match OrganizationService::find_children(&pool, parent_id).await {
+    match OrganizationService::find_children(&pool, parent_id) {
         Ok(organizations) => {
             let responses: Vec<_> = organizations.into_iter().map(|o| o.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()
@@ -362,7 +362,7 @@ pub async fn children(State(pool): State<DbPool>, Path(id): Path<String>) -> imp
     )
 )]
 pub async fn roots(State(pool): State<DbPool>) -> impl IntoResponse {
-    match OrganizationService::find_root_organizations(&pool).await {
+    match OrganizationService::find_root_organizations(&pool) {
         Ok(organizations) => {
             let responses: Vec<_> = organizations.into_iter().map(|o| o.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()

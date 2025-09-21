@@ -7,6 +7,8 @@ use std::fs::File;
 use std::collections::HashMap;
 use serde::Deserialize;
 use ulid::Ulid;
+use diesel::prelude::*;
+use crate::schema::{provinces, countries};
 
 #[derive(Debug, Deserialize)]
 struct ProvinceRecord {
@@ -26,13 +28,16 @@ impl Seeder for Provinceseeder {
         Some("Seeds provinces table from CSV data, requires countries")
     }
 
-    async fn run(&self, pool: &DbPool) -> Result<()> {
+    fn run(&self, pool: &DbPool) -> Result<()> {
         println!("Seeding provinces from CSV...");
+        let mut conn = pool.get()?;
 
         // Check if provinces already exist
-        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM provinces")
-            .fetch_one(pool)
-            .await?;
+        let count: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM provinces")
+            .load::<(i64,)>(&mut conn)?
+            .first()
+            .map(|(c,)| *c)
+            .unwrap_or(0);
 
         if count > 0 {
             println!("Provinces table already has {} records. Skipping seeding.", count);
@@ -40,9 +45,8 @@ impl Seeder for Provinceseeder {
         }
 
         // Get country mappings from database
-        let countries: Vec<(String, String)> = sqlx::query_as("SELECT iso_code, id FROM countries")
-            .fetch_all(pool)
-            .await?;
+        let countries: Vec<(String, String)> = diesel::sql_query("SELECT iso_code, id FROM countries")
+            .load::<(String, String)>(&mut conn)?;
 
         let country_map: HashMap<String, Ulid> = countries
             .into_iter()
@@ -68,18 +72,16 @@ impl Seeder for Provinceseeder {
                 Some(record.code.clone()),
             );
 
-            sqlx::query(
-                "INSERT INTO provinces (id, country_id, name, code, created_at, updated_at)
-                 VALUES ($1, $2, $3, $4, $5, $6)"
-            )
-            .bind(province.id.to_string())
-            .bind(province.country_id.to_string())
-            .bind(province.name)
-            .bind(province.code)
-            .bind(province.created_at)
-            .bind(province.updated_at)
-            .execute(pool)
-            .await?;
+            diesel::insert_into(provinces::table)
+                .values((
+                    provinces::id.eq(province.id.to_string()),
+                    provinces::country_id.eq(province.country_id.to_string()),
+                    provinces::name.eq(&province.name),
+                    provinces::code.eq(&province.code),
+                    provinces::created_at.eq(province.created_at),
+                    provinces::updated_at.eq(province.updated_at),
+                ))
+                .execute(&mut conn)?;
 
             let key = format!("{}:{}", record.country_iso, record.code);
             province_map.insert(key, province.id.to_string());

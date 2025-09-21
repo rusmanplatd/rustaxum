@@ -18,7 +18,7 @@ impl Seeder for UserSeeder {
         Some("Seed default sys_users for the application")
     }
 
-    async fn run(&self, pool: &DbPool) -> Result<()> {
+    fn run(&self, pool: &DbPool) -> Result<()> {
         println!("🌱 Seeding sys_users...");
 
         let mut conn = pool.get()?;

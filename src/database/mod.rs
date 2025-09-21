@@ -25,7 +25,8 @@ pub fn create_pool(config: &Config) -> Result<DbPool> {
 
 pub fn run_migrations(pool: &DbPool) -> Result<()> {
     let mut conn = pool.get()?;
-    conn.run_pending_migrations(MIGRATIONS)?;
+    conn.run_pending_migrations(MIGRATIONS)
+        .map_err(|e| anyhow::anyhow!("Migration failed: {}", e))?;
     Ok(())
 }
 

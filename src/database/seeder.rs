@@ -2,12 +2,11 @@ use crate::database::DbPool;
 use anyhow::Result;
 use std::collections::HashMap;
 use std::sync::OnceLock;
-use std::future::Future;
 
 /// Base trait for database seeders, similar to Laravel's Seeder class
 pub trait Seeder {
     /// Run the database seeds
-    fn run(&self, pool: &DbPool) -> impl Future<Output = Result<()>> + Send;
+    fn run(&self, pool: &DbPool) -> Result<()>;
 
     /// Get the seeder class name
     fn class_name(&self) -> &'static str;
@@ -29,11 +28,11 @@ impl<'a> SeederContext<'a> {
     }
 
     /// Call another seeder class (Laravel's $this->call() equivalent)
-    pub async fn call<T: Seeder>(&self, seeder: T) -> Result<()> {
+    pub fn call<T: Seeder>(&self, seeder: T) -> Result<()> {
         println!("🌱 Seeding: {}", seeder.class_name());
         let start = std::time::Instant::now();
 
-        seeder.run(self.pool).await?;
+        seeder.run(self.pool)?;
 
         let duration = start.elapsed();
         println!("✅ Seeded: {} ({:?})", seeder.class_name(), duration);
@@ -41,9 +40,9 @@ impl<'a> SeederContext<'a> {
     }
 
     /// Call multiple seeder classes
-    pub async fn call_many<T: Seeder>(&self, seeders: Vec<T>) -> Result<()> {
+    pub fn call_many<T: Seeder>(&self, seeders: Vec<T>) -> Result<()> {
         for seeder in seeders {
-            self.call(seeder).await?;
+            self.call(seeder)?;
         }
         Ok(())
     }
@@ -68,7 +67,7 @@ pub enum RegisteredSeeder {
 }
 
 impl RegisteredSeeder {
-    pub async fn run(&self, pool: &DbPool) -> Result<()> {
+    pub fn run(&self, pool: &DbPool) -> Result<()> {
         use crate::database::seeders::{
             countryseeder::Countryseeder,
             provinceseeder::Provinceseeder,
@@ -83,35 +82,35 @@ impl RegisteredSeeder {
         match self {
             RegisteredSeeder::Country => {
                 let seeder = Countryseeder;
-                seeder.run(pool).await
+                seeder.run(pool)
             }
             RegisteredSeeder::Province => {
                 let seeder = Provinceseeder;
-                seeder.run(pool).await
+                seeder.run(pool)
             }
             RegisteredSeeder::City => {
                 let seeder = Cityseeder;
-                seeder.run(pool).await
+                seeder.run(pool)
             }
             RegisteredSeeder::Database => {
                 let seeder = Databaseseeder;
-                seeder.run(pool).await
+                seeder.run(pool)
             }
             RegisteredSeeder::User => {
                 let seeder = UserSeeder;
-                seeder.run(pool).await
+                seeder.run(pool)
             }
             RegisteredSeeder::RolePermission => {
                 let seeder = RolePermissionSeeder;
-                seeder.run(pool).await
+                seeder.run(pool)
             }
             RegisteredSeeder::Organization => {
                 let seeder = OrganizationSeeder;
-                seeder.run(pool).await
+                seeder.run(pool)
             }
             RegisteredSeeder::JobLevelPosition => {
                 let seeder = JobLevelPositionSeeder;
-                seeder.run(pool).await
+                seeder.run(pool)
             }
         }
     }

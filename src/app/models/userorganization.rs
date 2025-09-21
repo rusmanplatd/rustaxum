@@ -8,10 +8,12 @@ use std::collections::HashMap;
 use serde_json::{json, Value};
 use utoipa::ToSchema;
 use crate::query_builder::{Queryable, SortDirection};
+use crate::schema::user_organizations;
 
 /// User organization model representing the relationship between users and organizations
 /// Contains employment information, job position, and temporal data
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, diesel::Queryable, Identifiable)]
+#[diesel(table_name = crate::schema::user_organizations)]
 pub struct UserOrganization {
     /// Unique identifier for the user-organization relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
@@ -108,41 +110,45 @@ impl UserOrganization {
     // RBAC Methods for UserOrganization
 
     /// Check if user has a specific role in an organization
-    pub async fn user_has_role_in_organization(
+    pub fn user_has_role_in_organization(
         pool: &DbPool,
         user_id: Ulid,
         organization_id: Ulid,
         role_name: &str,
     ) -> Result<bool> {
-        let count: i64 = sqlx::query_scalar(
+        let mut conn = pool.get()?;
+
+        let count: i64 = diesel::sql_query(
             r#"
-            SELECT COUNT(*)
+            SELECT COUNT(*) as count
             FROM sys_roles r
             INNER JOIN sys_model_has_roles smhr ON r.id = smhr.role_id AND smhr.model_type = 'UserOrganization'
             INNER JOIN user_organizations uo ON smhr.model_id = uo.id
             WHERE uo.user_id = $1 AND uo.organization_id = $2 AND r.name = $3 AND uo.is_active = true
             "#
         )
-        .bind(user_id.to_string())
-        .bind(organization_id.to_string())
-        .bind(role_name)
-        .fetch_one(pool)
-        .await
+        .bind::<diesel::sql_types::Text, _>(user_id.to_string())
+        .bind::<diesel::sql_types::Text, _>(organization_id.to_string())
+        .bind::<diesel::sql_types::Text, _>(role_name)
+        .get_result::<(i64,)>(&mut conn)
+        .map(|(count,)| count)
         .unwrap_or(0);
 
         Ok(count > 0)
     }
 
     /// Check if user has a specific permission in an organization
-    pub async fn user_has_permission_in_organization(
+    pub fn user_has_permission_in_organization(
         pool: &DbPool,
         user_id: Ulid,
         organization_id: Ulid,
         permission_name: &str,
     ) -> Result<bool> {
-        let count: i64 = sqlx::query_scalar(
+        let mut conn = pool.get()?;
+
+        let count: i64 = diesel::sql_query(
             r#"
-            SELECT COUNT(*)
+            SELECT COUNT(*) as count
             FROM sys_permissions p
             INNER JOIN sys_model_has_permissions smhp ON p.id = smhp.permission_id AND smhp.model_type = 'Role'
             INNER JOIN sys_roles r ON smhp.model_id = r.id
@@ -151,57 +157,59 @@ impl UserOrganization {
             WHERE uo.user_id = $1 AND uo.organization_id = $2 AND p.name = $3 AND uo.is_active = true
             "#
         )
-        .bind(user_id.to_string())
-        .bind(organization_id.to_string())
-        .bind(permission_name)
-        .fetch_one(pool)
-        .await
+        .bind::<diesel::sql_types::Text, _>(user_id.to_string())
+        .bind::<diesel::sql_types::Text, _>(organization_id.to_string())
+        .bind::<diesel::sql_types::Text, _>(permission_name)
+        .get_result::<(i64,)>(&mut conn)
+        .map(|(count,)| count)
         .unwrap_or(0);
 
         Ok(count > 0)
     }
 
     /// Assign a role to user in organization
-    pub async fn assign_role_to_user_organization(
+    pub fn assign_role_to_user_organization(
         pool: &DbPool,
         user_organization_id: Ulid,
         role_id: Ulid,
     ) -> Result<()> {
-        sqlx::query(
+        let mut conn = pool.get()?;
+
+        diesel::sql_query(
             r#"
             INSERT INTO sys_model_has_roles (id, model_type, model_id, role_id, scope_type, scope_id, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
             ON CONFLICT (model_type, model_id, role_id) DO NOTHING
             "#
         )
-        .bind(Ulid::new().to_string())
-        .bind("UserOrganization")
-        .bind(user_organization_id.to_string())
-        .bind(role_id.to_string())
-        .bind(Option::<String>::None)
-        .bind(Option::<String>::None)
-        .execute(pool)
-        .await?;
+        .bind::<diesel::sql_types::Text, _>(Ulid::new().to_string())
+        .bind::<diesel::sql_types::Text, _>("UserOrganization")
+        .bind::<diesel::sql_types::Text, _>(user_organization_id.to_string())
+        .bind::<diesel::sql_types::Text, _>(role_id.to_string())
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Option::<String>::None)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Option::<String>::None)
+        .execute(&mut conn)?;
 
         Ok(())
     }
 
     /// Remove a role from user in organization
-    pub async fn remove_role_from_user_organization(
+    pub fn remove_role_from_user_organization(
         pool: &DbPool,
         user_organization_id: Ulid,
         role_id: Ulid,
     ) -> Result<()> {
-        sqlx::query(
+        let mut conn = pool.get()?;
+
+        diesel::sql_query(
             r#"
             DELETE FROM sys_model_has_roles
             WHERE model_type = 'UserOrganization' AND model_id = $1 AND role_id = $2
             "#
         )
-        .bind(user_organization_id.to_string())
-        .bind(role_id.to_string())
-        .execute(pool)
-        .await?;
+        .bind::<diesel::sql_types::Text, _>(user_organization_id.to_string())
+        .bind::<diesel::sql_types::Text, _>(role_id.to_string())
+        .execute(&mut conn)?;
 
         Ok(())
     }
@@ -244,7 +252,7 @@ impl UserOrganization {
     }
 
     /// Check if user can access resource based on organization hierarchy
-    pub async fn can_access_in_hierarchy(
+    pub fn can_access_in_hierarchy(
         &self,
         pool: &DbPool,
         target_organization_id: Ulid,
@@ -253,8 +261,9 @@ impl UserOrganization {
         match access_level {
             1 => Ok(self.organization_id == target_organization_id),
             2 => {
+                let mut conn = pool.get()?;
                 // Check if target is a child organization
-                let count: i64 = sqlx::query_scalar(
+                let count: i64 = diesel::sql_query(
                     r#"
                     WITH RECURSIVE org_hierarchy AS (
                         SELECT id, parent_id FROM organizations WHERE id = $1
@@ -263,20 +272,21 @@ impl UserOrganization {
                         FROM organizations o
                         INNER JOIN org_hierarchy oh ON o.parent_id = oh.id
                     )
-                    SELECT COUNT(*) FROM org_hierarchy WHERE id = $2
+                    SELECT COUNT(*) as count FROM org_hierarchy WHERE id = $2
                     "#
                 )
-                .bind(self.organization_id.to_string())
-                .bind(target_organization_id.to_string())
-                .fetch_one(pool)
-                .await
+                .bind::<diesel::sql_types::Text, _>(self.organization_id.to_string())
+                .bind::<diesel::sql_types::Text, _>(target_organization_id.to_string())
+                .get_result::<(i64,)>(&mut conn)
+                .map(|(count,)| count)
                 .unwrap_or(0);
 
                 Ok(count > 0)
             }
             3 => {
+                let mut conn = pool.get()?;
                 // Check if target is a parent organization
-                let count: i64 = sqlx::query_scalar(
+                let count: i64 = diesel::sql_query(
                     r#"
                     WITH RECURSIVE parent_hierarchy AS (
                         SELECT id, parent_id FROM organizations WHERE id = $1
@@ -285,13 +295,13 @@ impl UserOrganization {
                         FROM organizations o
                         INNER JOIN parent_hierarchy ph ON ph.parent_id = o.id
                     )
-                    SELECT COUNT(*) FROM parent_hierarchy WHERE id = $2
+                    SELECT COUNT(*) as count FROM parent_hierarchy WHERE id = $2
                     "#
                 )
-                .bind(self.organization_id.to_string())
-                .bind(target_organization_id.to_string())
-                .fetch_one(pool)
-                .await
+                .bind::<diesel::sql_types::Text, _>(self.organization_id.to_string())
+                .bind::<diesel::sql_types::Text, _>(target_organization_id.to_string())
+                .get_result::<(i64,)>(&mut conn)
+                .map(|(count,)| count)
                 .unwrap_or(0);
 
                 Ok(count > 0)
@@ -301,45 +311,45 @@ impl UserOrganization {
     }
 
     /// Activate user organization relationship
-    pub async fn activate(&mut self, pool: &DbPool) -> Result<()> {
+    pub fn activate(&mut self, pool: &DbPool) -> Result<()> {
+        let mut conn = pool.get()?;
         self.is_active = true;
         self.updated_at = Utc::now();
 
-        sqlx::query(
+        diesel::sql_query(
             "UPDATE user_organizations SET is_active = true, updated_at = NOW() WHERE id = $1"
         )
-        .bind(self.id.to_string())
-        .execute(pool)
-        .await?;
+        .bind::<diesel::sql_types::Text, _>(self.id.to_string())
+        .execute(&mut conn)?;
 
         Ok(())
     }
 
     /// Deactivate user organization relationship
-    pub async fn deactivate(&mut self, pool: &DbPool) -> Result<()> {
+    pub fn deactivate(&mut self, pool: &DbPool) -> Result<()> {
+        let mut conn = pool.get()?;
         self.is_active = false;
         self.ended_at = Some(Utc::now());
         self.updated_at = Utc::now();
 
-        sqlx::query(
+        diesel::sql_query(
             "UPDATE user_organizations SET is_active = false, ended_at = NOW(), updated_at = NOW() WHERE id = $1"
         )
-        .bind(self.id.to_string())
-        .execute(pool)
-        .await?;
+        .bind::<diesel::sql_types::Text, _>(self.id.to_string())
+        .execute(&mut conn)?;
 
         Ok(())
     }
 
     /// Transfer user to different organization
-    pub async fn transfer_to_organization(
+    pub fn transfer_to_organization(
         &mut self,
         pool: &DbPool,
         new_organization_id: Ulid,
         new_job_position_id: Ulid,
     ) -> Result<()> {
         // End current relationship
-        self.deactivate(pool).await?;
+        self.deactivate(pool)?;
 
         // Create new relationship
         let new_user_org = UserOrganization::new(
@@ -349,23 +359,23 @@ impl UserOrganization {
             Some(Utc::now()),
         );
 
-        sqlx::query(
+        let mut conn = pool.get()?;
+        diesel::sql_query(
             r#"
             INSERT INTO user_organizations (id, user_id, organization_id, job_position_id, is_active, started_at, ended_at, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             "#
         )
-        .bind(new_user_org.id.to_string())
-        .bind(new_user_org.user_id.to_string())
-        .bind(new_user_org.organization_id.to_string())
-        .bind(new_user_org.job_position_id.to_string())
-        .bind(new_user_org.is_active)
-        .bind(new_user_org.started_at)
-        .bind(new_user_org.ended_at)
-        .bind(new_user_org.created_at)
-        .bind(new_user_org.updated_at)
-        .execute(pool)
-        .await?;
+        .bind::<diesel::sql_types::Text, _>(new_user_org.id.to_string())
+        .bind::<diesel::sql_types::Text, _>(new_user_org.user_id.to_string())
+        .bind::<diesel::sql_types::Text, _>(new_user_org.organization_id.to_string())
+        .bind::<diesel::sql_types::Text, _>(new_user_org.job_position_id.to_string())
+        .bind::<diesel::sql_types::Bool, _>(new_user_org.is_active)
+        .bind::<diesel::sql_types::Timestamptz, _>(new_user_org.started_at)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(new_user_org.ended_at)
+        .bind::<diesel::sql_types::Timestamptz, _>(new_user_org.created_at)
+        .bind::<diesel::sql_types::Timestamptz, _>(new_user_org.updated_at)
+        .execute(&mut conn)?;
 
         Ok(())
     }
