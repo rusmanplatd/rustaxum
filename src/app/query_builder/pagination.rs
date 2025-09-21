@@ -65,7 +65,7 @@ impl Pagination {
     }
 
     /// Create offset-based pagination
-    pub fn offset(page: u32, per_page: u32) -> Self {
+    pub fn page_based(page: u32, per_page: u32) -> Self {
         Self {
             page: page.max(1),
             per_page: per_page.clamp(1, 100),
@@ -105,6 +105,7 @@ impl Pagination {
     /// Calculate offset-based pagination info
     fn paginate_offset<T>(&self, total: u64, data: Vec<T>) -> PaginationResult<T> {
         let total_pages = ((total as f64) / (self.per_page as f64)).ceil() as u32;
+        let data_len = data.len() as u64;
 
         PaginationResult {
             data,
@@ -116,7 +117,7 @@ impl Pagination {
                 total_pages: Some(total_pages),
                 from: if total > 0 { Some(self.offset() as u64 + 1) } else { None },
                 to: if total > 0 {
-                    Some((self.offset() as u64 + data.len() as u64).min(total))
+                    Some((self.offset() as u64 + data_len).min(total))
                 } else {
                     None
                 },
@@ -285,7 +286,7 @@ impl<T> PaginationResult<T> {
         self.pagination.first_page_url = Some(format!("{}page=1&per_page={}",
             base_url, self.pagination.per_page));
         self.pagination.last_page_url = Some(format!("{}page={}&per_page={}",
-            base_url, self.pagination.total_pages, self.pagination.per_page));
+            base_url, self.pagination.total_pages.unwrap_or(1), self.pagination.per_page));
 
         if let Some(prev_page) = self.pagination.prev_page {
             self.pagination.prev_page_url = Some(format!("{}page={}&per_page={}",

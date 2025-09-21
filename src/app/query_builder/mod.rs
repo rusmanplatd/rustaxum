@@ -120,7 +120,7 @@ impl QueryParams {
     pub fn get_pagination(&self) -> Pagination {
         let pagination_type = self.pagination_type.unwrap_or_default();
         match pagination_type {
-            PaginationType::Offset => Pagination::offset(
+            PaginationType::Offset => Pagination::page_based(
                 self.page.unwrap_or(1),
                 self.per_page.unwrap_or(15),
             ),

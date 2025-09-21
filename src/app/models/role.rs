@@ -5,10 +5,10 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::SortDirection;
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, QueryableByName, Identifiable)]
 #[diesel(table_name = crate::schema::sys_roles)]
 pub struct Role {
-    pub id: Ulid,
+    pub id: String,
     pub name: String,
     pub description: Option<String>,
     pub guard_name: String,
@@ -44,7 +44,7 @@ impl Role {
     pub fn new(name: String, description: Option<String>, guard_name: Option<String>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new(),
+            id: Ulid::new().to_string(),
             name,
             description,
             guard_name: guard_name.unwrap_or_else(|| "api".to_string()),
@@ -55,7 +55,7 @@ impl Role {
 
     pub fn to_response(&self) -> RoleResponse {
         RoleResponse {
-            id: self.id.to_string(),
+            id: self.id.clone(),
             name: self.name.clone(),
             description: self.description.clone(),
             guard_name: self.guard_name.clone(),

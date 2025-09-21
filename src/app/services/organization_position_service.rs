@@ -104,7 +104,7 @@ impl OrganizationPositionService {
         let mut conn = pool.get()?;
         let now = Utc::now();
 
-        let mut changeset = organization_positions::table.filter(organization_positions::id.eq(id));
+        let changeset = organization_positions::table.filter(organization_positions::id.eq(id));
 
         let organization_position = diesel::update(changeset)
             .set((

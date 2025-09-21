@@ -629,10 +629,10 @@ pub async fn notify<N: Notifiable>(
 pub async fn notify_via<N: Notifiable>(
     notifiable: &N,
     channels: Vec<NotificationChannel>,
-    notification: impl Notification + Send + Sync,
+    _notification: impl Notification + Send + Sync,
 ) -> Result<()> {
     for channel in channels {
-        if let Some(route) = notifiable.route_notification_for(&channel).await {
+        if let Some(_route) = notifiable.route_notification_for(&channel).await {
             // Send via specific channel (same logic as above)
         }
     }

@@ -87,7 +87,7 @@ impl QueueDriver for DatabaseQueueDriver {
                 jobs::id.eq(&metadata.id),
                 jobs::queue_name.eq(&metadata.queue_name),
                 jobs::job_name.eq(&metadata.job_name),
-                jobs::payload.eq(&metadata.payload),
+                jobs::payload.eq(serde_json::from_str::<serde_json::Value>(&metadata.payload)?),
                 jobs::attempts.eq(metadata.attempts as i32),
                 jobs::max_attempts.eq(metadata.max_attempts as i32),
                 jobs::status.eq(status_str),

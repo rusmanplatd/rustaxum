@@ -1,7 +1,7 @@
 use crate::database::DbPool;
 use anyhow::{Result, anyhow};
 use crate::database::seeder::Seeder;
-use crate::app::models::province::Province;
+use crate::app::models::province::{Province, NewProvince};
 use csv::Reader;
 use std::fs::File;
 use std::collections::HashMap;
@@ -65,25 +65,18 @@ impl Seeder for Provinceseeder {
             let country_id = country_map.get(&record.country_iso)
                 .ok_or_else(|| anyhow!("Country with ISO code {} not found", record.country_iso))?;
 
-            let province = Province::new(
-                *country_id,
+            let new_province = NewProvince::new(
+                country_id.to_string(),
                 record.name.clone(),
                 Some(record.code.clone()),
             );
 
-            diesel::insert_into(provinces::table)
-                .values((
-                    provinces::id.eq(province.id.to_string()),
-                    provinces::country_id.eq(province.country_id.to_string()),
-                    provinces::name.eq(&province.name),
-                    provinces::code.eq(&province.code),
-                    provinces::created_at.eq(province.created_at),
-                    provinces::updated_at.eq(province.updated_at),
-                ))
-                .execute(&mut conn)?;
+            let inserted_province: Province = diesel::insert_into(provinces::table)
+                .values(&new_province)
+                .get_result(&mut conn)?;
 
             let key = format!("{}:{}", record.country_iso, record.code);
-            province_map.insert(key, province.id.to_string());
+            province_map.insert(key, inserted_province.id.clone());
             inserted_count += 1;
         }
 

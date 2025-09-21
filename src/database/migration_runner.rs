@@ -88,23 +88,23 @@ impl MigrationRunner {
     pub fn get_next_batch_number(&self) -> Result<i32> {
         let mut conn = self.pool.get()?;
 
-        let result: Option<i32> = migrations::table
+        let result: Option<Option<i32>> = migrations::table
             .select(diesel::dsl::max(migrations::batch))
             .first(&mut conn)
             .optional()?;
 
-        Ok(result.unwrap_or(0) + 1)
+        Ok(result.flatten().unwrap_or(0) + 1)
     }
 
     pub fn get_last_batch_number(&self) -> Result<Option<i32>> {
         let mut conn = self.pool.get()?;
 
-        let result: Option<i32> = migrations::table
+        let result: Option<Option<i32>> = migrations::table
             .select(diesel::dsl::max(migrations::batch))
             .first(&mut conn)
             .optional()?;
 
-        Ok(result)
+        Ok(result.flatten())
     }
 
     pub fn run_migrations(&self) -> Result<()> {
@@ -348,7 +348,11 @@ impl MigrationRunner {
         // Use a transaction to ensure all statements in a migration are executed atomically
         conn.transaction::<_, diesel::result::Error, _>(|conn| {
             // Parse SQL statements properly, handling functions that contain semicolons
-            let statements = self.parse_sql_statements(sql)?;
+            let statements = self.parse_sql_statements(sql)
+                .map_err(|e| diesel::result::Error::DatabaseError(
+                    diesel::result::DatabaseErrorKind::Unknown,
+                    Box::new(e.to_string())
+                ))?;
 
             for statement in statements {
                 if !statement.is_empty() {

@@ -8,12 +8,12 @@ use super::{HasModelType, HasRoles};
 
 /// User model representing a registered user
 /// Contains authentication, profile, and security information
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::sys_users)]
 pub struct User {
     /// Unique user identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: Ulid,
+    pub id: String,
     /// User's full name
     #[schema(example = "John Doe")]
     pub name: String,
@@ -68,8 +68,6 @@ pub struct User {
     /// Last update timestamp
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
-    /// Soft delete timestamp
-    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 /// Create user payload for service layer
@@ -142,19 +140,28 @@ impl User {
     pub fn new(name: String, email: String, password: String) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new(),
+            id: Ulid::new().to_string(),
             name,
             email,
             email_verified_at: None,
+            username: None,
             password,
             remember_token: None,
-            refresh_token: None,
-            refresh_token_expires_at: None,
             password_reset_token: None,
             password_reset_expires_at: None,
-            last_login_at: None,
+            refresh_token: None,
+            refresh_token_expires_at: None,
+            avatar: None,
+            birthdate: None,
             failed_login_attempts: 0,
+            google_id: None,
+            last_login_at: None,
+            last_seen_at: now,
+            locale: None,
             locked_until: None,
+            phone_number: None,
+            phone_verified_at: None,
+            zoneinfo: None,
             created_at: now,
             updated_at: now,
         }
@@ -162,7 +169,7 @@ impl User {
 
     pub fn to_response(&self) -> UserResponse {
         UserResponse {
-            id: self.id.to_string(),
+            id: self.id.clone(),
             name: self.name.clone(),
             email: self.email.clone(),
             email_verified_at: self.email_verified_at,
@@ -205,7 +212,7 @@ impl HasModelType for User {
 
 impl HasRoles for User {
     fn model_id(&self) -> String {
-        self.id.to_string()
+        self.id.clone()
     }
 }
 

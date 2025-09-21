@@ -20,7 +20,7 @@ struct ErrorResponse {
 }
 
 pub async fn register(State(pool): State<DbPool>, Json(payload): Json<CreateUser>) -> impl IntoResponse {
-    match AuthService::register(&pool, payload) {
+    match AuthService::register(&pool, payload).await {
         Ok(response) => (StatusCode::CREATED, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -44,7 +44,7 @@ pub async fn login(State(pool): State<DbPool>, Json(payload): Json<LoginRequest>
 }
 
 pub async fn forgot_password(State(pool): State<DbPool>, Json(payload): Json<ForgotPasswordRequest>) -> impl IntoResponse {
-    match AuthService::forgot_password(&pool, payload) {
+    match AuthService::forgot_password(&pool, payload).await {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -106,7 +106,7 @@ pub async fn change_password(
         }
     };
 
-    match AuthService::change_password(&pool, user_id, payload) {
+    match AuthService::change_password(&pool, user_id.to_string(), payload) {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -151,7 +151,7 @@ pub async fn logout(State(pool): State<DbPool>, headers: HeaderMap) -> impl Into
         }
     };
 
-    match AuthService::revoke_token(&pool, token, user_id, Some("Logout".to_string())) {
+    match AuthService::revoke_token(&pool, token, user_id.to_string(), Some("Logout".to_string())) {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -196,7 +196,7 @@ pub async fn revoke_token(State(pool): State<DbPool>, headers: HeaderMap) -> imp
         }
     };
 
-    match AuthService::revoke_token(&pool, token, user_id, Some("Manual revocation".to_string())) {
+    match AuthService::revoke_token(&pool, token, user_id.to_string(), Some("Manual revocation".to_string())) {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -253,7 +253,7 @@ pub async fn revoke_all_tokens(State(pool): State<DbPool>, headers: HeaderMap) -
         }
     };
 
-    match AuthService::revoke_all_tokens(&pool, user_id) {
+    match AuthService::revoke_all_tokens(&pool, user_id.to_string()) {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {

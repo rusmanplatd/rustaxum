@@ -102,7 +102,7 @@ impl NotificationService {
 
     /// Mark a notification as read
     pub async fn mark_as_read(&self, notification_id: &str) -> Result<()> {
-        DatabaseChannel::mark_as_read(notification_id).await
+        DatabaseChannel::mark_as_read(notification_id)
     }
 
     /// Mark all notifications as read for a notifiable entity
@@ -111,12 +111,12 @@ impl NotificationService {
         notifiable_type: &str,
         notifiable_id: &str,
     ) -> Result<()> {
-        DatabaseChannel::mark_all_as_read(notifiable_type, notifiable_id).await
+        DatabaseChannel::mark_all_as_read(notifiable_type, notifiable_id)
     }
 
     /// Delete a notification
     pub async fn delete_notification(&self, notification_id: &str) -> Result<()> {
-        DatabaseChannel::delete_notification(notification_id).await
+        DatabaseChannel::delete_notification(notification_id)
     }
 
     /// Count unread notifications for a notifiable entity

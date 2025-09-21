@@ -36,9 +36,11 @@ pub struct NotificationAction {
     pub icon: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, QueryableByName)]
+#[diesel(table_name = crate::schema::push_subscriptions)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct PushSubscription {
-    pub id: ulid::Ulid,
+    pub id: String,
     pub user_id: String,
     pub endpoint: String,
     pub p256dh_key: String,
@@ -68,7 +70,7 @@ impl WebPushChannel {
 
     fn get_database_pool() -> Result<DbPool> {
         let config = Config::load()?;
-        let pool = crate::database::create_pool(&config.database.url)?;
+        let pool = crate::database::create_pool(&config)?;
         Ok(pool)
     }
 

@@ -7,6 +7,12 @@ use async_trait::async_trait;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use diesel::prelude::*;
 
+#[derive(QueryableByName)]
+struct CountResult {
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    count: i64,
+}
+
 #[async_trait]
 pub trait Rule: Send + Sync {
     async fn validate(&self, field: &str, value: &Value, data: &HashMap<String, Value>, db: Option<&DbPool>) -> Result<(), ValidationError>;
@@ -280,9 +286,10 @@ impl Rule for UniqueRule {
 
             match diesel::sql_query(query)
                 .bind::<diesel::sql_types::Text, _>(&str_value)
-                .get_result::<(i64,)>(&mut conn)
+                .get_result::<CountResult>(&mut conn)
             {
-                Ok((count,)) => {
+                Ok(result) => {
+                    let count = result.count;
                     if count > 0 {
                         Err(ValidationError::new("unique", &format!("The {} has already been taken.", field)))
                     } else {
@@ -1177,9 +1184,10 @@ impl Rule for ExistsRule {
 
             match diesel::sql_query(query)
                 .bind::<diesel::sql_types::Text, _>(&str_value)
-                .get_result::<(i64,)>(&mut conn)
+                .get_result::<CountResult>(&mut conn)
             {
-                Ok((count,)) => {
+                Ok(result) => {
+                    let count = result.count;
                     if count > 0 {
                         Ok(())
                     } else {

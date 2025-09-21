@@ -54,7 +54,7 @@ impl QueryBuilderExamples {
         // Offset-based pagination (traditional)
         let offset_builder = User::query()
             .where_eq("active", true)
-            .paginate(crate::app::query_builder::Pagination::offset(1, 15));
+            .paginate(crate::app::query_builder::Pagination::page_based(1, 15));
 
         let _offset_results = User::execute_paginated(offset_builder, pool)?;
 
@@ -134,7 +134,7 @@ impl QueryBuilderExamples {
 
         // Different pagination based on role
         let pagination = if user_role == "admin" {
-            crate::app::query_builder::Pagination::offset(1, 50) // Admins can see more
+            crate::app::query_builder::Pagination::page_based(1, 50) // Admins can see more
         } else {
             crate::app::query_builder::Pagination::cursor(20, None) // Regular users get cursor pagination
         };

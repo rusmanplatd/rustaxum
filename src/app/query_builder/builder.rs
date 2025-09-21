@@ -1,7 +1,6 @@
 use crate::app::query_builder::{
     Filter, Sort, Include, Pagination, QueryParams, Queryable,
 };
-use diesel::prelude::*;
 use anyhow::Result;
 use std::collections::HashMap;
 
@@ -367,7 +366,17 @@ where
 
     /// Clone the query builder
     pub fn clone_builder(&self) -> Self {
-        self.clone()
+        QueryBuilder {
+            filters: self.filters.clone(),
+            sorts: self.sorts.clone(),
+            includes: self.includes.clone(),
+            fields: self.fields.clone(),
+            pagination: self.pagination.clone(),
+            appends: self.appends.clone(),
+            with_trashed: self.with_trashed,
+            only_trashed: self.only_trashed,
+            _phantom: std::marker::PhantomData,
+        }
     }
 }
 

@@ -8,6 +8,7 @@ use crate::app::query_builder::{SortDirection};
 /// Database notification model
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, QueryableByName)]
 #[diesel(table_name = crate::schema::notifications)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Notification {
     /// Unique notification identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
@@ -25,7 +26,7 @@ pub struct Notification {
     /// Notification data as JSON
     pub data: serde_json::Value,
     /// Channels where notification will be sent
-    pub channels: Option<Vec<Option<String>>>,
+    pub channels: Vec<Option<String>>,
     /// When the notification was read
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub read_at: Option<DateTime<Utc>>,
@@ -70,7 +71,7 @@ pub struct NewNotification {
     pub notifiable_type: String,
     pub notifiable_id: String,
     pub data: serde_json::Value,
-    pub channels: Option<Vec<Option<String>>>,
+    pub channels: Vec<Option<String>>,
     pub read_at: Option<DateTime<Utc>>,
     pub sent_at: Option<DateTime<Utc>>,
     pub failed_at: Option<DateTime<Utc>>,
@@ -116,7 +117,7 @@ impl NewNotification {
             notifiable_type,
             notifiable_id,
             data,
-            channels: None,
+            channels: vec![],
             read_at: None,
             sent_at: None,
             failed_at: None,

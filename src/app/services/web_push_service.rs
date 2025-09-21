@@ -81,7 +81,7 @@ impl WebPushService {
             &request.keys.p256dh,
             &request.keys.auth,
             user_agent.as_deref(),
-        ).await {
+        ) {
             Ok(subscription) => {
                 tracing::info!(
                     "User {} subscribed to web push notifications: {}",
@@ -112,7 +112,7 @@ impl WebPushService {
         user_id: &str,
         endpoint: &str,
     ) -> Result<SubscriptionResponse> {
-        match WebPushChannel::remove_subscription(user_id, endpoint).await {
+        match WebPushChannel::remove_subscription(user_id, endpoint) {
             Ok(_) => {
                 tracing::info!(
                     "User {} unsubscribed from web push notifications: {}",
@@ -139,7 +139,7 @@ impl WebPushService {
 
     /// Get all push subscriptions for a user
     pub async fn get_user_subscriptions(&self, user_id: &str) -> Result<Vec<PushSubscription>> {
-        WebPushChannel::get_user_subscriptions(user_id).await
+        WebPushChannel::get_user_subscriptions(user_id)
     }
 
     /// Test if web push is configured and working
@@ -229,7 +229,8 @@ impl WebPushService {
     }
 
     async fn get_database_pool() -> Result<DbPool> {
-        crate::database::create_pool()
+        let config = Config::load()?;
+        crate::database::create_pool(&config)
     }
 }
 

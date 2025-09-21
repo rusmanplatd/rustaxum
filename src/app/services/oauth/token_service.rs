@@ -8,11 +8,10 @@ use diesel::prelude::*;
 use crate::schema::{oauth_access_tokens, oauth_refresh_tokens, oauth_auth_codes};
 
 use crate::app::models::oauth::{
-    AccessToken, CreateAccessToken, RefreshToken,
-    AuthCode, CreateAuthCode
+    AccessToken, CreateAccessToken, NewAccessToken, RefreshToken, NewRefreshToken,
+    AuthCode, CreateAuthCode, NewAuthCode
 };
 use crate::app::services::oauth::client_service::ClientService;
-use crate::app::query_builder::QueryBuilder;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenClaims {
@@ -54,7 +53,7 @@ impl TokenService {
             Some(data.scopes.join(","))
         };
 
-        let token = AccessToken::new(
+        let new_token = NewAccessToken::new(
             data.user_id,
             data.client_id,
             data.name,
@@ -62,27 +61,17 @@ impl TokenService {
             expires_at,
         );
 
-        Self::create_access_token_record(pool, token).await
+        Self::create_access_token_record(pool, new_token).await
     }
 
-    pub async fn create_access_token_record(pool: &DbPool, token: AccessToken) -> Result<AccessToken> {
+    pub async fn create_access_token_record(pool: &DbPool, new_token: NewAccessToken) -> Result<AccessToken> {
         let mut conn = pool.get()?;
 
-        diesel::insert_into(oauth_access_tokens::table)
-            .values((
-                oauth_access_tokens::id.eq(token.id.to_string()),
-                oauth_access_tokens::user_id.eq(token.user_id.map(|id| id.to_string())),
-                oauth_access_tokens::client_id.eq(token.client_id.to_string()),
-                oauth_access_tokens::name.eq(&token.name),
-                oauth_access_tokens::scopes.eq(&token.scopes),
-                oauth_access_tokens::revoked.eq(token.revoked),
-                oauth_access_tokens::expires_at.eq(token.expires_at),
-                oauth_access_tokens::created_at.eq(token.created_at),
-                oauth_access_tokens::updated_at.eq(token.updated_at),
-            ))
-            .execute(&mut conn)?;
+        let inserted_token: AccessToken = diesel::insert_into(oauth_access_tokens::table)
+            .values(&new_token)
+            .get_result(&mut conn)?;
 
-        Ok(token)
+        Ok(inserted_token)
     }
 
     pub fn create_refresh_token(
@@ -92,22 +81,15 @@ impl TokenService {
     ) -> Result<RefreshToken> {
         let expires_at = expires_in_seconds.map(|seconds| Utc::now() + Duration::seconds(seconds));
 
-        let refresh_token = RefreshToken::new(access_token_id, expires_at);
+        let new_refresh_token = NewRefreshToken::new(access_token_id.to_string(), expires_at);
 
         let mut conn = pool.get()?;
 
-        diesel::insert_into(oauth_refresh_tokens::table)
-            .values((
-                oauth_refresh_tokens::id.eq(refresh_token.id.to_string()),
-                oauth_refresh_tokens::access_token_id.eq(refresh_token.access_token_id.to_string()),
-                oauth_refresh_tokens::revoked.eq(refresh_token.revoked),
-                oauth_refresh_tokens::expires_at.eq(refresh_token.expires_at),
-                oauth_refresh_tokens::created_at.eq(refresh_token.created_at),
-                oauth_refresh_tokens::updated_at.eq(refresh_token.updated_at),
-            ))
-            .execute(&mut conn)?;
+        let inserted_refresh_token: RefreshToken = diesel::insert_into(oauth_refresh_tokens::table)
+            .values(&new_refresh_token)
+            .get_result(&mut conn)?;
 
-        Ok(refresh_token)
+        Ok(inserted_refresh_token)
     }
 
     pub fn create_auth_code(pool: &DbPool, data: CreateAuthCode) -> Result<AuthCode> {
@@ -117,7 +99,7 @@ impl TokenService {
             Some(data.scopes.join(","))
         };
 
-        let auth_code = AuthCode::new(
+        let new_auth_code = NewAuthCode::new(
             data.user_id,
             data.client_id,
             scopes_str,
@@ -129,23 +111,11 @@ impl TokenService {
 
         let mut conn = pool.get()?;
 
-        diesel::insert_into(oauth_auth_codes::table)
-            .values((
-                oauth_auth_codes::id.eq(auth_code.id.to_string()),
-                oauth_auth_codes::user_id.eq(auth_code.user_id.to_string()),
-                oauth_auth_codes::client_id.eq(auth_code.client_id.to_string()),
-                oauth_auth_codes::scopes.eq(&auth_code.scopes),
-                oauth_auth_codes::revoked.eq(auth_code.revoked),
-                oauth_auth_codes::expires_at.eq(auth_code.expires_at),
-                oauth_auth_codes::challenge.eq(&auth_code.challenge),
-                oauth_auth_codes::challenge_method.eq(&auth_code.challenge_method),
-                oauth_auth_codes::redirect_uri.eq(&auth_code.redirect_uri),
-                oauth_auth_codes::created_at.eq(auth_code.created_at),
-                oauth_auth_codes::updated_at.eq(auth_code.updated_at),
-            ))
-            .execute(&mut conn)?;
+        let inserted_auth_code: AuthCode = diesel::insert_into(oauth_auth_codes::table)
+            .values(&new_auth_code)
+            .get_result(&mut conn)?;
 
-        Ok(auth_code)
+        Ok(inserted_auth_code)
     }
 
     pub fn find_access_token_by_id(pool: &DbPool, id: Ulid) -> Result<Option<AccessToken>> {
@@ -279,8 +249,8 @@ impl TokenService {
 
         // Create access token
         let create_token = CreateAccessToken {
-            user_id: Some(user_id),
-            client_id: client.id,
+            user_id: Some(user_id.to_string()),
+            client_id: client.id.to_string(),
             name: Some(name.clone()),
             scopes,
             expires_at: expires_in_seconds.map(|seconds| Utc::now() + Duration::seconds(seconds)),
@@ -319,7 +289,7 @@ impl TokenService {
             return Err(anyhow::anyhow!("Authorization code is expired or revoked"));
         }
 
-        if auth_code.client_id != client_id {
+        if auth_code.client_id != client_id.to_string() {
             return Err(anyhow::anyhow!("Authorization code was not issued to this client"));
         }
 
@@ -348,8 +318,8 @@ impl TokenService {
 
         // Create access token
         let create_token = CreateAccessToken {
-            user_id: Some(auth_code.user_id),
-            client_id,
+            user_id: Some(auth_code.user_id.clone()),
+            client_id: client_id.to_string(),
             name: None,
             scopes: auth_code.get_scopes(),
             expires_at: Some(Utc::now() + Duration::seconds(3600)), // 1 hour
@@ -360,7 +330,7 @@ impl TokenService {
         // Create refresh token
         let refresh_token = Self::create_refresh_token(
             pool,
-            access_token.id,
+            Ulid::from_string(&access_token.id)?,
             Some(604800), // 7 days
         )?;
 
@@ -398,10 +368,10 @@ impl TokenService {
         }
 
         // Find associated access token
-        let access_token = Self::find_access_token_by_id(pool, refresh_token.access_token_id)?
+        let access_token = Self::find_access_token_by_id(pool, Ulid::from_string(&refresh_token.access_token_id)?)?
             .ok_or_else(|| anyhow::anyhow!("Associated access token not found"))?;
 
-        if access_token.client_id != client_id {
+        if access_token.client_id != client_id.to_string() {
             return Err(anyhow::anyhow!("Refresh token was not issued to this client"));
         }
 
@@ -414,12 +384,12 @@ impl TokenService {
         let _client = client.ok_or_else(|| anyhow::anyhow!("Invalid client credentials"))?;
 
         // Revoke old tokens
-        Self::revoke_access_token(pool, access_token.id)?;
+        Self::revoke_access_token(pool, Ulid::from_string(&access_token.id)?)?;
 
         // Create new access token
         let create_token = CreateAccessToken {
-            user_id: access_token.user_id,
-            client_id,
+            user_id: access_token.user_id.clone(),
+            client_id: client_id.to_string(),
             name: access_token.name.clone(),
             scopes: access_token.get_scopes(),
             expires_at: Some(Utc::now() + Duration::seconds(3600)), // 1 hour
@@ -430,7 +400,7 @@ impl TokenService {
         // Create new refresh token
         let new_refresh_token = Self::create_refresh_token(
             pool,
-            new_access_token.id,
+            Ulid::from_string(&new_access_token.id)?,
             Some(604800), // 7 days
         )?;
 
@@ -518,12 +488,12 @@ impl TokenService {
     }
 
     pub async fn list_user_tokens(pool: &DbPool, user_id: Ulid) -> Result<Vec<AccessToken>> {
-        let mut request = crate::app::query_builder::QueryParams::default();
-        request.filter.insert("user_id".to_string(), serde_json::Value::String(user_id.to_string()));
-        request.filter.insert("revoked".to_string(), serde_json::Value::String("false".to_string()));
-
-        let query_builder = QueryBuilder::<AccessToken>::new(pool.clone(), request);
-        query_builder.get().await
+        let mut conn = pool.get()?;
+        let tokens = oauth_access_tokens::table
+            .filter(oauth_access_tokens::user_id.eq(user_id.to_string()))
+            .filter(oauth_access_tokens::revoked.eq(false))
+            .load::<AccessToken>(&mut conn)?;
+        Ok(tokens)
     }
 }
 

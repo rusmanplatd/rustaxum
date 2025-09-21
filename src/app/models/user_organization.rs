@@ -11,6 +11,12 @@ use crate::app::query_builder::{SortDirection};
 use crate::app::models::{HasModelType, HasRoles};
 use crate::schema::{user_organizations, sys_roles, sys_model_has_roles, sys_permissions, sys_model_has_permissions};
 
+#[derive(QueryableByName)]
+struct CountResult {
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    count: i64,
+}
+
 /// User organization model representing the relationship between users and organizations
 /// Contains employment information, organization position, and temporal data
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
@@ -111,6 +117,20 @@ impl NewUserOrganization {
 }
 
 impl UserOrganization {
+    pub fn new(user_id: String, organization_id: String, organization_position_id: String, started_at: Option<DateTime<Utc>>) -> Self {
+        let now = Utc::now();
+        Self {
+            id: Ulid::new().to_string(),
+            user_id,
+            organization_id,
+            organization_position_id,
+            is_active: true,
+            started_at: started_at.unwrap_or(now),
+            ended_at: None,
+            created_at: now,
+            updated_at: now,
+        }
+    }
 
     pub fn to_response(&self) -> UserOrganizationResponse {
         UserOrganizationResponse {
@@ -297,7 +317,7 @@ impl UserOrganization {
                 // Check if target is a child organization
                 // Note: Using raw SQL for CTE as Diesel doesn't support CTEs directly
                 use diesel::sql_query;
-                let count: i64 = sql_query(
+                let result = sql_query(
                     r#"
                     WITH RECURSIVE org_hierarchy AS (
                         SELECT id, parent_id FROM organizations WHERE id = $1
@@ -311,9 +331,10 @@ impl UserOrganization {
                 )
                 .bind::<diesel::sql_types::Text, _>(self.organization_id.clone())
                 .bind::<diesel::sql_types::Text, _>(target_organization_id.clone())
-                .get_result::<(i64,)>(&mut conn)
-                .map(|(count,)| count)
-                .unwrap_or(0);
+                .get_result::<CountResult>(&mut conn)
+                .unwrap_or(CountResult { count: 0 });
+
+                let count = result.count;
 
                 Ok(count > 0)
             }
@@ -322,7 +343,7 @@ impl UserOrganization {
                 // Check if target is a parent organization
                 // Note: Using raw SQL for CTE as Diesel doesn't support CTEs directly
                 use diesel::sql_query;
-                let count: i64 = sql_query(
+                let result = sql_query(
                     r#"
                     WITH RECURSIVE parent_hierarchy AS (
                         SELECT id, parent_id FROM organizations WHERE id = $1
@@ -336,9 +357,10 @@ impl UserOrganization {
                 )
                 .bind::<diesel::sql_types::Text, _>(self.organization_id.clone())
                 .bind::<diesel::sql_types::Text, _>(target_organization_id)
-                .get_result::<(i64,)>(&mut conn)
-                .map(|(count,)| count)
-                .unwrap_or(0);
+                .get_result::<CountResult>(&mut conn)
+                .unwrap_or(CountResult { count: 0 });
+
+                let count = result.count;
 
                 Ok(count > 0)
             }

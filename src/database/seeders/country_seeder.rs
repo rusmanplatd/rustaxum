@@ -1,7 +1,7 @@
 use crate::database::DbPool;
 use anyhow::Result;
 use crate::database::seeder::Seeder;
-use crate::app::models::country::Country;
+use crate::app::models::country::{Country, NewCountry};
 use csv::Reader;
 use std::fs::File;
 use std::collections::HashMap;
@@ -51,24 +51,17 @@ impl Seeder for Countryseeder {
         for result in rdr.deserialize() {
             let record: CountryRecord = result?;
 
-            let country = Country::new(
+            let new_country = NewCountry::new(
                 record.name.clone(),
                 record.iso_code.clone(),
                 Some(record.phone_code),
             );
 
-            diesel::insert_into(countries::table)
-                .values((
-                    countries::id.eq(country.id.to_string()),
-                    countries::name.eq(&country.name),
-                    countries::iso_code.eq(&country.iso_code),
-                    countries::phone_code.eq(&country.phone_code),
-                    countries::created_at.eq(country.created_at),
-                    countries::updated_at.eq(country.updated_at),
-                ))
-                .execute(&mut conn)?;
+            let inserted_country: Country = diesel::insert_into(countries::table)
+                .values(&new_country)
+                .get_result(&mut conn)?;
 
-            country_map.insert(record.iso_code, country.id.to_string());
+            country_map.insert(record.iso_code, inserted_country.id.clone());
             inserted_count += 1;
         }
 

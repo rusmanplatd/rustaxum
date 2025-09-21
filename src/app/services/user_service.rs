@@ -19,23 +19,25 @@ impl UserService {
 
         let new_user = diesel::insert_into(sys_users::table)
             .values((
-                sys_users::id.eq(user.id.to_string()),
+                sys_users::id.eq(user.id),
                 sys_users::name.eq(&user.name),
                 sys_users::email.eq(&user.email),
                 sys_users::password.eq(&user.password),
                 sys_users::created_at.eq(user.created_at),
                 sys_users::updated_at.eq(user.updated_at),
             ))
+            .returning(User::as_select())
             .get_result::<User>(&mut conn)?;
 
         Ok(new_user)
     }
 
-    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<User>> {
+    pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<User>> {
         let mut conn = pool.get()?;
 
         let result = sys_users::table
-            .filter(sys_users::id.eq(id.to_string()))
+            .filter(sys_users::id.eq(id))
+            .select(User::as_select())
             .first::<User>(&mut conn)
             .optional()?;
 
@@ -47,6 +49,7 @@ impl UserService {
 
         let result = sys_users::table
             .filter(sys_users::email.eq(email))
+            .select(User::as_select())
             .first::<User>(&mut conn)
             .optional()?;
 
@@ -59,13 +62,14 @@ impl UserService {
         let result = sys_users::table
             .filter(sys_users::password_reset_token.eq(token))
             .filter(sys_users::password_reset_expires_at.gt(Utc::now()))
+            .select(User::as_select())
             .first::<User>(&mut conn)
             .optional()?;
 
         Ok(result)
     }
 
-    pub fn update_user(pool: &DbPool, id: Ulid, data: UpdateUser) -> Result<User> {
+    pub fn update_user(pool: &DbPool, id: String, data: UpdateUser) -> Result<User> {
         let mut conn = pool.get()?;
 
         let result = diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
@@ -74,12 +78,13 @@ impl UserService {
                 data.email.map(|e| sys_users::email.eq(e)),
                 sys_users::updated_at.eq(Utc::now()),
             ))
+            .returning(User::as_select())
             .get_result::<User>(&mut conn)?;
 
         Ok(result)
     }
 
-    pub fn update_password(pool: &DbPool, id: Ulid, new_password: String) -> Result<()> {
+    pub fn update_password(pool: &DbPool, id: String, new_password: String) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
@@ -92,7 +97,7 @@ impl UserService {
         Ok(())
     }
 
-    pub fn update_last_login(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn update_last_login(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
@@ -105,7 +110,7 @@ impl UserService {
         Ok(())
     }
 
-    pub fn update_failed_attempts(pool: &DbPool, id: Ulid, attempts: i32, locked_until: Option<DateTime<Utc>>) -> Result<()> {
+    pub fn update_failed_attempts(pool: &DbPool, id: String, attempts: i32, locked_until: Option<DateTime<Utc>>) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
@@ -119,7 +124,7 @@ impl UserService {
         Ok(())
     }
 
-    pub fn reset_failed_attempts(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn reset_failed_attempts(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
@@ -133,7 +138,7 @@ impl UserService {
         Ok(())
     }
 
-    pub fn update_password_reset_token(pool: &DbPool, id: Ulid, token: Option<String>, expires_at: Option<DateTime<Utc>>) -> Result<()> {
+    pub fn update_password_reset_token(pool: &DbPool, id: String, token: Option<String>, expires_at: Option<DateTime<Utc>>) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
@@ -147,7 +152,7 @@ impl UserService {
         Ok(())
     }
 
-    pub fn update_refresh_token(pool: &DbPool, id: Ulid, token: Option<String>, expires_at: Option<DateTime<Utc>>) -> Result<()> {
+    pub fn update_refresh_token(pool: &DbPool, id: String, token: Option<String>, expires_at: Option<DateTime<Utc>>) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
@@ -167,13 +172,14 @@ impl UserService {
         let result = sys_users::table
             .filter(sys_users::refresh_token.eq(token))
             .filter(sys_users::refresh_token_expires_at.gt(Utc::now()))
+            .select(User::as_select())
             .first::<User>(&mut conn)
             .optional()?;
 
         Ok(result)
     }
 
-    pub fn delete_user(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn delete_user(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::delete(sys_users::table.filter(sys_users::id.eq(id.to_string())))

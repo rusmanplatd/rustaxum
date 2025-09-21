@@ -23,17 +23,18 @@ impl UserOrganizationService {
     pub fn create(pool: &DbPool, data: CreateUserOrganization) -> Result<UserOrganization> {
         let mut conn = pool.get()?;
 
-        let user_id = Ulid::from_string(&data.user_id)
+        // Validate ULID format
+        Ulid::from_string(&data.user_id)
             .map_err(|_| anyhow::anyhow!("Invalid user ID format"))?;
-        let organization_id = Ulid::from_string(&data.organization_id)
+        Ulid::from_string(&data.organization_id)
             .map_err(|_| anyhow::anyhow!("Invalid organization ID format"))?;
-        let organization_position_id = Ulid::from_string(&data.organization_position_id)
+        Ulid::from_string(&data.organization_position_id)
             .map_err(|_| anyhow::anyhow!("Invalid organization position ID format"))?;
 
         let user_org = UserOrganization::new(
-            user_id,
-            organization_id,
-            organization_position_id,
+            data.user_id,
+            data.organization_id,
+            data.organization_position_id,
             data.started_at,
         );
 
@@ -65,12 +66,12 @@ impl UserOrganizationService {
         if let Some(organization_id_str) = data.organization_id {
             let organization_id = Ulid::from_string(&organization_id_str)
                 .map_err(|_| anyhow::anyhow!("Invalid organization ID format"))?;
-            user_org.organization_id = organization_id;
+            user_org.organization_id = organization_id.to_string();
         }
         if let Some(organization_position_id_str) = data.organization_position_id {
             let organization_position_id = Ulid::from_string(&organization_position_id_str)
                 .map_err(|_| anyhow::anyhow!("Invalid organization position ID format"))?;
-            user_org.organization_position_id = organization_position_id;
+            user_org.organization_position_id = organization_position_id.to_string();
         }
         if let Some(is_active) = data.is_active {
             user_org.is_active = is_active;
@@ -79,7 +80,7 @@ impl UserOrganizationService {
             user_org.started_at = started_at;
         }
         if let Some(ended_at) = data.ended_at {
-            user_org.ended_at = ended_at;
+            user_org.ended_at = Some(ended_at);
         }
 
         user_org.updated_at = chrono::Utc::now();

@@ -1,7 +1,7 @@
 use crate::database::DbPool;
 use anyhow::{Result, anyhow};
 use crate::database::seeder::Seeder;
-use crate::app::models::city::City;
+use crate::app::models::city::NewCity;
 use csv::Reader;
 use std::fs::File;
 use std::collections::HashMap;
@@ -108,8 +108,8 @@ impl Seeder for Cityseeder {
                 Some(Decimal::from_str(&record.longitude)?)
             };
 
-            let city = City::new(
-                *province_id,
+            let new_city = NewCity::new(
+                province_id.to_string(),
                 record.name.clone(),
                 Some(record.code.clone()),
                 latitude,
@@ -117,16 +117,7 @@ impl Seeder for Cityseeder {
             );
 
             diesel::insert_into(cities::table)
-                .values((
-                    cities::id.eq(city.id.to_string()),
-                    cities::province_id.eq(city.province_id.to_string()),
-                    cities::name.eq(&city.name),
-                    cities::code.eq(&city.code),
-                    cities::latitude.eq(city.latitude),
-                    cities::longitude.eq(city.longitude),
-                    cities::created_at.eq(city.created_at),
-                    cities::updated_at.eq(city.updated_at),
-                ))
+                .values(&new_city)
                 .execute(&mut conn)?;
 
             inserted_count += 1;

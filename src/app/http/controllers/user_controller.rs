@@ -77,7 +77,7 @@ pub async fn show(
         }
     };
 
-    match UserService::find_by_id(&pool, user_ulid)
+    match UserService::find_by_id(&pool, user_ulid.to_string())
     {
         Ok(Some(user)) => {
             (StatusCode::OK, Json(serde_json::json!(user.to_response()))).into_response()

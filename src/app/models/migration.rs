@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use diesel::prelude::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, QueryableByName)]
+#[diesel(table_name = crate::schema::migrations)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Migration {
     pub id: i32,
     pub migration: String,

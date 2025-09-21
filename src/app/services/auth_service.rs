@@ -92,7 +92,7 @@ impl AuthService {
         Ok(token_data.claims)
     }
 
-    pub fn register(pool: &DbPool, data: CreateUser) -> Result<AuthResponse> {
+    pub async fn register(pool: &DbPool, data: CreateUser) -> Result<AuthResponse> {
         // Validate password
         // PasswordValidator::validate(&data.password)?;
 
@@ -109,19 +109,19 @@ impl AuthService {
         let created_user = UserService::create_user_record(pool, user)?;
 
         // Generate tokens
-        let access_token = Self::generate_access_token(&created_user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
+        let access_token = Self::generate_access_token(&created_user.id, "jwt-secret", 86400)?; // 24 hours
         let refresh_token = Self::generate_refresh_token();
         let expires_at = Utc::now() + Duration::seconds(86400);
         let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
 
         // Store refresh token
-        UserService::update_refresh_token(pool, created_user.id, Some(refresh_token.clone()), Some(refresh_expires_at))?;
+        UserService::update_refresh_token(pool, created_user.id.clone(), Some(refresh_token.clone()), Some(refresh_expires_at))?;
 
         // Update last login
-        UserService::update_last_login(pool, created_user.id)?;
+        UserService::update_last_login(pool, created_user.id.clone())?;
 
         // Send welcome email
-        if let Err(e) = EmailService::send_welcome_email(&created_user.email, &created_user.name) {
+        if let Err(e) = EmailService::send_welcome_email(&created_user.email, &created_user.name).await {
             tracing::warn!("Failed to send welcome email: {}", e);
         }
 
@@ -154,26 +154,26 @@ impl AuthService {
                 user.locked_until = Some(Utc::now() + Duration::minutes(LOCKOUT_DURATION_MINUTES));
             }
 
-            UserService::update_failed_attempts(pool, user.id, user.failed_login_attempts, user.locked_until)?;
+            UserService::update_failed_attempts(pool, user.id.clone(), user.failed_login_attempts, user.locked_until)?;
             bail!("Invalid credentials");
         }
 
         // Reset failed attempts on successful login
         if user.failed_login_attempts > 0 {
-            UserService::reset_failed_attempts(pool, user.id)?;
+            UserService::reset_failed_attempts(pool, user.id.clone())?;
         }
 
         // Generate tokens
-        let access_token = Self::generate_access_token(&user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
+        let access_token = Self::generate_access_token(&user.id, "jwt-secret", 86400)?; // 24 hours
         let refresh_token = Self::generate_refresh_token();
         let expires_at = Utc::now() + Duration::seconds(86400);
         let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
 
         // Store refresh token
-        UserService::update_refresh_token(pool, user.id, Some(refresh_token.clone()), Some(refresh_expires_at))?;
+        UserService::update_refresh_token(pool, user.id.clone(), Some(refresh_token.clone()), Some(refresh_expires_at))?;
 
         // Update last login
-        UserService::update_last_login(pool, user.id)?;
+        UserService::update_last_login(pool, user.id.clone())?;
         user.last_login_at = Some(Utc::now());
 
         Ok(AuthResponse {
@@ -185,7 +185,7 @@ impl AuthService {
         })
     }
 
-    pub fn forgot_password(pool: &DbPool, data: ForgotPasswordRequest) -> Result<MessageResponse> {
+    pub async fn forgot_password(pool: &DbPool, data: ForgotPasswordRequest) -> Result<MessageResponse> {
         // Find user by email
         let user = UserService::find_by_email(pool, &data.email)?;
 
@@ -198,10 +198,10 @@ impl AuthService {
             user.password_reset_token = Some(reset_token.clone());
             user.password_reset_expires_at = Some(expires_at);
 
-            UserService::update_password_reset_token(pool, user.id, Some(reset_token.clone()), Some(expires_at))?;
+            UserService::update_password_reset_token(pool, user.id.clone(), Some(reset_token.clone()), Some(expires_at))?;
 
             // Send reset email
-            EmailService::send_password_reset_email(&user.email, &user.name, &reset_token)?;
+            EmailService::send_password_reset_email(&user.email, &user.name, &reset_token).await?;
         }
 
         // Always return success to prevent email enumeration
@@ -228,15 +228,15 @@ impl AuthService {
         let hashed_password = Self::hash_password(&data.password)?;
 
         // Update user password and clear reset token
-        UserService::update_password(pool, user.id, hashed_password)?;
-        UserService::update_password_reset_token(pool, user.id, None, None)?;
+        UserService::update_password(pool, user.id.clone(), hashed_password)?;
+        UserService::update_password_reset_token(pool, user.id.clone(), None, None)?;
 
         Ok(MessageResponse {
             message: "Password has been reset successfully.".to_string(),
         })
     }
 
-    pub fn change_password(pool: &DbPool, user_id: Ulid, data: ChangePasswordRequest) -> Result<MessageResponse> {
+    pub fn change_password(pool: &DbPool, user_id: String, data: ChangePasswordRequest) -> Result<MessageResponse> {
         // Validate new password
         // PasswordValidator::validate(&data.new_password)?;
         // PasswordValidator::validate_confirmation(&data.new_password, &data.password_confirmation)?;
@@ -254,14 +254,14 @@ impl AuthService {
         let hashed_password = Self::hash_password(&data.new_password)?;
 
         // Update password
-        UserService::update_password(pool, user.id, hashed_password)?;
+        UserService::update_password(pool, user.id.clone(), hashed_password)?;
 
         Ok(MessageResponse {
             message: "Password changed successfully.".to_string(),
         })
     }
 
-    pub fn revoke_token(_pool: &DbPool, token: &str, _user_id: Ulid, _reason: Option<String>) -> Result<MessageResponse> {
+    pub fn revoke_token(_pool: &DbPool, token: &str, _user_id: String, _reason: Option<String>) -> Result<MessageResponse> {
         // Decode token to get expiration
         let claims = Self::decode_token(token, "jwt-secret")?;
         let _expires_at = DateTime::from_timestamp(claims.exp as i64, 0)
@@ -283,18 +283,18 @@ impl AuthService {
         // Verify refresh token is still valid
         if !user.is_refresh_token_valid(&data.refresh_token) {
             // Clear invalid refresh token
-            UserService::update_refresh_token(pool, user.id, None, None)?;
+            UserService::update_refresh_token(pool, user.id.clone(), None, None)?;
             bail!("Invalid or expired refresh token");
         }
 
         // Generate new tokens
-        let access_token = Self::generate_access_token(&user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
+        let access_token = Self::generate_access_token(&user.id, "jwt-secret", 86400)?; // 24 hours
         let refresh_token = Self::generate_refresh_token();
         let expires_at = Utc::now() + Duration::seconds(86400);
         let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
 
         // Store new refresh token (this invalidates the old one)
-        UserService::update_refresh_token(pool, user.id, Some(refresh_token.clone()), Some(refresh_expires_at))?;
+        UserService::update_refresh_token(pool, user.id.clone(), Some(refresh_token.clone()), Some(refresh_expires_at))?;
 
         Ok(AuthResponse {
             access_token,
@@ -305,7 +305,7 @@ impl AuthService {
         })
     }
 
-    pub fn revoke_all_tokens(pool: &DbPool, user_id: Ulid) -> Result<MessageResponse> {
+    pub fn revoke_all_tokens(pool: &DbPool, user_id: String) -> Result<MessageResponse> {
         // Clear refresh token
         UserService::update_refresh_token(pool, user_id, None, None)?;
 

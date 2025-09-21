@@ -68,17 +68,11 @@ async fn authenticate_request(
             )
         })?;
 
-    // Parse user ID from token claims
-    let user_id = Ulid::from_string(&claims.sub)
-        .map_err(|_| {
-            (
-                StatusCode::UNAUTHORIZED,
-                Json(json!({"error": "Invalid user ID in token"})),
-            )
-        })?;
+    // Use user ID from token claims directly as string
+    let user_id = &claims.sub;
 
     // Fetch user from database using UserService
-    let user = crate::app::services::user_service::UserService::find_by_id(pool, user_id)
+    let user = crate::app::services::user_service::UserService::find_by_id(pool, user_id.to_string())
         .map_err(|e| {
             tracing::error!("Database error fetching user: {}", e);
             (
