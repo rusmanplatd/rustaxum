@@ -90,7 +90,7 @@ pub async fn authorize(
     };
 
     // Validate client and redirect URI
-    match ClientService::is_valid_redirect_uri(&pool, client_id, &params.redirect_uri) {
+    match ClientService::is_valid_redirect_uri(&pool, client_id.to_string(), &params.redirect_uri) {
         Ok(true) => {},
         Ok(false) => {
             return (StatusCode::BAD_REQUEST, ResponseJson(ErrorResponse {
@@ -302,8 +302,8 @@ async fn handle_client_credentials_grant(pool: &DbPool, params: TokenRequest) ->
 
     // Verify client credentials
     let client = match params.client_secret {
-        Some(ref secret) => ClientService::find_by_id_and_secret(pool, client_id, secret),
-        None => ClientService::find_by_id(pool, client_id),
+        Some(ref secret) => ClientService::find_by_id_and_secret(pool, client_id.to_string(), secret),
+        None => ClientService::find_by_id(pool, client_id.to_string()),
     };
 
     let client = match client {

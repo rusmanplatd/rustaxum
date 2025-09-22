@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::SortDirection;
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::sys_model_has_roles)]
 pub struct SysModelHasRole {
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
@@ -133,6 +133,19 @@ impl NewSysModelHasRole {
 }
 
 impl SysModelHasRole {
+    pub fn new(model_type: String, model_id: String, role_id: String, scope_type: Option<String>, scope_id: Option<String>) -> Self {
+        let now = Utc::now();
+        Self {
+            id: Ulid::new().to_string(),
+            model_type,
+            model_id,
+            role_id,
+            scope_type,
+            scope_id,
+            created_at: now,
+            updated_at: now,
+        }
+    }
 
     pub fn to_response(&self) -> SysModelHasRoleResponse {
         SysModelHasRoleResponse {

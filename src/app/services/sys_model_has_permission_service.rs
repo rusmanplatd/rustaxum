@@ -47,12 +47,12 @@ impl SysModelHasPermissionService {
         Ok(result)
     }
 
-    pub fn find_by_model(pool: &DbPool, model_type: &str, model_id: Ulid) -> Result<Vec<SysModelHasPermission>> {
+    pub fn find_by_model(pool: &DbPool, model_type: &str, model_id: String) -> Result<Vec<SysModelHasPermission>> {
         let mut conn = pool.get()?;
 
         let result = sys_model_has_permissions::table
             .filter(sys_model_has_permissions::model_type.eq(model_type))
-            .filter(sys_model_has_permissions::model_id.eq(model_id.to_string()))
+            .filter(sys_model_has_permissions::model_id.eq(model_id))
             .order(sys_model_has_permissions::created_at.desc())
             .load::<SysModelHasPermission>(&mut conn)?;
 
@@ -69,7 +69,7 @@ impl SysModelHasPermissionService {
         Ok(result)
     }
 
-    pub fn update(pool: &DbPool, id: Ulid, data: UpdateSysModelHasPermission) -> Result<SysModelHasPermission> {
+    pub fn update(pool: &DbPool, id: String, data: UpdateSysModelHasPermission) -> Result<SysModelHasPermission> {
         let mut conn = pool.get()?;
 
         // Use raw SQL for COALESCE functionality

@@ -69,17 +69,17 @@ impl {} {{
         todo!("Implement create method")
     }}
 
-    pub async fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<{}>> {{
+    pub async fn find_by_id(pool: &DbPool, id: String) -> Result<Option<{}>> {{
         // TODO: Implement find by id logic
         todo!("Implement find_by_id method")
     }}
 
-    pub async fn update(pool: &DbPool, id: Ulid, data: Update{}) -> Result<{}> {{
+    pub async fn update(pool: &DbPool, id: String, data: Update{}) -> Result<{}> {{
         // TODO: Implement update logic
         todo!("Implement update method")
     }}
 
-    pub async fn delete(pool: &DbPool, id: Ulid) -> Result<()> {{
+    pub async fn delete(pool: &DbPool, id: String) -> Result<()> {{
         // TODO: Implement delete logic
         todo!("Implement delete method")
     }}

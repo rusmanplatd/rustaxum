@@ -101,7 +101,7 @@ impl CityService {
         Ok(result)
     }
 
-    pub fn update(pool: &DbPool, id: Ulid, data: UpdateCity) -> Result<City> {
+    pub fn update(pool: &DbPool, id: String, data: UpdateCity) -> Result<City> {
         let mut conn = pool.get()?;
 
         // Get the current city

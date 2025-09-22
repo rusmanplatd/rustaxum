@@ -60,7 +60,7 @@ impl ProvinceService {
         Ok(result)
     }
 
-    pub fn update(pool: &DbPool, id: Ulid, data: UpdateProvince) -> Result<Province> {
+    pub fn update(pool: &DbPool, id: String, data: UpdateProvince) -> Result<Province> {
         let mut conn = pool.get()?;
 
         // Get the current province

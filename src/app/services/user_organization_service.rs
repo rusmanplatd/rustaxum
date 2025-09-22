@@ -55,7 +55,7 @@ impl UserOrganizationService {
         Ok(user_org)
     }
 
-    pub fn update(pool: &DbPool, id: Ulid, data: UpdateUserOrganization) -> Result<UserOrganization> {
+    pub fn update(pool: &DbPool, id: String, data: UpdateUserOrganization) -> Result<UserOrganization> {
         let mut conn = pool.get()?;
 
         // First get the existing record

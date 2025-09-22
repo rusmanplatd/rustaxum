@@ -27,11 +27,11 @@ impl RoleService {
         Ok(role)
     }
 
-    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<Role>> {
+    pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<Role>> {
         let mut conn = pool.get()?;
 
         let role = sys_roles::table
-            .filter(sys_roles::id.eq(id.to_string()))
+            .filter(sys_roles::id.eq(id))
             .first::<Role>(&mut conn)
             .optional()?;
 
@@ -51,7 +51,7 @@ impl RoleService {
         Ok(role)
     }
 
-    pub fn update(pool: &DbPool, id: Ulid, data: UpdateRole) -> Result<Role> {
+    pub fn update(pool: &DbPool, id: String, data: UpdateRole) -> Result<Role> {
         let mut conn = pool.get()?;
         let mut role = Self::find_by_id(pool, id)?
             .ok_or_else(|| anyhow::anyhow!("Role not found"))?;

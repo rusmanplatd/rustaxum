@@ -78,7 +78,7 @@ impl ScopeService {
         Ok(scopes)
     }
 
-    pub fn update_scope(pool: &DbPool, id: Ulid, data: UpdateScope) -> Result<ScopeResponse> {
+    pub fn update_scope(pool: &DbPool, id: String, data: UpdateScope) -> Result<ScopeResponse> {
         let mut scope = Self::find_by_id(pool, id)?
             .ok_or_else(|| anyhow::anyhow!("Scope not found"))?;
 

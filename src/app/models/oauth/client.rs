@@ -4,11 +4,11 @@ use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use crate::app::query_builder::{SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, QueryableByName)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, QueryableByName)]
 #[diesel(table_name = crate::schema::oauth_clients)]
 pub struct Client {
-    pub id: Ulid,
-    pub user_id: Option<Ulid>,
+    pub id: String,
+    pub user_id: Option<String>,
     pub name: String,
     pub secret: Option<String>,
     pub provider: Option<String>,
@@ -22,7 +22,7 @@ pub struct Client {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateClient {
-    pub user_id: Option<Ulid>,
+    pub user_id: Option<String>,
     pub name: String,
     pub redirect_uris: Vec<String>,
     pub personal_access_client: bool,
@@ -51,7 +51,7 @@ pub struct ClientResponse {
 
 impl Client {
     pub fn new(
-        user_id: Option<Ulid>,
+        user_id: Option<String>,
         name: String,
         secret: Option<String>,
         redirect_uris: String,
@@ -60,7 +60,7 @@ impl Client {
     ) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new(),
+            id: Ulid::new().to_string(),
             user_id,
             name,
             secret,
@@ -76,7 +76,7 @@ impl Client {
 
     pub fn to_response(&self) -> ClientResponse {
         ClientResponse {
-            id: self.id.to_string(),
+            id: self.id.clone(),
             name: self.name.clone(),
             secret: self.secret.clone(),
             redirect_uris: self.redirect_uris

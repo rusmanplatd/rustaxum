@@ -62,7 +62,7 @@ impl OrganizationPositionLevelService {
         Ok(result)
     }
 
-    pub fn update(pool: &DbPool, id: Ulid, data: UpdateOrganizationPositionLevel) -> Result<OrganizationPositionLevel> {
+    pub fn update(pool: &DbPool, id: String, data: UpdateOrganizationPositionLevel) -> Result<OrganizationPositionLevel> {
         let mut conn = pool.get()?;
         let mut current = Self::find_by_id(pool, id)?
             .ok_or_else(|| anyhow::anyhow!("Job level not found"))?;

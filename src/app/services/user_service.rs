@@ -1,5 +1,4 @@
 use anyhow::Result;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use crate::database::{DbPool};

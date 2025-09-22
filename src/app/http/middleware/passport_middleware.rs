@@ -6,7 +6,6 @@ use axum::{
 };
 use serde_json::json;
 use crate::database::DbPool;
-use ulid::Ulid;
 
 use crate::app::models::user::User;
 use crate::app::services::auth_service::AuthService;

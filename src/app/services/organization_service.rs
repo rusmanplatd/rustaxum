@@ -76,7 +76,7 @@ impl OrganizationService {
         Ok(result)
     }
 
-    pub fn update(pool: &DbPool, id: Ulid, data: UpdateOrganization) -> Result<Organization> {
+    pub fn update(pool: &DbPool, id: String, data: UpdateOrganization) -> Result<Organization> {
         let mut conn = pool.get()?;
 
         let parent_id = if let Some(parent_id_str) = data.parent_id {
@@ -100,7 +100,7 @@ impl OrganizationService {
         Ok(result)
     }
 
-    pub fn delete(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn delete(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
         let rows_affected = diesel::delete(organizations::table.filter(organizations::id.eq(id.to_string())))
@@ -113,7 +113,7 @@ impl OrganizationService {
         Ok(())
     }
 
-    pub fn find_children(pool: &DbPool, parent_id: Ulid) -> Result<Vec<Organization>> {
+    pub fn find_children(pool: &DbPool, parent_id: String) -> Result<Vec<Organization>> {
         let mut conn = pool.get()?;
 
         let results = organizations::table

@@ -106,21 +106,11 @@ pub async fn get_client(
         }
     };
 
-    let client_ulid = match Ulid::from_string(&client_id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid client ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
-    match ClientService::find_by_id(&pool, client_ulid) {
+    match ClientService::find_by_id(&pool, client_id) {
         Ok(Some(client)) => {
             // Check if user owns this client or if it's a system client
-            if let Some(owner_id) = client.user_id {
-                if owner_id != user_id {
+            if let Some(ref owner_id) = client.user_id {
+                if owner_id != &user_id {
                     let error = ErrorResponse {
                         error: "Access denied".to_string(),
                     };
@@ -160,21 +150,11 @@ pub async fn update_client(
         }
     };
 
-    let client_ulid = match Ulid::from_string(&client_id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid client ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
     // Check if user owns this client
-    match ClientService::find_by_id(&pool, client_ulid) {
+    match ClientService::find_by_id(&pool, client_id.clone()) {
         Ok(Some(client)) => {
-            if let Some(owner_id) = client.user_id {
-                if owner_id != user_id {
+            if let Some(ref owner_id) = client.user_id {
+                if owner_id != &user_id {
                     let error = ErrorResponse {
                         error: "Access denied".to_string(),
                     };
@@ -202,7 +182,7 @@ pub async fn update_client(
         revoked: payload.revoked,
     };
 
-    match ClientService::update_client(&pool, client_ulid, update_data) {
+    match ClientService::update_client(&pool, client_id, update_data) {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -241,8 +221,8 @@ pub async fn delete_client(
     // Check if user owns this client
     match ClientService::find_by_id(&pool, client_ulid) {
         Ok(Some(client)) => {
-            if let Some(owner_id) = client.user_id {
-                if owner_id != user_id {
+            if let Some(ref owner_id) = client.user_id {
+                if owner_id != &user_id {
                     let error = ErrorResponse {
                         error: "Access denied".to_string(),
                     };
@@ -264,7 +244,7 @@ pub async fn delete_client(
         }
     }
 
-    match ClientService::delete_client(&pool, client_ulid) {
+    match ClientService::delete_client(&pool, client_id) {
         Ok(_) => (StatusCode::NO_CONTENT, "").into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -303,8 +283,8 @@ pub async fn regenerate_secret(
     // Check if user owns this client
     match ClientService::find_by_id(&pool, client_ulid) {
         Ok(Some(client)) => {
-            if let Some(owner_id) = client.user_id {
-                if owner_id != user_id {
+            if let Some(ref owner_id) = client.user_id {
+                if owner_id != &user_id {
                     let error = ErrorResponse {
                         error: "Access denied".to_string(),
                     };
@@ -350,11 +330,10 @@ pub async fn regenerate_secret(
     }
 }
 
-async fn get_authenticated_user(_pool: &DbPool, headers: &HeaderMap) -> anyhow::Result<Ulid> {
+async fn get_authenticated_user(_pool: &DbPool, headers: &HeaderMap) -> anyhow::Result<String> {
     let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
     let token = TokenUtils::extract_token_from_header(auth_header)?;
     let claims = AuthService::decode_token(token, "jwt-secret")?;
 
-    let user_id = Ulid::from_string(&claims.sub)?;
-    Ok(user_id)
+    Ok(claims.sub)
 }

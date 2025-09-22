@@ -34,11 +34,11 @@ impl PermissionService {
         Ok(permission)
     }
 
-    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<Permission>> {
+    pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<Permission>> {
         let mut conn = pool.get()?;
 
         let permission = sys_permissions::table
-            .filter(sys_permissions::id.eq(id.to_string()))
+            .filter(sys_permissions::id.eq(id))
             .first::<Permission>(&mut conn)
             .optional()?;
 
@@ -59,7 +59,7 @@ impl PermissionService {
         Ok(permission)
     }
 
-    pub fn update(pool: &DbPool, id: Ulid, data: UpdatePermission) -> Result<Permission> {
+    pub fn update(pool: &DbPool, id: String, data: UpdatePermission) -> Result<Permission> {
         let mut permission = Self::find_by_id(pool, id)?
             .ok_or_else(|| anyhow::anyhow!("Permission not found"))?;
 

@@ -57,7 +57,7 @@ impl CountryService {
         Ok(result)
     }
 
-    pub fn update(pool: &DbPool, id: Ulid, data: UpdateCountry) -> Result<Country> {
+    pub fn update(pool: &DbPool, id: String, data: UpdateCountry) -> Result<Country> {
         let mut conn = pool.get()?;
 
         let result = diesel::update(countries::table.filter(countries::id.eq(id.to_string())))
@@ -72,7 +72,7 @@ impl CountryService {
         Ok(result)
     }
 
-    pub fn delete(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn delete(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::delete(countries::table.filter(countries::id.eq(id.to_string())))

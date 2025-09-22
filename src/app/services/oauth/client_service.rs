@@ -1,6 +1,5 @@
 use anyhow::Result;
 use crate::database::DbPool;
-use ulid::Ulid;
 use rand::{Rng, thread_rng};
 use rand::distributions::Alphanumeric;
 use diesel::prelude::*;
@@ -50,8 +49,8 @@ impl ClientService {
 
         diesel::insert_into(oauth_clients::table)
             .values((
-                oauth_clients::id.eq(client.id.to_string()),
-                oauth_clients::user_id.eq(client.user_id.map(|id| id.to_string())),
+                oauth_clients::id.eq(client.id),
+                oauth_clients::user_id.eq(client.user_id),
                 oauth_clients::name.eq(&client.name),
                 oauth_clients::secret.eq(&client.secret),
                 oauth_clients::provider.eq(&client.provider),
@@ -75,8 +74,8 @@ impl ClientService {
 
         diesel::insert_into(oauth_personal_access_clients::table)
             .values((
-                oauth_personal_access_clients::id.eq(pac.id.to_string()),
-                oauth_personal_access_clients::client_id.eq(pac.client_id.to_string()),
+                oauth_personal_access_clients::id.eq(pac.id),
+                oauth_personal_access_clients::client_id.eq(pac.client_id),
                 oauth_personal_access_clients::created_at.eq(pac.created_at),
                 oauth_personal_access_clients::updated_at.eq(pac.updated_at),
             ))
@@ -85,25 +84,27 @@ impl ClientService {
         Ok(pac)
     }
 
-    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<Client>> {
+    pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<Client>> {
         let mut conn = pool.get()?;
 
         let row = oauth_clients::table
-            .filter(oauth_clients::id.eq(id.to_string()))
+            .filter(oauth_clients::id.eq(id))
             .filter(oauth_clients::revoked.eq(false))
+            .select(Client::as_select())
             .first::<Client>(&mut conn)
             .optional()?;
 
         Ok(row)
     }
 
-    pub fn find_by_id_and_secret(pool: &DbPool, id: Ulid, secret: &str) -> Result<Option<Client>> {
+    pub fn find_by_id_and_secret(pool: &DbPool, id: String, secret: &str) -> Result<Option<Client>> {
         let mut conn = pool.get()?;
 
         let row = oauth_clients::table
-            .filter(oauth_clients::id.eq(id.to_string()))
+            .filter(oauth_clients::id.eq(id))
             .filter(oauth_clients::secret.eq(secret))
             .filter(oauth_clients::revoked.eq(false))
+            .select(Client::as_select())
             .first::<Client>(&mut conn)
             .optional()?;
 
@@ -117,7 +118,7 @@ impl ClientService {
             .inner_join(oauth_personal_access_clients::table)
             .filter(oauth_clients::revoked.eq(false))
             .order(oauth_clients::created_at.asc())
-            .select(oauth_clients::all_columns)
+            .select(Client::as_select())
             .first::<Client>(&mut conn)
             .optional()?;
 
@@ -131,17 +132,18 @@ impl ClientService {
             .filter(oauth_clients::password_client.eq(true))
             .filter(oauth_clients::revoked.eq(false))
             .order(oauth_clients::created_at.asc())
+            .select(Client::as_select())
             .first::<Client>(&mut conn)
             .optional()?;
 
         Ok(row)
     }
 
-    pub fn list_clients(pool: &DbPool, user_id: Option<Ulid>) -> Result<Vec<ClientResponse>> {
+    pub fn list_clients(pool: &DbPool, user_id: Option<String>) -> Result<Vec<ClientResponse>> {
         let mut request = crate::app::query_builder::QueryParams::default();
 
         if let Some(user_id) = user_id {
-            request.filter.insert("user_id".to_string(), serde_json::Value::String(user_id.to_string()));
+            request.filter.insert("user_id".to_string(), serde_json::Value::String(user_id));
         }
 
         request.filter.insert("revoked".to_string(), serde_json::Value::String("false".to_string()));
@@ -151,8 +153,8 @@ impl ClientService {
         Ok(clients.into_iter().map(|c| c.to_response_without_secret()).collect())
     }
 
-    pub fn update_client(pool: &DbPool, id: Ulid, data: UpdateClient) -> Result<ClientResponse> {
-        let mut client = Self::find_by_id(pool, id)?
+    pub fn update_client(pool: &DbPool, id: String, data: UpdateClient) -> Result<ClientResponse> {
+        let mut client = Self::find_by_id(pool, id.clone())?
             .ok_or_else(|| anyhow::anyhow!("Client not found"))?;
 
         if let Some(name) = data.name {
@@ -171,7 +173,7 @@ impl ClientService {
 
         let mut conn = pool.get()?;
 
-        diesel::update(oauth_clients::table.filter(oauth_clients::id.eq(id.to_string())))
+        diesel::update(oauth_clients::table.filter(oauth_clients::id.eq(id)))
             .set((
                 oauth_clients::name.eq(&client.name),
                 oauth_clients::redirect_uris.eq(&client.redirect_uris),
@@ -183,11 +185,11 @@ impl ClientService {
         Ok(client.to_response())
     }
 
-    pub fn revoke_client(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn revoke_client(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
         let now = chrono::Utc::now();
 
-        diesel::update(oauth_clients::table.filter(oauth_clients::id.eq(id.to_string())))
+        diesel::update(oauth_clients::table.filter(oauth_clients::id.eq(id)))
             .set((
                 oauth_clients::revoked.eq(true),
                 oauth_clients::updated_at.eq(now),
@@ -196,7 +198,7 @@ impl ClientService {
 
         // Also revoke all access tokens for this client
         use crate::schema::oauth_access_tokens;
-        diesel::update(oauth_access_tokens::table.filter(oauth_access_tokens::client_id.eq(id.to_string())))
+        diesel::update(oauth_access_tokens::table.filter(oauth_access_tokens::client_id.eq(id)))
             .set((
                 oauth_access_tokens::revoked.eq(true),
                 oauth_access_tokens::updated_at.eq(now),
@@ -206,24 +208,24 @@ impl ClientService {
         Ok(())
     }
 
-    pub fn delete_client(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn delete_client(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
         // Delete personal access client record first if it exists
         diesel::delete(oauth_personal_access_clients::table
-            .filter(oauth_personal_access_clients::client_id.eq(id.to_string())))
+            .filter(oauth_personal_access_clients::client_id.eq(id.clone())))
             .execute(&mut conn)?;
 
         // Delete the client (this will cascade to tokens due to foreign key constraints)
         diesel::delete(oauth_clients::table
-            .filter(oauth_clients::id.eq(id.to_string())))
+            .filter(oauth_clients::id.eq(id)))
             .execute(&mut conn)?;
 
         Ok(())
     }
 
-    pub fn regenerate_secret(pool: &DbPool, id: Ulid) -> Result<String> {
-        let client = Self::find_by_id(pool, id)?
+    pub fn regenerate_secret(pool: &DbPool, id: String) -> Result<String> {
+        let client = Self::find_by_id(pool, id.clone())?
             .ok_or_else(|| anyhow::anyhow!("Client not found"))?;
 
         if client.personal_access_client {
@@ -234,7 +236,7 @@ impl ClientService {
 
         let mut conn = pool.get()?;
 
-        diesel::update(oauth_clients::table.filter(oauth_clients::id.eq(id.to_string())))
+        diesel::update(oauth_clients::table.filter(oauth_clients::id.eq(id)))
             .set((
                 oauth_clients::secret.eq(&new_secret),
                 oauth_clients::updated_at.eq(chrono::Utc::now()),
@@ -252,7 +254,7 @@ impl ClientService {
             .collect()
     }
 
-    pub fn is_valid_redirect_uri(pool: &DbPool, client_id: Ulid, redirect_uri: &str) -> Result<bool> {
+    pub fn is_valid_redirect_uri(pool: &DbPool, client_id: String, redirect_uri: &str) -> Result<bool> {
         if let Some(client) = Self::find_by_id(pool, client_id)? {
             Ok(client.is_valid_redirect_uri(redirect_uri))
         } else {
