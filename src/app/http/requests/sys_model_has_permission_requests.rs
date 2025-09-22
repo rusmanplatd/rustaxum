@@ -14,13 +14,13 @@ pub struct CreateSysModelHasPermissionRequest {
     #[schema(example = "User")]
     pub model_type: String,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub model_id: Ulid,
+    pub model_id: String,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub permission_id: Ulid,
+    pub permission_id: String,
     #[schema(example = "organization")]
     pub scope_type: Option<String>,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub scope_id: Option<Ulid>,
+    pub scope_id: Option<String>,
 }
 
 #[async_trait]
@@ -64,13 +64,13 @@ pub struct UpdateSysModelHasPermissionRequest {
     #[schema(example = "User")]
     pub model_type: Option<String>,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub model_id: Option<Ulid>,
+    pub model_id: Option<String>,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub permission_id: Option<Ulid>,
+    pub permission_id: Option<String>,
     #[schema(example = "organization")]
     pub scope_type: Option<String>,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub scope_id: Option<Ulid>,
+    pub scope_id: Option<String>,
 }
 
 #[async_trait]

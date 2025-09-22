@@ -5,10 +5,10 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::SortDirection;
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::sys_permissions)]
 pub struct Permission {
-    pub id: Ulid,
+    pub id: String,
     pub name: String,
     pub guard_name: String,
     pub resource: Option<String>,
@@ -48,7 +48,7 @@ impl Permission {
     pub fn new(name: String, guard_name: Option<String>, resource: Option<String>, action: String) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new(),
+            id: Ulid::new().to_string(),
             name,
             guard_name: guard_name.unwrap_or_else(|| "api".to_string()),
             resource,

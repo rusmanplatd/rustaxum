@@ -98,18 +98,8 @@ pub async fn revoke_personal_access_token(
         }
     };
 
-    let token_ulid = match Ulid::from_string(&token_id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid token ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
     // Verify the token belongs to the user
-    match TokenService::find_access_token_by_id(&pool, token_ulid) {
+    match TokenService::find_access_token_by_id(&pool, token_id) {
         Ok(Some(token)) => {
             if let Some(owner_id) = token.user_id {
                 if owner_id != user_id.to_string() {
@@ -134,7 +124,7 @@ pub async fn revoke_personal_access_token(
         }
     }
 
-    match TokenService::revoke_access_token(&pool, token_ulid) {
+    match TokenService::revoke_access_token(&pool, token_id) {
         Ok(_) => {
             #[derive(Serialize)]
             struct RevokeResponse {
@@ -156,7 +146,7 @@ pub async fn revoke_personal_access_token(
     }
 }
 
-async fn get_authenticated_user(_pool: &DbPool, headers: &HeaderMap) -> anyhow::Result<Ulid> {
+async fn get_authenticated_user(_pool: &DbPool, headers: &HeaderMap) -> anyhow::Result<String> {
     let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
     let token = TokenUtils::extract_token_from_header(auth_header)?;
     let claims = AuthService::decode_token(token, "jwt-secret")?;

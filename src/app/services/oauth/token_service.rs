@@ -76,7 +76,7 @@ impl TokenService {
 
     pub fn create_refresh_token(
         pool: &DbPool,
-        access_token_id: Ulid,
+        access_token_id: String,
         expires_in_seconds: Option<i64>,
     ) -> Result<RefreshToken> {
         let expires_at = expires_in_seconds.map(|seconds| Utc::now() + Duration::seconds(seconds));
@@ -118,7 +118,7 @@ impl TokenService {
         Ok(inserted_auth_code)
     }
 
-    pub fn find_access_token_by_id(pool: &DbPool, id: Ulid) -> Result<Option<AccessToken>> {
+    pub fn find_access_token_by_id(pool: &DbPool, id: String) -> Result<Option<AccessToken>> {
         let mut conn = pool.get()?;
 
         let result = oauth_access_tokens::table
@@ -129,7 +129,7 @@ impl TokenService {
         Ok(result)
     }
 
-    pub fn find_refresh_token_by_id(pool: &DbPool, id: Ulid) -> Result<Option<RefreshToken>> {
+    pub fn find_refresh_token_by_id(pool: &DbPool, id: String) -> Result<Option<RefreshToken>> {
         let mut conn = pool.get()?;
 
         let result = oauth_refresh_tokens::table
@@ -140,7 +140,7 @@ impl TokenService {
         Ok(result)
     }
 
-    pub fn find_auth_code_by_id(pool: &DbPool, id: Ulid) -> Result<Option<AuthCode>> {
+    pub fn find_auth_code_by_id(pool: &DbPool, id: String) -> Result<Option<AuthCode>> {
         let mut conn = pool.get()?;
 
         let result = oauth_auth_codes::table
@@ -151,7 +151,7 @@ impl TokenService {
         Ok(result)
     }
 
-    pub fn revoke_access_token(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn revoke_access_token(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
         let now = Utc::now();
 
@@ -175,7 +175,7 @@ impl TokenService {
         Ok(())
     }
 
-    pub fn revoke_refresh_token(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn revoke_refresh_token(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
         let now = Utc::now();
 
@@ -190,7 +190,7 @@ impl TokenService {
         Ok(())
     }
 
-    pub fn revoke_auth_code(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn revoke_auth_code(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
         let now = Utc::now();
 
@@ -205,7 +205,7 @@ impl TokenService {
         Ok(())
     }
 
-    pub fn revoke_all_user_tokens(pool: &DbPool, user_id: Ulid) -> Result<()> {
+    pub fn revoke_all_user_tokens(pool: &DbPool, user_id: String) -> Result<()> {
         let mut conn = pool.get()?;
         let now = Utc::now();
 
@@ -236,7 +236,7 @@ impl TokenService {
 
     pub async fn create_personal_access_token(
         pool: &DbPool,
-        user_id: Ulid,
+        user_id: String,
         name: String,
         scopes: Vec<String>,
         expires_in_seconds: Option<i64>,
@@ -270,7 +270,7 @@ impl TokenService {
     pub async fn exchange_auth_code_for_tokens(
         pool: &DbPool,
         code: &str,
-        client_id: Ulid,
+        client_id: String,
         client_secret: Option<&str>,
         redirect_uri: &str,
         code_verifier: Option<&str>,
@@ -352,7 +352,7 @@ impl TokenService {
     pub async fn refresh_access_token(
         pool: &DbPool,
         refresh_token_id: &str,
-        client_id: Ulid,
+        client_id: String,
         client_secret: Option<&str>,
     ) -> Result<TokenResponse> {
         // Parse refresh token as ULID
@@ -487,10 +487,10 @@ impl TokenService {
         Ok((access_token, claims))
     }
 
-    pub async fn list_user_tokens(pool: &DbPool, user_id: Ulid) -> Result<Vec<AccessToken>> {
+    pub async fn list_user_tokens(pool: &DbPool, user_id: String) -> Result<Vec<AccessToken>> {
         let mut conn = pool.get()?;
         let tokens = oauth_access_tokens::table
-            .filter(oauth_access_tokens::user_id.eq(user_id.to_string()))
+            .filter(oauth_access_tokens::user_id.eq(user_id))
             .filter(oauth_access_tokens::revoked.eq(false))
             .load::<AccessToken>(&mut conn)?;
         Ok(tokens)

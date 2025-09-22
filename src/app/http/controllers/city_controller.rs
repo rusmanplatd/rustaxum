@@ -119,7 +119,7 @@ pub async fn update(
         longitude: request.longitude,
     };
 
-    match CityService::update(&pool, city_id, payload) {
+    match CityService::update(&pool, city_id.to_string(), payload) {
         Ok(city) => (StatusCode::OK, ResponseJson(city.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -158,17 +158,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
 }
 
 pub async fn by_province(State(pool): State<DbPool>, Path(province_id): Path<String>) -> impl IntoResponse {
-    let province_ulid = match Ulid::from_string(&province_id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid province ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
-    match CityService::find_by_province_id(&pool, province_ulid) {
+    match CityService::find_by_province_id(&pool, province_id) {
         Ok(cities) => {
             let responses: Vec<_> = cities.into_iter().map(|c| c.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()

@@ -36,7 +36,7 @@ impl SysModelHasPermissionService {
         Ok(result)
     }
 
-    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<SysModelHasPermission>> {
+    pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<SysModelHasPermission>> {
         let mut conn = pool.get()?;
 
         let result = sys_model_has_permissions::table
@@ -98,7 +98,7 @@ impl SysModelHasPermissionService {
         Ok(result)
     }
 
-    pub fn delete(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn delete(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::delete(sys_model_has_permissions::table)
@@ -111,10 +111,10 @@ impl SysModelHasPermissionService {
     pub fn assign_permission_to_model(
         pool: &DbPool,
         model_type: &str,
-        model_id: Ulid,
-        permission_id: Ulid,
+        model_id: String,
+        permission_id: String,
         scope_type: Option<String>,
-        scope_id: Option<Ulid>,
+        scope_id: Option<String>,
     ) -> Result<SysModelHasPermission> {
         let data = CreateSysModelHasPermission {
             model_type: model_type.to_string(),
@@ -129,8 +129,8 @@ impl SysModelHasPermissionService {
     pub fn remove_permission_from_model(
         pool: &DbPool,
         model_type: &str,
-        model_id: Ulid,
-        permission_id: Ulid,
+        model_id: String,
+        permission_id: String,
     ) -> Result<()> {
         let mut conn = pool.get()?;
 
@@ -146,7 +146,7 @@ impl SysModelHasPermissionService {
     pub fn get_model_permissions(
         pool: &DbPool,
         model_type: &str,
-        model_id: Ulid,
+        model_id: String,
         guard_name: Option<&str>,
     ) -> Result<Vec<crate::app::models::permission::Permission>> {
         use crate::app::models::permission::Permission;

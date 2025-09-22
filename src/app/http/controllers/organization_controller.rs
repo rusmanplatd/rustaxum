@@ -247,17 +247,7 @@ pub async fn update(
     )
 )]
 pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
-    let organization_id = match Ulid::from_string(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
-    match OrganizationService::delete(&pool, organization_id) {
+    match OrganizationService::delete(&pool, id) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Organization deleted successfully".to_string(),
@@ -295,17 +285,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
     )
 )]
 pub async fn children(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
-    let parent_id = match Ulid::from_string(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
-    match OrganizationService::find_children(&pool, parent_id) {
+    match OrganizationService::find_children(&pool, id) {
         Ok(organizations) => {
             let responses: Vec<_> = organizations.into_iter().map(|o| o.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()

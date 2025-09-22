@@ -5,7 +5,6 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use crate::database::DbPool;
-use ulid::Ulid;
 
 use crate::app::services::oauth::ClientService;
 use crate::app::services::auth_service::AuthService;
@@ -106,7 +105,7 @@ pub async fn get_client(
         }
     };
 
-    match ClientService::find_by_id(&pool, client_id) {
+    match ClientService::find_by_id(&pool, client_id.clone()) {
         Ok(Some(client)) => {
             // Check if user owns this client or if it's a system client
             if let Some(ref owner_id) = client.user_id {
@@ -208,18 +207,8 @@ pub async fn delete_client(
         }
     };
 
-    let client_ulid = match Ulid::from_string(&client_id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid client ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
     // Check if user owns this client
-    match ClientService::find_by_id(&pool, client_ulid) {
+    match ClientService::find_by_id(&pool, client_id.clone()) {
         Ok(Some(client)) => {
             if let Some(ref owner_id) = client.user_id {
                 if owner_id != &user_id {
@@ -270,18 +259,8 @@ pub async fn regenerate_secret(
         }
     };
 
-    let client_ulid = match Ulid::from_string(&client_id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid client ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
     // Check if user owns this client
-    match ClientService::find_by_id(&pool, client_ulid) {
+    match ClientService::find_by_id(&pool, client_id.clone()) {
         Ok(Some(client)) => {
             if let Some(ref owner_id) = client.user_id {
                 if owner_id != &user_id {
@@ -306,7 +285,7 @@ pub async fn regenerate_secret(
         }
     }
 
-    match ClientService::regenerate_secret(&pool, client_ulid) {
+    match ClientService::regenerate_secret(&pool, client_id) {
         Ok(new_secret) => {
             #[derive(Serialize)]
             struct SecretResponse {

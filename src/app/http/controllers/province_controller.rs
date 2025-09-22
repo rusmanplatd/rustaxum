@@ -51,7 +51,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         }
     };
 
-    match ProvinceService::find_by_id(&pool, province_id) {
+    match ProvinceService::find_by_id(&pool, province_id.to_string()) {
         Ok(Some(province)) => (StatusCode::OK, ResponseJson(province.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -107,7 +107,7 @@ pub async fn update(
         code: request.code,
     };
 
-    match ProvinceService::update(&pool, province_id, payload) {
+    match ProvinceService::update(&pool, province_id.to_string(), payload) {
         Ok(province) => (StatusCode::OK, ResponseJson(province.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -146,17 +146,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
 }
 
 pub async fn by_country(State(pool): State<DbPool>, Path(country_id): Path<String>) -> impl IntoResponse {
-    let country_ulid = match Ulid::from_string(&country_id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid country ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
-    match ProvinceService::find_by_country_id(&pool, country_ulid) {
+    match ProvinceService::find_by_country_id(&pool, country_id) {
         Ok(provinces) => {
             let responses: Vec<_> = provinces.into_iter().map(|p| p.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()

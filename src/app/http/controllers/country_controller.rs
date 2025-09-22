@@ -202,7 +202,7 @@ pub async fn update(
         phone_code: request.phone_code,
     };
 
-    match CountryService::update(&pool, country_id, payload) {
+    match CountryService::update(&pool, country_id.to_string(), payload) {
         Ok(country) => (StatusCode::OK, ResponseJson(country.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -246,7 +246,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     };
 
-    match CountryService::delete(&pool, country_id) {
+    match CountryService::delete(&pool, country_id.to_string()) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Country deleted successfully".to_string(),

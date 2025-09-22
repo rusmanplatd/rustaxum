@@ -44,7 +44,7 @@ impl OrganizationService {
         Ok(result)
     }
 
-    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<Organization>> {
+    pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<Organization>> {
         let mut conn = pool.get()?;
 
         let result = organizations::table

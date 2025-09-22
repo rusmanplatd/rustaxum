@@ -505,7 +505,7 @@ pub async fn revoke(State(pool): State<DbPool>, Form(params): Form<HashMap<Strin
     (StatusCode::OK, ResponseJson(serde_json::json!({"revoked": true}))).into_response()
 }
 
-async fn get_user_from_token(_pool: &DbPool, auth_header: Option<&str>) -> anyhow::Result<Ulid> {
+async fn get_user_from_token(_pool: &DbPool, auth_header: Option<&str>) -> anyhow::Result<String> {
     let token = TokenUtils::extract_token_from_header(auth_header)?;
     let claims = AuthService::decode_token(token, "jwt-secret")?;
 

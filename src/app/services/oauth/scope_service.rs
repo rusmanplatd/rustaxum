@@ -39,7 +39,7 @@ impl ScopeService {
         Ok(scope)
     }
 
-    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<Scope>> {
+    pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<Scope>> {
         let mut conn = pool.get()?;
 
         let row = oauth_scopes::table
@@ -116,7 +116,7 @@ impl ScopeService {
         Ok(scope.to_response())
     }
 
-    pub fn delete_scope(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn delete_scope(pool: &DbPool, id: String) -> Result<()> {
         let scope = Self::find_by_id(pool, id)?
             .ok_or_else(|| anyhow::anyhow!("Scope not found"))?;
 

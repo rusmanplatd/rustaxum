@@ -37,7 +37,7 @@ impl ClientService {
 
         // If this is a personal access client, create the personal access client record
         if data.personal_access_client {
-            let pac = PersonalAccessClient::new(created_client.id);
+            let pac = PersonalAccessClient::new(created_client.id.clone());
             Self::create_personal_access_client_record(pool, pac)?;
         }
 
@@ -49,8 +49,8 @@ impl ClientService {
 
         diesel::insert_into(oauth_clients::table)
             .values((
-                oauth_clients::id.eq(client.id),
-                oauth_clients::user_id.eq(client.user_id),
+                oauth_clients::id.eq(client.id.clone()),
+                oauth_clients::user_id.eq(client.user_id.clone()),
                 oauth_clients::name.eq(&client.name),
                 oauth_clients::secret.eq(&client.secret),
                 oauth_clients::provider.eq(&client.provider),
@@ -75,7 +75,7 @@ impl ClientService {
         diesel::insert_into(oauth_personal_access_clients::table)
             .values((
                 oauth_personal_access_clients::id.eq(pac.id),
-                oauth_personal_access_clients::client_id.eq(pac.client_id),
+                oauth_personal_access_clients::client_id.eq(pac.client_id.clone()),
                 oauth_personal_access_clients::created_at.eq(pac.created_at),
                 oauth_personal_access_clients::updated_at.eq(pac.updated_at),
             ))
@@ -189,7 +189,7 @@ impl ClientService {
         let mut conn = pool.get()?;
         let now = chrono::Utc::now();
 
-        diesel::update(oauth_clients::table.filter(oauth_clients::id.eq(id)))
+        diesel::update(oauth_clients::table.filter(oauth_clients::id.eq(&id)))
             .set((
                 oauth_clients::revoked.eq(true),
                 oauth_clients::updated_at.eq(now),
@@ -198,7 +198,7 @@ impl ClientService {
 
         // Also revoke all access tokens for this client
         use crate::schema::oauth_access_tokens;
-        diesel::update(oauth_access_tokens::table.filter(oauth_access_tokens::client_id.eq(id)))
+        diesel::update(oauth_access_tokens::table.filter(oauth_access_tokens::client_id.eq(&id)))
             .set((
                 oauth_access_tokens::revoked.eq(true),
                 oauth_access_tokens::updated_at.eq(now),

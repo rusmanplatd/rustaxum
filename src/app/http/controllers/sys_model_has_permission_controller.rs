@@ -236,17 +236,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
     )
 )]
 pub async fn by_model(State(pool): State<DbPool>, Path((model_type, model_id)): Path<(String, String)>) -> impl IntoResponse {
-    let model_ulid = match Ulid::from_string(&model_id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid model ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
-    match SysModelHasPermissionService::find_by_model(&pool, &model_type, model_ulid) {
+    match SysModelHasPermissionService::find_by_model(&pool, &model_type, model_id) {
         Ok(permissions) => {
             let responses: Vec<_> = permissions.into_iter().map(|p| p.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()

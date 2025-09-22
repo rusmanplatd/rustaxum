@@ -154,10 +154,7 @@ async fn handle_list_clients(pool: &DbPool) -> Result<()> {
 async fn handle_revoke_client(pool: &DbPool, client_id: String) -> Result<()> {
     println!("🔒 Revoking OAuth2 client...");
 
-    let client_ulid = Ulid::from_string(&client_id)
-        .map_err(|_| anyhow::anyhow!("Invalid client ID format"))?;
-
-    ClientService::revoke_client(pool, client_ulid)?;
+    ClientService::revoke_client(pool, client_id)?;
 
     println!("✅ Client {} has been revoked!", client_id);
     println!("   All associated access tokens have also been revoked.");
@@ -168,11 +165,8 @@ async fn handle_revoke_client(pool: &DbPool, client_id: String) -> Result<()> {
 async fn handle_delete_client(pool: &DbPool, client_id: String) -> Result<()> {
     println!("🗑️  Deleting OAuth2 client...");
 
-    let client_ulid = Ulid::from_string(&client_id)
-        .map_err(|_| anyhow::anyhow!("Invalid client ID format"))?;
-
     // Check if client exists first
-    let client = ClientService::find_by_id(pool, client_ulid)?;
+    let client = ClientService::find_by_id(pool, client_id)?;
     match client {
         Some(client) => {
             println!("   Found client: {}", client.name);
@@ -183,7 +177,7 @@ async fn handle_delete_client(pool: &DbPool, client_id: String) -> Result<()> {
         }
     }
 
-    ClientService::delete_client(pool, client_ulid)?;
+    ClientService::delete_client(pool, client_id)?;
 
     println!("✅ Client {} has been deleted!", client_id);
     println!("   ⚠️  This action cannot be undone!");
@@ -194,10 +188,7 @@ async fn handle_delete_client(pool: &DbPool, client_id: String) -> Result<()> {
 async fn handle_regenerate_secret(pool: &DbPool, client_id: String) -> Result<()> {
     println!("🔄 Regenerating client secret...");
 
-    let client_ulid = Ulid::from_string(&client_id)
-        .map_err(|_| anyhow::anyhow!("Invalid client ID format"))?;
-
-    let new_secret = ClientService::regenerate_secret(pool, client_ulid)?;
+    let new_secret = ClientService::regenerate_secret(pool, client_id)?;
 
     println!("✅ New client secret generated!");
     println!("   Client ID: {}", client_id);
@@ -293,9 +284,7 @@ async fn handle_list_tokens(pool: &DbPool, user_id: Option<String>) -> Result<()
 
     let tokens = match user_id {
         Some(uid) => {
-            let user_ulid = Ulid::from_string(&uid)
-                .map_err(|_| anyhow::anyhow!("Invalid user ID format"))?;
-            TokenService::list_user_tokens(pool, user_ulid).await?
+            TokenService::list_user_tokens(pool, user_id).await?
         },
         None => {
             // List all tokens (this would need a new method in TokenService)
@@ -338,10 +327,7 @@ async fn handle_list_tokens(pool: &DbPool, user_id: Option<String>) -> Result<()
 async fn handle_revoke_token(pool: &DbPool, token_id: String) -> Result<()> {
     println!("🔒 Revoking access token...");
 
-    let token_ulid = Ulid::from_string(&token_id)
-        .map_err(|_| anyhow::anyhow!("Invalid token ID format"))?;
-
-    TokenService::revoke_access_token(pool, token_ulid)?;
+    TokenService::revoke_access_token(pool, token_id)?;
 
     println!("✅ Token {} has been revoked!", token_id);
 
@@ -351,10 +337,7 @@ async fn handle_revoke_token(pool: &DbPool, token_id: String) -> Result<()> {
 async fn handle_revoke_all_user_tokens(pool: &DbPool, user_id: String) -> Result<()> {
     println!("🔒 Revoking all tokens for user...");
 
-    let user_ulid = Ulid::from_string(&user_id)
-        .map_err(|_| anyhow::anyhow!("Invalid user ID format"))?;
-
-    TokenService::revoke_all_user_tokens(pool, user_ulid)?;
+    TokenService::revoke_all_user_tokens(pool, user_id)?;
 
     println!("✅ All tokens for user {} have been revoked!", user_id);
 

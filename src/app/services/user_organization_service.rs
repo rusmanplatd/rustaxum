@@ -9,7 +9,7 @@ use crate::app::models::user_organization::{UserOrganization, CreateUserOrganiza
 pub struct UserOrganizationService;
 
 impl UserOrganizationService {
-    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<UserOrganization>> {
+    pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<UserOrganization>> {
         let mut conn = pool.get()?;
 
         let user_org = user_organizations::table
@@ -99,7 +99,7 @@ impl UserOrganizationService {
         Ok(user_org)
     }
 
-    pub fn delete(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn delete(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::delete(user_organizations::table.filter(user_organizations::id.eq(id.to_string())))
@@ -108,7 +108,7 @@ impl UserOrganizationService {
         Ok(())
     }
 
-    pub fn count_by_organization(pool: &DbPool, organization_id: Ulid) -> Result<i64> {
+    pub fn count_by_organization(pool: &DbPool, organization_id: String) -> Result<i64> {
         let mut conn = pool.get()?;
 
         let count = user_organizations::table
@@ -119,7 +119,7 @@ impl UserOrganizationService {
         Ok(count)
     }
 
-    pub fn list_by_user(pool: &DbPool, user_id: Ulid) -> Result<Vec<UserOrganization>> {
+    pub fn list_by_user(pool: &DbPool, user_id: String) -> Result<Vec<UserOrganization>> {
         let mut conn = pool.get()?;
 
         let user_orgs = user_organizations::table
@@ -129,7 +129,7 @@ impl UserOrganizationService {
         Ok(user_orgs)
     }
 
-    pub fn find_by_user_and_organization(pool: &DbPool, user_id: Ulid, organization_id: Ulid) -> Result<Option<UserOrganization>> {
+    pub fn find_by_user_and_organization(pool: &DbPool, user_id: String, organization_id: String) -> Result<Option<UserOrganization>> {
         let mut conn = pool.get()?;
 
         let user_org = user_organizations::table

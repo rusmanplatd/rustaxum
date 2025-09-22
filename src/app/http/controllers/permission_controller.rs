@@ -142,16 +142,7 @@ pub async fn show(
     State(pool): State<DbPool>,
     Path(id): Path<String>
 ) -> impl IntoResponse {
-    let permission_id = match Ulid::from_string(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            return (StatusCode::BAD_REQUEST, Json(json!({
-                "error": "Invalid permission ID format"
-            }))).into_response();
-        }
-    };
-
-    match PermissionService::find_by_id(&pool, permission_id) {
+    match PermissionService::find_by_id(&pool, id) {
         Ok(Some(permission)) => {
             let permission_data = PermissionData::from(permission);
             (StatusCode::OK, Json(json!({

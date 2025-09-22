@@ -28,7 +28,7 @@ impl ProvinceService {
         Ok(province)
     }
 
-    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<Province>> {
+    pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<Province>> {
         let mut conn = pool.get()?;
 
         let result = provinces::table
@@ -39,7 +39,7 @@ impl ProvinceService {
         Ok(result)
     }
 
-    pub fn find_by_country_id(pool: &DbPool, country_id: Ulid) -> Result<Vec<Province>> {
+    pub fn find_by_country_id(pool: &DbPool, country_id: String) -> Result<Vec<Province>> {
         let mut conn = pool.get()?;
 
         let result = provinces::table
@@ -92,7 +92,7 @@ impl ProvinceService {
         Ok(current)
     }
 
-    pub fn delete(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn delete(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::delete(provinces::table.filter(provinces::id.eq(id.to_string())))
@@ -111,7 +111,7 @@ impl ProvinceService {
         Ok(result)
     }
 
-    pub fn count_by_country(pool: &DbPool, country_id: Ulid) -> Result<i64> {
+    pub fn count_by_country(pool: &DbPool, country_id: String) -> Result<i64> {
         let mut conn = pool.get()?;
 
         let result = provinces::table

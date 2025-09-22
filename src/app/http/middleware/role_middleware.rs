@@ -92,7 +92,7 @@ impl PermissionRequirement {
 }
 
 // Extract user ID from JWT token in Authorization header
-fn extract_user_id_from_token(headers: &HeaderMap) -> Option<Ulid> {
+fn extract_user_id_from_token(headers: &HeaderMap) -> Option<String> {
     let auth_header = headers.get("authorization")?;
     let auth_str = auth_header.to_str().ok()?;
 
@@ -242,7 +242,7 @@ where
 
 async fn check_user_permissions(
     pool: &DbPool,
-    user_id: Ulid,
+    user_id: String,
     required_permissions: &[String],
     guard_name: Option<&str>,
     require_all: bool,

@@ -39,7 +39,8 @@ impl PermissionService {
 
         let permission = sys_permissions::table
             .filter(sys_permissions::id.eq(id))
-            .first::<Permission>(&mut conn)
+            .select(Permission::as_select())
+            .first(&mut conn)
             .optional()?;
 
         Ok(permission)
@@ -53,14 +54,15 @@ impl PermissionService {
         let permission = sys_permissions::table
             .filter(sys_permissions::name.eq(name))
             .filter(sys_permissions::guard_name.eq(guard))
-            .first::<Permission>(&mut conn)
+            .select(Permission::as_select())
+            .first(&mut conn)
             .optional()?;
 
         Ok(permission)
     }
 
     pub fn update(pool: &DbPool, id: String, data: UpdatePermission) -> Result<Permission> {
-        let mut permission = Self::find_by_id(pool, id)?
+        let mut permission = Self::find_by_id(pool, id.clone())?
             .ok_or_else(|| anyhow::anyhow!("Permission not found"))?;
 
         if let Some(name) = data.name {
@@ -92,7 +94,7 @@ impl PermissionService {
         Ok(permission)
     }
 
-    pub fn delete(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn delete(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::delete(sys_permissions::table.filter(sys_permissions::id.eq(id.to_string())))
@@ -108,12 +110,13 @@ impl PermissionService {
             .order(sys_permissions::created_at.desc())
             .limit(limit)
             .offset(offset)
-            .load::<Permission>(&mut conn)?;
+            .select(Permission::as_select())
+            .load(&mut conn)?;
 
         Ok(permissions)
     }
 
-    pub fn assign_to_role(pool: &DbPool, role_id: Ulid, permission_id: Ulid) -> Result<()> {
+    pub fn assign_to_role(pool: &DbPool, role_id: String, permission_id: String) -> Result<()> {
         let role_permission_id = Ulid::new();
         let now = chrono::Utc::now();
 
@@ -137,7 +140,7 @@ impl PermissionService {
         Ok(())
     }
 
-    pub fn remove_from_role(pool: &DbPool, role_id: Ulid, permission_id: Ulid) -> Result<()> {
+    pub fn remove_from_role(pool: &DbPool, role_id: String, permission_id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::delete(
@@ -151,7 +154,7 @@ impl PermissionService {
         Ok(())
     }
 
-    pub fn role_has_permission(pool: &DbPool, role_id: Ulid, permission_name: &str, guard_name: Option<&str>) -> Result<bool> {
+    pub fn role_has_permission(pool: &DbPool, role_id: String, permission_name: &str, guard_name: Option<&str>) -> Result<bool> {
         let mut conn = pool.get()?;
         let guard = guard_name.unwrap_or("api");
 
@@ -188,7 +191,7 @@ impl PermissionService {
         Ok(count > 0)
     }
 
-    pub fn get_role_permissions(pool: &DbPool, role_id: Ulid, guard_name: Option<&str>) -> Result<Vec<Permission>> {
+    pub fn get_role_permissions(pool: &DbPool, role_id: String, guard_name: Option<&str>) -> Result<Vec<Permission>> {
         let mut conn = pool.get()?;
 
         let mut query = sys_permissions::table
@@ -203,8 +206,8 @@ impl PermissionService {
 
         let permissions = query
             .order(sys_permissions::name.asc())
-            .select(sys_permissions::all_columns)
-            .load::<Permission>(&mut conn)?;
+            .select(Permission::as_select())
+            .load(&mut conn)?;
 
         Ok(permissions)
     }
@@ -229,9 +232,9 @@ impl PermissionService {
 
         let permissions = query
             .order(sys_permissions::name.asc())
-            .select(sys_permissions::all_columns)
+            .select(Permission::as_select())
             .distinct()
-            .load::<Permission>(&mut conn)?;
+            .load(&mut conn)?;
 
         Ok(permissions)
     }

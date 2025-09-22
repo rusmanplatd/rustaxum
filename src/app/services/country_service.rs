@@ -26,7 +26,7 @@ impl CountryService {
         Ok(result)
     }
 
-    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<Country>> {
+    pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<Country>> {
         let mut conn = pool.get()?;
 
         let result = countries::table

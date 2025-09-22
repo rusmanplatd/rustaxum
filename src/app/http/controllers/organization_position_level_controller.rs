@@ -191,16 +191,6 @@ pub async fn update(
     Path(id): Path<String>,
     request: UpdateOrganizationPositionLevelRequest,
 ) -> impl IntoResponse {
-    let organization_position_level_id = match Ulid::from_string(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
     let payload = UpdateOrganizationPositionLevel {
         name: request.name,
         code: request.code,
@@ -209,7 +199,7 @@ pub async fn update(
         is_active: request.is_active,
     };
 
-    match OrganizationPositionLevelService::update(&pool, organization_position_level_id, payload) {
+    match OrganizationPositionLevelService::update(&pool, id, payload) {
         Ok(organization_position_level) => (StatusCode::OK, ResponseJson(organization_position_level.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -292,18 +282,8 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
     )
 )]
 pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
-    let organization_position_level_id = match Ulid::from_string(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
     // Get current organization position level and update its active status
-    match OrganizationPositionLevelService::find_by_id(&pool, organization_position_level_id) {
+    match OrganizationPositionLevelService::find_by_id(&pool, id) {
         Ok(Some(_organization_position_level)) => {
             let payload = UpdateOrganizationPositionLevel {
                 name: None,
@@ -313,7 +293,7 @@ pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> imp
                 is_active: Some(true),
             };
 
-            match OrganizationPositionLevelService::update(&pool, organization_position_level_id, payload) {
+            match OrganizationPositionLevelService::update(&pool, id, payload) {
                 Ok(updated_organization_position_level) => (StatusCode::OK, ResponseJson(updated_organization_position_level.to_response())).into_response(),
                 Err(e) => {
                     let error = ErrorResponse {
@@ -361,18 +341,8 @@ pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> imp
     )
 )]
 pub async fn deactivate(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
-    let organization_position_level_id = match Ulid::from_string(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
     // Get current organization position level and update its active status
-    match OrganizationPositionLevelService::find_by_id(&pool, organization_position_level_id) {
+    match OrganizationPositionLevelService::find_by_id(&pool, id) {
         Ok(Some(_organization_position_level)) => {
             let payload = UpdateOrganizationPositionLevel {
                 name: None,
@@ -382,7 +352,7 @@ pub async fn deactivate(State(pool): State<DbPool>, Path(id): Path<String>) -> i
                 is_active: Some(false),
             };
 
-            match OrganizationPositionLevelService::update(&pool, organization_position_level_id, payload) {
+            match OrganizationPositionLevelService::update(&pool, id, payload) {
                 Ok(updated_organization_position_level) => (StatusCode::OK, ResponseJson(updated_organization_position_level.to_response())).into_response(),
                 Err(e) => {
                     let error = ErrorResponse {

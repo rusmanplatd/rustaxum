@@ -30,7 +30,7 @@ impl OrganizationPositionLevelService {
         Ok(organization_position_level)
     }
 
-    pub fn find_by_id(pool: &DbPool, id: Ulid) -> Result<Option<OrganizationPositionLevel>> {
+    pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<OrganizationPositionLevel>> {
         let mut conn = pool.get()?;
 
         let result = organization_position_levels::table
@@ -99,7 +99,7 @@ impl OrganizationPositionLevelService {
         Ok(current)
     }
 
-    pub fn delete(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn delete(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
         let rows_affected = diesel::delete(organization_position_levels::table.filter(organization_position_levels::id.eq(id.to_string())))

@@ -245,17 +245,7 @@ pub async fn by_model(State(pool): State<DbPool>, Path((model_type, model_id)): 
         return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
     }
 
-    let model_ulid = match Ulid::from_string(&model_id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid model ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
-    match SysModelHasRoleService::find_by_model(&pool, &model_type, model_ulid) {
+    match SysModelHasRoleService::find_by_model(&pool, &model_type, model_id) {
         Ok(roles) => {
             let responses: Vec<_> = roles.into_iter().map(|r| r.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()

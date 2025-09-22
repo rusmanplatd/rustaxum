@@ -3,7 +3,6 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json},
 };
-use ulid::Ulid;
 use crate::database::DbPool;
 use crate::app::query_builder::{QueryParams, QueryBuilderService};
 use crate::app::models::user::User;
@@ -68,16 +67,8 @@ pub async fn show(
     State(pool): State<DbPool>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let user_ulid = match Ulid::from_string(&id) {
-        Ok(ulid) => ulid,
-        Err(_) => {
-            return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
-                "error": "Invalid user ID format"
-            }))).into_response();
-        }
-    };
 
-    match UserService::find_by_id(&pool, user_ulid.to_string())
+    match UserService::find_by_id(&pool, id)
     {
         Ok(Some(user)) => {
             (StatusCode::OK, Json(serde_json::json!(user.to_response()))).into_response()

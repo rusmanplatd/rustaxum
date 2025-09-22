@@ -32,7 +32,8 @@ impl RoleService {
 
         let role = sys_roles::table
             .filter(sys_roles::id.eq(id))
-            .first::<Role>(&mut conn)
+            .select(Role::as_select())
+            .first(&mut conn)
             .optional()?;
 
         Ok(role)
@@ -45,7 +46,8 @@ impl RoleService {
         let role = sys_roles::table
             .filter(sys_roles::name.eq(name))
             .filter(sys_roles::guard_name.eq(guard))
-            .first::<Role>(&mut conn)
+            .select(Role::as_select())
+            .first(&mut conn)
             .optional()?;
 
         Ok(role)
@@ -53,7 +55,7 @@ impl RoleService {
 
     pub fn update(pool: &DbPool, id: String, data: UpdateRole) -> Result<Role> {
         let mut conn = pool.get()?;
-        let mut role = Self::find_by_id(pool, id)?
+        let mut role = Self::find_by_id(pool, id.clone())?
             .ok_or_else(|| anyhow::anyhow!("Role not found"))?;
 
         if let Some(name) = data.name {
@@ -79,7 +81,7 @@ impl RoleService {
         Ok(role)
     }
 
-    pub fn delete(pool: &DbPool, id: Ulid) -> Result<()> {
+    pub fn delete(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::delete(sys_roles::table.filter(sys_roles::id.eq(id.to_string())))
@@ -95,13 +97,14 @@ impl RoleService {
             .order(sys_roles::created_at.desc())
             .limit(limit)
             .offset(offset)
-            .load::<Role>(&mut conn)?;
+            .select(Role::as_select())
+            .load(&mut conn)?;
 
         Ok(roles)
     }
 
     /// Generic method to assign a role to any model that implements HasRoles
-    pub fn assign_to_model<T: HasRoles>(pool: &DbPool, model: &T, role_id: Ulid) -> Result<()> {
+    pub fn assign_to_model<T: HasRoles>(pool: &DbPool, model: &T, role_id: String) -> Result<()> {
         use crate::schema::sys_model_has_roles;
         let mut conn = pool.get()?;
         let model_role_id = Ulid::new();
@@ -126,7 +129,7 @@ impl RoleService {
     }
 
     /// Generic method to remove a role from any model that implements HasRoles
-    pub fn remove_from_model<T: HasRoles>(pool: &DbPool, model: &T, role_id: Ulid) -> Result<()> {
+    pub fn remove_from_model<T: HasRoles>(pool: &DbPool, model: &T, role_id: String) -> Result<()> {
         use crate::schema::sys_model_has_roles;
         let mut conn = pool.get()?;
 
@@ -176,7 +179,7 @@ impl RoleService {
             query = query.filter(sys_roles::guard_name.eq(guard));
         }
 
-        let roles = query.load::<Role>(&mut conn)?;
+        let roles = query.select(Role::as_select()).load(&mut conn)?;
         Ok(roles)
     }
 
