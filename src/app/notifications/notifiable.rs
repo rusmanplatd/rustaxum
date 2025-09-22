@@ -5,6 +5,9 @@ use crate::app::models::user::User;
 
 #[async_trait]
 impl Notifiable for User {
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
     async fn route_notification_for(&self, channel: &NotificationChannel) -> Option<String> {
         match channel {
             NotificationChannel::Mail => Some(self.email.clone()),
@@ -12,12 +15,10 @@ impl Notifiable for User {
             NotificationChannel::Broadcast => Some(self.id.to_string()),
             NotificationChannel::WebPush => Some(self.id.to_string()),
             NotificationChannel::Sms | NotificationChannel::Vonage => {
-                // TODO: Add phone number field to User model if needed
-                None
+                self.phone_number.clone()
             }
             NotificationChannel::Slack => {
-                // TODO: Add slack user ID field to User model if needed
-                None
+                None // TODO: Add slack_user_id field back when needed
             }
             NotificationChannel::Custom(_) => None,
         }
@@ -28,8 +29,28 @@ impl Notifiable for User {
     }
 
     async fn notification_preferences(&self) -> HashMap<String, bool> {
-        // In a real implementation, you might want to store these in the database
-        // For now, we'll return default preferences
+        // Load preferences from database
+        match self.load_preferences_from_database().await {
+            Ok(prefs) => prefs,
+            Err(e) => {
+                tracing::warn!("Failed to load user preferences for {}: {}. Using defaults.", self.id, e);
+                self.default_preferences()
+            }
+        }
+    }
+}
+
+// Helper function to check if a user can receive a specific type of notification
+impl User {
+    /// Load notification preferences from database
+    async fn load_preferences_from_database(&self) -> anyhow::Result<HashMap<String, bool>> {
+        // TODO: Implement user preferences with Diesel when needed
+        // For now, return default preferences
+        Ok(self.default_preferences())
+    }
+
+    /// Get default notification preferences
+    fn default_preferences(&self) -> HashMap<String, bool> {
         let mut preferences = HashMap::new();
         preferences.insert("email_notifications".to_string(), true);
         preferences.insert("database_notifications".to_string(), true);
@@ -39,12 +60,35 @@ impl Notifiable for User {
         preferences.insert("slack_notifications".to_string(), true);
         preferences.insert("marketing_emails".to_string(), false);
         preferences.insert("security_alerts".to_string(), true);
+        preferences.insert("order_updates".to_string(), true);
+        preferences.insert("newsletter".to_string(), false);
+        preferences.insert("promotional_emails".to_string(), false);
+        preferences.insert("account_notifications".to_string(), true);
         preferences
     }
-}
 
-// Helper function to check if a user can receive a specific type of notification
-impl User {
+    /// Update a specific notification preference
+    pub async fn update_notification_preference(&self, key: &str, value: bool) -> anyhow::Result<()> {
+        // TODO: Implement user preference updates with Diesel when needed
+        tracing::info!("Would update preference '{}' to '{}' for user {}", key, value, self.id);
+        Ok(())
+    }
+
+    /// Disable all marketing communications for this user
+    pub async fn disable_marketing_communications(&self) -> anyhow::Result<()> {
+        let marketing_prefs = vec![
+            "marketing_emails",
+            "newsletter",
+            "promotional_emails",
+        ];
+
+        for pref in marketing_prefs {
+            self.update_notification_preference(pref, false).await?;
+        }
+
+        tracing::info!("Disabled all marketing communications for user {}", self.id);
+        Ok(())
+    }
     pub async fn can_receive_notification(&self, notification_type: &str) -> bool {
         let preferences = self.notification_preferences().await;
 

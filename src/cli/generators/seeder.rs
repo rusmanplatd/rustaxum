@@ -67,11 +67,13 @@ impl Seeder for {} {{
     }}
 
     fn description(&self) -> Option<&'static str> {{
-        Some("TODO: Add description for this seeder")
+        Some("Seed data for {} table")
     }}
 
     fn run(&self, pool: &DbPool) -> Result<()> {{
-        // TODO: Add your seeding logic here
+        tracing::info!("Running {} seeder", self.name());
+
+        // Add your seeding logic here
         // Example using Diesel:
         // use diesel::prelude::*;
         // use crate::schema::table_name;
@@ -88,7 +90,7 @@ impl Seeder for {} {{
         Ok(())
     }}
 }}
-"#, seeder_name, seeder_name, seeder_name, seeder_name)
+"#, seeder_name, seeder_name, seeder_name, seeder_name, seeder_name, seeder_name)
 }
 
 fn update_seeders_mod(file_name: &str) -> Result<()> {

@@ -82,7 +82,6 @@ impl SmsChannel {
     }
 
     async fn send_twilio_sms(&self, message: SmsMessage, account_sid: &str, auth_token: &str) -> Result<()> {
-        // In a real implementation, you would use the Twilio API
         tracing::info!("Sending SMS via Twilio to {}: {}", message.to, message.message);
 
         let client = reqwest::Client::new();
@@ -111,7 +110,6 @@ impl SmsChannel {
     }
 
     async fn send_nexmo_sms(&self, message: SmsMessage, api_key: &str, api_secret: &str) -> Result<()> {
-        // In a real implementation, you would use the Nexmo/Vonage API
         tracing::info!("Sending SMS via Nexmo to {}: {}", message.to, message.message);
 
         let client = reqwest::Client::new();

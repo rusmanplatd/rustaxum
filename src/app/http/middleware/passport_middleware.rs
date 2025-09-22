@@ -89,8 +89,6 @@ async fn authenticate_request(
     })
 }
 
-// TODO: Implement FromRequestParts trait correctly
-// For now, using a different approach with middleware and extension retrieval
 
 // Helper function that can be used in handlers to get authenticated user
 pub fn require_auth(

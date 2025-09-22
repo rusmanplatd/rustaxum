@@ -27,6 +27,9 @@ pub async fn create_app() -> anyhow::Result<Router> {
     let pool = database::create_pool(&config)?;
     tracing::info!("Database pool created successfully");
 
+    // Initialize global pool for legacy compatibility
+    database::connection::initialize_pool(pool.clone());
+
     // Run migrations
     // database::run_migrations(&pool).await?; // Temporarily disabled - already applied
     tracing::debug!("Database migrations skipped (already applied)");

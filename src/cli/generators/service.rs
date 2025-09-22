@@ -54,42 +54,147 @@ fn generate_service_content(service_name: &str) -> String {
     let model_name = service_name.replace("Service", "");
     let model_snake = to_snake_case(&model_name);
 
-    format!(r#"use anyhow::Result;
-use ulid::Ulid;
-use crate::database::DbPool;
+    let mut content = String::new();
 
-// TODO: Import your model
-// use crate::app::models::{}::{{{}, Create{}, Update{}}};
+    content.push_str("use anyhow::{Result, anyhow};\n");
+    content.push_str("use sqlx::{FromRow, Row};\n");
+    content.push_str("use ulid::Ulid;\n");
+    content.push_str("use serde::{Serialize, Deserialize};\n");
+    content.push_str("use crate::database::DbPool;\n");
+    content.push_str("use crate::app::query_builder::pagination::{Paginator, PaginationParams};\n\n");
 
-pub struct {};
+    content.push_str(&format!("// use crate::app::models::{}::{{{}}};\n\n", model_snake, model_name));
 
-impl {} {{
-    pub async fn create(pool: &DbPool, data: Create{}) -> Result<{}> {{
-        // TODO: Implement create logic
-        todo!("Implement create method")
-    }}
+    content.push_str("#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]\n");
+    content.push_str(&format!("pub struct {} {{\n", model_name));
+    content.push_str("    pub id: String,\n");
+    content.push_str("    pub created_at: chrono::DateTime<chrono::Utc>,\n");
+    content.push_str("    pub updated_at: chrono::DateTime<chrono::Utc>,\n");
+    content.push_str("}\n\n");
 
-    pub async fn find_by_id(pool: &DbPool, id: String) -> Result<Option<{}>> {{
-        // TODO: Implement find by id logic
-        todo!("Implement find_by_id method")
-    }}
+    content.push_str("#[derive(Debug, Clone, Serialize, Deserialize)]\n");
+    content.push_str(&format!("pub struct Create{}Request {{\n", model_name));
+    content.push_str("    // Add your fields here\n");
+    content.push_str("}\n\n");
 
-    pub async fn update(pool: &DbPool, id: String, data: Update{}) -> Result<{}> {{
-        // TODO: Implement update logic
-        todo!("Implement update method")
-    }}
+    content.push_str("#[derive(Debug, Clone, Serialize, Deserialize)]\n");
+    content.push_str(&format!("pub struct Update{}Request {{\n", model_name));
+    content.push_str("    // Add your fields here\n");
+    content.push_str("}\n\n");
 
-    pub async fn delete(pool: &DbPool, id: String) -> Result<()> {{
-        // TODO: Implement delete logic
-        todo!("Implement delete method")
-    }}
+    content.push_str(&format!("pub struct {};\n\n", service_name));
 
-    pub async fn list(pool: &DbPool, limit: i64, offset: i64) -> Result<Vec<{}>> {{
-        // TODO: Implement list logic
-        todo!("Implement list method")
-    }}
-}}
-"#, model_snake, model_name, model_name, model_name, service_name, service_name, model_name, model_name, model_name, model_name, model_name, model_name)
+    content.push_str(&format!("impl {} {{\n", service_name));
+
+    // Create method
+    content.push_str(&format!("    /// Create a new {} record\n", model_name));
+    content.push_str(&format!("    pub async fn create(pool: &DbPool, data: Create{}Request) -> Result<{}> {{\n", model_name, model_name));
+    content.push_str("        let id = Ulid::new().to_string();\n");
+    content.push_str("        let now = chrono::Utc::now();\n\n");
+    content.push_str(&format!("        let result = sqlx::query_as!(\n"));
+    content.push_str(&format!("            {},\n", model_name));
+    content.push_str("            r#\"\n");
+    content.push_str(&format!("            INSERT INTO {} (id, created_at, updated_at)\n", model_snake));
+    content.push_str("            VALUES ($1, $2, $3)\n");
+    content.push_str("            RETURNING *\n");
+    content.push_str("            \"#,\n");
+    content.push_str("            id,\n");
+    content.push_str("            now,\n");
+    content.push_str("            now\n");
+    content.push_str("        )\n");
+    content.push_str("        .fetch_one(pool)\n");
+    content.push_str("        .await\n");
+    content.push_str(&format!("        .map_err(|e| anyhow!(\"Failed to create {}: {{}}\", e))?;\n\n", model_name));
+    content.push_str("        Ok(result)\n");
+    content.push_str("    }\n\n");
+
+    // Find by ID method
+    content.push_str(&format!("    /// Find {} by ID\n", model_name));
+    content.push_str(&format!("    pub async fn find_by_id(pool: &DbPool, id: String) -> Result<Option<{}>> {{\n", model_name));
+    content.push_str(&format!("        let result = sqlx::query_as!(\n"));
+    content.push_str(&format!("            {},\n", model_name));
+    content.push_str(&format!("            \"SELECT * FROM {} WHERE id = $1\",\n", model_snake));
+    content.push_str("            id\n");
+    content.push_str("        )\n");
+    content.push_str("        .fetch_optional(pool)\n");
+    content.push_str("        .await\n");
+    content.push_str(&format!("        .map_err(|e| anyhow!(\"Failed to find {} by ID: {{}}\", e))?;\n\n", model_name));
+    content.push_str("        Ok(result)\n");
+    content.push_str("    }\n\n");
+
+    // Update method
+    content.push_str(&format!("    /// Update {} record\n", model_name));
+    content.push_str(&format!("    pub async fn update(pool: &DbPool, id: String, data: Update{}Request) -> Result<{}> {{\n", model_name, model_name));
+    content.push_str("        let now = chrono::Utc::now();\n\n");
+    content.push_str(&format!("        let result = sqlx::query_as!(\n"));
+    content.push_str(&format!("            {},\n", model_name));
+    content.push_str("            r#\"\n");
+    content.push_str(&format!("            UPDATE {}\n", model_snake));
+    content.push_str("            SET updated_at = $2\n");
+    content.push_str("            WHERE id = $1\n");
+    content.push_str("            RETURNING *\n");
+    content.push_str("            \"#,\n");
+    content.push_str("            id,\n");
+    content.push_str("            now\n");
+    content.push_str("        )\n");
+    content.push_str("        .fetch_one(pool)\n");
+    content.push_str("        .await\n");
+    content.push_str(&format!("        .map_err(|e| anyhow!(\"Failed to update {}: {{}}\", e))?;\n\n", model_name));
+    content.push_str("        Ok(result)\n");
+    content.push_str("    }\n\n");
+
+    // Delete method
+    content.push_str(&format!("    /// Delete {} record\n", model_name));
+    content.push_str("    pub async fn delete(pool: &DbPool, id: String) -> Result<()> {\n");
+    content.push_str("        let rows_affected = sqlx::query!(\n");
+    content.push_str(&format!("            \"DELETE FROM {} WHERE id = $1\",\n", model_snake));
+    content.push_str("            id\n");
+    content.push_str("        )\n");
+    content.push_str("        .execute(pool)\n");
+    content.push_str("        .await\n");
+    content.push_str(&format!("        .map_err(|e| anyhow!(\"Failed to delete {}: {{}}\", e))?\n", model_name));
+    content.push_str("        .rows_affected();\n\n");
+    content.push_str("        if rows_affected == 0 {\n");
+    content.push_str(&format!("            return Err(anyhow!(\"{} not found\"));\n", model_name));
+    content.push_str("        }\n\n");
+    content.push_str("        Ok(())\n");
+    content.push_str("    }\n\n");
+
+    // List method
+    content.push_str(&format!("    /// List {} records with pagination\n", model_name));
+    content.push_str(&format!("    pub async fn list(pool: &DbPool, pagination: PaginationParams) -> Result<Paginator<{}>> {{\n", model_name));
+    content.push_str(&format!("        let total = sqlx::query!(\"SELECT COUNT(*) as count FROM {}\")\n", model_snake));
+    content.push_str("            .fetch_one(pool)\n");
+    content.push_str("            .await\n");
+    content.push_str(&format!("            .map_err(|e| anyhow!(\"Failed to count {}: {{}}\", e))?\n", model_name));
+    content.push_str("            .count\n");
+    content.push_str("            .unwrap_or(0) as u64;\n\n");
+    content.push_str(&format!("        let records = sqlx::query_as!(\n"));
+    content.push_str(&format!("            {},\n", model_name));
+    content.push_str(&format!("            \"SELECT * FROM {} ORDER BY created_at DESC LIMIT $1 OFFSET $2\",\n", model_snake));
+    content.push_str("            pagination.per_page as i64,\n");
+    content.push_str("            pagination.offset() as i64\n");
+    content.push_str("        )\n");
+    content.push_str("        .fetch_all(pool)\n");
+    content.push_str("        .await\n");
+    content.push_str(&format!("        .map_err(|e| anyhow!(\"Failed to list {}: {{}}\", e))?;\n\n", model_name));
+    content.push_str("        Ok(Paginator::new(records, total, pagination))\n");
+    content.push_str("    }\n\n");
+
+    // Exists method
+    content.push_str(&format!("    /// Check if {} exists\n", model_name));
+    content.push_str("    pub async fn exists(pool: &DbPool, id: String) -> Result<bool> {\n");
+    content.push_str(&format!("        let count = sqlx::query!(\"SELECT COUNT(*) as count FROM {} WHERE id = $1\", id)\n", model_snake));
+    content.push_str("            .fetch_one(pool)\n");
+    content.push_str("            .await\n");
+    content.push_str(&format!("            .map_err(|e| anyhow!(\"Failed to check if {} exists: {{}}\", e))?\n", model_name));
+    content.push_str("            .count\n");
+    content.push_str("            .unwrap_or(0);\n\n");
+    content.push_str("        Ok(count > 0)\n");
+    content.push_str("    }\n");
+    content.push_str("}\n");
+
+    content
 }
 
 fn update_services_mod(file_name: &str) -> Result<()> {

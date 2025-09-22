@@ -117,10 +117,23 @@ pub async fn websocket_handler(
 ) -> Response {
     let channel = params.channel.unwrap_or_else(|| "general".to_string());
 
-    // In a real app, you'd validate the auth_token here
-    if let Some(_token) = params.auth_token {
-        // Validate token and get user permissions
-        info!("WebSocket connection with auth token for channel: {}", channel);
+    // Validate JWT token and authorize user access
+    if let Some(token) = params.auth_token {
+        match validate_websocket_token(&token, &channel).await {
+            Ok(user_info) => {
+                info!("WebSocket connection authorized for user {} in channel: {}", user_info.user_id, channel);
+            }
+            Err(e) => {
+                warn!("WebSocket connection denied: {}", e);
+                return ws.on_upgrade(move |socket| handle_unauthorized_socket(socket));
+            }
+        }
+    } else {
+        // Check if channel requires authentication
+        if requires_authentication(&channel) {
+            warn!("WebSocket connection denied: authentication required for channel {}", channel);
+            return ws.on_upgrade(move |socket| handle_unauthorized_socket(socket));
+        }
     }
 
     ws.on_upgrade(move |socket| handle_socket(socket, channel, manager))
@@ -315,4 +328,149 @@ pub async fn websocket_manager() -> Arc<WebSocketManager> {
 pub async fn websocket_broadcast(message: BroadcastMessage) -> Result<()> {
     let manager = websocket_manager().await;
     manager.broadcast(message).await
+}
+
+/// User information extracted from JWT token
+#[derive(Debug, Clone)]
+pub struct WebSocketUserInfo {
+    pub user_id: String,
+    pub email: String,
+    pub roles: Vec<String>,
+    pub permissions: Vec<String>,
+}
+
+/// Validate JWT token for WebSocket connections
+async fn validate_websocket_token(token: &str, channel: &str) -> Result<WebSocketUserInfo> {
+    use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
+    use crate::config::Config;
+
+    let config = Config::load()?;
+
+    // Decode and validate JWT token
+    let decoding_key = DecodingKey::from_secret(config.auth.jwt_secret.as_ref());
+    let mut validation = Validation::new(Algorithm::HS256);
+    validation.set_audience(&["websocket"]);
+
+    let token_data = decode::<crate::app::services::auth_service::Claims>(
+        token,
+        &decoding_key,
+        &validation,
+    ).map_err(|e| anyhow::anyhow!("Invalid JWT token: {}", e))?;
+
+    let claims = token_data.claims;
+
+    // Check if token is expired
+    let now = chrono::Utc::now().timestamp() as usize;
+    if claims.exp < now {
+        return Err(anyhow::anyhow!("Token has expired"));
+    }
+
+    // TODO: Replace with proper user lookup once available in UserService
+    // For now, create a minimal user context
+    let user_id = claims.sub.clone();
+    let roles: Vec<String> = Vec::new();
+    let permissions: Vec<String> = Vec::new();
+
+    // Check channel-specific permissions
+    let user_info = WebSocketUserInfo {
+        user_id: user_id,
+        email: "unknown@example.com".to_string(), // TODO: Get from user lookup
+        roles: roles,
+        permissions: permissions,
+    };
+
+    // Check if user can access the specific channel
+    if !can_access_channel(&user_info, channel).await {
+        return Err(anyhow::anyhow!("Insufficient permissions to access channel: {}", channel));
+    }
+
+    Ok(user_info)
+}
+
+/// Check if a channel requires authentication
+fn requires_authentication(channel: &str) -> bool {
+    match channel {
+        "general" | "public" => false,
+        "notifications" | "user" | "admin" | "private" => true,
+        _ => {
+            // Channels starting with "user." require authentication
+            if channel.starts_with("user.") {
+                return true;
+            }
+            // Channels starting with "admin." require authentication
+            if channel.starts_with("admin.") {
+                return true;
+            }
+            // Default to requiring authentication for unknown channels
+            true
+        }
+    }
+}
+
+/// Check if user can access a specific channel
+async fn can_access_channel(user_info: &WebSocketUserInfo, channel: &str) -> bool {
+    match channel {
+        "general" | "public" => true,
+        "notifications" => true, // All authenticated users can access notifications
+        "admin" => user_info.roles.contains(&"admin".to_string()),
+        _ => {
+            // User-specific channels (e.g., "user.123")
+            if let Some(user_id) = channel.strip_prefix("user.") {
+                return user_info.user_id == user_id;
+            }
+
+            // Admin channels
+            if channel.starts_with("admin.") {
+                return user_info.roles.contains(&"admin".to_string()) ||
+                       user_info.permissions.contains(&"admin_channels".to_string());
+            }
+
+            // Team channels (e.g., "team.456")
+            if let Some(team_id) = channel.strip_prefix("team.") {
+                // Check if user belongs to the team
+                return user_has_team_access(&user_info.user_id, team_id).await;
+            }
+
+            // Organization channels (e.g., "org.789")
+            if let Some(org_id) = channel.strip_prefix("org.") {
+                // Check if user belongs to the organization
+                return user_has_org_access(&user_info.user_id, org_id).await;
+            }
+
+            // Default: deny access to unknown channel patterns
+            false
+        }
+    }
+}
+
+/// Handle unauthorized WebSocket connections
+async fn handle_unauthorized_socket(socket: WebSocket) {
+    let (mut sender, _) = socket.split();
+
+    // Send unauthorized message and close connection
+    let error_msg = serde_json::json!({
+        "error": "unauthorized",
+        "message": "Authentication required or insufficient permissions"
+    });
+
+    if let Ok(json) = serde_json::to_string(&error_msg) {
+        let _ = sender.send(Message::Text(json.into())).await;
+    }
+
+    // Close the connection
+    let _ = sender.close().await;
+}
+
+/// Check if user has access to a specific team
+async fn user_has_team_access(user_id: &str, team_id: &str) -> bool {
+    // TODO: Implement team access check with Diesel when needed
+    tracing::debug!("Would check team access for user {} to team {}", user_id, team_id);
+    false
+}
+
+/// Check if user has access to a specific organization
+async fn user_has_org_access(user_id: &str, org_id: &str) -> bool {
+    // TODO: Implement organization access check with Diesel when needed
+    tracing::debug!("Would check organization access for user {} to org {}", user_id, org_id);
+    false
 }

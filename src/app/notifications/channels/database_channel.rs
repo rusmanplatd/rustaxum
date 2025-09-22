@@ -21,6 +21,52 @@ impl DatabaseChannel {
         let pool = crate::database::create_pool(&config)?;
         Ok(pool)
     }
+
+    /// Detect the notifiable type using multiple strategies for robust type detection
+    fn detect_notifiable_type(notifiable: &dyn Notifiable) -> String {
+        // Strategy 1: Use std::any::type_name if available through as_any
+        if let Some(any_ref) = notifiable.as_any() {
+            let type_name = std::any::type_name_of_val(any_ref);
+
+            // Extract the final type name from the full path
+            if let Some(last_segment) = type_name.split("::").last() {
+                // Clean up generic type parameters if present
+                let clean_type = last_segment.split('<').next().unwrap_or(last_segment);
+
+                // Convert to Laravel-style naming convention
+                match clean_type {
+                    "User" => return "App\\Models\\User".to_string(),
+                    "Organization" => return "App\\Models\\Organization".to_string(),
+                    "Team" => return "App\\Models\\Team".to_string(),
+                    _ => {
+                        tracing::debug!("Detected type '{}' for notifiable", clean_type);
+                        return format!("App\\Models\\{}", clean_type);
+                    }
+                }
+            }
+        }
+
+        // Strategy 2: Parse the key format (e.g., "User_123" -> "User")
+        let key = notifiable.get_key();
+        if let Some(type_part) = key.split('_').next() {
+            match type_part {
+                "User" => return "App\\Models\\User".to_string(),
+                "Organization" => return "App\\Models\\Organization".to_string(),
+                "Team" => return "App\\Models\\Team".to_string(),
+                _ => {
+                    tracing::debug!("Inferred type '{}' from key format", type_part);
+                    return format!("App\\Models\\{}", type_part);
+                }
+            }
+        }
+
+        // Strategy 3: Try to use a registry pattern (future enhancement)
+        // This could be implemented with a static HashMap mapping trait object vtables to types
+
+        // Fallback: Use a generic type indicator
+        tracing::warn!("Could not detect specific type for notifiable with key '{}', using default", key);
+        "App\\Models\\Notifiable".to_string()
+    }
 }
 
 #[async_trait]
@@ -30,12 +76,11 @@ impl Channel for DatabaseChannel {
         let database_message = notification.to_database(notifiable)?;
 
         // Create notification model
+        let notifiable_type = Self::detect_notifiable_type(notifiable);
         let notification_model = NewNotification::new(
             notification.notification_type().to_string(),
             notifiable.get_key(),
-            // Extract the type name from the notifiable (simple implementation)
-            // In a real implementation, you might want to make this more sophisticated
-            notifiable.get_key().split('_').next().unwrap_or("Unknown").to_string(),
+            notifiable_type,
             database_message.data,
         );
 

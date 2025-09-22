@@ -1,3 +1,4 @@
+pub mod connection;
 pub mod migration_runner;
 pub mod seeder;
 pub mod seeders;

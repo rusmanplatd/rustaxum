@@ -9,6 +9,7 @@ use super::{HasModelType, HasRoles, DieselUlid};
 /// Contains authentication, profile, and security information
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::sys_users)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct User {
     /// Unique user identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
@@ -136,6 +137,10 @@ pub struct UserResponse {
 }
 
 impl User {
+    /// Get phone number (convenience method)
+    pub fn phone(&self) -> Option<&String> {
+        self.phone_number.as_ref()
+    }
     pub fn new(name: String, email: String, password: String) -> Self {
         let now = Utc::now();
         Self {

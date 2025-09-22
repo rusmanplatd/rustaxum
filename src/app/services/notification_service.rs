@@ -164,16 +164,20 @@ impl NotificationService {
     }
 
     // Helper method to try casting Notifiable to User (for preference checking)
-    fn try_as_user(&self, notifiable: &dyn Notifiable) -> Option<&crate::app::models::user::User> {
-        // This is a simplified approach. In a more sophisticated implementation,
-        // you might want to use downcasting or a different approach
-        if notifiable.get_key().starts_with("User_") {
-            // For now, we'll return None since we can't safely downcast
-            // In a real implementation, you might store the concrete type
-            None
-        } else {
-            None
+    fn try_as_user<'a>(&self, notifiable: &'a dyn Notifiable) -> Option<&'a crate::app::models::user::User> {
+        // Use trait object pattern to safely downcast
+        if let Some(notifiable_any) = notifiable.as_any() {
+            if let Some(user) = notifiable_any.downcast_ref::<crate::app::models::user::User>() {
+                return Some(user);
+            }
         }
+
+        // Fallback: Check if this looks like a User based on key format
+        if notifiable.get_key().starts_with("User_") {
+            tracing::debug!("Detected User-like notifiable but couldn't downcast: {}", notifiable.get_key());
+        }
+
+        None
     }
 }
 

@@ -29,39 +29,39 @@ pub async fn generate_job(name: &str, sync: bool) -> Result<()> {
 }
 
 fn generate_async_job_template(job_name: &str) -> String {
-    format!(r#"use anyhow::Result;
+    let data_struct = format!("{}Data", job_name.replace("Job", ""));
+
+    format!(r#"use anyhow::{{Result, anyhow}};
 use serde::{{Deserialize, Serialize}};
 use tokio::time::{{sleep, Duration}};
+use async_trait::async_trait;
+use tracing::{{info, warn, error}};
+use chrono::{{DateTime, Utc}};
+use crate::app::jobs::Job;
 
+/// {} - Production-ready background job
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct {} {{
     pub id: String,
-    pub data: JobData,
+    pub data: {},
     pub attempts: u32,
     pub max_attempts: u32,
-    pub delay: Option<Duration>,
 }}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct JobData {{
-    // Add job-specific data fields here
+pub struct {} {{
     pub message: String,
+    pub user_id: Option<String>,
 }}
 
 impl {} {{
-    pub fn new(data: JobData) -> Self {{
+    pub fn new(data: {}) -> Self {{
         Self {{
             id: ulid::Ulid::new().to_string(),
             data,
             attempts: 0,
             max_attempts: 3,
-            delay: None,
         }}
-    }}
-
-    pub fn with_delay(mut self, delay: Duration) -> Self {{
-        self.delay = Some(delay);
-        self
     }}
 
     pub fn max_attempts(mut self, attempts: u32) -> Self {{
@@ -72,35 +72,22 @@ impl {} {{
     pub async fn handle(&mut self) -> Result<()> {{
         self.attempts += 1;
 
-        // Add delay if specified
-        if let Some(delay) = self.delay {{
-            sleep(delay).await;
-        }}
+        info!("Processing {} job: {{}} (attempt {{}})", self.id, self.attempts);
+        info!("Job data: {{}}", self.data.message);
 
-        // Implement your job logic here
-        println!("Processing job {{}} (attempt {{}})", self.id, self.attempts);
-        println!("Job data: {{}}", self.data.message);
+        tokio::time::sleep(Duration::from_millis(100)).await;
 
-        // Simulate some async work
-        sleep(Duration::from_millis(100)).await;
+        // Add your job logic here
+        self.process().await?;
 
-        // Example job logic - replace with your implementation
-        self.process_job().await?;
-
-        println!("Job {{}} completed successfully", self.id);
+        info!("Job {{}} completed successfully", self.id);
         Ok(())
     }}
 
-    async fn process_job(&self) -> Result<()> {{
-        // Implement your actual job processing logic here
-        // This could be:
-        // - Sending emails
-        // - Processing files
-        // - Making API calls
-        // - Database operations
-        // - etc.
-
-        println!("Executing job logic for: {{}}", self.data.message);
+    async fn process(&self) -> Result<()> {{
+        // Implement your job logic here:
+        // - Send emails, process files, make API calls, etc.
+        info!("Executing job logic: {{}}", self.data.message);
         Ok(())
     }}
 
@@ -109,47 +96,13 @@ impl {} {{
     }}
 
     pub async fn failed(&self, error: &anyhow::Error) {{
-        // Handle job failure
-        println!("Job {{}} failed: {{}}", self.id, error);
-
+        error!("Job {{}} failed: {{}}", self.id, error);
         if !self.should_retry() {{
-            println!("Job {{}} exceeded max attempts, moving to failed queue", self.id);
-            // Here you could store the job in a failed jobs table
+            error!("Job {{}} exceeded max attempts", self.id);
         }}
     }}
 }}
-
-// Queue trait for job processing
-#[async_trait::async_trait]
-pub trait Queueable {{
-    async fn dispatch(self) -> Result<()>;
-}}
-
-#[async_trait::async_trait]
-impl Queueable for {} {{
-    async fn dispatch(mut self) -> Result<()> {{
-        // This would typically add the job to a queue (Redis, database, etc.)
-        // For now, we'll just execute it directly
-        println!("Dispatching job: {{}}", self.id);
-
-        loop {{
-            match self.handle().await {{
-                Ok(()) => break,
-                Err(e) => {{
-                    self.failed(&e).await;
-                    if !self.should_retry() {{
-                        return Err(e);
-                    }}
-                    // In a real implementation, you'd re-queue the job with a delay
-                    sleep(Duration::from_secs(1)).await;
-                }}
-            }}
-        }}
-
-        Ok(())
-    }}
-}}
-"#, job_name, job_name, job_name)
+"#, job_name, job_name, data_struct, data_struct, job_name, data_struct, job_name)
 }
 
 fn generate_sync_job_template(job_name: &str) -> String {

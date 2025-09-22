@@ -72,7 +72,8 @@ fn generate_notification_template(notification_name: &str) -> String {
     template.push_str("    }\n\n");
     template.push_str("    fn to_mail(&self, notifiable: &dyn Notifiable) -> Result<MailMessage> {\n");
     template.push_str("        // Note: In a real implementation, you would need to make this async\n");
-    template.push_str("        let email = \"user@example.com\".to_string(); // TODO: Get from notifiable\n\n");
+    template.push_str("        let email = notifiable.route_notification_for(&NotificationChannel::Mail)\n");
+    template.push_str("            .unwrap_or_else(|| \"noreply@example.com\".to_string());\n\n");
     template.push_str("        let content = format!(r#\"<!DOCTYPE html>\n");
     template.push_str("<html>\n");
     template.push_str("<head>\n");

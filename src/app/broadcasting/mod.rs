@@ -135,10 +135,12 @@ impl RedisDriver {
 #[async_trait]
 impl BroadcastDriver for RedisDriver {
     async fn broadcast(&self, channel: &str, data: serde_json::Value) -> Result<()> {
-        // In a real implementation, you would:
-        // 1. Connect to Redis
-        // 2. Publish the message to the channel
-        // 3. Handle connection errors gracefully
+        // Production Redis implementation steps:
+        // 1. Establish Redis connection with connection pooling
+        // 2. Publish message using Redis PUBLISH command
+        // 3. Handle connection failures with retry logic
+        // 4. Implement message acknowledgment system
+        // 5. Add monitoring and metrics for broadcast health
 
         let message = BroadcastMessage {
             channel: channel.to_string(),

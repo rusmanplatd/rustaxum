@@ -192,6 +192,10 @@ pub trait Notification: Send + Sync {
 /// Trait for models that can receive notifications
 #[async_trait]
 pub trait Notifiable: Send + Sync {
+    /// Downcast to Any for type-safe casting
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        None
+    }
     /// Get the notification routing information for the given channel
     async fn route_notification_for(&self, channel: &NotificationChannel) -> Option<String>;
 

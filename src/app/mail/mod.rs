@@ -1,4 +1,4 @@
-pub mod order_shipped_mail;
+pub mod password_reset_mail;
 pub mod welcome_mail;
 pub mod drivers;
 

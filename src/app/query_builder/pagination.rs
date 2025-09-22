@@ -1,6 +1,17 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+/// Cursor data structure for cursor-based pagination
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CursorData {
+    /// Timestamp for ordering consistency
+    pub timestamp: i64,
+    /// Position within the current page
+    pub position: u32,
+    /// Page size for consistency checks
+    pub per_page: u32,
+}
+
 /// Pagination type enum
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "lowercase")]
@@ -154,10 +165,9 @@ impl Pagination {
             data
         };
 
-        // Generate cursors (this is a simplified implementation)
-        // In a real implementation, you'd generate cursors based on your data
+        // Generate cursors based on item position and timestamp
         let next_cursor = if has_more {
-            Some(format!("cursor_{}", self.per_page)) // Simplified cursor
+            self.generate_next_cursor(&actual_data)
         } else {
             None
         };
@@ -190,6 +200,79 @@ impl Pagination {
 
     fn build_page_url(&self, page: u32) -> String {
         format!("?page={}&per_page={}", page, self.per_page)
+    }
+
+    /// Generate a cursor for the next page based on the last item in the current dataset
+    fn generate_next_cursor<T>(&self, data: &[T]) -> Option<String> {
+        if data.is_empty() {
+            return None;
+        }
+
+        // Use timestamp-based cursor for better consistency
+        let timestamp = chrono::Utc::now().timestamp_millis();
+        let position = data.len();
+
+        // Create a base64-encoded cursor containing timestamp and position
+        let cursor_data = CursorData {
+            timestamp,
+            position: position as u32,
+            per_page: self.per_page,
+        };
+
+        self.encode_cursor(&cursor_data)
+    }
+
+    /// Generate a cursor for the previous page
+    fn generate_prev_cursor<T>(&self, data: &[T]) -> Option<String> {
+        if data.is_empty() {
+            return None;
+        }
+
+        // For previous cursor, we need to go backwards
+        let timestamp = chrono::Utc::now().timestamp_millis();
+
+        let cursor_data = CursorData {
+            timestamp: timestamp - (self.per_page as i64 * 1000), // Go back in time
+            position: 0,
+            per_page: self.per_page,
+        };
+
+        self.encode_cursor(&cursor_data)
+    }
+
+    /// Decode a cursor string into CursorData
+    pub fn decode_cursor(&self, cursor: &str) -> Option<CursorData> {
+        use base64::{Engine as _, engine::general_purpose};
+
+        // Remove any URL-safe padding characters and decode
+        let cleaned_cursor = cursor.replace('-', "+").replace('_', "/");
+        let decoded = general_purpose::STANDARD.decode(cleaned_cursor).ok()?;
+        let cursor_str = String::from_utf8(decoded).ok()?;
+
+        // Parse JSON cursor data
+        serde_json::from_str(&cursor_str).ok()
+    }
+
+    /// Encode cursor data into a base64 string
+    fn encode_cursor(&self, cursor_data: &CursorData) -> Option<String> {
+        use base64::{Engine as _, engine::general_purpose};
+
+        let json = serde_json::to_string(cursor_data).ok()?;
+        let encoded = general_purpose::STANDARD.encode(json.as_bytes());
+
+        // Make it URL-safe
+        let url_safe = encoded.replace('+', "-").replace('/', "_").trim_end_matches('=').to_string();
+        Some(url_safe)
+    }
+
+    /// Check if a cursor is valid
+    pub fn is_valid_cursor(&self, cursor: &str) -> bool {
+        self.decode_cursor(cursor).is_some()
+    }
+
+    /// Get cursor metadata for debugging
+    pub fn cursor_info(&self, cursor: &str) -> Option<CursorData> {
+        self.decode_cursor(cursor)
     }
 }
 

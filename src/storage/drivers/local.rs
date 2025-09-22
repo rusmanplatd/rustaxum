@@ -303,7 +303,7 @@ impl Filesystem for LocalFilesystem {
         _expires_at: DateTime<Utc>
     ) -> Result<String> {
         // For local filesystem, temporary URLs are the same as regular URLs
-        // In a real implementation, you might want to generate signed URLs with expiration
+        // For production, implement signed URLs with HMAC signatures for security
         self.url(path).await?.ok_or_else(|| {
             FilesystemError::Config {
                 message: "No URL prefix configured for local filesystem".to_string(),

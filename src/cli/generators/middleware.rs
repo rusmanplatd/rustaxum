@@ -51,25 +51,67 @@ fn to_snake_case(name: &str) -> String {
 }
 
 fn generate_middleware_content(middleware_name: &str) -> String {
+    let function_name = to_snake_case(&middleware_name.replace("Middleware", ""));
+
     format!(r#"use axum::{{
-    extract::Request,
-    http::StatusCode,
+    extract::{{Request, State}},
+    http::{{StatusCode, HeaderValue}},
     middleware::Next,
     response::{{IntoResponse, Response}},
 }};
+use anyhow::Result;
+use tracing::{{info, warn, error}};
 
-pub async fn {}(request: Request, next: Next) -> Result<Response, impl IntoResponse> {{
-    // TODO: Implement middleware logic here
+/// {} middleware for request processing
+pub async fn {}(
+    request: Request,
+    next: Next,
+) -> Result<Response, impl IntoResponse> {{
+    let start_time = std::time::Instant::now();
+    let method = request.method().clone();
+    let uri = request.uri().clone();
 
-    // Example: Add a header or perform validation
-    // let headers = request.headers();
+    info!("Processing {} request to: {{}}", method, uri);
 
-    // Continue with the request
-    let response = next.run(request).await;
+    // Pre-processing: Add your middleware logic here
+    // Examples:
+    // - Authentication/authorization checks
+    // - Rate limiting
+    // - Request validation
+    // - Headers manipulation
+    // - Logging and metrics
+
+    // Process the request
+    let mut response = next.run(request).await;
+
+    // Post-processing: Add response modifications here
+    // Examples:
+    // - Add security headers
+    // - Log response metrics
+    // - Response transformation
+
+    // Add processing time header
+    let duration = start_time.elapsed();
+    if let Ok(duration_header) = HeaderValue::from_str(&format!("{{}}.{{:03}}",
+        duration.as_secs(),
+        duration.subsec_millis())) {{
+        response.headers_mut().insert("X-Processing-Time-Ms", duration_header);
+    }}
+
+    info!("Completed {} request to {{}} in {{:.2?}}", method, uri, duration);
 
     Ok(response)
 }}
-"#, to_snake_case(&middleware_name.replace("Middleware", "")))
+
+/// Error handler for {} middleware
+pub fn handle_middleware_error(error: &str) -> impl IntoResponse {{
+    error!("Middleware error: {{}}", error);
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("Middleware error: {{}}", error)
+    )
+}}
+"#, middleware_name, function_name, middleware_name, middleware_name, middleware_name)
 }
 
 fn update_middleware_mod(file_name: &str) -> Result<()> {

@@ -1,4 +1,3 @@
-pub mod process_payment_job;
 pub mod send_email_job;
 pub mod database_queue_driver;
 pub mod queue_worker;
