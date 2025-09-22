@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
+use crate::app::models::DieselUlid;
 use diesel::prelude::*;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use crate::app::query_builder::{SortDirection};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::oauth_refresh_tokens)]
 pub struct RefreshToken {
-    pub id: String,
+    pub id: DieselUlid,
     pub access_token_id: String,
     pub revoked: bool,
     pub expires_at: Option<DateTime<Utc>>,
@@ -18,7 +18,7 @@ pub struct RefreshToken {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = crate::schema::oauth_refresh_tokens)]
 pub struct NewRefreshToken {
-    pub id: String,
+    pub id: DieselUlid,
     pub access_token_id: String,
     pub revoked: bool,
     pub expires_at: Option<DateTime<Utc>>,
@@ -34,7 +34,7 @@ pub struct CreateRefreshToken {
 
 #[derive(Debug, Serialize)]
 pub struct RefreshTokenResponse {
-    pub id: String,
+    pub id: DieselUlid,
     pub access_token_id: String,
     pub revoked: bool,
     pub expires_at: Option<DateTime<Utc>>,
@@ -46,7 +46,7 @@ impl RefreshToken {
 
     pub fn to_response(&self) -> RefreshTokenResponse {
         RefreshTokenResponse {
-            id: self.id.clone(),
+            id: self.id,
             access_token_id: self.access_token_id.clone(),
             revoked: self.revoked,
             expires_at: self.expires_at,
@@ -71,7 +71,7 @@ impl NewRefreshToken {
     pub fn new(access_token_id: String, expires_at: Option<DateTime<Utc>>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             access_token_id,
             revoked: false,
             expires_at,

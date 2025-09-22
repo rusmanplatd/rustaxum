@@ -1,4 +1,5 @@
 use anyhow::Result;
+use crate::app::models::DieselUlid;
 use crate::database::DbPool;
 use diesel::prelude::*;
 use crate::schema::sys_model_has_roles;
@@ -109,10 +110,10 @@ impl SysModelHasRoleService {
     pub fn assign_role_to_model(
         pool: &DbPool,
         model_type: &str,
-        model_id: String,
-        role_id: String,
+        model_id: DieselUlid,
+        role_id: DieselUlid,
         scope_type: Option<String>,
-        scope_id: Option<String>,
+        scope_id: Option<DieselUlid>,
     ) -> Result<SysModelHasRole> {
         let data = CreateSysModelHasRole {
             model_type: model_type.to_string(),

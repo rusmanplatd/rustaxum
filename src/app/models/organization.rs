@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::{SortDirection};
@@ -13,7 +12,7 @@ use super::{HasModelType, HasRoles};
 pub struct Organization {
     /// Unique identifier for the organization
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: String,
+    pub id: DieselUlid,
     /// Organization name
     #[schema(example = "Engineering Department")]
     pub name: String,
@@ -55,7 +54,7 @@ pub struct CreateOrganization {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = crate::schema::organizations)]
 pub struct NewOrganization {
-    pub id: String,
+    pub id: DieselUlid,
     pub name: String,
     #[diesel(column_name = type_)]
     pub organization_type: String,
@@ -81,7 +80,7 @@ pub struct UpdateOrganization {
 /// Organization response payload for API endpoints
 #[derive(Debug, Serialize, ToSchema)]
 pub struct OrganizationResponse {
-    pub id: String,
+    pub id: DieselUlid,
     pub name: String,
     pub organization_type: String,
     pub parent_id: Option<String>,
@@ -96,7 +95,7 @@ impl NewOrganization {
     pub fn new(name: String, organization_type: String, parent_id: Option<String>, code: Option<String>, description: Option<String>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             name,
             organization_type,
             parent_id,
@@ -113,7 +112,7 @@ impl Organization {
     pub fn new(name: String, organization_type: String, parent_id: Option<String>, code: Option<String>, description: Option<String>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             name,
             organization_type,
             parent_id,
@@ -127,7 +126,7 @@ impl Organization {
 
     pub fn to_response(&self) -> OrganizationResponse {
         OrganizationResponse {
-            id: self.id.clone(),
+            id: self.id,
             name: self.name.clone(),
             organization_type: self.organization_type.clone(),
             parent_id: self.parent_id.clone(),
@@ -148,7 +147,7 @@ impl HasModelType for Organization {
 
 impl HasRoles for Organization {
     fn model_id(&self) -> String {
-        self.id.clone()
+        self.id.to_string()
     }
 }
 

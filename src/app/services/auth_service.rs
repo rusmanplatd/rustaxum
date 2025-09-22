@@ -115,10 +115,10 @@ impl AuthService {
         let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
 
         // Store refresh token
-        UserService::update_refresh_token(pool, created_user.id.clone(), Some(refresh_token.clone()), Some(refresh_expires_at))?;
+        UserService::update_refresh_token(pool, created_user.id, Some(refresh_token.clone()), Some(refresh_expires_at))?;
 
         // Update last login
-        UserService::update_last_login(pool, created_user.id.clone())?;
+        UserService::update_last_login(pool, created_user.id)?;
 
         // Send welcome email
         if let Err(e) = EmailService::send_welcome_email(&created_user.email, &created_user.name).await {
@@ -254,7 +254,7 @@ impl AuthService {
         let hashed_password = Self::hash_password(&data.new_password)?;
 
         // Update password
-        UserService::update_password(pool, user.id.clone(), hashed_password)?;
+        UserService::update_password(pool, user.id, hashed_password)?;
 
         Ok(MessageResponse {
             message: "Password changed successfully.".to_string(),

@@ -13,6 +13,7 @@ use crate::app::services::sys_model_has_permission_service::SysModelHasPermissio
 use crate::app::models::user::User;
 use crate::app::models::HasModelType;
 use crate::app::services::auth_service::AuthService;
+use crate::app::models::DieselUlid;
 use crate::app::utils::token_utils::TokenUtils;
 
 #[derive(Clone)]
@@ -247,7 +248,8 @@ async fn check_user_permissions(
     guard_name: Option<&str>,
     require_all: bool,
 ) -> Result<bool, anyhow::Error> {
-    let user_permissions = SysModelHasPermissionService::get_model_permissions(pool, User::model_type(), user_id, guard_name)?;
+    let diesel_user_id = DieselUlid::from_string(&user_id)?;
+    let user_permissions = SysModelHasPermissionService::get_model_permissions(pool, User::model_type(), diesel_user_id, guard_name)?;
 
     let user_permission_names: HashSet<String> = user_permissions
         .into_iter()

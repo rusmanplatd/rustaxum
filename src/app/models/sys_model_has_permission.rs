@@ -1,26 +1,26 @@
 use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::SortDirection;
+use crate::app::models::DieselUlid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable, QueryableByName)]
 #[diesel(table_name = crate::schema::sys_model_has_permissions)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct SysModelHasPermission {
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: String,
+    pub id: DieselUlid,
     #[schema(example = "User")]
     pub model_type: String,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub model_id: String,
+    pub model_id: DieselUlid,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub permission_id: String,
+    pub permission_id: DieselUlid,
     #[schema(example = "organization")]
     pub scope_type: Option<String>,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub scope_id: Option<String>,
+    pub scope_id: Option<DieselUlid>,
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub created_at: DateTime<Utc>,
     #[schema(example = "2023-01-01T00:00:00Z")]
@@ -30,22 +30,22 @@ pub struct SysModelHasPermission {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateSysModelHasPermission {
     pub model_type: String,
-    pub model_id: String,
-    pub permission_id: String,
+    pub model_id: DieselUlid,
+    pub permission_id: DieselUlid,
     pub scope_type: Option<String>,
-    pub scope_id: Option<String>,
+    pub scope_id: Option<DieselUlid>,
 }
 
 /// Insertable struct for sys_model_has_permissions
 #[derive(Debug, Insertable)]
 #[diesel(table_name = crate::schema::sys_model_has_permissions)]
 pub struct NewSysModelHasPermission {
-    pub id: String,
+    pub id: DieselUlid,
     pub model_type: String,
-    pub model_id: String,
-    pub permission_id: String,
+    pub model_id: DieselUlid,
+    pub permission_id: DieselUlid,
     pub scope_type: Option<String>,
-    pub scope_id: Option<String>,
+    pub scope_id: Option<DieselUlid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -53,20 +53,20 @@ pub struct NewSysModelHasPermission {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateSysModelHasPermission {
     pub model_type: Option<String>,
-    pub model_id: Option<String>,
-    pub permission_id: Option<String>,
+    pub model_id: Option<DieselUlid>,
+    pub permission_id: Option<DieselUlid>,
     pub scope_type: Option<String>,
-    pub scope_id: Option<String>,
+    pub scope_id: Option<DieselUlid>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct SysModelHasPermissionResponse {
-    pub id: String,
+    pub id: DieselUlid,
     pub model_type: String,
-    pub model_id: String,
-    pub permission_id: String,
+    pub model_id: DieselUlid,
+    pub permission_id: DieselUlid,
     pub scope_type: Option<String>,
-    pub scope_id: Option<String>,
+    pub scope_id: Option<DieselUlid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -127,10 +127,10 @@ impl crate::app::query_builder::Queryable for SysModelHasPermission {
 }
 
 impl NewSysModelHasPermission {
-    pub fn new(model_type: String, model_id: String, permission_id: String, scope_type: Option<String>, scope_id: Option<String>) -> Self {
+    pub fn new(model_type: String, model_id: DieselUlid, permission_id: DieselUlid, scope_type: Option<String>, scope_id: Option<DieselUlid>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             model_type,
             model_id,
             permission_id,
@@ -143,10 +143,10 @@ impl NewSysModelHasPermission {
 }
 
 impl SysModelHasPermission {
-    pub fn new(model_type: String, model_id: String, permission_id: String, scope_type: Option<String>, scope_id: Option<String>) -> Self {
+    pub fn new(model_type: String, model_id: DieselUlid, permission_id: DieselUlid, scope_type: Option<String>, scope_id: Option<DieselUlid>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             model_type,
             model_id,
             permission_id,
@@ -159,12 +159,12 @@ impl SysModelHasPermission {
 
     pub fn to_response(&self) -> SysModelHasPermissionResponse {
         SysModelHasPermissionResponse {
-            id: self.id.clone(),
+            id: self.id,
             model_type: self.model_type.clone(),
-            model_id: self.model_id.clone(),
-            permission_id: self.permission_id.clone(),
+            model_id: self.model_id,
+            permission_id: self.permission_id,
             scope_type: self.scope_type.clone(),
-            scope_id: self.scope_id.clone(),
+            scope_id: self.scope_id,
             created_at: self.created_at,
             updated_at: self.updated_at,
         }

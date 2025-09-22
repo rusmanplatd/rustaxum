@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
+use crate::app::models::DieselUlid;
 use diesel::prelude::*;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use crate::app::query_builder::{SortDirection};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::oauth_scopes)]
 pub struct Scope {
-    pub id: String,
+    pub id: DieselUlid,
     pub name: String,
     pub description: Option<String>,
     pub is_default: bool,
@@ -18,7 +18,7 @@ pub struct Scope {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = crate::schema::oauth_scopes)]
 pub struct NewScope {
-    pub id: String,
+    pub id: DieselUlid,
     pub name: String,
     pub description: Option<String>,
     pub is_default: bool,
@@ -42,7 +42,7 @@ pub struct UpdateScope {
 
 #[derive(Debug, Serialize)]
 pub struct ScopeResponse {
-    pub id: String,
+    pub id: DieselUlid,
     pub name: String,
     pub description: Option<String>,
     pub is_default: bool,
@@ -54,7 +54,7 @@ impl Scope {
     pub fn new(name: String, description: Option<String>, is_default: bool) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             name,
             description,
             is_default,
@@ -65,7 +65,7 @@ impl Scope {
 
     pub fn to_response(&self) -> ScopeResponse {
         ScopeResponse {
-            id: self.id.clone(),
+            id: self.id,
             name: self.name.clone(),
             description: self.description.clone(),
             is_default: self.is_default,
@@ -87,7 +87,7 @@ impl NewScope {
     pub fn new(name: String, description: Option<String>, is_default: bool) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             name,
             description,
             is_default,

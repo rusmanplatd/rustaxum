@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::{SortDirection};
@@ -12,7 +11,7 @@ use crate::app::query_builder::{SortDirection};
 pub struct Country {
     /// Unique identifier for the country
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: String,
+    pub id: DieselUlid,
     /// Country name
     #[schema(example = "United States")]
     pub name: String,
@@ -42,7 +41,7 @@ pub struct CreateCountry {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = crate::schema::countries)]
 pub struct NewCountry {
-    pub id: String,
+    pub id: DieselUlid,
     pub name: String,
     pub iso_code: String,
     pub phone_code: Option<String>,
@@ -61,7 +60,7 @@ pub struct UpdateCountry {
 /// Country response payload for API endpoints
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CountryResponse {
-    pub id: String,
+    pub id: DieselUlid,
     pub name: String,
     pub iso_code: String,
     pub phone_code: Option<String>,
@@ -73,7 +72,7 @@ impl NewCountry {
     pub fn new(name: String, iso_code: String, phone_code: Option<String>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             name,
             iso_code,
             phone_code,
@@ -87,7 +86,7 @@ impl Country {
     pub fn new(name: String, iso_code: String, phone_code: Option<String>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             name,
             iso_code,
             phone_code,
@@ -98,7 +97,7 @@ impl Country {
 
     pub fn to_response(&self) -> CountryResponse {
         CountryResponse {
-            id: self.id.clone(),
+            id: self.id,
             name: self.name.clone(),
             iso_code: self.iso_code.clone(),
             phone_code: self.phone_code.clone(),

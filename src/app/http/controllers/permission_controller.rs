@@ -12,6 +12,7 @@ use crate::app::services::permission_service::PermissionService;
 use crate::app::services::sys_model_has_permission_service::SysModelHasPermissionService;
 use crate::app::models::user::User;
 use crate::app::models::HasModelType;
+use crate::app::models::DieselUlid;
 
 #[derive(Deserialize)]
 pub struct CreatePermissionRequest {
@@ -348,7 +349,16 @@ pub async fn get_user_permissions(
         }
     };
 
-    match SysModelHasPermissionService::get_model_permissions(&pool, User::model_type(), user_id.to_string(), None) {
+    let diesel_user_id = match DieselUlid::from_string(&user_id.to_string()) {
+        Ok(id) => id,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Invalid user ID format"
+            }))).into_response();
+        }
+    };
+
+    match SysModelHasPermissionService::get_model_permissions(&pool, User::model_type(), diesel_user_id, None) {
         Ok(permissions) => {
             let permission_data: Vec<PermissionData> = permissions.into_iter().map(PermissionData::from).collect();
             (StatusCode::OK, Json(json!({

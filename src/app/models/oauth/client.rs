@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
+use crate::app::models::DieselUlid;
 use diesel::prelude::*;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use crate::app::query_builder::{SortDirection};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, QueryableByName)]
 #[diesel(table_name = crate::schema::oauth_clients)]
 pub struct Client {
-    pub id: String,
+    pub id: DieselUlid,
     pub user_id: Option<String>,
     pub name: String,
     pub secret: Option<String>,
@@ -38,7 +38,7 @@ pub struct UpdateClient {
 
 #[derive(Debug, Serialize)]
 pub struct ClientResponse {
-    pub id: String,
+    pub id: DieselUlid,
     pub name: String,
     pub secret: Option<String>,
     pub redirect_uris: Vec<String>,
@@ -60,7 +60,7 @@ impl Client {
     ) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             user_id,
             name,
             secret,
@@ -76,7 +76,7 @@ impl Client {
 
     pub fn to_response(&self) -> ClientResponse {
         ClientResponse {
-            id: self.id.clone(),
+            id: self.id,
             name: self.name.clone(),
             secret: self.secret.clone(),
             redirect_uris: self.redirect_uris

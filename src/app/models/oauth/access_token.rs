@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
+use crate::app::models::DieselUlid;
 use diesel::prelude::*;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use crate::app::query_builder::{SortDirection};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::oauth_access_tokens)]
 pub struct AccessToken {
-    pub id: String,
+    pub id: DieselUlid,
     pub user_id: Option<String>,
     pub client_id: String,
     pub name: Option<String>,
@@ -30,7 +30,7 @@ pub struct CreateAccessToken {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = crate::schema::oauth_access_tokens)]
 pub struct NewAccessToken {
-    pub id: String,
+    pub id: DieselUlid,
     pub user_id: Option<String>,
     pub client_id: String,
     pub name: Option<String>,
@@ -49,7 +49,7 @@ pub struct UpdateAccessToken {
 
 #[derive(Debug, Serialize)]
 pub struct AccessTokenResponse {
-    pub id: String,
+    pub id: DieselUlid,
     pub user_id: Option<String>,
     pub client_id: String,
     pub name: Option<String>,
@@ -71,7 +71,7 @@ impl AccessToken {
         };
 
         AccessTokenResponse {
-            id: self.id.clone(),
+            id: self.id,
             user_id: self.user_id.clone(),
             client_id: self.client_id.clone(),
             name: self.name.clone(),
@@ -120,7 +120,7 @@ impl NewAccessToken {
     ) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             user_id,
             client_id,
             name,

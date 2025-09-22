@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::{SortDirection};
@@ -12,7 +11,7 @@ use crate::app::query_builder::{SortDirection};
 pub struct Notification {
     /// Unique notification identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: String,
+    pub id: DieselUlid,
     /// Type of notification (class name) - maps to schema type_ field
     #[schema(example = "InvoicePaidNotification")]
     #[diesel(column_name = type_)]
@@ -65,7 +64,7 @@ pub struct CreateNotification {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = crate::schema::notifications)]
 pub struct NewNotification {
-    pub id: String,
+    pub id: DieselUlid,
     #[diesel(column_name = type_)]
     pub notification_type: String,
     pub notifiable_type: String,
@@ -93,7 +92,7 @@ pub struct UpdateNotification {
 /// Notification response payload
 #[derive(Debug, Serialize, ToSchema)]
 pub struct NotificationResponse {
-    pub id: String,
+    pub id: DieselUlid,
     pub notification_type: String,
     pub notifiable_id: String,
     pub notifiable_type: String,
@@ -112,7 +111,7 @@ impl NewNotification {
     ) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             notification_type,
             notifiable_type,
             notifiable_id,
@@ -136,7 +135,7 @@ impl Notification {
 
     pub fn to_response(&self) -> NotificationResponse {
         NotificationResponse {
-            id: self.id.clone(),
+            id: self.id,
             notification_type: self.notification_type.clone(),
             notifiable_id: self.notifiable_id.clone(),
             notifiable_type: self.notifiable_type.clone(),

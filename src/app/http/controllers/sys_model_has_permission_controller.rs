@@ -3,9 +3,9 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json as ResponseJson},
 };
-use ulid::Ulid;
 use crate::database::DbPool;
 use std::collections::HashMap;
+use crate::app::models::DieselUlid;
 
 use crate::app::models::sys_model_has_permission::{CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse};
 use crate::app::services::sys_model_has_permission_service::SysModelHasPermissionService;
@@ -65,7 +65,7 @@ pub async fn index(
     )
 )]
 pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
-    let permission_id = match Ulid::from_string(&id) {
+    let permission_id = match DieselUlid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
             let error = ErrorResponse {
@@ -75,7 +75,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         }
     };
 
-    match SysModelHasPermissionService::find_by_id(&pool, permission_id.to_string()) {
+    match SysModelHasPermissionService::find_by_id(&pool, permission_id) {
         Ok(Some(permission)) => (StatusCode::OK, ResponseJson(permission.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -106,12 +106,47 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
     )
 )]
 pub async fn store(State(pool): State<DbPool>, request: CreateSysModelHasPermissionRequest) -> impl IntoResponse {
+    let model_id = match DieselUlid::from_string(&request.model_id) {
+        Ok(id) => id,
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "Invalid model_id format".to_string(),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+        }
+    };
+
+    let permission_id = match DieselUlid::from_string(&request.permission_id) {
+        Ok(id) => id,
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "Invalid permission_id format".to_string(),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+        }
+    };
+
+    let scope_id = match request.scope_id {
+        Some(id_str) => {
+            match DieselUlid::from_string(&id_str) {
+                Ok(id) => Some(id),
+                Err(_) => {
+                    let error = ErrorResponse {
+                        error: "Invalid scope_id format".to_string(),
+                    };
+                    return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+                }
+            }
+        }
+        None => None,
+    };
+
     let payload = CreateSysModelHasPermission {
         model_type: request.model_type,
-        model_id: request.model_id.to_string(),
-        permission_id: request.permission_id.to_string(),
+        model_id,
+        permission_id,
         scope_type: request.scope_type,
-        scope_id: request.scope_id.map(|id| id.to_string()),
+        scope_id,
     };
 
     match SysModelHasPermissionService::create(&pool, payload) {
@@ -147,7 +182,7 @@ pub async fn update(
     Path(id): Path<String>,
     request: UpdateSysModelHasPermissionRequest,
 ) -> impl IntoResponse {
-    let permission_id = match Ulid::from_string(&id) {
+    let permission_id = match DieselUlid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
             let error = ErrorResponse {
@@ -157,15 +192,60 @@ pub async fn update(
         }
     };
 
-    let payload = UpdateSysModelHasPermission {
-        model_type: request.model_type,
-        model_id: request.model_id.map(|id| id.to_string()),
-        permission_id: request.permission_id.map(|id| id.to_string()),
-        scope_type: request.scope_type,
-        scope_id: request.scope_id.map(|id| id.to_string()),
+    let model_id = match request.model_id {
+        Some(id_str) => {
+            match DieselUlid::from_string(&id_str) {
+                Ok(id) => Some(id),
+                Err(_) => {
+                    let error = ErrorResponse {
+                        error: "Invalid model_id format".to_string(),
+                    };
+                    return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+                }
+            }
+        }
+        None => None,
     };
 
-    match SysModelHasPermissionService::update(&pool, permission_id.to_string(), payload) {
+    let permission_id_update = match request.permission_id {
+        Some(id_str) => {
+            match DieselUlid::from_string(&id_str) {
+                Ok(id) => Some(id),
+                Err(_) => {
+                    let error = ErrorResponse {
+                        error: "Invalid permission_id format".to_string(),
+                    };
+                    return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+                }
+            }
+        }
+        None => None,
+    };
+
+    let scope_id = match request.scope_id {
+        Some(id_str) => {
+            match DieselUlid::from_string(&id_str) {
+                Ok(id) => Some(id),
+                Err(_) => {
+                    let error = ErrorResponse {
+                        error: "Invalid scope_id format".to_string(),
+                    };
+                    return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+                }
+            }
+        }
+        None => None,
+    };
+
+    let payload = UpdateSysModelHasPermission {
+        model_type: request.model_type,
+        model_id,
+        permission_id: permission_id_update,
+        scope_type: request.scope_type,
+        scope_id,
+    };
+
+    match SysModelHasPermissionService::update(&pool, permission_id, payload) {
         Ok(permission) => (StatusCode::OK, ResponseJson(permission.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -193,7 +273,7 @@ pub async fn update(
     )
 )]
 pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
-    let permission_id = match Ulid::from_string(&id) {
+    let permission_id = match DieselUlid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
             let error = ErrorResponse {
@@ -203,7 +283,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     };
 
-    match SysModelHasPermissionService::delete(&pool, permission_id.to_string()) {
+    match SysModelHasPermissionService::delete(&pool, permission_id) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Model permission deleted successfully".to_string(),
@@ -236,7 +316,17 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
     )
 )]
 pub async fn by_model(State(pool): State<DbPool>, Path((model_type, model_id)): Path<(String, String)>) -> impl IntoResponse {
-    match SysModelHasPermissionService::find_by_model(&pool, &model_type, model_id) {
+    let diesel_model_id = match DieselUlid::from_string(&model_id) {
+        Ok(id) => id,
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "Invalid model_id format".to_string(),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+        }
+    };
+
+    match SysModelHasPermissionService::find_by_model(&pool, &model_type, diesel_model_id) {
         Ok(permissions) => {
             let responses: Vec<_> = permissions.into_iter().map(|p| p.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()

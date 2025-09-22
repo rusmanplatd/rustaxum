@@ -15,11 +15,11 @@ use crate::app::services::oauth::client_service::ClientService;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenClaims {
-    pub sub: String, // user_id
-    pub aud: String, // client_id
+    pub sub: DieselUlid, // user_id
+    pub aud: DieselUlid, // client_id
     pub exp: usize,
     pub iat: usize,
-    pub jti: String, // token_id
+    pub jti: DieselUlid, // token_id
     pub scopes: Vec<String>,
 }
 
@@ -426,7 +426,7 @@ impl TokenService {
             aud: client_id.to_string(),
             exp: expires_at.timestamp() as usize,
             iat: now.timestamp() as usize,
-            jti: access_token.id.clone(),
+            jti: access_token.id,
             scopes: access_token.get_scopes(),
         };
 

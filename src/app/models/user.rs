@@ -1,10 +1,9 @@
 use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::SortDirection;
-use super::{HasModelType, HasRoles};
+use super::{HasModelType, HasRoles, DieselUlid};
 
 /// User model representing a registered user
 /// Contains authentication, profile, and security information
@@ -13,7 +12,7 @@ use super::{HasModelType, HasRoles};
 pub struct User {
     /// Unique user identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: String,
+    pub id: DieselUlid,
     /// User's full name
     #[schema(example = "John Doe")]
     pub name: String,
@@ -127,7 +126,7 @@ pub struct RefreshTokenRequest {
 /// User response payload for API endpoints (excludes sensitive fields)
 #[derive(Debug, Serialize, ToSchema)]
 pub struct UserResponse {
-    pub id: String,
+    pub id: DieselUlid,
     pub name: String,
     pub email: String,
     pub email_verified_at: Option<DateTime<Utc>>,
@@ -140,7 +139,7 @@ impl User {
     pub fn new(name: String, email: String, password: String) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             name,
             email,
             email_verified_at: None,
@@ -169,7 +168,7 @@ impl User {
 
     pub fn to_response(&self) -> UserResponse {
         UserResponse {
-            id: self.id.clone(),
+            id: self.id,
             name: self.name.clone(),
             email: self.email.clone(),
             email_verified_at: self.email_verified_at,
@@ -212,7 +211,7 @@ impl HasModelType for User {
 
 impl HasRoles for User {
     fn model_id(&self) -> String {
-        self.id.clone()
+        self.id.to_string()
     }
 }
 

@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::SortDirection;
+use super::DieselUlid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::sys_permissions)]
 pub struct Permission {
-    pub id: String,
+    pub id: DieselUlid,
     pub name: String,
     pub guard_name: String,
     pub resource: Option<String>,
@@ -35,7 +35,7 @@ pub struct UpdatePermission {
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct PermissionResponse {
-    pub id: String,
+    pub id: DieselUlid,
     pub name: String,
     pub guard_name: String,
     pub resource: Option<String>,
@@ -48,7 +48,7 @@ impl Permission {
     pub fn new(name: String, guard_name: Option<String>, resource: Option<String>, action: String) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             name,
             guard_name: guard_name.unwrap_or_else(|| "api".to_string()),
             resource,
@@ -60,7 +60,7 @@ impl Permission {
 
     pub fn to_response(&self) -> PermissionResponse {
         PermissionResponse {
-            id: self.id.clone(),
+            id: self.id,
             name: self.name.clone(),
             guard_name: self.guard_name.clone(),
             resource: self.resource.clone(),

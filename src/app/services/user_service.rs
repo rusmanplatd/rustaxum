@@ -1,6 +1,7 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
+use crate::app::models::DieselUlid;
 use crate::database::{DbPool};
 use crate::schema::sys_users;
 use crate::app::models::user::{User, CreateUser, UpdateUser};
@@ -83,7 +84,7 @@ impl UserService {
         Ok(result)
     }
 
-    pub fn update_password(pool: &DbPool, id: String, new_password: String) -> Result<()> {
+    pub fn update_password(pool: &DbPool, id: DieselUlid, new_password: String) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
@@ -96,7 +97,7 @@ impl UserService {
         Ok(())
     }
 
-    pub fn update_last_login(pool: &DbPool, id: String) -> Result<()> {
+    pub fn update_last_login(pool: &DbPool, id: DieselUlid) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
@@ -123,7 +124,7 @@ impl UserService {
         Ok(())
     }
 
-    pub fn reset_failed_attempts(pool: &DbPool, id: String) -> Result<()> {
+    pub fn reset_failed_attempts(pool: &DbPool, id: DieselUlid) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
@@ -137,7 +138,7 @@ impl UserService {
         Ok(())
     }
 
-    pub fn update_password_reset_token(pool: &DbPool, id: String, token: Option<String>, expires_at: Option<DateTime<Utc>>) -> Result<()> {
+    pub fn update_password_reset_token(pool: &DbPool, id: DieselUlid, token: Option<String>, expires_at: Option<DateTime<Utc>>) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
@@ -151,7 +152,7 @@ impl UserService {
         Ok(())
     }
 
-    pub fn update_refresh_token(pool: &DbPool, id: String, token: Option<String>, expires_at: Option<DateTime<Utc>>) -> Result<()> {
+    pub fn update_refresh_token(pool: &DbPool, id: DieselUlid, token: Option<String>, expires_at: Option<DateTime<Utc>>) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))

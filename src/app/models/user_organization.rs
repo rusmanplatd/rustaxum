@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use crate::database::DbPool;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use anyhow::Result;
 use std::collections::HashMap;
@@ -24,7 +23,7 @@ struct CountResult {
 pub struct UserOrganization {
     /// Unique identifier for the user-organization relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: String,
+    pub id: DieselUlid,
     /// ID of the user in this relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub user_id: String,
@@ -64,7 +63,7 @@ pub struct CreateUserOrganization {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = user_organizations)]
 pub struct NewUserOrganization {
-    pub id: String,
+    pub id: DieselUlid,
     pub user_id: String,
     pub organization_id: String,
     pub organization_position_id: String,
@@ -88,7 +87,7 @@ pub struct UpdateUserOrganization {
 /// User organization response payload for API endpoints
 #[derive(Debug, Serialize, ToSchema)]
 pub struct UserOrganizationResponse {
-    pub id: String,
+    pub id: DieselUlid,
     pub user_id: String,
     pub organization_id: String,
     pub organization_position_id: String,
@@ -103,7 +102,7 @@ impl NewUserOrganization {
     pub fn new(user_id: String, organization_id: String, organization_position_id: String, started_at: Option<DateTime<Utc>>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             user_id,
             organization_id,
             organization_position_id,
@@ -120,7 +119,7 @@ impl UserOrganization {
     pub fn new(user_id: String, organization_id: String, organization_position_id: String, started_at: Option<DateTime<Utc>>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             user_id,
             organization_id,
             organization_position_id,
@@ -134,7 +133,7 @@ impl UserOrganization {
 
     pub fn to_response(&self) -> UserOrganizationResponse {
         UserOrganizationResponse {
-            id: self.id.clone(),
+            id: self.id,
             user_id: self.user_id.clone(),
             organization_id: self.organization_id.clone(),
             organization_position_id: self.organization_position_id.clone(),
@@ -230,7 +229,7 @@ impl UserOrganization {
         }
 
         let new_role = NewModelHasRole {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             model_type: "UserOrganization".to_string(),
             model_id: user_organization_id,
             role_id: role_id,
@@ -272,7 +271,7 @@ impl UserOrganization {
     pub fn get_abac_attributes(&self) -> HashMap<String, Value> {
         let mut attributes = HashMap::new();
 
-        attributes.insert("user_organization_id".to_string(), json!(self.id.clone()));
+        attributes.insert("user_organization_id".to_string(), json!(self.id.to_string()));
         attributes.insert("user_id".to_string(), json!(self.user_id.clone()));
         attributes.insert("organization_id".to_string(), json!(self.organization_id.clone()));
         attributes.insert("organization_position_id".to_string(), json!(self.organization_position_id.clone()));
@@ -374,7 +373,7 @@ impl UserOrganization {
         self.is_active = true;
         self.updated_at = Utc::now();
 
-        diesel::update(user_organizations::table.filter(user_organizations::id.eq(self.id.clone())))
+        diesel::update(user_organizations::table.filter(user_organizations::id.eq(self.id)))
             .set((
                 user_organizations::is_active.eq(true),
                 user_organizations::updated_at.eq(self.updated_at),
@@ -391,7 +390,7 @@ impl UserOrganization {
         self.ended_at = Some(Utc::now());
         self.updated_at = Utc::now();
 
-        diesel::update(user_organizations::table.filter(user_organizations::id.eq(self.id.clone())))
+        diesel::update(user_organizations::table.filter(user_organizations::id.eq(self.id)))
             .set((
                 user_organizations::is_active.eq(false),
                 user_organizations::ended_at.eq(self.ended_at),
@@ -503,6 +502,6 @@ impl HasModelType for UserOrganization {
 
 impl HasRoles for UserOrganization {
     fn model_id(&self) -> String {
-        self.id.clone()
+        self.id.to_string()
     }
 }

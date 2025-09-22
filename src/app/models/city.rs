@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use utoipa::ToSchema;
@@ -11,7 +10,7 @@ use crate::app::query_builder::{SortDirection};
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::cities)]
 pub struct City {
-    pub id: String,
+    pub id: DieselUlid,
     pub province_id: String,
     pub name: String,
     pub code: Option<String>,
@@ -39,7 +38,7 @@ pub struct CreateCity {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = crate::schema::cities)]
 pub struct NewCity {
-    pub id: String,
+    pub id: DieselUlid,
     pub province_id: String,
     pub name: String,
     pub code: Option<String>,
@@ -64,7 +63,7 @@ pub struct UpdateCity {
 /// City response payload for API endpoints
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CityResponse {
-    pub id: String,
+    pub id: DieselUlid,
     pub province_id: String,
     pub name: String,
     pub code: Option<String>,
@@ -86,7 +85,7 @@ impl City {
     ) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             province_id,
             name,
             code,
@@ -99,7 +98,7 @@ impl City {
 
     pub fn to_response(&self) -> CityResponse {
         CityResponse {
-            id: self.id.clone(),
+            id: self.id,
             province_id: self.province_id.clone(),
             name: self.name.clone(),
             code: self.code.clone(),
@@ -121,7 +120,7 @@ impl NewCity {
     ) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             province_id,
             name,
             code,

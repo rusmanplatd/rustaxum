@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::{SortDirection};
@@ -12,7 +11,7 @@ use crate::app::query_builder::{SortDirection};
 pub struct Province {
     /// Unique province identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: String,
+    pub id: DieselUlid,
     /// ID of the country this province belongs to
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub country_id: String,
@@ -42,7 +41,7 @@ pub struct CreateProvince {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = crate::schema::provinces)]
 pub struct NewProvince {
-    pub id: String,
+    pub id: DieselUlid,
     pub country_id: String,
     pub name: String,
     pub code: Option<String>,
@@ -61,7 +60,7 @@ pub struct UpdateProvince {
 /// Province response payload for API endpoints
 #[derive(Debug, Serialize, ToSchema)]
 pub struct ProvinceResponse {
-    pub id: String,
+    pub id: DieselUlid,
     pub country_id: String,
     pub name: String,
     pub code: Option<String>,
@@ -73,7 +72,7 @@ impl NewProvince {
     pub fn new(country_id: String, name: String, code: Option<String>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             country_id,
             name,
             code,
@@ -87,7 +86,7 @@ impl Province {
     pub fn new(country_id: String, name: String, code: Option<String>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             country_id,
             name,
             code,
@@ -98,7 +97,7 @@ impl Province {
 
     pub fn to_response(&self) -> ProvinceResponse {
         ProvinceResponse {
-            id: self.id.clone(),
+            id: self.id,
             country_id: self.country_id.clone(),
             name: self.name.clone(),
             code: self.code.clone(),

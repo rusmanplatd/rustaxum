@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::{SortDirection};
@@ -12,7 +11,7 @@ use crate::app::query_builder::{SortDirection};
 pub struct OrganizationPositionLevel {
     /// Unique identifier for the organization position level
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: String,
+    pub id: DieselUlid,
     /// Job level name
     #[schema(example = "Senior Manager")]
     pub name: String,
@@ -49,7 +48,7 @@ pub struct CreateOrganizationPositionLevel {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = crate::schema::organization_position_levels)]
 pub struct NewOrganizationPositionLevel {
-    pub id: String,
+    pub id: DieselUlid,
     pub name: String,
     pub code: Option<String>,
     pub level: i32,
@@ -72,7 +71,7 @@ pub struct UpdateOrganizationPositionLevel {
 /// Job level response payload for API endpoints
 #[derive(Debug, Serialize, ToSchema)]
 pub struct OrganizationPositionLevelResponse {
-    pub id: String,
+    pub id: DieselUlid,
     pub name: String,
     pub code: Option<String>,
     pub level: i32,
@@ -86,7 +85,7 @@ impl NewOrganizationPositionLevel {
     pub fn new(name: String, code: Option<String>, level: i32, description: Option<String>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             name,
             code,
             level,
@@ -102,7 +101,7 @@ impl OrganizationPositionLevel {
     pub fn new(name: String, code: Option<String>, level: i32, description: Option<String>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             name,
             code,
             level,
@@ -115,7 +114,7 @@ impl OrganizationPositionLevel {
 
     pub fn to_response(&self) -> OrganizationPositionLevelResponse {
         OrganizationPositionLevelResponse {
-            id: self.id.clone(),
+            id: self.id,
             name: self.name.clone(),
             code: self.code.clone(),
             level: self.level,

@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
+use crate::app::models::DieselUlid;
 use diesel::prelude::*;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use crate::app::query_builder::{SortDirection};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::oauth_auth_codes)]
 pub struct AuthCode {
-    pub id: String,
+    pub id: DieselUlid,
     pub user_id: String,
     pub client_id: String,
     pub scopes: Option<String>,
@@ -34,7 +34,7 @@ pub struct CreateAuthCode {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = crate::schema::oauth_auth_codes)]
 pub struct NewAuthCode {
-    pub id: String,
+    pub id: DieselUlid,
     pub user_id: String,
     pub client_id: String,
     pub scopes: Option<String>,
@@ -49,7 +49,7 @@ pub struct NewAuthCode {
 
 #[derive(Debug, Serialize)]
 pub struct AuthCodeResponse {
-    pub id: String,
+    pub id: DieselUlid,
     pub user_id: String,
     pub client_id: String,
     pub scopes: Vec<String>,
@@ -72,7 +72,7 @@ impl AuthCode {
         };
 
         AuthCodeResponse {
-            id: self.id.clone(),
+            id: self.id,
             user_id: self.user_id.clone(),
             client_id: self.client_id.clone(),
             scopes,
@@ -142,7 +142,7 @@ impl NewAuthCode {
     ) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             user_id,
             client_id,
             scopes,

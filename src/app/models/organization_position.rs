@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
-use ulid::Ulid;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::{SortDirection};
@@ -12,7 +11,7 @@ use crate::app::query_builder::{SortDirection};
 pub struct OrganizationPosition {
     /// Unique identifier for the organization position
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: String,
+    pub id: DieselUlid,
     /// Organization position name
     #[schema(example = "Software Engineering Manager")]
     pub name: String,
@@ -49,7 +48,7 @@ pub struct CreateOrganizationPosition {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = crate::schema::organization_positions)]
 pub struct NewOrganizationPosition {
-    pub id: String,
+    pub id: DieselUlid,
     pub name: String,
     pub code: Option<String>,
     pub organization_position_level_id: String,
@@ -72,7 +71,7 @@ pub struct UpdateOrganizationPosition {
 /// Organization position response payload for API endpoints
 #[derive(Debug, Serialize, ToSchema)]
 pub struct OrganizationPositionResponse {
-    pub id: String,
+    pub id: DieselUlid,
     pub name: String,
     pub code: Option<String>,
     pub organization_position_level_id: String,
@@ -86,7 +85,7 @@ impl NewOrganizationPosition {
     pub fn new(name: String, code: Option<String>, organization_position_level_id: String, description: Option<String>) -> Self {
         let now = Utc::now();
         Self {
-            id: Ulid::new().to_string(),
+            id: DieselUlid::new(),
             name,
             code,
             organization_position_level_id,
@@ -102,7 +101,7 @@ impl OrganizationPosition {
 
     pub fn to_response(&self) -> OrganizationPositionResponse {
         OrganizationPositionResponse {
-            id: self.id.clone(),
+            id: self.id,
             name: self.name.clone(),
             code: self.code.clone(),
             organization_position_level_id: self.organization_position_level_id.clone(),
