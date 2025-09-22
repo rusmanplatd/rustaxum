@@ -8,7 +8,7 @@ use crate::app::query_builder::SortDirection;
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::sys_permissions)]
 pub struct Permission {
-    pub id: Ulid,
+    pub id: String,
     pub name: String,
     pub guard_name: String,
     pub resource: Option<String>,
@@ -60,7 +60,7 @@ impl Permission {
 
     pub fn to_response(&self) -> PermissionResponse {
         PermissionResponse {
-            id: self.id.to_string(),
+            id: self.id.clone(),
             name: self.name.clone(),
             guard_name: self.guard_name.clone(),
             resource: self.resource.clone(),

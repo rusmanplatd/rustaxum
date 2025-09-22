@@ -7,8 +7,9 @@ use crate::app::query_builder::SortDirection;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, QueryableByName, Identifiable)]
 #[diesel(table_name = crate::schema::sys_roles)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Role {
-    pub id: Ulid,
+    pub id: String,
     pub name: String,
     pub description: Option<String>,
     pub guard_name: String,

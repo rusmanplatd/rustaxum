@@ -63,7 +63,7 @@ impl AuthService {
         let jti = Ulid::new().to_string();
 
         let claims = Claims {
-            sub: user_id,
+            sub: user_id.to_string(),
             exp: expiration.timestamp() as usize,
             iat: now.timestamp() as usize,
             jti,

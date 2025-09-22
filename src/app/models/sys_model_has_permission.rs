@@ -5,21 +5,22 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::SortDirection;
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable, QueryableByName)]
 #[diesel(table_name = crate::schema::sys_model_has_permissions)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct SysModelHasPermission {
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: Ulid,
+    pub id: String,
     #[schema(example = "User")]
     pub model_type: String,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub model_id: Ulid,
+    pub model_id: String,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub permission_id: Ulid,
+    pub permission_id: String,
     #[schema(example = "organization")]
     pub scope_type: Option<String>,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub scope_id: Option<Ulid>,
+    pub scope_id: Option<String>,
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub created_at: DateTime<Utc>,
     #[schema(example = "2023-01-01T00:00:00Z")]
@@ -142,6 +143,19 @@ impl NewSysModelHasPermission {
 }
 
 impl SysModelHasPermission {
+    pub fn new(model_type: String, model_id: String, permission_id: String, scope_type: Option<String>, scope_id: Option<String>) -> Self {
+        let now = Utc::now();
+        Self {
+            id: Ulid::new().to_string(),
+            model_type,
+            model_id,
+            permission_id,
+            scope_type,
+            scope_id,
+            created_at: now,
+            updated_at: now,
+        }
+    }
 
     pub fn to_response(&self) -> SysModelHasPermissionResponse {
         SysModelHasPermissionResponse {

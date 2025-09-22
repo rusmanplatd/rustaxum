@@ -7,9 +7,9 @@ use crate::app::query_builder::{SortDirection};
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::oauth_access_tokens)]
 pub struct AccessToken {
-    pub id: Ulid,
-    pub user_id: Option<Ulid>,
-    pub client_id: Ulid,
+    pub id: String,
+    pub user_id: Option<String>,
+    pub client_id: String,
     pub name: Option<String>,
     pub scopes: Option<String>,
     pub revoked: bool,

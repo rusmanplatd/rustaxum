@@ -12,10 +12,10 @@ use crate::app::query_builder::{SortDirection};
 pub struct Province {
     /// Unique province identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: Ulid,
+    pub id: String,
     /// ID of the country this province belongs to
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub country_id: Ulid,
+    pub country_id: String,
     /// Province name
     #[schema(example = "California")]
     pub name: String,
@@ -84,6 +84,17 @@ impl NewProvince {
 }
 
 impl Province {
+    pub fn new(country_id: String, name: String, code: Option<String>) -> Self {
+        let now = Utc::now();
+        Self {
+            id: Ulid::new().to_string(),
+            country_id,
+            name,
+            code,
+            created_at: now,
+            updated_at: now,
+        }
+    }
 
     pub fn to_response(&self) -> ProvinceResponse {
         ProvinceResponse {

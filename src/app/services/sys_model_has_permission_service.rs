@@ -1,5 +1,4 @@
 use anyhow::Result;
-use ulid::Ulid;
 use crate::database::DbPool;
 use diesel::prelude::*;
 use crate::schema::sys_model_has_permissions;

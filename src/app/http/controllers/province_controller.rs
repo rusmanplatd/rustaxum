@@ -99,7 +99,7 @@ pub async fn update(
 }
 
 pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
-    let province_id = match Ulid::from_string(&id) {
+    let _province_id = match Ulid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
             let error = ErrorResponse {

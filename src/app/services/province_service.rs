@@ -11,13 +11,13 @@ pub struct ProvinceService;
 impl ProvinceService {
     pub fn create(pool: &DbPool, data: CreateProvince) -> Result<Province> {
         let country_id = Ulid::from_string(&data.country_id)?;
-        let province = Province::new(country_id, data.name, data.code);
+        let province = Province::new(country_id.to_string(), data.name, data.code);
         let mut conn = pool.get()?;
 
         diesel::insert_into(provinces::table)
             .values((
-                provinces::id.eq(province.id),
-                provinces::country_id.eq(province.country_id),
+                provinces::id.eq(&province.id),
+                provinces::country_id.eq(&province.country_id),
                 provinces::name.eq(&province.name),
                 provinces::code.eq(&province.code),
                 provinces::created_at.eq(province.created_at),
@@ -64,13 +64,13 @@ impl ProvinceService {
         let mut conn = pool.get()?;
 
         // Get the current province
-        let mut current = Self::find_by_id(pool, id)?
+        let mut current = Self::find_by_id(pool, id.clone())?
             .ok_or_else(|| anyhow::anyhow!("Province not found"))?;
 
         // Update fields if provided
         if let Some(country_id_str) = data.country_id {
             let country_id = Ulid::from_string(&country_id_str)?;
-            current.country_id = country_id;
+            current.country_id = country_id.to_string();
         }
         if let Some(name) = data.name {
             current.name = name;
@@ -82,7 +82,7 @@ impl ProvinceService {
 
         diesel::update(provinces::table.filter(provinces::id.eq(id)))
             .set((
-                provinces::country_id.eq(current.country_id),
+                provinces::country_id.eq(&current.country_id),
                 provinces::name.eq(&current.name),
                 provinces::code.eq(&current.code),
                 provinces::updated_at.eq(current.updated_at),

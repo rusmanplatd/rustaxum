@@ -12,7 +12,7 @@ use crate::app::query_builder::{SortDirection};
 pub struct OrganizationPositionLevel {
     /// Unique identifier for the organization position level
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: Ulid,
+    pub id: String,
     /// Job level name
     #[schema(example = "Senior Manager")]
     pub name: String,
@@ -99,6 +99,19 @@ impl NewOrganizationPositionLevel {
 }
 
 impl OrganizationPositionLevel {
+    pub fn new(name: String, code: Option<String>, level: i32, description: Option<String>) -> Self {
+        let now = Utc::now();
+        Self {
+            id: Ulid::new().to_string(),
+            name,
+            code,
+            level,
+            description,
+            is_active: true,
+            created_at: now,
+            updated_at: now,
+        }
+    }
 
     pub fn to_response(&self) -> OrganizationPositionLevelResponse {
         OrganizationPositionLevelResponse {

@@ -4,7 +4,6 @@ use axum::{
     response::{IntoResponse, Json as ResponseJson},
 };
 use serde::Serialize;
-use ulid::Ulid;
 use crate::database::DbPool;
 
 use crate::app::models::user::{

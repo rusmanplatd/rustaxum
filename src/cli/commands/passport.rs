@@ -284,7 +284,7 @@ async fn handle_list_tokens(pool: &DbPool, user_id: Option<String>) -> Result<()
 
     let tokens = match user_id {
         Some(uid) => {
-            TokenService::list_user_tokens(pool, user_id.unwrap_or_default()).await?
+            TokenService::list_user_tokens(pool, uid).await?
         },
         None => {
             // List all tokens (this would need a new method in TokenService)

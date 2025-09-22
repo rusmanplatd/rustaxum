@@ -24,16 +24,16 @@ struct CountResult {
 pub struct UserOrganization {
     /// Unique identifier for the user-organization relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: Ulid,
+    pub id: String,
     /// ID of the user in this relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub user_id: Ulid,
+    pub user_id: String,
     /// ID of the organization in this relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub organization_id: Ulid,
+    pub organization_id: String,
     /// ID of the organization position held by the user
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub organization_position_id: Ulid,
+    pub organization_position_id: String,
     /// Whether this employment relationship is currently active
     #[schema(example = true)]
     pub is_active: bool,

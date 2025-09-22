@@ -307,8 +307,8 @@ impl TokenService {
 
         // Verify client
         let client = match client_secret {
-            Some(secret) => ClientService::find_by_id_and_secret(pool, client_id, secret)?,
-            None => ClientService::find_by_id(pool, client_id)?,
+            Some(secret) => ClientService::find_by_id_and_secret(pool, client_id.clone(), secret)?,
+            None => ClientService::find_by_id(pool, client_id.clone())?,
         };
 
         let client = client.ok_or_else(|| anyhow::anyhow!("Invalid client credentials"))?;
@@ -378,8 +378,8 @@ impl TokenService {
 
         // Verify client
         let client = match client_secret {
-            Some(secret) => ClientService::find_by_id_and_secret(pool, client_id, secret)?,
-            None => ClientService::find_by_id(pool, client_id)?,
+            Some(secret) => ClientService::find_by_id_and_secret(pool, client_id.clone(), secret)?,
+            None => ClientService::find_by_id(pool, client_id.clone())?,
         };
 
         let _client = client.ok_or_else(|| anyhow::anyhow!("Invalid client credentials"))?;

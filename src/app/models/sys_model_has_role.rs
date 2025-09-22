@@ -5,21 +5,22 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::SortDirection;
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable, QueryableByName)]
 #[diesel(table_name = crate::schema::sys_model_has_roles)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct SysModelHasRole {
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: Ulid,
+    pub id: String,
     #[schema(example = "User")]
     pub model_type: String,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub model_id: Ulid,
+    pub model_id: String,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub role_id: Ulid,
+    pub role_id: String,
     #[schema(example = "organization")]
     pub scope_type: Option<String>,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub scope_id: Option<Ulid>,
+    pub scope_id: Option<String>,
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub created_at: DateTime<Utc>,
     #[schema(example = "2023-01-01T00:00:00Z")]
@@ -29,7 +30,7 @@ pub struct SysModelHasRole {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateSysModelHasRole {
     pub model_type: String,
-    pub model_id: Ulid,
+    pub model_id: String,
     pub role_id: String,
     pub scope_type: Option<String>,
     pub scope_id: Option<String>,

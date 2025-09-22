@@ -112,7 +112,7 @@ impl RoleService {
 
         diesel::insert_into(sys_model_has_roles::table)
             .values((
-                sys_model_has_roles::id.eq(model_role_id),
+                sys_model_has_roles::id.eq(model_role_id.to_string()),
                 sys_model_has_roles::model_type.eq(T::model_type()),
                 sys_model_has_roles::model_id.eq(model.model_id()),
                 sys_model_has_roles::role_id.eq(role_id),

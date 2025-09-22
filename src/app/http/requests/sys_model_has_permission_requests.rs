@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
 use utoipa::ToSchema;
-use ulid::Ulid;
 
 use crate::app::http::form_request::FormRequest;
 use crate::app::validation::ValidationRules;

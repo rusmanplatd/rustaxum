@@ -68,7 +68,7 @@ async fn authenticate_request(
         })?;
 
     // Fetch user from database using UserService
-    let user = crate::app::services::user_service::UserService::find_by_id(pool, &claims.sub)
+    let user = crate::app::services::user_service::UserService::find_by_id(pool, claims.sub)
         .map_err(|e| {
             tracing::error!("Database error fetching user: {}", e);
             (

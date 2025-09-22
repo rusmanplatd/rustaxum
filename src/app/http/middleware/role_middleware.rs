@@ -105,7 +105,7 @@ fn extract_user_id_from_token(headers: &HeaderMap) -> Option<String> {
     // Extract the user ID from the subject (sub) field
     let user_id = Ulid::from_string(&claims.sub).ok()?;
 
-    Some(user_id)
+    Some(user_id.to_string())
 }
 
 pub async fn require_role(

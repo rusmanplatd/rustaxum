@@ -11,8 +11,8 @@ use crate::app::query_builder::{SortDirection};
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::cities)]
 pub struct City {
-    pub id: Ulid,
-    pub province_id: Ulid,
+    pub id: String,
+    pub province_id: String,
     pub name: String,
     pub code: Option<String>,
     #[schema(value_type = Option<f64>)]
@@ -77,6 +77,26 @@ pub struct CityResponse {
 }
 
 impl City {
+    pub fn new(
+        province_id: String,
+        name: String,
+        code: Option<String>,
+        latitude: Option<Decimal>,
+        longitude: Option<Decimal>,
+    ) -> Self {
+        let now = Utc::now();
+        Self {
+            id: Ulid::new().to_string(),
+            province_id,
+            name,
+            code,
+            latitude,
+            longitude,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
     pub fn to_response(&self) -> CityResponse {
         CityResponse {
             id: self.id.clone(),

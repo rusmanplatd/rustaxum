@@ -9,7 +9,6 @@ use crate::app::models::oauth::{
     Client, CreateClient, UpdateClient, ClientResponse,
     PersonalAccessClient
 };
-use crate::app::query_builder::QueryBuilder;
 
 pub struct ClientService;
 
@@ -74,7 +73,7 @@ impl ClientService {
 
         diesel::insert_into(oauth_personal_access_clients::table)
             .values((
-                oauth_personal_access_clients::id.eq(pac.id),
+                oauth_personal_access_clients::id.eq(pac.id.clone()),
                 oauth_personal_access_clients::client_id.eq(pac.client_id.clone()),
                 oauth_personal_access_clients::created_at.eq(pac.created_at),
                 oauth_personal_access_clients::updated_at.eq(pac.updated_at),
@@ -140,16 +139,20 @@ impl ClientService {
     }
 
     pub fn list_clients(pool: &DbPool, user_id: Option<String>) -> Result<Vec<ClientResponse>> {
-        let mut request = crate::app::query_builder::QueryParams::default();
+        let mut conn = pool.get()?;
+
+        let mut query = oauth_clients::table.into_boxed();
 
         if let Some(user_id) = user_id {
-            request.filter.insert("user_id".to_string(), serde_json::Value::String(user_id));
+            query = query.filter(oauth_clients::user_id.eq(user_id));
         }
 
-        request.filter.insert("revoked".to_string(), serde_json::Value::String("false".to_string()));
+        query = query.filter(oauth_clients::revoked.eq(false));
 
-        let query_builder = QueryBuilder::<Client>::new(pool.clone(), request);
-        let clients = query_builder.get()?;
+        let clients = query
+            .select(Client::as_select())
+            .load::<Client>(&mut conn)?;
+
         Ok(clients.into_iter().map(|c| c.to_response_without_secret()).collect())
     }
 

@@ -5,7 +5,6 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use crate::database::DbPool;
-use ulid::Ulid;
 
 use crate::app::services::oauth::TokenService;
 use crate::app::services::auth_service::AuthService;

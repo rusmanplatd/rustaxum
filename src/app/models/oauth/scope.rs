@@ -7,7 +7,7 @@ use crate::app::query_builder::{SortDirection};
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::oauth_scopes)]
 pub struct Scope {
-    pub id: Ulid,
+    pub id: String,
     pub name: String,
     pub description: Option<String>,
     pub is_default: bool,
@@ -51,6 +51,17 @@ pub struct ScopeResponse {
 }
 
 impl Scope {
+    pub fn new(name: String, description: Option<String>, is_default: bool) -> Self {
+        let now = Utc::now();
+        Self {
+            id: Ulid::new().to_string(),
+            name,
+            description,
+            is_default,
+            created_at: now,
+            updated_at: now,
+        }
+    }
 
     pub fn to_response(&self) -> ScopeResponse {
         ScopeResponse {

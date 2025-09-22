@@ -1,5 +1,4 @@
 use anyhow::Result;
-use ulid::Ulid;
 use crate::database::DbPool;
 use rust_decimal::Decimal;
 use diesel::prelude::*;
@@ -12,14 +11,13 @@ pub struct CityService;
 
 impl CityService {
     pub fn create(pool: &DbPool, data: CreateCity) -> Result<City> {
-        let province_id = Ulid::from_string(&data.province_id)?;
-        let city = City::new(province_id, data.name, data.code, data.latitude, data.longitude);
+        let city = City::new(data.province_id, data.name, data.code, data.latitude, data.longitude);
         let mut conn = pool.get()?;
 
         diesel::insert_into(cities::table)
             .values((
-                cities::id.eq(city.id.to_string()),
-                cities::province_id.eq(city.province_id.to_string()),
+                cities::id.eq(&city.id),
+                cities::province_id.eq(&city.province_id),
                 cities::name.eq(&city.name),
                 cities::code.eq(&city.code),
                 cities::latitude.eq(city.latitude),
@@ -105,12 +103,11 @@ impl CityService {
         let mut conn = pool.get()?;
 
         // Get the current city
-        let mut current = Self::find_by_id(pool, id)?
+        let mut current = Self::find_by_id(pool, id.clone())?
             .ok_or_else(|| anyhow::anyhow!("City not found"))?;
 
         // Update fields if provided
-        if let Some(province_id_str) = data.province_id {
-            let province_id = Ulid::from_string(&province_id_str)?;
+        if let Some(province_id) = data.province_id {
             current.province_id = province_id;
         }
         if let Some(name) = data.name {
@@ -127,9 +124,9 @@ impl CityService {
         }
         current.updated_at = chrono::Utc::now();
 
-        diesel::update(cities::table.filter(cities::id.eq(id.to_string())))
+        diesel::update(cities::table.filter(cities::id.eq(&id)))
             .set((
-                cities::province_id.eq(current.province_id.to_string()),
+                cities::province_id.eq(&current.province_id),
                 cities::name.eq(&current.name),
                 cities::code.eq(&current.code),
                 cities::latitude.eq(current.latitude),

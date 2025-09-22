@@ -163,7 +163,7 @@ impl SysModelHasRoleService {
             query = query.filter(sys_roles::guard_name.eq(guard));
         }
 
-        let result = query.load::<Role>(&mut conn)?;
+        let result = query.select(Role::as_select()).load(&mut conn)?;
         Ok(result)
     }
 }

@@ -13,7 +13,7 @@ use super::{HasModelType, HasRoles};
 pub struct Organization {
     /// Unique identifier for the organization
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: Ulid,
+    pub id: String,
     /// Organization name
     #[schema(example = "Engineering Department")]
     pub name: String,
@@ -23,7 +23,7 @@ pub struct Organization {
     pub organization_type: String,
     /// Parent organization ID for hierarchical structure
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub parent_id: Option<Ulid>,
+    pub parent_id: Option<String>,
     /// Optional organization code
     #[schema(example = "ENG-001")]
     pub code: Option<String>,
@@ -110,6 +110,20 @@ impl NewOrganization {
 }
 
 impl Organization {
+    pub fn new(name: String, organization_type: String, parent_id: Option<String>, code: Option<String>, description: Option<String>) -> Self {
+        let now = Utc::now();
+        Self {
+            id: Ulid::new().to_string(),
+            name,
+            organization_type,
+            parent_id,
+            code,
+            description,
+            is_active: true,
+            created_at: now,
+            updated_at: now,
+        }
+    }
 
     pub fn to_response(&self) -> OrganizationResponse {
         OrganizationResponse {

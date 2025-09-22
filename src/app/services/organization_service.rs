@@ -22,7 +22,7 @@ impl OrganizationService {
         let organization = Organization::new(
             data.name,
             data.organization_type,
-            parent_id,
+            parent_id.map(|id| id.to_string()),
             data.code,
             data.description,
         );
