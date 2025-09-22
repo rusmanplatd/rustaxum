@@ -76,7 +76,7 @@ impl Seeder for Provinceseeder {
                 .get_result(&mut conn)?;
 
             let key = format!("{}:{}", record.country_iso, record.code);
-            province_map.insert(key, inserted_province.id.clone());
+            province_map.insert(key, inserted_province.id.to_string());
             inserted_count += 1;
         }
 

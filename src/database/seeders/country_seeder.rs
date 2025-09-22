@@ -61,7 +61,7 @@ impl Seeder for Countryseeder {
                 .values(&new_country)
                 .get_result(&mut conn)?;
 
-            country_map.insert(record.iso_code, inserted_country.id.clone());
+            country_map.insert(record.iso_code, inserted_country.id.to_string());
             inserted_count += 1;
         }
 

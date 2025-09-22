@@ -6,6 +6,7 @@ use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Validation}
 use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use crate::schema::{oauth_access_tokens, oauth_refresh_tokens, oauth_auth_codes};
+use crate::app::models::DieselUlid;
 
 use crate::app::models::oauth::{
     AccessToken, CreateAccessToken, NewAccessToken, RefreshToken, NewRefreshToken,
@@ -331,7 +332,7 @@ impl TokenService {
         // Create refresh token
         let refresh_token = Self::create_refresh_token(
             pool,
-            Ulid::from_string(&access_token.id)?.to_string(),
+            access_token.id.to_string(),
             Some(604800), // 7 days
         )?;
 
@@ -385,7 +386,7 @@ impl TokenService {
         let _client = client.ok_or_else(|| anyhow::anyhow!("Invalid client credentials"))?;
 
         // Revoke old tokens
-        Self::revoke_access_token(pool, Ulid::from_string(&access_token.id)?.to_string())?;
+        Self::revoke_access_token(pool, access_token.id.to_string())?;
 
         // Create new access token
         let create_token = CreateAccessToken {
@@ -401,7 +402,7 @@ impl TokenService {
         // Create new refresh token
         let new_refresh_token = Self::create_refresh_token(
             pool,
-            Ulid::from_string(&new_access_token.id)?.to_string(),
+            new_access_token.id.to_string(),
             Some(604800), // 7 days
         )?;
 
@@ -422,8 +423,11 @@ impl TokenService {
         let expires_at = access_token.expires_at.unwrap_or(now + Duration::days(1));
 
         let claims = TokenClaims {
-            sub: access_token.user_id.clone().unwrap_or_default(),
-            aud: client_id.to_string(),
+            sub: access_token.user_id.as_ref()
+                .map(|id| DieselUlid::from_string(id))
+                .transpose()?
+                .unwrap_or_else(DieselUlid::new),
+            aud: DieselUlid::from_string(client_id)?,
             exp: expires_at.timestamp() as usize,
             iat: now.timestamp() as usize,
             jti: access_token.id,
@@ -466,11 +470,10 @@ impl TokenService {
         let claims = Self::decode_jwt_token(token)?;
 
         // Parse token ID
-        let token_id = Ulid::from_string(&claims.jti)
-            .map_err(|_| anyhow::anyhow!("Invalid token ID in JWT"))?;
+        let token_id = claims.jti.to_string();
 
         // Find access token
-        let access_token = Self::find_access_token_by_id(pool, token_id.to_string())?
+        let access_token = Self::find_access_token_by_id(pool, token_id)?
             .ok_or_else(|| anyhow::anyhow!("Access token not found"))?;
 
         // Validate token

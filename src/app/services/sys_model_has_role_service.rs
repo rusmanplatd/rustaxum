@@ -37,23 +37,23 @@ impl SysModelHasRoleService {
         Ok(result)
     }
 
-    pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<SysModelHasRole>> {
+    pub fn find_by_id(pool: &DbPool, id: DieselUlid) -> Result<Option<SysModelHasRole>> {
         let mut conn = pool.get()?;
 
         let result = sys_model_has_roles::table
-            .filter(sys_model_has_roles::id.eq(id))
+            .filter(sys_model_has_roles::id.eq(id.to_string()))
             .first::<SysModelHasRole>(&mut conn)
             .optional()?;
 
         Ok(result)
     }
 
-    pub fn find_by_model(pool: &DbPool, model_type: &str, model_id: String) -> Result<Vec<SysModelHasRole>> {
+    pub fn find_by_model(pool: &DbPool, model_type: &str, model_id: DieselUlid) -> Result<Vec<SysModelHasRole>> {
         let mut conn = pool.get()?;
 
         let result = sys_model_has_roles::table
             .filter(sys_model_has_roles::model_type.eq(model_type))
-            .filter(sys_model_has_roles::model_id.eq(model_id))
+            .filter(sys_model_has_roles::model_id.eq(model_id.to_string()))
             .order(sys_model_has_roles::created_at.desc())
             .load::<SysModelHasRole>(&mut conn)?;
 
@@ -70,7 +70,7 @@ impl SysModelHasRoleService {
         Ok(result)
     }
 
-    pub fn update(pool: &DbPool, id: String, data: UpdateSysModelHasRole) -> Result<SysModelHasRole> {
+    pub fn update(pool: &DbPool, id: DieselUlid, data: UpdateSysModelHasRole) -> Result<SysModelHasRole> {
         let mut conn = pool.get()?;
 
         let query = r#"
@@ -86,22 +86,22 @@ impl SysModelHasRoleService {
         "#;
 
         let result = diesel::sql_query(query)
-            .bind::<diesel::sql_types::Text, _>(id)
+            .bind::<diesel::sql_types::Text, _>(id.to_string())
             .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(data.model_type)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(data.model_id)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(data.role_id)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(data.model_id.map(|id| id.to_string()))
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(data.role_id.map(|id| id.to_string()))
             .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(data.scope_type)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(data.scope_id)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(data.scope_id.map(|id| id.to_string()))
             .get_result::<SysModelHasRole>(&mut conn)?;
 
         Ok(result)
     }
 
-    pub fn delete(pool: &DbPool, id: String) -> Result<()> {
+    pub fn delete(pool: &DbPool, id: DieselUlid) -> Result<()> {
         let mut conn = pool.get()?;
 
         diesel::delete(sys_model_has_roles::table)
-            .filter(sys_model_has_roles::id.eq(id))
+            .filter(sys_model_has_roles::id.eq(id.to_string()))
             .execute(&mut conn)?;
 
         Ok(())

@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use chrono::{Duration, Utc, DateTime};
 use ulid::Ulid;
 use crate::database::DbPool;
+use crate::app::models::DieselUlid;
 
 use crate::app::models::user::{User, CreateUser, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest, RefreshTokenRequest, UserResponse};
 // use crate::app::utils::password_validator::PasswordValidator;
@@ -109,7 +110,7 @@ impl AuthService {
         let created_user = UserService::create_user_record(pool, user)?;
 
         // Generate tokens
-        let access_token = Self::generate_access_token(&created_user.id, "jwt-secret", 86400)?; // 24 hours
+        let access_token = Self::generate_access_token(&created_user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
         let refresh_token = Self::generate_refresh_token();
         let expires_at = Utc::now() + Duration::seconds(86400);
         let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
@@ -154,7 +155,7 @@ impl AuthService {
                 user.locked_until = Some(Utc::now() + Duration::minutes(LOCKOUT_DURATION_MINUTES));
             }
 
-            UserService::update_failed_attempts(pool, user.id.clone(), user.failed_login_attempts, user.locked_until)?;
+            UserService::update_failed_attempts(pool, user.id, user.failed_login_attempts, user.locked_until)?;
             bail!("Invalid credentials");
         }
 
@@ -164,7 +165,7 @@ impl AuthService {
         }
 
         // Generate tokens
-        let access_token = Self::generate_access_token(&user.id, "jwt-secret", 86400)?; // 24 hours
+        let access_token = Self::generate_access_token(&user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
         let refresh_token = Self::generate_refresh_token();
         let expires_at = Utc::now() + Duration::seconds(86400);
         let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
@@ -288,7 +289,7 @@ impl AuthService {
         }
 
         // Generate new tokens
-        let access_token = Self::generate_access_token(&user.id, "jwt-secret", 86400)?; // 24 hours
+        let access_token = Self::generate_access_token(&user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
         let refresh_token = Self::generate_refresh_token();
         let expires_at = Utc::now() + Duration::seconds(86400);
         let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
@@ -305,7 +306,7 @@ impl AuthService {
         })
     }
 
-    pub fn revoke_all_tokens(pool: &DbPool, user_id: String) -> Result<MessageResponse> {
+    pub fn revoke_all_tokens(pool: &DbPool, user_id: DieselUlid) -> Result<MessageResponse> {
         // Clear refresh token
         UserService::update_refresh_token(pool, user_id, None, None)?;
 

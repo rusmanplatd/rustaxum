@@ -1,9 +1,9 @@
 use crate::database::seeder::Seeder;
 use crate::database::DbPool;
 use anyhow::Result;
-use ulid::Ulid;
 use diesel::prelude::*;
 use chrono::Utc;
+use crate::app::models::DieselUlid;
 use crate::app::models::organization_position_level::NewOrganizationPositionLevel;
 use crate::app::models::organization_position::NewOrganizationPosition;
 use crate::schema::{organization_position_levels, organization_positions};
@@ -21,9 +21,9 @@ impl Seeder for OrganizationPositionLevelSeeder {
         let now = Utc::now();
 
         // Create organization position levels
-        let junior_level_id = Ulid::new();
+        let junior_level_id = DieselUlid::new();
         let new_junior_level = NewOrganizationPositionLevel {
-            id: junior_level_id.to_string(),
+            id: junior_level_id,
             name: "Junior Level".to_string(),
             code: Some("JR".to_string()),
             level: 1,
@@ -39,9 +39,9 @@ impl Seeder for OrganizationPositionLevelSeeder {
             .do_nothing()
             .execute(&mut conn)?;
 
-        let mid_level_id = Ulid::new();
+        let mid_level_id = DieselUlid::new();
         let new_mid_level = NewOrganizationPositionLevel {
-            id: mid_level_id.to_string(),
+            id: mid_level_id,
             name: "Mid Level".to_string(),
             code: Some("MID".to_string()),
             level: 2,
@@ -57,9 +57,9 @@ impl Seeder for OrganizationPositionLevelSeeder {
             .do_nothing()
             .execute(&mut conn)?;
 
-        let senior_level_id = Ulid::new();
+        let senior_level_id = DieselUlid::new();
         let new_senior_level = NewOrganizationPositionLevel {
-            id: senior_level_id.to_string(),
+            id: senior_level_id,
             name: "Senior Level".to_string(),
             code: Some("SR".to_string()),
             level: 3,
@@ -75,9 +75,9 @@ impl Seeder for OrganizationPositionLevelSeeder {
             .do_nothing()
             .execute(&mut conn)?;
 
-        let lead_level_id = Ulid::new();
+        let lead_level_id = DieselUlid::new();
         let new_lead_level = NewOrganizationPositionLevel {
-            id: lead_level_id.to_string(),
+            id: lead_level_id,
             name: "Lead Level".to_string(),
             code: Some("LEAD".to_string()),
             level: 4,
@@ -93,9 +93,9 @@ impl Seeder for OrganizationPositionLevelSeeder {
             .do_nothing()
             .execute(&mut conn)?;
 
-        let exec_level_id = Ulid::new();
+        let exec_level_id = DieselUlid::new();
         let new_exec_level = NewOrganizationPositionLevel {
-            id: exec_level_id.to_string(),
+            id: exec_level_id,
             name: "Executive Level".to_string(),
             code: Some("EXEC".to_string()),
             level: 5,
@@ -113,9 +113,9 @@ impl Seeder for OrganizationPositionLevelSeeder {
 
         // Create organization positions
         // Junior positions
-        let junior_dev_id = Ulid::new();
+        let junior_dev_id = DieselUlid::new();
         let new_junior_dev = NewOrganizationPosition {
-            id: junior_dev_id.to_string(),
+            id: junior_dev_id,
             name: "Junior Software Developer".to_string(),
             code: Some("JR-DEV".to_string()),
             organization_position_level_id: junior_level_id.to_string(),
@@ -132,9 +132,9 @@ impl Seeder for OrganizationPositionLevelSeeder {
             .execute(&mut conn)?;
 
         // Mid-level positions
-        let software_dev_id = Ulid::new();
+        let software_dev_id = DieselUlid::new();
         let new_software_dev = NewOrganizationPosition {
-            id: software_dev_id.to_string(),
+            id: software_dev_id,
             name: "Software Developer".to_string(),
             code: Some("DEV".to_string()),
             organization_position_level_id: mid_level_id.to_string(),
@@ -150,9 +150,9 @@ impl Seeder for OrganizationPositionLevelSeeder {
             .do_nothing()
             .execute(&mut conn)?;
 
-        let backend_dev_id = Ulid::new();
+        let backend_dev_id = DieselUlid::new();
         let new_backend_dev = NewOrganizationPosition {
-            id: backend_dev_id.to_string(),
+            id: backend_dev_id,
             name: "Backend Developer".to_string(),
             code: Some("BACK-DEV".to_string()),
             organization_position_level_id: mid_level_id.to_string(),
@@ -169,9 +169,9 @@ impl Seeder for OrganizationPositionLevelSeeder {
             .execute(&mut conn)?;
 
         // Senior positions
-        let senior_dev_id = Ulid::new();
+        let senior_dev_id = DieselUlid::new();
         let new_senior_dev = NewOrganizationPosition {
-            id: senior_dev_id.to_string(),
+            id: senior_dev_id,
             name: "Senior Software Developer".to_string(),
             code: Some("SR-DEV".to_string()),
             organization_position_level_id: senior_level_id.to_string(),
@@ -187,9 +187,9 @@ impl Seeder for OrganizationPositionLevelSeeder {
             .do_nothing()
             .execute(&mut conn)?;
 
-        let architect_id = Ulid::new();
+        let architect_id = DieselUlid::new();
         let new_architect = NewOrganizationPosition {
-            id: architect_id.to_string(),
+            id: architect_id,
             name: "Software Architect".to_string(),
             code: Some("ARCHITECT".to_string()),
             organization_position_level_id: senior_level_id.to_string(),
@@ -206,9 +206,9 @@ impl Seeder for OrganizationPositionLevelSeeder {
             .execute(&mut conn)?;
 
         // Lead positions
-        let tech_lead_id = Ulid::new();
+        let tech_lead_id = DieselUlid::new();
         let new_tech_lead = NewOrganizationPosition {
-            id: tech_lead_id.to_string(),
+            id: tech_lead_id,
             name: "Technical Lead".to_string(),
             code: Some("TECH-LEAD".to_string()),
             organization_position_level_id: lead_level_id.to_string(),
@@ -224,9 +224,9 @@ impl Seeder for OrganizationPositionLevelSeeder {
             .do_nothing()
             .execute(&mut conn)?;
 
-        let engineering_mgr_id = Ulid::new();
+        let engineering_mgr_id = DieselUlid::new();
         let new_engineering_mgr = NewOrganizationPosition {
-            id: engineering_mgr_id.to_string(),
+            id: engineering_mgr_id,
             name: "Engineering Manager".to_string(),
             code: Some("ENG-MGR".to_string()),
             organization_position_level_id: lead_level_id.to_string(),
@@ -243,9 +243,9 @@ impl Seeder for OrganizationPositionLevelSeeder {
             .execute(&mut conn)?;
 
         // Executive positions
-        let cto_id = Ulid::new();
+        let cto_id = DieselUlid::new();
         let new_cto = NewOrganizationPosition {
-            id: cto_id.to_string(),
+            id: cto_id,
             name: "Chief Technology Officer".to_string(),
             code: Some("CTO".to_string()),
             organization_position_level_id: exec_level_id.to_string(),
@@ -261,9 +261,9 @@ impl Seeder for OrganizationPositionLevelSeeder {
             .do_nothing()
             .execute(&mut conn)?;
 
-        let vp_eng_id = Ulid::new();
+        let vp_eng_id = DieselUlid::new();
         let new_vp_eng = NewOrganizationPosition {
-            id: vp_eng_id.to_string(),
+            id: vp_eng_id,
             name: "VP of Engineering".to_string(),
             code: Some("VP-ENG".to_string()),
             organization_position_level_id: exec_level_id.to_string(),

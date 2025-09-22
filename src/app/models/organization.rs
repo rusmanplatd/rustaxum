@@ -1,3 +1,4 @@
+use super::DieselUlid;
 use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use chrono::{DateTime, Utc};

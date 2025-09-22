@@ -44,8 +44,8 @@ pub async fn index(
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
     match OrganizationPositionLevelService::list(&pool, params) {
-        Ok(OrganizationPositionLevel) => {
-            let responses: Vec<_> = OrganizationPositionLevel.into_iter().map(|jl| jl.to_response()).collect();
+        Ok(organization_position_level) => {
+            let responses: Vec<_> = organization_position_level.into_iter().map(|jl| jl.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()
         }
         Err(e) => {

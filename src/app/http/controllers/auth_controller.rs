@@ -5,6 +5,7 @@ use axum::{
 };
 use serde::Serialize;
 use crate::database::DbPool;
+use crate::app::models::DieselUlid;
 
 use crate::app::models::user::{
     CreateUser, LoginRequest, ForgotPasswordRequest,
@@ -211,7 +212,17 @@ pub async fn revoke_all_tokens(State(pool): State<DbPool>, headers: HeaderMap) -
             return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
         }
     };
-    match AuthService::revoke_all_tokens(&pool, claims.sub) {
+    let user_id = match DieselUlid::from_string(&claims.sub) {
+        Ok(id) => id,
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "Invalid user ID format".to_string(),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+        }
+    };
+
+    match AuthService::revoke_all_tokens(&pool, user_id) {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {

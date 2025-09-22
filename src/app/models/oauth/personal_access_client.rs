@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::app::models::DieselUlid;
+use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use chrono::{DateTime, Utc};
 use crate::app::query_builder::{SortDirection};
@@ -49,7 +49,7 @@ impl PersonalAccessClient {
     pub fn to_response(&self) -> PersonalAccessClientResponse {
         PersonalAccessClientResponse {
             id: self.id,
-            client_id: self.client_id.clone(),
+            client_id: self.client_id,
             created_at: self.created_at,
             updated_at: self.updated_at,
         }
@@ -57,7 +57,7 @@ impl PersonalAccessClient {
 }
 
 impl NewPersonalAccessClient {
-    pub fn new(client_id: String) -> Self {
+    pub fn new(client_id: DieselUlid) -> Self {
         let now = Utc::now();
         Self {
             id: DieselUlid::new(),

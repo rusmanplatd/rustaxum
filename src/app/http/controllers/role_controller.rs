@@ -12,6 +12,7 @@ use crate::app::services::role_service::RoleService;
 use crate::app::services::sys_model_has_role_service::SysModelHasRoleService;
 use crate::app::models::user::User;
 use crate::app::models::HasModelType;
+use crate::app::models::DieselUlid;
 
 #[derive(Deserialize)]
 pub struct CreateRoleRequest {
@@ -254,7 +255,25 @@ pub async fn assign_to_user(
         }
     };
 
-    match SysModelHasRoleService::assign_role_to_model(&pool, User::model_type(), user_id.to_string(), role_id.to_string(), None, None) {
+    let diesel_user_id = match DieselUlid::from_string(&user_id.to_string()) {
+        Ok(id) => id,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Invalid user ID format"
+            }))).into_response();
+        }
+    };
+
+    let diesel_role_id = match DieselUlid::from_string(&role_id.to_string()) {
+        Ok(id) => id,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Invalid role ID format"
+            }))).into_response();
+        }
+    };
+
+    match SysModelHasRoleService::assign_role_to_model(&pool, User::model_type(), diesel_user_id, diesel_role_id, None, None) {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Role assigned to user successfully"

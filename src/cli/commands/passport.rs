@@ -262,7 +262,7 @@ async fn handle_delete_scope(pool: &DbPool, scope: String) -> Result<()> {
         Err(_) => {
             // Look up by name
             match ScopeService::find_by_name(pool, &scope)? {
-                Some(found_scope) => Ulid::from_string(&found_scope.id)?,
+                Some(found_scope) => found_scope.id.inner(),
                 None => {
                     println!("❌ Scope not found: {}", scope);
                     return Ok(());

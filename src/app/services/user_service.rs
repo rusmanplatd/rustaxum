@@ -110,10 +110,10 @@ impl UserService {
         Ok(())
     }
 
-    pub fn update_failed_attempts(pool: &DbPool, id: String, attempts: i32, locked_until: Option<DateTime<Utc>>) -> Result<()> {
+    pub fn update_failed_attempts(pool: &DbPool, id: DieselUlid, attempts: i32, locked_until: Option<DateTime<Utc>>) -> Result<()> {
         let mut conn = pool.get()?;
 
-        diesel::update(sys_users::table.filter(sys_users::id.eq(id.to_string())))
+        diesel::update(sys_users::table.filter(sys_users::id.eq(id)))
             .set((
                 sys_users::failed_login_attempts.eq(attempts),
                 sys_users::locked_until.eq(locked_until),

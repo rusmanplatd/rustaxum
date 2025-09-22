@@ -3,9 +3,9 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json as ResponseJson},
 };
-use ulid::Ulid;
 use crate::database::DbPool;
 use std::collections::HashMap;
+use crate::app::models::DieselUlid;
 
 use crate::app::models::sys_model_has_role::{CreateSysModelHasRole, UpdateSysModelHasRole, SysModelHasRoleResponse};
 use crate::app::services::sys_model_has_role_service::SysModelHasRoleService;
@@ -66,7 +66,7 @@ pub async fn index(
     )
 )]
 pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
-    let role_id = match Ulid::from_string(&id) {
+    let role_id = match DieselUlid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
             let error = ErrorResponse {
@@ -76,7 +76,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         }
     };
 
-    match SysModelHasRoleService::find_by_id(&pool, role_id.to_string()) {
+    match SysModelHasRoleService::find_by_id(&pool, role_id) {
         Ok(Some(role)) => (StatusCode::OK, ResponseJson(role.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -107,12 +107,47 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
     )
 )]
 pub async fn store(State(pool): State<DbPool>, request: CreateSysModelHasRoleRequest) -> impl IntoResponse {
+    let model_id = match DieselUlid::from_string(&request.model_id) {
+        Ok(id) => id,
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "Invalid model_id format".to_string(),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+        }
+    };
+
+    let role_id = match DieselUlid::from_string(&request.role_id) {
+        Ok(id) => id,
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "Invalid role_id format".to_string(),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+        }
+    };
+
+    let scope_id = match request.scope_id {
+        Some(id_str) => {
+            match DieselUlid::from_string(&id_str) {
+                Ok(id) => Some(id),
+                Err(_) => {
+                    let error = ErrorResponse {
+                        error: "Invalid scope_id format".to_string(),
+                    };
+                    return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+                }
+            }
+        }
+        None => None,
+    };
+
     let payload = CreateSysModelHasRole {
         model_type: request.model_type,
-        model_id: request.model_id.to_string(),
-        role_id: request.role_id.to_string(),
+        model_id,
+        role_id,
         scope_type: request.scope_type,
-        scope_id: request.scope_id.map(|id| id.to_string()),
+        scope_id,
     };
 
     match SysModelHasRoleService::create(&pool, payload) {
@@ -148,7 +183,7 @@ pub async fn update(
     Path(id): Path<String>,
     request: UpdateSysModelHasRoleRequest,
 ) -> impl IntoResponse {
-    let role_id = match Ulid::from_string(&id) {
+    let role_id = match DieselUlid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
             let error = ErrorResponse {
@@ -158,15 +193,60 @@ pub async fn update(
         }
     };
 
-    let payload = UpdateSysModelHasRole {
-        model_type: request.model_type,
-        model_id: request.model_id.map(|id| id.to_string()),
-        role_id: request.role_id.map(|id| id.to_string()),
-        scope_type: request.scope_type,
-        scope_id: request.scope_id.map(|id| id.to_string()),
+    let model_id = match request.model_id {
+        Some(id_str) => {
+            match DieselUlid::from_string(&id_str) {
+                Ok(id) => Some(id),
+                Err(_) => {
+                    let error = ErrorResponse {
+                        error: "Invalid model_id format".to_string(),
+                    };
+                    return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+                }
+            }
+        }
+        None => None,
     };
 
-    match SysModelHasRoleService::update(&pool, role_id.to_string(), payload) {
+    let role_id_update = match request.role_id {
+        Some(id_str) => {
+            match DieselUlid::from_string(&id_str) {
+                Ok(id) => Some(id),
+                Err(_) => {
+                    let error = ErrorResponse {
+                        error: "Invalid role_id format".to_string(),
+                    };
+                    return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+                }
+            }
+        }
+        None => None,
+    };
+
+    let scope_id = match request.scope_id {
+        Some(id_str) => {
+            match DieselUlid::from_string(&id_str) {
+                Ok(id) => Some(id),
+                Err(_) => {
+                    let error = ErrorResponse {
+                        error: "Invalid scope_id format".to_string(),
+                    };
+                    return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+                }
+            }
+        }
+        None => None,
+    };
+
+    let payload = UpdateSysModelHasRole {
+        model_type: request.model_type,
+        model_id,
+        role_id: role_id_update,
+        scope_type: request.scope_type,
+        scope_id,
+    };
+
+    match SysModelHasRoleService::update(&pool, role_id, payload) {
         Ok(role) => (StatusCode::OK, ResponseJson(role.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -194,7 +274,7 @@ pub async fn update(
     )
 )]
 pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
-    let role_id = match Ulid::from_string(&id) {
+    let role_id = match DieselUlid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
             let error = ErrorResponse {
@@ -204,7 +284,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     };
 
-    match SysModelHasRoleService::delete(&pool, role_id.to_string()) {
+    match SysModelHasRoleService::delete(&pool, role_id) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Model role deleted successfully".to_string(),
@@ -245,7 +325,17 @@ pub async fn by_model(State(pool): State<DbPool>, Path((model_type, model_id)): 
         return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
     }
 
-    match SysModelHasRoleService::find_by_model(&pool, &model_type, model_id) {
+    let diesel_model_id = match DieselUlid::from_string(&model_id) {
+        Ok(id) => id,
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "Invalid model_id format".to_string(),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+        }
+    };
+
+    match SysModelHasRoleService::find_by_model(&pool, &model_type, diesel_model_id) {
         Ok(roles) => {
             let responses: Vec<_> = roles.into_iter().map(|r| r.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()

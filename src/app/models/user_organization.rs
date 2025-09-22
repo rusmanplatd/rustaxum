@@ -1,3 +1,4 @@
+use super::DieselUlid;
 use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use crate::database::DbPool;
@@ -218,7 +219,7 @@ impl UserOrganization {
         #[derive(Insertable)]
         #[diesel(table_name = sys_model_has_roles)]
         struct NewModelHasRole {
-            id: String,
+            id: DieselUlid,
             model_type: String,
             model_id: String,
             role_id: String,

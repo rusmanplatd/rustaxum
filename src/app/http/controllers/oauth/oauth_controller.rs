@@ -404,7 +404,7 @@ pub async fn introspect(State(pool): State<DbPool>, Json(params): Json<Introspec
     };
 
     // Parse token ID and find access token
-    let token_id = match Ulid::from_string(&token_claims.jti) {
+    let token_id = match Ulid::from_string(&token_claims.jti.to_string()) {
         Ok(id) => id,
         Err(_) => {
             let response = IntrospectResponse {
@@ -445,8 +445,8 @@ pub async fn introspect(State(pool): State<DbPool>, Json(params): Json<Introspec
         username: access_token.user_id.map(|id| id.to_string()),
         exp: Some(token_claims.exp as i64),
         iat: Some(token_claims.iat as i64),
-        sub: if token_claims.sub.is_empty() { None } else { Some(token_claims.sub) },
-        aud: Some(token_claims.aud),
+        sub: Some(token_claims.sub.to_string()),
+        aud: Some(token_claims.aud.to_string()),
     };
 
     (StatusCode::OK, ResponseJson(response)).into_response()
@@ -466,7 +466,7 @@ pub async fn revoke(State(pool): State<DbPool>, Form(params): Form<HashMap<Strin
 
     // Try to decode as JWT first to get token ID
     let token_id = match TokenService::decode_jwt_token(token) {
-        Ok(claims) => match Ulid::from_string(&claims.jti) {
+        Ok(claims) => match Ulid::from_string(&claims.jti.to_string()) {
             Ok(id) => id,
             Err(_) => {
                 let error = ErrorResponse {
