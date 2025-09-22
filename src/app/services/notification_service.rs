@@ -80,6 +80,40 @@ impl NotificationService {
             .await
     }
 
+    /// Send notification via specific channels
+    pub async fn send_via_channels(
+        &self,
+        notification: &dyn Notification,
+        notifiable: &dyn Notifiable,
+        channels: Vec<crate::app::notifications::notification::NotificationChannel>,
+    ) -> Result<()> {
+        // Filter channels based on notifiable preferences (if implemented)
+        let filtered_channels = if let Some(user) = self.try_as_user(notifiable) {
+            let mut filtered = Vec::new();
+            for channel in channels {
+                if user.prefers_channel(&channel).await {
+                    filtered.push(channel);
+                }
+            }
+            filtered
+        } else {
+            channels
+        };
+
+        // Send the notification via the specified channels
+        self.channel_manager
+            .send(notification, notifiable, filtered_channels)
+            .await?;
+
+        tracing::info!(
+            "Notification sent via specific channels: {} to {}",
+            notification.notification_type(),
+            notifiable.get_key()
+        );
+
+        Ok(())
+    }
+
     /// Get unread notifications for a notifiable entity
     pub async fn get_unread_notifications(
         &self,

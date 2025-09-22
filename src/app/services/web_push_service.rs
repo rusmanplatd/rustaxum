@@ -2,6 +2,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use crate::database::DbPool;
 use crate::app::notifications::channels::web_push_channel::{PushSubscription, WebPushChannel};
+use crate::app::utils::web_push_metrics;
 use crate::config::Config;
 
 /// Web Push service for managing push subscriptions and sending notifications
@@ -58,6 +59,11 @@ impl WebPushService {
             .ok_or_else(|| anyhow::anyhow!("VAPID public key not configured"))
     }
 
+    /// Generate new VAPID keys for development (should only be used in development)
+    pub fn generate_development_keys() -> Result<(String, String)> {
+        crate::app::utils::vapid::generate_vapid_keys()
+    }
+
     /// Subscribe a user to web push notifications
     pub async fn subscribe(
         &self,
@@ -83,6 +89,9 @@ impl WebPushService {
             user_agent.as_deref(),
         ) {
             Ok(subscription) => {
+                // Record successful subscription creation
+                web_push_metrics::record_subscription_created().await;
+
                 tracing::info!(
                     "User {} subscribed to web push notifications: {}",
                     user_id,
@@ -114,6 +123,9 @@ impl WebPushService {
     ) -> Result<SubscriptionResponse> {
         match WebPushChannel::remove_subscription(user_id, endpoint) {
             Ok(_) => {
+                // Record successful subscription deletion
+                web_push_metrics::record_subscription_deleted().await;
+
                 tracing::info!(
                     "User {} unsubscribed from web push notifications: {}",
                     user_id,

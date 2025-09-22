@@ -1,6 +1,6 @@
 use axum::{
     extract::Query,
-    http::StatusCode,
+    http::{StatusCode, HeaderMap},
     response::Json,
     Extension,
 };
@@ -35,13 +35,17 @@ impl WebPushController {
     /// POST /api/web-push/subscribe
     pub async fn subscribe(
         Extension(user): Extension<User>,
+        headers: HeaderMap,
         Json(request): Json<SubscribeRequest>,
     ) -> Result<Json<SubscriptionResponse>, StatusCode> {
         let service = WebPushService::new().await;
         let user_id = user.id.to_string();
 
         // Extract user agent from request headers if available
-        let user_agent = None; // TODO: Extract from request headers
+        let user_agent = headers
+            .get("user-agent")
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string());
 
         match service.subscribe(&user_id, request, user_agent).await {
             Ok(response) => Ok(Json(response)),

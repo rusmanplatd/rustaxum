@@ -1,0 +1,412 @@
+use anyhow::Result;
+use async_trait::async_trait;
+use crate::app::jobs::{Job, JobContext};
+use crate::app::notifications::channels::web_push_channel::{WebPushChannel, WebPushMessage};
+use crate::app::services::web_push_service::WebPushService;
+use serde::{Deserialize, Serialize};
+use std::time::Duration;
+
+/// Job for sending web push notifications to multiple users
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BulkWebPushJob {
+    /// List of user IDs to send notifications to
+    pub user_ids: Vec<String>,
+    /// The notification message to send
+    pub message: WebPushMessage,
+    /// Batch size for processing subscriptions
+    pub batch_size: usize,
+    /// Delay between batches (milliseconds)
+    pub batch_delay_ms: u64,
+    /// Maximum retries per subscription
+    pub max_retries: u32,
+    /// Whether to continue processing if some notifications fail
+    pub continue_on_failure: bool,
+}
+
+impl BulkWebPushJob {
+    /// Create a new bulk web push job
+    pub fn new(
+        user_ids: Vec<String>,
+        message: WebPushMessage,
+        batch_size: Option<usize>,
+        batch_delay_ms: Option<u64>,
+    ) -> Self {
+        Self {
+            user_ids,
+            message,
+            batch_size: batch_size.unwrap_or(50),
+            batch_delay_ms: batch_delay_ms.unwrap_or(1000),
+            max_retries: 3,
+            continue_on_failure: true,
+        }
+    }
+
+    /// Create a bulk job for broadcasting to all active subscribers
+    pub fn broadcast(message: WebPushMessage) -> Self {
+        Self {
+            user_ids: Vec::new(), // Empty means broadcast to all
+            message,
+            batch_size: 100,
+            batch_delay_ms: 2000,
+            max_retries: 2,
+            continue_on_failure: true,
+        }
+    }
+
+    /// Create a high-priority bulk job (smaller batches, less delay)
+    pub fn high_priority(user_ids: Vec<String>, message: WebPushMessage) -> Self {
+        Self {
+            user_ids,
+            message,
+            batch_size: 25,
+            batch_delay_ms: 500,
+            max_retries: 5,
+            continue_on_failure: false,
+        }
+    }
+}
+
+#[async_trait]
+impl Job for BulkWebPushJob {
+    async fn handle(&self, _context: &JobContext) -> Result<()> {
+        tracing::info!(
+            "Starting bulk web push job for {} users (batch_size: {}, delay: {}ms)",
+            if self.user_ids.is_empty() { "all".to_string() } else { self.user_ids.len().to_string() },
+            self.batch_size,
+            self.batch_delay_ms
+        );
+
+        let web_push_service = WebPushService::new().await;
+        let web_push_channel = WebPushChannel::new().await?;
+
+        let mut stats = BulkJobStats::new();
+
+        // Get subscriptions to process
+        let subscriptions = if self.user_ids.is_empty() {
+            // Broadcast mode - get all active subscriptions
+            self.get_all_active_subscriptions().await?
+        } else {
+            // Targeted mode - get subscriptions for specific users
+            self.get_subscriptions_for_users(&self.user_ids).await?
+        };
+
+        tracing::info!("Found {} subscriptions to process", subscriptions.len());
+
+        // Process subscriptions in batches
+        for (batch_idx, batch) in subscriptions.chunks(self.batch_size).enumerate() {
+            let batch_start = std::time::Instant::now();
+            let mut batch_stats = BatchStats::new();
+
+            tracing::info!(
+                "Processing batch {} of {} ({} subscriptions)",
+                batch_idx + 1,
+                (subscriptions.len() + self.batch_size - 1) / self.batch_size,
+                batch.len()
+            );
+
+            // Process all subscriptions in the current batch concurrently
+            let batch_futures = batch.iter().map(|subscription| {
+                let web_push_channel = &web_push_channel;
+                let message = &self.message;
+                async move {
+                    match web_push_channel
+                        .send_to_subscription_with_retry(subscription, message, self.max_retries)
+                        .await
+                    {
+                        Ok(_) => BatchResult::Success(subscription.id.clone()),
+                        Err(e) => BatchResult::Failure(subscription.id.clone(), e.to_string()),
+                    }
+                }
+            });
+
+            // Wait for all notifications in the batch to complete
+            let batch_results = futures::future::join_all(batch_futures).await;
+
+            // Process batch results
+            for result in batch_results {
+                match result {
+                    BatchResult::Success(subscription_id) => {
+                        batch_stats.successful += 1;
+                        tracing::debug!("Successfully sent to subscription: {}", subscription_id);
+                    }
+                    BatchResult::Failure(subscription_id, error) => {
+                        batch_stats.failed += 1;
+                        tracing::error!("Failed to send to subscription {}: {}", subscription_id, error);
+
+                        if !self.continue_on_failure {
+                            return Err(anyhow::anyhow!(
+                                "Bulk job stopped due to failure on subscription {}: {}",
+                                subscription_id,
+                                error
+                            ));
+                        }
+                    }
+                }
+            }
+
+            let batch_duration = batch_start.elapsed();
+            tracing::info!(
+                "Batch {} completed in {:?}: {} successful, {} failed",
+                batch_idx + 1,
+                batch_duration,
+                batch_stats.successful,
+                batch_stats.failed
+            );
+
+            stats.add_batch_stats(batch_stats);
+
+            // Add delay between batches (except for the last batch)
+            if batch_idx < (subscriptions.len() + self.batch_size - 1) / self.batch_size - 1 {
+                tokio::time::sleep(Duration::from_millis(self.batch_delay_ms)).await;
+            }
+        }
+
+        // Log final statistics
+        tracing::info!(
+            "Bulk web push job completed: {} total processed, {} successful, {} failed, success rate: {:.2}%",
+            stats.total_processed(),
+            stats.total_successful,
+            stats.total_failed,
+            stats.success_rate()
+        );
+
+        Ok(())
+    }
+
+    fn job_type(&self) -> &'static str {
+        "BulkWebPush"
+    }
+
+    fn max_attempts(&self) -> i32 {
+        2
+    }
+
+    fn timeout_seconds(&self) -> Option<i32> {
+        Some(3600) // 1 hour timeout for bulk jobs
+    }
+}
+
+impl BulkWebPushJob {
+    async fn get_all_active_subscriptions(&self) -> Result<Vec<crate::app::notifications::channels::web_push_channel::PushSubscription>> {
+        // This would query the database for all active subscriptions
+        // For now, return empty vec as placeholder
+        tracing::warn!("get_all_active_subscriptions not fully implemented");
+        Ok(Vec::new())
+    }
+
+    async fn get_subscriptions_for_users(&self, _user_ids: &[String]) -> Result<Vec<crate::app::notifications::channels::web_push_channel::PushSubscription>> {
+        // This would query the database for subscriptions belonging to specific users
+        // For now, return empty vec as placeholder
+        tracing::warn!("get_subscriptions_for_users not fully implemented");
+        Ok(Vec::new())
+    }
+}
+
+#[derive(Debug)]
+enum BatchResult {
+    Success(String),
+    Failure(String, String),
+}
+
+#[derive(Debug, Default)]
+struct BatchStats {
+    successful: u32,
+    failed: u32,
+}
+
+impl BatchStats {
+    fn new() -> Self {
+        Self::default()
+    }
+}
+
+#[derive(Debug, Default)]
+struct BulkJobStats {
+    total_successful: u32,
+    total_failed: u32,
+}
+
+impl BulkJobStats {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn add_batch_stats(&mut self, batch: BatchStats) {
+        self.total_successful += batch.successful;
+        self.total_failed += batch.failed;
+    }
+
+    fn total_processed(&self) -> u32 {
+        self.total_successful + self.total_failed
+    }
+
+    fn success_rate(&self) -> f64 {
+        if self.total_processed() == 0 {
+            0.0
+        } else {
+            (self.total_successful as f64 / self.total_processed() as f64) * 100.0
+        }
+    }
+}
+
+/// Job for sending a single web push notification with high reliability
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SingleWebPushJob {
+    pub user_id: String,
+    pub message: WebPushMessage,
+    pub max_retries: u32,
+    pub priority: NotificationPriority,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum NotificationPriority {
+    Low,
+    Normal,
+    High,
+    Critical,
+}
+
+impl SingleWebPushJob {
+    pub fn new(user_id: String, message: WebPushMessage) -> Self {
+        Self {
+            user_id,
+            message,
+            max_retries: 3,
+            priority: NotificationPriority::Normal,
+        }
+    }
+
+    pub fn critical(user_id: String, message: WebPushMessage) -> Self {
+        Self {
+            user_id,
+            message,
+            max_retries: 10,
+            priority: NotificationPriority::Critical,
+        }
+    }
+}
+
+#[async_trait]
+impl Job for SingleWebPushJob {
+    async fn handle(&self, _context: &JobContext) -> Result<()> {
+        tracing::info!(
+            "Sending web push notification to user {} with priority {:?}",
+            self.user_id,
+            self.priority
+        );
+
+        let web_push_service = WebPushService::new().await;
+        let web_push_channel = WebPushChannel::new().await?;
+
+        // Get user's subscriptions
+        let subscriptions = web_push_service.get_user_subscriptions(&self.user_id).await?;
+
+        if subscriptions.is_empty() {
+            tracing::warn!("No subscriptions found for user {}", self.user_id);
+            return Ok(());
+        }
+
+        let mut successful_sends = 0;
+        let mut failed_sends = 0;
+
+        // Send to all user's subscriptions
+        for subscription in subscriptions {
+            match web_push_channel
+                .send_to_subscription_with_retry(&subscription, &self.message, self.max_retries)
+                .await
+            {
+                Ok(_) => {
+                    successful_sends += 1;
+                    tracing::debug!("Successfully sent to subscription: {}", subscription.id);
+                }
+                Err(e) => {
+                    failed_sends += 1;
+                    tracing::error!(
+                        "Failed to send to subscription {} for user {}: {}",
+                        subscription.id,
+                        self.user_id,
+                        e
+                    );
+                }
+            }
+        }
+
+        tracing::info!(
+            "Completed web push notification for user {}: {} successful, {} failed",
+            self.user_id,
+            successful_sends,
+            failed_sends
+        );
+
+        // For critical notifications, fail if we couldn't deliver to any subscription
+        if matches!(self.priority, NotificationPriority::Critical) && successful_sends == 0 {
+            return Err(anyhow::anyhow!(
+                "Critical notification failed to deliver to any subscription for user {}",
+                self.user_id
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn job_type(&self) -> &'static str {
+        "SingleWebPush"
+    }
+
+    fn max_attempts(&self) -> i32 {
+        match self.priority {
+            NotificationPriority::Low => 1,
+            NotificationPriority::Normal => 3,
+            NotificationPriority::High => 5,
+            NotificationPriority::Critical => 10,
+        }
+    }
+
+    fn timeout_seconds(&self) -> Option<i32> {
+        Some(300) // 5 minutes timeout
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_bulk_job_creation() {
+        let message = WebPushMessage::new("Test".to_string(), "Body".to_string());
+        let user_ids = vec!["user1".to_string(), "user2".to_string()];
+        let job = BulkWebPushJob::new(user_ids.clone(), message, Some(10), Some(500));
+
+        assert_eq!(job.user_ids, user_ids);
+        assert_eq!(job.batch_size, 10);
+        assert_eq!(job.batch_delay_ms, 500);
+        assert_eq!(job.job_type(), "BulkWebPush");
+    }
+
+    #[test]
+    fn test_single_job_creation() {
+        let message = WebPushMessage::new("Test".to_string(), "Body".to_string());
+        let job = SingleWebPushJob::critical("user1".to_string(), message);
+
+        assert_eq!(job.user_id, "user1");
+        assert_eq!(job.max_retries, 10);
+        assert!(matches!(job.priority, NotificationPriority::Critical));
+        assert_eq!(job.max_attempts(), 10);
+    }
+
+    #[test]
+    fn test_bulk_job_stats() {
+        let mut stats = BulkJobStats::new();
+
+        let batch1 = BatchStats { successful: 5, failed: 1 };
+        let batch2 = BatchStats { successful: 3, failed: 2 };
+
+        stats.add_batch_stats(batch1);
+        stats.add_batch_stats(batch2);
+
+        assert_eq!(stats.total_successful, 8);
+        assert_eq!(stats.total_failed, 3);
+        assert_eq!(stats.total_processed(), 11);
+        assert!((stats.success_rate() - 72.73).abs() < 0.01);
+    }
+}

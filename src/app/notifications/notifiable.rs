@@ -28,12 +28,15 @@ impl Notifiable for User {
     }
 
     async fn notification_preferences(&self) -> HashMap<String, bool> {
-        // TODO: In a real implementation, you might want to store these in the database
+        // In a real implementation, you might want to store these in the database
         // For now, we'll return default preferences
         let mut preferences = HashMap::new();
         preferences.insert("email_notifications".to_string(), true);
         preferences.insert("database_notifications".to_string(), true);
         preferences.insert("broadcast_notifications".to_string(), true);
+        preferences.insert("web_push_notifications".to_string(), true);
+        preferences.insert("sms_notifications".to_string(), true);
+        preferences.insert("slack_notifications".to_string(), true);
         preferences.insert("marketing_emails".to_string(), false);
         preferences.insert("security_alerts".to_string(), true);
         preferences
@@ -66,6 +69,15 @@ impl User {
             }
             NotificationChannel::Broadcast => {
                 preferences.get("broadcast_notifications").unwrap_or(&true).clone()
+            }
+            NotificationChannel::WebPush => {
+                preferences.get("web_push_notifications").unwrap_or(&true).clone()
+            }
+            NotificationChannel::Sms | NotificationChannel::Vonage => {
+                preferences.get("sms_notifications").unwrap_or(&true).clone()
+            }
+            NotificationChannel::Slack => {
+                preferences.get("slack_notifications").unwrap_or(&true).clone()
             }
             _ => true, // Default to allowing other channels
         }

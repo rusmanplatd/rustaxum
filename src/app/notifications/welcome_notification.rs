@@ -26,6 +26,7 @@ impl Notification for WelcomeNotification {
             NotificationChannel::Database,
             NotificationChannel::Mail,
             NotificationChannel::Broadcast,
+            NotificationChannel::WebPush,
         ]
     }
 
