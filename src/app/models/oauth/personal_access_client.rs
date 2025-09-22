@@ -7,8 +7,8 @@ use crate::app::query_builder::{SortDirection};
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::oauth_personal_access_clients)]
 pub struct PersonalAccessClient {
-    pub id: String,
-    pub client_id: String,
+    pub id: Ulid,
+    pub client_id: Ulid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

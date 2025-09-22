@@ -112,10 +112,10 @@ impl RoleService {
 
         diesel::insert_into(sys_model_has_roles::table)
             .values((
-                sys_model_has_roles::id.eq(model_role_id.to_string()),
+                sys_model_has_roles::id.eq(model_role_id),
                 sys_model_has_roles::model_type.eq(T::model_type()),
                 sys_model_has_roles::model_id.eq(model.model_id()),
-                sys_model_has_roles::role_id.eq(role_id.to_string()),
+                sys_model_has_roles::role_id.eq(role_id),
                 sys_model_has_roles::scope_type.eq::<Option<String>>(None),
                 sys_model_has_roles::scope_id.eq::<Option<String>>(None),
                 sys_model_has_roles::created_at.eq(now),
@@ -137,7 +137,7 @@ impl RoleService {
             sys_model_has_roles::table
                 .filter(sys_model_has_roles::model_type.eq(T::model_type()))
                 .filter(sys_model_has_roles::model_id.eq(model.model_id()))
-                .filter(sys_model_has_roles::role_id.eq(role_id.to_string()))
+                .filter(sys_model_has_roles::role_id.eq(role_id))
         )
         .execute(&mut conn)?;
 

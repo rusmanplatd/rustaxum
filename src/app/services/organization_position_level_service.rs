@@ -1,5 +1,4 @@
 use anyhow::Result;
-use ulid::Ulid;
 use crate::database::DbPool;
 use std::collections::HashMap;
 use diesel::prelude::*;
@@ -30,11 +29,11 @@ impl OrganizationPositionLevelService {
         Ok(organization_position_level)
     }
 
-    pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<OrganizationPositionLevel>> {
+    pub fn find_by_id(pool: &DbPool, id: &str) -> Result<Option<OrganizationPositionLevel>> {
         let mut conn = pool.get()?;
 
         let result = organization_position_levels::table
-            .filter(organization_position_levels::id.eq(id.to_string()))
+            .filter(organization_position_levels::id.eq(id))
             .first::<OrganizationPositionLevel>(&mut conn)
             .optional()?;
 
@@ -64,7 +63,7 @@ impl OrganizationPositionLevelService {
 
     pub fn update(pool: &DbPool, id: String, data: UpdateOrganizationPositionLevel) -> Result<OrganizationPositionLevel> {
         let mut conn = pool.get()?;
-        let mut current = Self::find_by_id(pool, id)?
+        let mut current = Self::find_by_id(pool, &id)?
             .ok_or_else(|| anyhow::anyhow!("Job level not found"))?;
 
         // Update fields if provided
@@ -85,7 +84,7 @@ impl OrganizationPositionLevelService {
         }
         current.updated_at = chrono::Utc::now();
 
-        diesel::update(organization_position_levels::table.filter(organization_position_levels::id.eq(id.to_string())))
+        diesel::update(organization_position_levels::table.filter(organization_position_levels::id.eq(&id)))
             .set((
                 organization_position_levels::name.eq(&current.name),
                 organization_position_levels::code.eq(&current.code),

@@ -12,7 +12,7 @@ use crate::app::query_builder::{SortDirection};
 pub struct OrganizationPositionLevel {
     /// Unique identifier for the organization position level
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: String,
+    pub id: Ulid,
     /// Job level name
     #[schema(example = "Senior Manager")]
     pub name: String,

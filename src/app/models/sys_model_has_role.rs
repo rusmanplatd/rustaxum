@@ -9,17 +9,17 @@ use crate::app::query_builder::SortDirection;
 #[diesel(table_name = crate::schema::sys_model_has_roles)]
 pub struct SysModelHasRole {
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: String,
+    pub id: Ulid,
     #[schema(example = "User")]
     pub model_type: String,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub model_id: String,
+    pub model_id: Ulid,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub role_id: String,
+    pub role_id: Ulid,
     #[schema(example = "organization")]
     pub scope_type: Option<String>,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub scope_id: Option<String>,
+    pub scope_id: Option<Ulid>,
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub created_at: DateTime<Utc>,
     #[schema(example = "2023-01-01T00:00:00Z")]
@@ -29,7 +29,7 @@ pub struct SysModelHasRole {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateSysModelHasRole {
     pub model_type: String,
-    pub model_id: String,
+    pub model_id: Ulid,
     pub role_id: String,
     pub scope_type: Option<String>,
     pub scope_id: Option<String>,

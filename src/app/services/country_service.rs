@@ -1,5 +1,4 @@
 use anyhow::Result;
-use ulid::Ulid;
 use diesel::prelude::*;
 use crate::database::DbPool;
 use crate::schema::countries;

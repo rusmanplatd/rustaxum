@@ -144,7 +144,7 @@ pub async fn show(
         }
     };
 
-    match RoleService::find_by_id(&pool, role_id) {
+    match RoleService::find_by_id(&pool, role_id.to_string()) {
         Ok(Some(role)) => {
             let role_data = RoleData::from(role);
             (StatusCode::OK, Json(json!({
@@ -186,7 +186,7 @@ pub async fn update(
         guard_name: payload.guard_name,
     };
 
-    match RoleService::update(&pool, role_id, update_role) {
+    match RoleService::update(&pool, role_id.to_string(), update_role) {
         Ok(role) => {
             let role_data = RoleData::from(role);
             (StatusCode::OK, Json(json!({
@@ -216,7 +216,7 @@ pub async fn destroy(
         }
     };
 
-    match RoleService::delete(&pool, role_id) {
+    match RoleService::delete(&pool, role_id.to_string()) {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Role deleted successfully"
@@ -254,7 +254,7 @@ pub async fn assign_to_user(
         }
     };
 
-    match SysModelHasRoleService::assign_role_to_model(&pool, User::model_type(), user_id, role_id, None, None) {
+    match SysModelHasRoleService::assign_role_to_model(&pool, User::model_type(), user_id.to_string(), role_id.to_string(), None, None) {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Role assigned to user successfully"
@@ -291,7 +291,7 @@ pub async fn remove_from_user(
         }
     };
 
-    match SysModelHasRoleService::remove_role_from_model(&pool, User::model_type(), user_id, role_id) {
+    match SysModelHasRoleService::remove_role_from_model(&pool, User::model_type(), user_id.to_string(), role_id.to_string()) {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Role removed from user successfully"
@@ -319,7 +319,7 @@ pub async fn get_user_roles(
         }
     };
 
-    match SysModelHasRoleService::get_model_roles(&pool, User::model_type(), user_id, None) {
+    match SysModelHasRoleService::get_model_roles(&pool, User::model_type(), user_id.to_string(), None) {
         Ok(roles) => {
             let role_data: Vec<RoleData> = roles.into_iter().map(RoleData::from).collect();
             (StatusCode::OK, Json(json!({

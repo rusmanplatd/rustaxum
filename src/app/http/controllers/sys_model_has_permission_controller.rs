@@ -75,7 +75,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         }
     };
 
-    match SysModelHasPermissionService::find_by_id(&pool, permission_id) {
+    match SysModelHasPermissionService::find_by_id(&pool, permission_id.to_string()) {
         Ok(Some(permission)) => (StatusCode::OK, ResponseJson(permission.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -165,7 +165,7 @@ pub async fn update(
         scope_id: request.scope_id.map(|id| id.to_string()),
     };
 
-    match SysModelHasPermissionService::update(&pool, permission_id, payload) {
+    match SysModelHasPermissionService::update(&pool, permission_id.to_string(), payload) {
         Ok(permission) => (StatusCode::OK, ResponseJson(permission.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -203,7 +203,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     };
 
-    match SysModelHasPermissionService::delete(&pool, permission_id) {
+    match SysModelHasPermissionService::delete(&pool, permission_id.to_string()) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Model permission deleted successfully".to_string(),

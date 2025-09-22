@@ -13,7 +13,7 @@ use super::{HasModelType, HasRoles};
 pub struct Organization {
     /// Unique identifier for the organization
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: String,
+    pub id: Ulid,
     /// Organization name
     #[schema(example = "Engineering Department")]
     pub name: String,
@@ -23,7 +23,7 @@ pub struct Organization {
     pub organization_type: String,
     /// Parent organization ID for hierarchical structure
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub parent_id: Option<String>,
+    pub parent_id: Option<Ulid>,
     /// Optional organization code
     #[schema(example = "ENG-001")]
     pub code: Option<String>,

@@ -81,7 +81,7 @@ impl TokenService {
     ) -> Result<RefreshToken> {
         let expires_at = expires_in_seconds.map(|seconds| Utc::now() + Duration::seconds(seconds));
 
-        let new_refresh_token = NewRefreshToken::new(access_token_id.to_string(), expires_at);
+        let new_refresh_token = NewRefreshToken::new(access_token_id, expires_at);
 
         let mut conn = pool.get()?;
 
@@ -210,7 +210,7 @@ impl TokenService {
         let now = Utc::now();
 
         diesel::update(oauth_access_tokens::table)
-            .filter(oauth_access_tokens::user_id.eq(Some(user_id.to_string())))
+            .filter(oauth_access_tokens::user_id.eq(Some(user_id.clone())))
             .set((
                 oauth_access_tokens::revoked.eq(true),
                 oauth_access_tokens::updated_at.eq(now),
@@ -228,7 +228,7 @@ impl TokenService {
             )
             "#
         )
-        .bind::<diesel::sql_types::Text, _>(user_id.to_string())
+        .bind::<diesel::sql_types::Text, _>(user_id)
         .execute(&mut conn)?;
 
         Ok(())
@@ -248,9 +248,10 @@ impl TokenService {
         };
 
         // Create access token
+        let client_id_str = client.id.to_string();
         let create_token = CreateAccessToken {
-            user_id: Some(user_id.to_string()),
-            client_id: client.id.to_string(),
+            user_id: Some(user_id),
+            client_id: client_id_str.clone(),
             name: Some(name.clone()),
             scopes,
             expires_at: expires_in_seconds.map(|seconds| Utc::now() + Duration::seconds(seconds)),
@@ -259,7 +260,7 @@ impl TokenService {
         let access_token = Self::create_access_token(pool, create_token, expires_in_seconds).await?;
 
         // Generate JWT
-        let jwt_token = Self::generate_jwt_token(&access_token, &client.id.to_string())?;
+        let jwt_token = Self::generate_jwt_token(&access_token, &client_id_str)?;
 
         Ok(PersonalAccessTokenResponse {
             access_token: jwt_token,
@@ -280,12 +281,12 @@ impl TokenService {
             .map_err(|_| anyhow::anyhow!("Invalid authorization code format"))?;
 
         // Find auth code
-        let auth_code = Self::find_auth_code_by_id(pool, code_id)?
+        let auth_code = Self::find_auth_code_by_id(pool, code_id.to_string())?
             .ok_or_else(|| anyhow::anyhow!("Invalid authorization code"))?;
 
         // Validate auth code
         if !auth_code.is_valid() {
-            Self::revoke_auth_code(pool, code_id)?;
+            Self::revoke_auth_code(pool, code_id.to_string())?;
             return Err(anyhow::anyhow!("Authorization code is expired or revoked"));
         }
 
@@ -330,12 +331,12 @@ impl TokenService {
         // Create refresh token
         let refresh_token = Self::create_refresh_token(
             pool,
-            Ulid::from_string(&access_token.id)?,
+            Ulid::from_string(&access_token.id)?.to_string(),
             Some(604800), // 7 days
         )?;
 
         // Revoke the auth code
-        Self::revoke_auth_code(pool, code_id)?;
+        Self::revoke_auth_code(pool, code_id.to_string())?;
 
         // Generate JWT
         let jwt_token = Self::generate_jwt_token(&access_token, &client_id.to_string())?;
@@ -360,7 +361,7 @@ impl TokenService {
             .map_err(|_| anyhow::anyhow!("Invalid refresh token format"))?;
 
         // Find refresh token
-        let refresh_token = Self::find_refresh_token_by_id(pool, refresh_id)?
+        let refresh_token = Self::find_refresh_token_by_id(pool, refresh_id.to_string())?
             .ok_or_else(|| anyhow::anyhow!("Invalid refresh token"))?;
 
         if !refresh_token.is_valid() {
@@ -368,7 +369,7 @@ impl TokenService {
         }
 
         // Find associated access token
-        let access_token = Self::find_access_token_by_id(pool, Ulid::from_string(&refresh_token.access_token_id)?)?
+        let access_token = Self::find_access_token_by_id(pool, Ulid::from_string(&refresh_token.access_token_id)?.to_string())?
             .ok_or_else(|| anyhow::anyhow!("Associated access token not found"))?;
 
         if access_token.client_id != client_id.to_string() {
@@ -384,7 +385,7 @@ impl TokenService {
         let _client = client.ok_or_else(|| anyhow::anyhow!("Invalid client credentials"))?;
 
         // Revoke old tokens
-        Self::revoke_access_token(pool, Ulid::from_string(&access_token.id)?)?;
+        Self::revoke_access_token(pool, Ulid::from_string(&access_token.id)?.to_string())?;
 
         // Create new access token
         let create_token = CreateAccessToken {
@@ -400,7 +401,7 @@ impl TokenService {
         // Create new refresh token
         let new_refresh_token = Self::create_refresh_token(
             pool,
-            Ulid::from_string(&new_access_token.id)?,
+            Ulid::from_string(&new_access_token.id)?.to_string(),
             Some(604800), // 7 days
         )?;
 
@@ -469,7 +470,7 @@ impl TokenService {
             .map_err(|_| anyhow::anyhow!("Invalid token ID in JWT"))?;
 
         // Find access token
-        let access_token = Self::find_access_token_by_id(pool, token_id)?
+        let access_token = Self::find_access_token_by_id(pool, token_id.to_string())?
             .ok_or_else(|| anyhow::anyhow!("Access token not found"))?;
 
         // Validate token

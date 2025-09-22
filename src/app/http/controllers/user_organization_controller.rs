@@ -89,7 +89,7 @@ pub async fn show(
         }
     };
 
-    match UserOrganizationService::find_by_id(&pool, user_org_id)
+    match UserOrganizationService::find_by_id(&pool, &user_org_id.to_string())
         {
         Ok(Some(user_org)) => {
             (StatusCode::OK, Json(serde_json::json!(user_org.to_response()))).into_response()
@@ -211,7 +211,7 @@ pub async fn update(
     };
 
     // Fetch the existing user organization relationship
-    let _user_org = match UserOrganizationService::find_by_id(&pool, user_org_id)
+    let _user_org = match UserOrganizationService::find_by_id(&pool, &user_org_id.to_string())
         {
         Ok(Some(user_org)) => user_org,
         Ok(None) => {
@@ -236,7 +236,7 @@ pub async fn update(
     };
 
     // Update in database using service
-    match UserOrganizationService::update(&pool, user_org_id, update_data)
+    match UserOrganizationService::update(&pool, user_org_id.to_string(), update_data)
         {
         Ok(updated_user_org) => {
             (StatusCode::OK, Json(serde_json::json!(updated_user_org.to_response()))).into_response()
@@ -281,7 +281,7 @@ pub async fn destroy(
     };
 
     // Check if exists first and delete if found
-    let exists = match UserOrganizationService::find_by_id(&pool, user_org_id) {
+    let exists = match UserOrganizationService::find_by_id(&pool, &user_org_id.to_string()) {
         Ok(result) => result.is_some(),
         Err(_) => {
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
@@ -297,7 +297,7 @@ pub async fn destroy(
     }
 
     // Delete from database using service
-    match UserOrganizationService::delete(&pool, user_org_id)
+    match UserOrganizationService::delete(&pool, user_org_id.to_string())
             {
         Ok(_) => {
             (StatusCode::NO_CONTENT, Json(serde_json::json!({}))).into_response()
@@ -376,7 +376,7 @@ pub async fn transfer(
     };
 
     // Fetch the current user organization relationship
-    let mut user_org = match UserOrganizationService::find_by_id(&pool, user_org_id)
+    let mut user_org = match UserOrganizationService::find_by_id(&pool, &user_org_id.to_string())
         {
         Ok(Some(user_org)) => user_org,
         Ok(None) => {
@@ -438,7 +438,7 @@ pub async fn activate(
     };
 
     // Fetch the user organization relationship
-    let mut user_org = match UserOrganizationService::find_by_id(&pool, user_org_id)
+    let mut user_org = match UserOrganizationService::find_by_id(&pool, &user_org_id.to_string())
         {
         Ok(Some(user_org)) => user_org,
         Ok(None) => {
@@ -498,7 +498,7 @@ pub async fn deactivate(
     };
 
     // Fetch the user organization relationship
-    let mut user_org = match UserOrganizationService::find_by_id(&pool, user_org_id)
+    let mut user_org = match UserOrganizationService::find_by_id(&pool, &user_org_id.to_string())
         {
         Ok(Some(user_org)) => user_org,
         Ok(None) => {

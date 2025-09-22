@@ -1,6 +1,5 @@
 use anyhow::Result;
 use crate::database::DbPool;
-use ulid::Ulid;
 use diesel::prelude::*;
 use crate::schema::oauth_scopes;
 
@@ -39,11 +38,11 @@ impl ScopeService {
         Ok(scope)
     }
 
-    pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<Scope>> {
+    pub fn find_by_id(pool: &DbPool, id: &str) -> Result<Option<Scope>> {
         let mut conn = pool.get()?;
 
         let row = oauth_scopes::table
-            .filter(oauth_scopes::id.eq(id.to_string()))
+            .filter(oauth_scopes::id.eq(id))
             .first::<Scope>(&mut conn)
             .optional()?;
 
@@ -79,7 +78,7 @@ impl ScopeService {
     }
 
     pub fn update_scope(pool: &DbPool, id: String, data: UpdateScope) -> Result<ScopeResponse> {
-        let mut scope = Self::find_by_id(pool, id)?
+        let mut scope = Self::find_by_id(pool, &id)?
             .ok_or_else(|| anyhow::anyhow!("Scope not found"))?;
 
         if let Some(name) = data.name {
@@ -104,7 +103,7 @@ impl ScopeService {
 
         let mut conn = pool.get()?;
 
-        diesel::update(oauth_scopes::table.filter(oauth_scopes::id.eq(id.to_string())))
+        diesel::update(oauth_scopes::table.filter(oauth_scopes::id.eq(&id)))
             .set((
                 oauth_scopes::name.eq(&scope.name),
                 oauth_scopes::description.eq(&scope.description),
@@ -117,7 +116,7 @@ impl ScopeService {
     }
 
     pub fn delete_scope(pool: &DbPool, id: String) -> Result<()> {
-        let scope = Self::find_by_id(pool, id)?
+        let scope = Self::find_by_id(pool, &id)?
             .ok_or_else(|| anyhow::anyhow!("Scope not found"))?;
 
         // Prevent deletion of wildcard scope
@@ -127,7 +126,7 @@ impl ScopeService {
 
         let mut conn = pool.get()?;
 
-        diesel::delete(oauth_scopes::table.filter(oauth_scopes::id.eq(id.to_string())))
+        diesel::delete(oauth_scopes::table.filter(oauth_scopes::id.eq(&id)))
             .execute(&mut conn)?;
 
         Ok(())

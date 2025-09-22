@@ -74,17 +74,7 @@ pub async fn index(
     )
 )]
 pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
-    let country_id = match Ulid::from_string(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
-    match CountryService::find_by_id(&pool, country_id) {
+    match CountryService::find_by_id(&pool, id) {
         Ok(Some(country)) => (StatusCode::OK, ResponseJson(country.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -186,23 +176,13 @@ pub async fn update(
     Path(id): Path<String>,
     request: UpdateCountryRequest,
 ) -> impl IntoResponse {
-    let country_id = match Ulid::from_string(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
     let payload = UpdateCountry {
         name: request.name,
         iso_code: request.iso_code,
         phone_code: request.phone_code,
     };
 
-    match CountryService::update(&pool, country_id.to_string(), payload) {
+    match CountryService::update(&pool, id, payload) {
         Ok(country) => (StatusCode::OK, ResponseJson(country.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -236,17 +216,7 @@ pub async fn update(
     )
 )]
 pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
-    let country_id = match Ulid::from_string(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
-    match CountryService::delete(&pool, country_id.to_string()) {
+    match CountryService::delete(&pool, id) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Country deleted successfully".to_string(),

@@ -12,10 +12,10 @@ use crate::app::query_builder::{SortDirection};
 pub struct Province {
     /// Unique province identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: String,
+    pub id: Ulid,
     /// ID of the country this province belongs to
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub country_id: String,
+    pub country_id: Ulid,
     /// Province name
     #[schema(example = "California")]
     pub name: String,

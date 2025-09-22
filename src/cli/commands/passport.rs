@@ -154,7 +154,7 @@ async fn handle_list_clients(pool: &DbPool) -> Result<()> {
 async fn handle_revoke_client(pool: &DbPool, client_id: String) -> Result<()> {
     println!("🔒 Revoking OAuth2 client...");
 
-    ClientService::revoke_client(pool, client_id)?;
+    ClientService::revoke_client(pool, client_id.clone())?;
 
     println!("✅ Client {} has been revoked!", client_id);
     println!("   All associated access tokens have also been revoked.");
@@ -166,7 +166,7 @@ async fn handle_delete_client(pool: &DbPool, client_id: String) -> Result<()> {
     println!("🗑️  Deleting OAuth2 client...");
 
     // Check if client exists first
-    let client = ClientService::find_by_id(pool, client_id)?;
+    let client = ClientService::find_by_id(pool, client_id.clone())?;
     match client {
         Some(client) => {
             println!("   Found client: {}", client.name);
@@ -177,7 +177,7 @@ async fn handle_delete_client(pool: &DbPool, client_id: String) -> Result<()> {
         }
     }
 
-    ClientService::delete_client(pool, client_id)?;
+    ClientService::delete_client(pool, client_id.clone())?;
 
     println!("✅ Client {} has been deleted!", client_id);
     println!("   ⚠️  This action cannot be undone!");
@@ -188,7 +188,7 @@ async fn handle_delete_client(pool: &DbPool, client_id: String) -> Result<()> {
 async fn handle_regenerate_secret(pool: &DbPool, client_id: String) -> Result<()> {
     println!("🔄 Regenerating client secret...");
 
-    let new_secret = ClientService::regenerate_secret(pool, client_id)?;
+    let new_secret = ClientService::regenerate_secret(pool, client_id.clone())?;
 
     println!("✅ New client secret generated!");
     println!("   Client ID: {}", client_id);
@@ -271,7 +271,7 @@ async fn handle_delete_scope(pool: &DbPool, scope: String) -> Result<()> {
         }
     };
 
-    ScopeService::delete_scope(pool, scope_id)?;
+    ScopeService::delete_scope(pool, scope_id.to_string())?;
 
     println!("✅ Scope {} has been deleted!", scope);
     println!("   ⚠️  This action cannot be undone!");
@@ -284,7 +284,7 @@ async fn handle_list_tokens(pool: &DbPool, user_id: Option<String>) -> Result<()
 
     let tokens = match user_id {
         Some(uid) => {
-            TokenService::list_user_tokens(pool, user_id).await?
+            TokenService::list_user_tokens(pool, user_id.unwrap_or_default()).await?
         },
         None => {
             // List all tokens (this would need a new method in TokenService)
@@ -327,7 +327,7 @@ async fn handle_list_tokens(pool: &DbPool, user_id: Option<String>) -> Result<()
 async fn handle_revoke_token(pool: &DbPool, token_id: String) -> Result<()> {
     println!("🔒 Revoking access token...");
 
-    TokenService::revoke_access_token(pool, token_id)?;
+    TokenService::revoke_access_token(pool, token_id.clone())?;
 
     println!("✅ Token {} has been revoked!", token_id);
 
@@ -337,7 +337,7 @@ async fn handle_revoke_token(pool: &DbPool, token_id: String) -> Result<()> {
 async fn handle_revoke_all_user_tokens(pool: &DbPool, user_id: String) -> Result<()> {
     println!("🔒 Revoking all tokens for user...");
 
-    TokenService::revoke_all_user_tokens(pool, user_id)?;
+    TokenService::revoke_all_user_tokens(pool, user_id.clone())?;
 
     println!("✅ All tokens for user {} have been revoked!", user_id);
 

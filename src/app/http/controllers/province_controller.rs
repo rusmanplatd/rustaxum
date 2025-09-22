@@ -41,17 +41,7 @@ pub async fn index(
 }
 
 pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
-    let province_id = match Ulid::from_string(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
-    match ProvinceService::find_by_id(&pool, province_id.to_string()) {
+    match ProvinceService::find_by_id(&pool, id) {
         Ok(Some(province)) => (StatusCode::OK, ResponseJson(province.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -91,23 +81,13 @@ pub async fn update(
     Path(id): Path<String>,
     request: UpdateProvinceRequest,
 ) -> impl IntoResponse {
-    let province_id = match Ulid::from_string(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
     let payload = UpdateProvince {
         country_id: request.country_id,
         name: request.name,
         code: request.code,
     };
 
-    match ProvinceService::update(&pool, province_id.to_string(), payload) {
+    match ProvinceService::update(&pool, id, payload) {
         Ok(province) => (StatusCode::OK, ResponseJson(province.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -129,7 +109,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     };
 
-    match ProvinceService::delete(&pool, province_id) {
+    match ProvinceService::delete(&pool, id) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Province deleted successfully".to_string(),

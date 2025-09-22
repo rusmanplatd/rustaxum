@@ -49,17 +49,7 @@ pub async fn index(
 }
 
 pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
-    let city_id = match Ulid::from_string(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
-    match CityService::find_by_id(&pool, city_id) {
+    match CityService::find_by_id(&pool, id) {
         Ok(Some(city)) => (StatusCode::OK, ResponseJson(city.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -101,16 +91,6 @@ pub async fn update(
     Path(id): Path<String>,
     request: UpdateCityRequest,
 ) -> impl IntoResponse {
-    let city_id = match Ulid::from_string(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
     let payload = UpdateCity {
         province_id: request.province_id,
         name: request.name,
@@ -119,7 +99,7 @@ pub async fn update(
         longitude: request.longitude,
     };
 
-    match CityService::update(&pool, city_id.to_string(), payload) {
+    match CityService::update(&pool, id, payload) {
         Ok(city) => (StatusCode::OK, ResponseJson(city.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -131,17 +111,7 @@ pub async fn update(
 }
 
 pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
-    let city_id = match Ulid::from_string(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
-    match CityService::delete(&pool, city_id) {
+    match CityService::delete(&pool, id) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "City deleted successfully".to_string(),

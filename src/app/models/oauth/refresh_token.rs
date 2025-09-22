@@ -7,8 +7,8 @@ use crate::app::query_builder::{SortDirection};
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::oauth_refresh_tokens)]
 pub struct RefreshToken {
-    pub id: String,
-    pub access_token_id: String,
+    pub id: Ulid,
+    pub access_token_id: Ulid,
     pub revoked: bool,
     pub expires_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,

@@ -12,7 +12,7 @@ use crate::app::query_builder::{SortDirection};
 pub struct Notification {
     /// Unique notification identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: String,
+    pub id: Ulid,
     /// Type of notification (class name) - maps to schema type_ field
     #[schema(example = "InvoicePaidNotification")]
     #[diesel(column_name = type_)]
@@ -22,7 +22,7 @@ pub struct Notification {
     pub notifiable_type: String,
     /// ID of the notifiable entity
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub notifiable_id: String,
+    pub notifiable_id: Ulid,
     /// Notification data as JSON
     pub data: serde_json::Value,
     /// Channels where notification will be sent

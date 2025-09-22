@@ -11,8 +11,8 @@ use crate::app::query_builder::{SortDirection};
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::cities)]
 pub struct City {
-    pub id: String,
-    pub province_id: String,
+    pub id: Ulid,
+    pub province_id: Ulid,
     pub name: String,
     pub code: Option<String>,
     #[schema(value_type = Option<f64>)]

@@ -7,9 +7,9 @@ use crate::app::query_builder::{SortDirection};
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = crate::schema::oauth_auth_codes)]
 pub struct AuthCode {
-    pub id: String,
-    pub user_id: String,
-    pub client_id: String,
+    pub id: Ulid,
+    pub user_id: Ulid,
+    pub client_id: Ulid,
     pub scopes: Option<String>,
     pub revoked: bool,
     pub expires_at: Option<DateTime<Utc>>,

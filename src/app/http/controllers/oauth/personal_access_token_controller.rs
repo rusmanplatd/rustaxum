@@ -99,7 +99,7 @@ pub async fn revoke_personal_access_token(
     };
 
     // Verify the token belongs to the user
-    match TokenService::find_access_token_by_id(&pool, token_id) {
+    match TokenService::find_access_token_by_id(&pool, token_id.clone()) {
         Ok(Some(token)) => {
             if let Some(owner_id) = token.user_id {
                 if owner_id != user_id.to_string() {
@@ -151,6 +151,5 @@ async fn get_authenticated_user(_pool: &DbPool, headers: &HeaderMap) -> anyhow::
     let token = TokenUtils::extract_token_from_header(auth_header)?;
     let claims = AuthService::decode_token(token, "jwt-secret")?;
 
-    let user_id = Ulid::from_string(&claims.sub)?;
-    Ok(user_id)
+    Ok(claims.sub)
 }

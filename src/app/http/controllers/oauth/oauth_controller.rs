@@ -149,7 +149,7 @@ pub async fn authorize(
 
     // Create authorization code
     let auth_code_data = CreateAuthCode {
-        user_id: user_id.to_string(),
+        user_id: user_id,
         client_id: client_id.to_string(),
         scopes: ScopeService::get_scope_names(&scopes),
         redirect_uri: params.redirect_uri.clone(),
@@ -232,7 +232,7 @@ async fn handle_authorization_code_grant(pool: &DbPool, params: TokenRequest) ->
     match TokenService::exchange_auth_code_for_tokens(
         pool,
         &code,
-        client_id,
+        client_id.to_string(),
         params.client_secret.as_deref(),
         &redirect_uri,
         params.code_verifier.as_deref(),
@@ -274,7 +274,7 @@ async fn handle_refresh_token_grant(pool: &DbPool, params: TokenRequest) -> impl
     match TokenService::refresh_access_token(
         pool,
         &refresh_token,
-        client_id,
+        client_id.to_string(),
         params.client_secret.as_deref(),
     ).await {
         Ok(token_response) => (StatusCode::OK, ResponseJson(token_response)).into_response(),
@@ -421,7 +421,7 @@ pub async fn introspect(State(pool): State<DbPool>, Json(params): Json<Introspec
         }
     };
 
-    let access_token = match TokenService::find_access_token_by_id(&pool, token_id) {
+    let access_token = match TokenService::find_access_token_by_id(&pool, token_id.to_string()) {
         Ok(Some(token)) => token,
         _ => {
             let response = IntrospectResponse {
@@ -492,12 +492,12 @@ pub async fn revoke(State(pool): State<DbPool>, Form(params): Form<HashMap<Strin
     };
 
     // Try to revoke as access token first
-    if let Ok(_) = TokenService::revoke_access_token(&pool, token_id) {
+    if let Ok(_) = TokenService::revoke_access_token(&pool, token_id.to_string()) {
         return (StatusCode::OK, ResponseJson(serde_json::json!({"revoked": true}))).into_response();
     }
 
     // Try to revoke as refresh token
-    if let Ok(_) = TokenService::revoke_refresh_token(&pool, token_id) {
+    if let Ok(_) = TokenService::revoke_refresh_token(&pool, token_id.to_string()) {
         return (StatusCode::OK, ResponseJson(serde_json::json!({"revoked": true}))).into_response();
     }
 
@@ -510,5 +510,5 @@ async fn get_user_from_token(_pool: &DbPool, auth_header: Option<&str>) -> anyho
     let claims = AuthService::decode_token(token, "jwt-secret")?;
 
     let user_id = Ulid::from_string(&claims.sub)?;
-    Ok(user_id)
+    Ok(user_id.to_string())
 }

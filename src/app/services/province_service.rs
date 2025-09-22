@@ -16,8 +16,8 @@ impl ProvinceService {
 
         diesel::insert_into(provinces::table)
             .values((
-                provinces::id.eq(province.id.to_string()),
-                provinces::country_id.eq(province.country_id.to_string()),
+                provinces::id.eq(province.id),
+                provinces::country_id.eq(province.country_id),
                 provinces::name.eq(&province.name),
                 provinces::code.eq(&province.code),
                 provinces::created_at.eq(province.created_at),
@@ -32,7 +32,7 @@ impl ProvinceService {
         let mut conn = pool.get()?;
 
         let result = provinces::table
-            .filter(provinces::id.eq(id.to_string()))
+            .filter(provinces::id.eq(id))
             .first::<Province>(&mut conn)
             .optional()?;
 
@@ -43,7 +43,7 @@ impl ProvinceService {
         let mut conn = pool.get()?;
 
         let result = provinces::table
-            .filter(provinces::country_id.eq(country_id.to_string()))
+            .filter(provinces::country_id.eq(country_id))
             .order(provinces::name.asc())
             .load::<Province>(&mut conn)?;
 
@@ -80,9 +80,9 @@ impl ProvinceService {
         }
         current.updated_at = chrono::Utc::now();
 
-        diesel::update(provinces::table.filter(provinces::id.eq(id.to_string())))
+        diesel::update(provinces::table.filter(provinces::id.eq(id)))
             .set((
-                provinces::country_id.eq(current.country_id.to_string()),
+                provinces::country_id.eq(current.country_id),
                 provinces::name.eq(&current.name),
                 provinces::code.eq(&current.code),
                 provinces::updated_at.eq(current.updated_at),
@@ -115,7 +115,7 @@ impl ProvinceService {
         let mut conn = pool.get()?;
 
         let result = provinces::table
-            .filter(provinces::country_id.eq(country_id.to_string()))
+            .filter(provinces::country_id.eq(country_id))
             .count()
             .get_result::<i64>(&mut conn)?;
 

@@ -67,11 +67,8 @@ async fn authenticate_request(
             )
         })?;
 
-    // Use user ID from token claims directly as string
-    let user_id = &claims.sub;
-
     // Fetch user from database using UserService
-    let user = crate::app::services::user_service::UserService::find_by_id(pool, user_id.to_string())
+    let user = crate::app::services::user_service::UserService::find_by_id(pool, &claims.sub)
         .map_err(|e| {
             tracing::error!("Database error fetching user: {}", e);
             (

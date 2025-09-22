@@ -96,17 +96,7 @@ pub async fn change_password(
         }
     };
 
-    let user_id = match Ulid::from_string(&claims.sub) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid user ID in token".to_string(),
-            };
-            return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
-        }
-    };
-
-    match AuthService::change_password(&pool, user_id.to_string(), payload) {
+    match AuthService::change_password(&pool, claims.sub, payload) {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -141,17 +131,7 @@ pub async fn logout(State(pool): State<DbPool>, headers: HeaderMap) -> impl Into
         }
     };
 
-    let user_id = match Ulid::from_string(&claims.sub) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid user ID in token".to_string(),
-            };
-            return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
-        }
-    };
-
-    match AuthService::revoke_token(&pool, token, user_id.to_string(), Some("Logout".to_string())) {
+    match AuthService::revoke_token(&pool, token, claims.sub, Some("Logout".to_string())) {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -186,17 +166,7 @@ pub async fn revoke_token(State(pool): State<DbPool>, headers: HeaderMap) -> imp
         }
     };
 
-    let user_id = match Ulid::from_string(&claims.sub) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid user ID in token".to_string(),
-            };
-            return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
-        }
-    };
-
-    match AuthService::revoke_token(&pool, token, user_id.to_string(), Some("Manual revocation".to_string())) {
+    match AuthService::revoke_token(&pool, token, claims.sub, Some("Manual revocation".to_string())) {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -242,18 +212,7 @@ pub async fn revoke_all_tokens(State(pool): State<DbPool>, headers: HeaderMap) -
             return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
         }
     };
-
-    let user_id = match Ulid::from_string(&claims.sub) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid user ID in token".to_string(),
-            };
-            return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
-        }
-    };
-
-    match AuthService::revoke_all_tokens(&pool, user_id.to_string()) {
+    match AuthService::revoke_all_tokens(&pool, claims.sub) {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {

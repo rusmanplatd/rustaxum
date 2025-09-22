@@ -84,7 +84,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         }
     };
 
-    match OrganizationPositionLevelService::find_by_id(&pool, organization_position_level_id) {
+    match OrganizationPositionLevelService::find_by_id(&pool, &organization_position_level_id.to_string()) {
         Ok(Some(organization_position_level)) => (StatusCode::OK, ResponseJson(organization_position_level.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -243,7 +243,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     };
 
-    match OrganizationPositionLevelService::delete(&pool, organization_position_level_id) {
+    match OrganizationPositionLevelService::delete(&pool, organization_position_level_id.to_string()) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Job level deleted successfully".to_string(),
@@ -283,7 +283,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
 )]
 pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
     // Get current organization position level and update its active status
-    match OrganizationPositionLevelService::find_by_id(&pool, id) {
+    match OrganizationPositionLevelService::find_by_id(&pool, &id) {
         Ok(Some(_organization_position_level)) => {
             let payload = UpdateOrganizationPositionLevel {
                 name: None,
@@ -342,7 +342,7 @@ pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> imp
 )]
 pub async fn deactivate(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
     // Get current organization position level and update its active status
-    match OrganizationPositionLevelService::find_by_id(&pool, id) {
+    match OrganizationPositionLevelService::find_by_id(&pool, &id) {
         Ok(Some(_organization_position_level)) => {
             let payload = UpdateOrganizationPositionLevel {
                 name: None,

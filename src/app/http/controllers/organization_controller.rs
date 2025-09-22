@@ -84,7 +84,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         }
     };
 
-    match OrganizationService::find_by_id(&pool, organization_id) {
+    match OrganizationService::find_by_id(&pool, organization_id.to_string()) {
         Ok(Some(organization)) => (StatusCode::OK, ResponseJson(organization.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -213,7 +213,7 @@ pub async fn update(
         is_active: request.is_active,
     };
 
-    match OrganizationService::update(&pool, organization_id, payload) {
+    match OrganizationService::update(&pool, organization_id.to_string(), payload) {
         Ok(organization) => (StatusCode::OK, ResponseJson(organization.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {

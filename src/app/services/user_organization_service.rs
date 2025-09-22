@@ -9,11 +9,11 @@ use crate::app::models::user_organization::{UserOrganization, CreateUserOrganiza
 pub struct UserOrganizationService;
 
 impl UserOrganizationService {
-    pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<UserOrganization>> {
+    pub fn find_by_id(pool: &DbPool, id: &str) -> Result<Option<UserOrganization>> {
         let mut conn = pool.get()?;
 
         let user_org = user_organizations::table
-            .filter(user_organizations::id.eq(id.to_string()))
+            .filter(user_organizations::id.eq(id))
             .first::<UserOrganization>(&mut conn)
             .optional()?;
 
@@ -59,7 +59,7 @@ impl UserOrganizationService {
         let mut conn = pool.get()?;
 
         // First get the existing record
-        let mut user_org = Self::find_by_id(pool, id)?
+        let mut user_org = Self::find_by_id(pool, &id)?
             .ok_or_else(|| anyhow::anyhow!("User organization not found"))?;
 
         // Update fields if provided
@@ -85,7 +85,7 @@ impl UserOrganizationService {
 
         user_org.updated_at = chrono::Utc::now();
 
-        diesel::update(user_organizations::table.filter(user_organizations::id.eq(id.to_string())))
+        diesel::update(user_organizations::table.filter(user_organizations::id.eq(&id)))
             .set((
                 user_organizations::organization_id.eq(user_org.organization_id.to_string()),
                 user_organizations::organization_position_id.eq(user_org.organization_position_id.to_string()),

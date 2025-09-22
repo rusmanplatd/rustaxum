@@ -12,7 +12,7 @@ use crate::app::query_builder::{SortDirection};
 pub struct Country {
     /// Unique identifier for the country
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: String,
+    pub id: Ulid,
     /// Country name
     #[schema(example = "United States")]
     pub name: String,

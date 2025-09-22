@@ -13,7 +13,7 @@ use super::{HasModelType, HasRoles};
 pub struct User {
     /// Unique user identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub id: String,
+    pub id: Ulid,
     /// User's full name
     #[schema(example = "John Doe")]
     pub name: String,

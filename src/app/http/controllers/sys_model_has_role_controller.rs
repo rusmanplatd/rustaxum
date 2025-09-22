@@ -76,7 +76,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         }
     };
 
-    match SysModelHasRoleService::find_by_id(&pool, role_id) {
+    match SysModelHasRoleService::find_by_id(&pool, role_id.to_string()) {
         Ok(Some(role)) => (StatusCode::OK, ResponseJson(role.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -166,7 +166,7 @@ pub async fn update(
         scope_id: request.scope_id.map(|id| id.to_string()),
     };
 
-    match SysModelHasRoleService::update(&pool, role_id, payload) {
+    match SysModelHasRoleService::update(&pool, role_id.to_string(), payload) {
         Ok(role) => (StatusCode::OK, ResponseJson(role.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -204,7 +204,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     };
 
-    match SysModelHasRoleService::delete(&pool, role_id) {
+    match SysModelHasRoleService::delete(&pool, role_id.to_string()) {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Model role deleted successfully".to_string(),

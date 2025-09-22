@@ -185,7 +185,7 @@ pub async fn update(
         action: payload.action,
     };
 
-    match PermissionService::update(&pool, permission_id, update_permission) {
+    match PermissionService::update(&pool, permission_id.to_string(), update_permission) {
         Ok(permission) => {
             let permission_data = PermissionData::from(permission);
             (StatusCode::OK, Json(json!({
@@ -215,7 +215,7 @@ pub async fn destroy(
         }
     };
 
-    match PermissionService::delete(&pool, permission_id) {
+    match PermissionService::delete(&pool, permission_id.to_string()) {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Permission deleted successfully"
@@ -253,7 +253,7 @@ pub async fn assign_to_role(
         }
     };
 
-    match PermissionService::assign_to_role(&pool, role_id, permission_id) {
+    match PermissionService::assign_to_role(&pool, role_id.to_string(), permission_id.to_string()) {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Permission assigned to role successfully"
@@ -290,7 +290,7 @@ pub async fn remove_from_role(
         }
     };
 
-    match PermissionService::remove_from_role(&pool, role_id, permission_id) {
+    match PermissionService::remove_from_role(&pool, role_id.to_string(), permission_id.to_string()) {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Permission removed from role successfully"
@@ -318,7 +318,7 @@ pub async fn get_role_permissions(
         }
     };
 
-    match PermissionService::get_role_permissions(&pool, role_id, None) {
+    match PermissionService::get_role_permissions(&pool, role_id.to_string(), None) {
         Ok(permissions) => {
             let permission_data: Vec<PermissionData> = permissions.into_iter().map(PermissionData::from).collect();
             (StatusCode::OK, Json(json!({
@@ -348,7 +348,7 @@ pub async fn get_user_permissions(
         }
     };
 
-    match SysModelHasPermissionService::get_model_permissions(&pool, User::model_type(), user_id, None) {
+    match SysModelHasPermissionService::get_model_permissions(&pool, User::model_type(), user_id.to_string(), None) {
         Ok(permissions) => {
             let permission_data: Vec<PermissionData> = permissions.into_iter().map(PermissionData::from).collect();
             (StatusCode::OK, Json(json!({
