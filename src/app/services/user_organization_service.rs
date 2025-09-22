@@ -1,10 +1,9 @@
 use anyhow::Result;
 use crate::database::DbPool;
-use ulid::Ulid;
 use diesel::prelude::*;
 use crate::schema::user_organizations;
 
-use crate::app::models::user_organization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization};
+use crate::app::models::user_organization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization, NewUserOrganization};
 
 pub struct UserOrganizationService;
 
@@ -23,36 +22,27 @@ impl UserOrganizationService {
     pub fn create(pool: &DbPool, data: CreateUserOrganization) -> Result<UserOrganization> {
         let mut conn = pool.get()?;
 
-        // Validate ULID format
-        Ulid::from_string(&data.user_id)
-            .map_err(|_| anyhow::anyhow!("Invalid user ID format"))?;
-        Ulid::from_string(&data.organization_id)
-            .map_err(|_| anyhow::anyhow!("Invalid organization ID format"))?;
-        Ulid::from_string(&data.organization_position_id)
-            .map_err(|_| anyhow::anyhow!("Invalid organization position ID format"))?;
+        let new_user_org = NewUserOrganization {
+            id: crate::app::models::DieselUlid::new(),
+            user_id: data.user_id,
+            organization_id: data.organization_id,
+            organization_position_id: data.organization_position_id,
+            is_active: true,
+            started_at: data.started_at.unwrap_or_else(|| chrono::Utc::now()),
+            ended_at: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            deleted_at: None,
+            created_by: None, // TODO: Add created_by from auth context
+            updated_by: None,
+            deleted_by: None,
+        };
 
-        let user_org = UserOrganization::new(
-            data.user_id,
-            data.organization_id,
-            data.organization_position_id,
-            data.started_at,
-        );
+        let result = diesel::insert_into(user_organizations::table)
+            .values(&new_user_org)
+            .get_result::<UserOrganization>(&mut conn)?;
 
-        diesel::insert_into(user_organizations::table)
-            .values((
-                user_organizations::id.eq(user_org.id.to_string()),
-                user_organizations::user_id.eq(user_org.user_id.to_string()),
-                user_organizations::organization_id.eq(user_org.organization_id.to_string()),
-                user_organizations::organization_position_id.eq(user_org.organization_position_id.to_string()),
-                user_organizations::is_active.eq(user_org.is_active),
-                user_organizations::started_at.eq(user_org.started_at),
-                user_organizations::ended_at.eq(user_org.ended_at),
-                user_organizations::created_at.eq(user_org.created_at),
-                user_organizations::updated_at.eq(user_org.updated_at),
-            ))
-            .execute(&mut conn)?;
-
-        Ok(user_org)
+        Ok(result)
     }
 
     pub fn update(pool: &DbPool, id: String, data: UpdateUserOrganization) -> Result<UserOrganization> {
@@ -63,15 +53,11 @@ impl UserOrganizationService {
             .ok_or_else(|| anyhow::anyhow!("User organization not found"))?;
 
         // Update fields if provided
-        if let Some(organization_id_str) = data.organization_id {
-            let organization_id = Ulid::from_string(&organization_id_str)
-                .map_err(|_| anyhow::anyhow!("Invalid organization ID format"))?;
-            user_org.organization_id = organization_id.to_string();
+        if let Some(organization_id) = data.organization_id {
+            user_org.organization_id = organization_id;
         }
-        if let Some(organization_position_id_str) = data.organization_position_id {
-            let organization_position_id = Ulid::from_string(&organization_position_id_str)
-                .map_err(|_| anyhow::anyhow!("Invalid organization position ID format"))?;
-            user_org.organization_position_id = organization_position_id.to_string();
+        if let Some(organization_position_id) = data.organization_position_id {
+            user_org.organization_position_id = organization_position_id;
         }
         if let Some(is_active) = data.is_active {
             user_org.is_active = is_active;
@@ -80,7 +66,7 @@ impl UserOrganizationService {
             user_org.started_at = started_at;
         }
         if let Some(ended_at) = data.ended_at {
-            user_org.ended_at = Some(ended_at);
+            user_org.ended_at = ended_at;
         }
 
         user_org.updated_at = chrono::Utc::now();

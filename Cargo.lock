@@ -961,6 +961,7 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -4628,6 +4629,7 @@ dependencies = [
  "azure_storage",
  "azure_storage_blobs",
  "base64 0.22.1",
+ "bigdecimal",
  "bytes",
  "chrono",
  "clap",

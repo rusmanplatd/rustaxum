@@ -7,57 +7,65 @@ use crate::app::http::form_request::FormRequest;
 use crate::app::validation::ValidationRules;
 use crate::validation_rules;
 use crate::impl_form_request_extractor;
+use crate::app::models::DieselUlid;
 
 /// Create organization position level form request
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct CreateOrganizationPositionLevelRequest {
-    /// Job level name (2-100 characters)
+    /// Organization ID this position level belongs to
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub organization_id: DieselUlid,
+    /// Position level code (2-20 characters)
+    #[schema(example = "SL5")]
+    pub code: String,
+    /// Position level name (2-100 characters)
     #[schema(example = "Senior Level")]
     pub name: String,
-    /// Job level code (optional, 2-20 characters)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(example = "SL5")]
-    pub code: Option<String>,
-    /// Numeric level for hierarchy (1-20)
-    #[schema(example = 5)]
-    pub level: i32,
-    /// Job level description (optional, max 500 characters)
+    /// Position level description (optional, max 500 characters)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "Senior level position with 5+ years experience")]
     pub description: Option<String>,
+    /// Numeric level for hierarchy (1-20)
+    #[schema(example = 5)]
+    pub level: i32,
 }
 
 #[async_trait]
 impl FormRequest for CreateOrganizationPositionLevelRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
+            "organization_id" => ["required", "string", "regex:^[0-9A-HJKMNP-TV-Z]{26}$"],
+            "code" => ["required", "string", "min:2", "max:20"],
             "name" => ["required", "string", "min:2", "max:100"],
-            "code" => ["string", "min:2", "max:20"],
-            "level" => ["required", "numeric", "min:1", "max:20"],
-            "description" => ["string", "max:500"]
+            "description" => ["string", "max:500"],
+            "level" => ["required", "numeric", "min:1", "max:20"]
         }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
         let mut messages = HashMap::new();
-        messages.insert("name.required", "Job level name is required");
-        messages.insert("name.min", "Job level name must be at least 2 characters");
-        messages.insert("name.max", "Job level name cannot exceed 100 characters");
-        messages.insert("code.min", "Job level code must be at least 2 characters");
-        messages.insert("code.max", "Job level code cannot exceed 20 characters");
-        messages.insert("level.required", "Job level numeric value is required");
-        messages.insert("level.min", "Job level must be at least 1");
-        messages.insert("level.max", "Job level cannot exceed 20");
+        messages.insert("organization_id.required", "Organization ID is required");
+        messages.insert("organization_id.regex", "Organization ID must be a valid ULID");
+        messages.insert("code.required", "Position level code is required");
+        messages.insert("code.min", "Position level code must be at least 2 characters");
+        messages.insert("code.max", "Position level code cannot exceed 20 characters");
+        messages.insert("name.required", "Position level name is required");
+        messages.insert("name.min", "Position level name must be at least 2 characters");
+        messages.insert("name.max", "Position level name cannot exceed 100 characters");
         messages.insert("description.max", "Description cannot exceed 500 characters");
+        messages.insert("level.required", "Level numeric value is required");
+        messages.insert("level.min", "Level must be at least 1");
+        messages.insert("level.max", "Level cannot exceed 20");
         messages
     }
 
     fn attributes() -> HashMap<&'static str, &'static str> {
         let mut attributes = HashMap::new();
-        attributes.insert("name", "organization position level name");
-        attributes.insert("code", "organization position level code");
+        attributes.insert("organization_id", "organization ID");
+        attributes.insert("code", "position level code");
+        attributes.insert("name", "position level name");
+        attributes.insert("description", "position level description");
         attributes.insert("level", "level number");
-        attributes.insert("description", "organization position level description");
         attributes
     }
 }
@@ -67,22 +75,26 @@ impl_form_request_extractor!(CreateOrganizationPositionLevelRequest);
 /// Update organization position level form request
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct UpdateOrganizationPositionLevelRequest {
-    /// Job level name (optional, 2-100 characters)
+    /// Organization ID this position level belongs to (optional)
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(example = "Senior Level")]
-    pub name: Option<String>,
-    /// Job level code (optional, 2-20 characters)
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub organization_id: Option<DieselUlid>,
+    /// Position level code (optional, 2-20 characters)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "SL5")]
     pub code: Option<String>,
+    /// Position level name (optional, 2-100 characters)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "Senior Level")]
+    pub name: Option<String>,
+    /// Position level description (optional, max 500 characters)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "Senior level position with 5+ years experience")]
+    pub description: Option<Option<String>>,
     /// Numeric level for hierarchy (optional, 1-20)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = 5)]
     pub level: Option<i32>,
-    /// Job level description (optional, max 500 characters)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(example = "Senior level position with 5+ years experience")]
-    pub description: Option<String>,
     /// Active status
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = true)]
@@ -93,33 +105,36 @@ pub struct UpdateOrganizationPositionLevelRequest {
 impl FormRequest for UpdateOrganizationPositionLevelRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
-            "name" => ["string", "min:2", "max:100"],
+            "organization_id" => ["string", "regex:^[0-9A-HJKMNP-TV-Z]{26}$"],
             "code" => ["string", "min:2", "max:20"],
-            "level" => ["numeric", "min:1", "max:20"],
+            "name" => ["string", "min:2", "max:100"],
             "description" => ["string", "max:500"],
+            "level" => ["numeric", "min:1", "max:20"],
             "is_active" => ["boolean"]
         }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
         let mut messages = HashMap::new();
-        messages.insert("name.min", "Job level name must be at least 2 characters");
-        messages.insert("name.max", "Job level name cannot exceed 100 characters");
-        messages.insert("code.min", "Job level code must be at least 2 characters");
-        messages.insert("code.max", "Job level code cannot exceed 20 characters");
-        messages.insert("level.min", "Job level must be at least 1");
-        messages.insert("level.max", "Job level cannot exceed 20");
+        messages.insert("organization_id.regex", "Organization ID must be a valid ULID");
+        messages.insert("code.min", "Position level code must be at least 2 characters");
+        messages.insert("code.max", "Position level code cannot exceed 20 characters");
+        messages.insert("name.min", "Position level name must be at least 2 characters");
+        messages.insert("name.max", "Position level name cannot exceed 100 characters");
         messages.insert("description.max", "Description cannot exceed 500 characters");
+        messages.insert("level.min", "Level must be at least 1");
+        messages.insert("level.max", "Level cannot exceed 20");
         messages.insert("is_active.boolean", "Active status must be true or false");
         messages
     }
 
     fn attributes() -> HashMap<&'static str, &'static str> {
         let mut attributes = HashMap::new();
-        attributes.insert("name", "organization position level name");
-        attributes.insert("code", "organization position level code");
+        attributes.insert("organization_id", "organization ID");
+        attributes.insert("code", "position level code");
+        attributes.insert("name", "position level name");
+        attributes.insert("description", "position level description");
         attributes.insert("level", "level number");
-        attributes.insert("description", "organization position level description");
         attributes.insert("is_active", "active status");
         attributes
     }

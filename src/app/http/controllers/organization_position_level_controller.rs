@@ -101,27 +101,6 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
     }
 }
 
-/// Create a new organization position level
-///
-/// Create a new organization position level with the provided information. All required fields must be provided
-/// and will be validated according to the business rules.
-///
-/// # Request Body
-/// The request must contain a valid CreateOrganizationPositionLevelRequest JSON payload with:
-/// - `name`: Job level name (2-100 characters)
-/// - `code`: Optional organization position level code (2-20 characters)
-/// - `level`: Numeric level ranking (1-20)
-/// - `description`: Optional description (max 500 characters)
-///
-/// # Example
-/// ```json
-/// {
-///   "name": "Senior Manager",
-///   "code": "SM",
-///   "level": 5,
-///   "description": "Senior management position with team leadership responsibilities"
-/// }
-/// ```
 #[utoipa::path(
     post,
     path = "/api/organization-position-levels",
@@ -137,10 +116,11 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
 )]
 pub async fn store(State(pool): State<DbPool>, request: CreateOrganizationPositionLevelRequest) -> impl IntoResponse {
     let payload = CreateOrganizationPositionLevel {
-        name: request.name,
+        organization_id: request.organization_id,
         code: request.code,
-        level: request.level,
+        name: request.name,
         description: request.description,
+        level: request.level,
     };
 
     match OrganizationPositionLevelService::create(&pool, payload) {
@@ -154,21 +134,6 @@ pub async fn store(State(pool): State<DbPool>, request: CreateOrganizationPositi
     }
 }
 
-/// Update an existing organization position level
-///
-/// Update an existing organization position level with the provided information. All fields are optional
-/// for partial updates. Only provided fields will be updated.
-///
-/// # Path Parameters
-/// - `id`: The unique identifier of the organization position level to update (ULID format)
-///
-/// # Request Body
-/// The request should contain an UpdateOrganizationPositionLevelRequest JSON payload with optional fields:
-/// - `name`: Updated organization position level name (2-100 characters)
-/// - `code`: Updated organization position level code (2-20 characters)
-/// - `level`: Updated numeric level ranking (1-20)
-/// - `description`: Updated description (max 500 characters)
-/// - `is_active`: Updated active status
 #[utoipa::path(
     put,
     path = "/api/organization-position-levels/{id}",
@@ -192,10 +157,11 @@ pub async fn update(
     request: UpdateOrganizationPositionLevelRequest,
 ) -> impl IntoResponse {
     let payload = UpdateOrganizationPositionLevel {
-        name: request.name,
+        organization_id: request.organization_id,
         code: request.code,
-        level: request.level,
+        name: request.name,
         description: request.description,
+        level: request.level,
         is_active: request.is_active,
     };
 
@@ -210,12 +176,6 @@ pub async fn update(
     }
 }
 
-/// Delete a organization position level
-///
-/// Permanently delete a organization position level from the system. This action cannot be undone.
-///
-/// # Path Parameters
-/// - `id`: The unique identifier of the organization position level to delete (ULID format)
 #[utoipa::path(
     delete,
     path = "/api/organization-position-levels/{id}",
@@ -286,10 +246,11 @@ pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> imp
     match OrganizationPositionLevelService::find_by_id(&pool, &id) {
         Ok(Some(_organization_position_level)) => {
             let payload = UpdateOrganizationPositionLevel {
-                name: None,
+                organization_id: None,
                 code: None,
-                level: None,
+                name: None,
                 description: None,
+                level: None,
                 is_active: Some(true),
             };
 
@@ -318,12 +279,6 @@ pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> imp
     }
 }
 
-/// Deactivate a organization position level
-///
-/// Set a organization position level's active status to false.
-///
-/// # Path Parameters
-/// - `id`: The unique identifier of the organization position level to deactivate (ULID format)
 #[utoipa::path(
     post,
     path = "/api/organization-position-levels/{id}/deactivate",
@@ -345,10 +300,11 @@ pub async fn deactivate(State(pool): State<DbPool>, Path(id): Path<String>) -> i
     match OrganizationPositionLevelService::find_by_id(&pool, &id) {
         Ok(Some(_organization_position_level)) => {
             let payload = UpdateOrganizationPositionLevel {
-                name: None,
+                organization_id: None,
                 code: None,
-                level: None,
+                name: None,
                 description: None,
+                level: None,
                 is_active: Some(false),
             };
 

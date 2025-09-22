@@ -4,6 +4,7 @@ use diesel::prelude::*;
 use crate::database::DbPool;
 use chrono::{DateTime, Utc};
 use anyhow::Result;
+use ulid::Ulid;
 use std::collections::HashMap;
 use serde_json::{json, Value};
 use utoipa::ToSchema;
@@ -27,13 +28,13 @@ pub struct UserOrganization {
     pub id: DieselUlid,
     /// ID of the user in this relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub user_id: String,
+    pub user_id: DieselUlid,
     /// ID of the organization in this relationship
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub organization_id: String,
+    pub organization_id: DieselUlid,
     /// ID of the organization position held by the user
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub organization_position_id: String,
+    pub organization_position_id: DieselUlid,
     /// Whether this employment relationship is currently active
     #[schema(example = true)]
     pub is_active: bool,
@@ -49,14 +50,22 @@ pub struct UserOrganization {
     /// Last update timestamp
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
+    /// Soft delete timestamp
+    pub deleted_at: Option<DateTime<Utc>>,
+    /// User who created this relationship
+    pub created_by: Option<DieselUlid>,
+    /// User who last updated this relationship
+    pub updated_by: Option<DieselUlid>,
+    /// User who deleted this relationship
+    pub deleted_by: Option<DieselUlid>,
 }
 
 /// Create user organization payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateUserOrganization {
-    pub user_id: String,
-    pub organization_id: String,
-    pub organization_position_id: String,
+    pub user_id: DieselUlid,
+    pub organization_id: DieselUlid,
+    pub organization_position_id: DieselUlid,
     pub started_at: Option<DateTime<Utc>>,
 }
 
@@ -65,38 +74,46 @@ pub struct CreateUserOrganization {
 #[diesel(table_name = user_organizations)]
 pub struct NewUserOrganization {
     pub id: DieselUlid,
-    pub user_id: String,
-    pub organization_id: String,
-    pub organization_position_id: String,
+    pub user_id: DieselUlid,
+    pub organization_id: DieselUlid,
+    pub organization_position_id: DieselUlid,
     pub is_active: bool,
     pub started_at: DateTime<Utc>,
     pub ended_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
+    pub created_by: Option<DieselUlid>,
+    pub updated_by: Option<DieselUlid>,
+    pub deleted_by: Option<DieselUlid>,
 }
 
 /// Update user organization payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateUserOrganization {
-    pub organization_id: Option<String>,
-    pub organization_position_id: Option<String>,
+    pub organization_id: Option<DieselUlid>,
+    pub organization_position_id: Option<DieselUlid>,
     pub is_active: Option<bool>,
     pub started_at: Option<DateTime<Utc>>,
-    pub ended_at: Option<DateTime<Utc>>,
+    pub ended_at: Option<Option<DateTime<Utc>>>,
 }
 
 /// User organization response payload for API endpoints
 #[derive(Debug, Serialize, ToSchema)]
 pub struct UserOrganizationResponse {
     pub id: DieselUlid,
-    pub user_id: String,
-    pub organization_id: String,
-    pub organization_position_id: String,
+    pub user_id: DieselUlid,
+    pub organization_id: DieselUlid,
+    pub organization_position_id: DieselUlid,
     pub is_active: bool,
     pub started_at: DateTime<Utc>,
     pub ended_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
+    pub created_by: Option<DieselUlid>,
+    pub updated_by: Option<DieselUlid>,
+    pub deleted_by: Option<DieselUlid>,
 }
 
 impl NewUserOrganization {
@@ -104,14 +121,18 @@ impl NewUserOrganization {
         let now = Utc::now();
         Self {
             id: DieselUlid::new(),
-            user_id,
-            organization_id,
-            organization_position_id,
+            user_id: DieselUlid(Ulid::from_string(&user_id).unwrap()),
+            organization_id: DieselUlid(Ulid::from_string(&organization_id).unwrap()),
+            organization_position_id: DieselUlid(Ulid::from_string(&organization_position_id).unwrap()),
             is_active: true,
             started_at: started_at.unwrap_or(now),
             ended_at: None,
             created_at: now,
             updated_at: now,
+            deleted_at: None,
+            created_by: None,
+            updated_by: None,
+            deleted_by: None,
         }
     }
 }
@@ -121,14 +142,18 @@ impl UserOrganization {
         let now = Utc::now();
         Self {
             id: DieselUlid::new(),
-            user_id,
-            organization_id,
-            organization_position_id,
+            user_id: DieselUlid(Ulid::from_string(&user_id).unwrap()),
+            organization_id: DieselUlid(Ulid::from_string(&organization_id).unwrap()),
+            organization_position_id: DieselUlid(Ulid::from_string(&organization_position_id).unwrap()),
             is_active: true,
             started_at: started_at.unwrap_or(now),
             ended_at: None,
             created_at: now,
             updated_at: now,
+            deleted_at: None,
+            created_by: None,
+            updated_by: None,
+            deleted_by: None,
         }
     }
 
@@ -143,6 +168,10 @@ impl UserOrganization {
             ended_at: self.ended_at,
             created_at: self.created_at,
             updated_at: self.updated_at,
+            deleted_at: self.deleted_at,
+            created_by: self.created_by,
+            updated_by: self.updated_by,
+            deleted_by: self.deleted_by,
         }
     }
 
@@ -311,7 +340,7 @@ impl UserOrganization {
         access_level: u8, // 1 = same org, 2 = child orgs, 3 = parent orgs
     ) -> Result<bool> {
         match access_level {
-            1 => Ok(self.organization_id == target_organization_id),
+            1 => Ok(self.organization_id.to_string() == target_organization_id),
             2 => {
                 let mut conn = pool.get()?;
                 // Check if target is a child organization
@@ -414,7 +443,7 @@ impl UserOrganization {
 
         // Create new relationship
         let new_user_org = NewUserOrganization::new(
-            self.user_id.clone(),
+            self.user_id.to_string(),
             new_organization_id,
             new_organization_position_id,
             Some(Utc::now()),

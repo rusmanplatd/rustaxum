@@ -7,27 +7,79 @@ use crate::app::http::form_request::FormRequest;
 use crate::app::validation::ValidationRules;
 use crate::validation_rules;
 use crate::impl_form_request_extractor;
+use crate::app::models::DecimalWrapper;
+use serde_json::Value as JsonValue;
+use chrono::NaiveDate;
 
 /// Request payload for creating a new organization
 /// Contains all required and optional fields for organization creation
-/// @example {"name": "Engineering Department", "organization_type": "department", "code": "ENG-001"}
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct CreateOrganizationRequest {
     /// Organization name (2-100 characters)
     #[schema(example = "Engineering Department")]
     pub name: String,
-    /// Type of organization (2-50 characters)
+    /// Type of organization (company, boc, bod, division, department, branch, subbranch, section)
     #[schema(example = "department")]
     pub organization_type: String,
     /// Parent organization ID (ULID format)
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub parent_id: Option<String>,
     /// Optional organization code (2-20 characters)
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "ENG-001")]
     pub code: Option<String>,
+    /// Organization level in hierarchy
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = 2)]
+    pub level: Option<i32>,
+    /// Organization address
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "123 Main St, City, Country")]
+    pub address: Option<String>,
+    /// Authorized capital amount
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub authorized_capital: Option<DecimalWrapper>,
+    /// Business activities description
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub business_activities: Option<String>,
+    /// Contact persons information (JSON)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contact_persons: Option<JsonValue>,
     /// Optional description of the organization
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "Software engineering and development department")]
     pub description: Option<String>,
+    /// Organization email
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "engineering@company.com")]
+    pub email: Option<String>,
+    /// Date of establishment
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub establishment_date: Option<NaiveDate>,
+    /// Governance structure (JSON)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub governance_structure: Option<JsonValue>,
+    /// Legal status
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub legal_status: Option<String>,
+    /// Paid capital amount
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub paid_capital: Option<DecimalWrapper>,
+    /// Organization phone
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "+1234567890")]
+    pub phone: Option<String>,
+    /// Registration number
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub registration_number: Option<String>,
+    /// Tax number
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tax_number: Option<String>,
+    /// Organization website
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "https://engineering.company.com")]
+    pub website: Option<String>,
 }
 
 #[async_trait]

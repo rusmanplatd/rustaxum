@@ -13,18 +13,21 @@ pub struct OrganizationPositionLevel {
     /// Unique identifier for the organization position level
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub id: DieselUlid,
-    /// Job level name
+    /// Organization ID this position level belongs to
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub organization_id: DieselUlid,
+    /// Position level code
+    #[schema(example = "SM")]
+    pub code: String,
+    /// Position level name
     #[schema(example = "Senior Manager")]
     pub name: String,
-    /// Optional organization position level code
-    #[schema(example = "SM")]
-    pub code: Option<String>,
-    /// Numeric level ranking (higher number = higher level)
-    #[schema(example = 5)]
-    pub level: i32,
     /// Optional description of the organization position level
     #[schema(example = "Senior management position with team leadership responsibilities")]
     pub description: Option<String>,
+    /// Numeric level ranking (lower number = higher hierarchy)
+    #[schema(example = 5)]
+    pub level: i32,
     /// Whether the organization position level is currently active
     #[schema(example = true)]
     pub is_active: bool,
@@ -34,15 +37,24 @@ pub struct OrganizationPositionLevel {
     /// Last update timestamp
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
+    /// Soft delete timestamp
+    pub deleted_at: Option<DateTime<Utc>>,
+    /// User who created this position level
+    pub created_by: Option<DieselUlid>,
+    /// User who last updated this position level
+    pub updated_by: Option<DieselUlid>,
+    /// User who deleted this position level
+    pub deleted_by: Option<DieselUlid>,
 }
 
 /// Create organization position level payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateOrganizationPositionLevel {
+    pub organization_id: DieselUlid,
+    pub code: String,
     pub name: String,
-    pub code: Option<String>,
-    pub level: i32,
     pub description: Option<String>,
+    pub level: i32,
 }
 
 /// Insertable struct for organization position levels
@@ -50,22 +62,28 @@ pub struct CreateOrganizationPositionLevel {
 #[diesel(table_name = crate::schema::organization_position_levels)]
 pub struct NewOrganizationPositionLevel {
     pub id: DieselUlid,
+    pub organization_id: DieselUlid,
+    pub code: String,
     pub name: String,
-    pub code: Option<String>,
-    pub level: i32,
     pub description: Option<String>,
+    pub level: i32,
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
+    pub created_by: Option<DieselUlid>,
+    pub updated_by: Option<DieselUlid>,
+    pub deleted_by: Option<DieselUlid>,
 }
 
 /// Update organization position level payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateOrganizationPositionLevel {
-    pub name: Option<String>,
+    pub organization_id: Option<DieselUlid>,
     pub code: Option<String>,
+    pub name: Option<String>,
+    pub description: Option<Option<String>>,
     pub level: Option<i32>,
-    pub description: Option<String>,
     pub is_active: Option<bool>,
 }
 
@@ -73,56 +91,57 @@ pub struct UpdateOrganizationPositionLevel {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct OrganizationPositionLevelResponse {
     pub id: DieselUlid,
+    pub organization_id: DieselUlid,
+    pub code: String,
     pub name: String,
-    pub code: Option<String>,
-    pub level: i32,
     pub description: Option<String>,
+    pub level: i32,
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
+    pub created_by: Option<DieselUlid>,
+    pub updated_by: Option<DieselUlid>,
+    pub deleted_by: Option<DieselUlid>,
 }
 
 impl NewOrganizationPositionLevel {
-    pub fn new(name: String, code: Option<String>, level: i32, description: Option<String>) -> Self {
+    pub fn new(create_level: CreateOrganizationPositionLevel, created_by: Option<DieselUlid>) -> Self {
         let now = Utc::now();
         Self {
             id: DieselUlid::new(),
-            name,
-            code,
-            level,
-            description,
+            organization_id: create_level.organization_id,
+            code: create_level.code,
+            name: create_level.name,
+            description: create_level.description,
+            level: create_level.level,
             is_active: true,
             created_at: now,
             updated_at: now,
+            deleted_at: None,
+            created_by,
+            updated_by: created_by,
+            deleted_by: None,
         }
     }
 }
 
 impl OrganizationPositionLevel {
-    pub fn new(name: String, code: Option<String>, level: i32, description: Option<String>) -> Self {
-        let now = Utc::now();
-        Self {
-            id: DieselUlid::new(),
-            name,
-            code,
-            level,
-            description,
-            is_active: true,
-            created_at: now,
-            updated_at: now,
-        }
-    }
-
     pub fn to_response(&self) -> OrganizationPositionLevelResponse {
         OrganizationPositionLevelResponse {
             id: self.id,
-            name: self.name.clone(),
+            organization_id: self.organization_id,
             code: self.code.clone(),
-            level: self.level,
+            name: self.name.clone(),
             description: self.description.clone(),
+            level: self.level,
             is_active: self.is_active,
             created_at: self.created_at,
             updated_at: self.updated_at,
+            deleted_at: self.deleted_at,
+            created_by: self.created_by,
+            updated_by: self.updated_by,
+            deleted_by: self.deleted_by,
         }
     }
 }
@@ -135,39 +154,54 @@ impl crate::app::query_builder::Queryable for OrganizationPositionLevel {
     fn allowed_filters() -> Vec<&'static str> {
         vec![
             "id",
-            "name",
+            "organization_id",
             "code",
+            "name",
             "level",
             "description",
             "is_active",
             "created_at",
             "updated_at",
+            "deleted_at",
+            "created_by",
+            "updated_by",
+            "deleted_by",
         ]
     }
 
     fn allowed_sorts() -> Vec<&'static str> {
         vec![
             "id",
-            "name",
+            "organization_id",
             "code",
+            "name",
             "level",
             "description",
             "is_active",
             "created_at",
             "updated_at",
+            "deleted_at",
+            "created_by",
+            "updated_by",
+            "deleted_by",
         ]
     }
 
     fn allowed_fields() -> Vec<&'static str> {
         vec![
             "id",
-            "name",
+            "organization_id",
             "code",
-            "level",
+            "name",
             "description",
+            "level",
             "is_active",
             "created_at",
             "updated_at",
+            "deleted_at",
+            "created_by",
+            "updated_by",
+            "deleted_by",
         ]
     }
 

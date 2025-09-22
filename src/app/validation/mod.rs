@@ -21,7 +21,7 @@ pub trait Validatable: serde::Serialize {
         self.validate_with_db(None).await
     }
 
-    async fn validate_with_db(&self, db: Option<DbPool>) -> Result<(), ValidationErrors> {
+    async fn validate_with_db(&self, db: Option<DbPool>)  -> Result<(), ValidationErrors> {
         let data = serde_json::to_value(self)
             .map_err(|_| {
                 let mut errors = ValidationErrors::new();

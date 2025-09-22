@@ -24,7 +24,7 @@ impl LogDriver {
 
     /// Write to rotating log file with size-based rotation
     async fn write_to_rotating_log(&self, file_path: &str, content: &str) -> Result<()> {
-        use std::fs::{File, OpenOptions, metadata};
+        use std::fs::{OpenOptions, metadata};
         use std::io::{Write, BufWriter};
         use std::path::Path;
 
@@ -59,7 +59,7 @@ impl LogDriver {
         let timestamp = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC");
         writeln!(writer, "[{}]", timestamp)?;
         writeln!(writer, "{}", content)?;
-        writeln!(writer, ""); // Extra newline for readability
+        let _ = writeln!(writer, ""); // Extra newline for readability
 
         writer.flush()?;
 

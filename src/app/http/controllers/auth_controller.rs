@@ -5,7 +5,6 @@ use axum::{
 };
 use serde::Serialize;
 use crate::database::DbPool;
-use crate::app::models::DieselUlid;
 
 use crate::app::models::user::{
     CreateUser, LoginRequest, ForgotPasswordRequest,
@@ -107,76 +106,6 @@ pub async fn change_password(
     }
 }
 
-pub async fn logout(State(pool): State<DbPool>, headers: HeaderMap) -> impl IntoResponse {
-    let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
-
-    let token = match TokenUtils::extract_token_from_header(auth_header) {
-        Ok(token) => token,
-        Err(e) => {
-            let error = ErrorResponse {
-                error: e.to_string(),
-            };
-            return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
-        }
-    };
-
-    // Decode token to get user ID
-    let claims = match AuthService::decode_token(token, "jwt-secret") {
-        Ok(claims) => claims,
-        Err(_e) => {
-            let error = ErrorResponse {
-                error: "Invalid token".to_string(),
-            };
-            return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
-        }
-    };
-
-    match AuthService::revoke_token(&pool, token, claims.sub, Some("Logout".to_string())) {
-        Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
-        Err(e) => {
-            let error = ErrorResponse {
-                error: e.to_string(),
-            };
-            (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response()
-        }
-    }
-}
-
-pub async fn revoke_token(State(pool): State<DbPool>, headers: HeaderMap) -> impl IntoResponse {
-    let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
-
-    let token = match TokenUtils::extract_token_from_header(auth_header) {
-        Ok(token) => token,
-        Err(e) => {
-            let error = ErrorResponse {
-                error: e.to_string(),
-            };
-            return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
-        }
-    };
-
-    // Decode token to get user ID
-    let claims = match AuthService::decode_token(token, "jwt-secret") {
-        Ok(claims) => claims,
-        Err(_e) => {
-            let error = ErrorResponse {
-                error: "Invalid token".to_string(),
-            };
-            return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
-        }
-    };
-
-    match AuthService::revoke_token(&pool, token, claims.sub, Some("Manual revocation".to_string())) {
-        Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
-        Err(e) => {
-            let error = ErrorResponse {
-                error: e.to_string(),
-            };
-            (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response()
-        }
-    }
-}
-
 pub async fn refresh_token(State(pool): State<DbPool>, Json(payload): Json<RefreshTokenRequest>) -> impl IntoResponse {
     match AuthService::refresh_token(&pool, payload) {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
@@ -185,50 +114,6 @@ pub async fn refresh_token(State(pool): State<DbPool>, Json(payload): Json<Refre
                 error: e.to_string(),
             };
             (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response()
-        }
-    }
-}
-
-pub async fn revoke_all_tokens(State(pool): State<DbPool>, headers: HeaderMap) -> impl IntoResponse {
-    let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
-
-    let token = match TokenUtils::extract_token_from_header(auth_header) {
-        Ok(token) => token,
-        Err(e) => {
-            let error = ErrorResponse {
-                error: e.to_string(),
-            };
-            return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
-        }
-    };
-
-    // Decode token to get user ID
-    let claims = match AuthService::decode_token(token, "jwt-secret") {
-        Ok(claims) => claims,
-        Err(_e) => {
-            let error = ErrorResponse {
-                error: "Invalid token".to_string(),
-            };
-            return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
-        }
-    };
-    let user_id = match DieselUlid::from_string(&claims.sub) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid user ID format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
-
-    match AuthService::revoke_all_tokens(&pool, user_id) {
-        Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
-        Err(e) => {
-            let error = ErrorResponse {
-                error: e.to_string(),
-            };
-            (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response()
         }
     }
 }

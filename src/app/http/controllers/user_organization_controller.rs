@@ -7,6 +7,7 @@ use crate::database::DbPool;
 use ulid::Ulid;
 
 use crate::app::models::user_organization::UserOrganization;
+use crate::app::models::DieselUlid;
 use crate::app::http::requests::user_organization_requests::{
     CreateUserOrganizationRequest,
     UpdateUserOrganizationRequest,
@@ -127,39 +128,11 @@ pub async fn store(
 ) -> impl IntoResponse {
     // Authentication is handled by middleware
 
-    // Parse and validate IDs
-    let user_id = match Ulid::from_string(&request.user_id) {
-        Ok(id) => id,
-        Err(_) => {
-            return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
-                "error": "Invalid user ID format"
-            }))).into_response();
-        }
-    };
-
-    let organization_id = match Ulid::from_string(&request.organization_id) {
-        Ok(id) => id,
-        Err(_) => {
-            return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
-                "error": "Invalid organization ID format"
-            }))).into_response();
-        }
-    };
-
-    let organization_position_id = match Ulid::from_string(&request.organization_position_id) {
-        Ok(id) => id,
-        Err(_) => {
-            return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
-                "error": "Invalid organization position ID format"
-            }))).into_response();
-        }
-    };
-
-    // Create the user organization relationship using service
+    // Convert request to CreateUserOrganization
     let create_data = crate::app::models::user_organization::CreateUserOrganization {
-        user_id: user_id.to_string(),
-        organization_id: organization_id.to_string(),
-        organization_position_id: organization_position_id.to_string(),
+        user_id: request.user_id,
+        organization_id: request.organization_id,
+        organization_position_id: request.organization_position_id,
         started_at: request.started_at,
     };
 
@@ -176,7 +149,6 @@ pub async fn store(
     }
 }
 
-/// Update a user organization relationship
 #[utoipa::path(
     put,
     path = "/api/user-organizations/{id}",
@@ -226,13 +198,38 @@ pub async fn update(
         }
     };
 
+    // Convert string IDs to DieselUlid types
+    let organization_id = match request.organization_id {
+        Some(id_str) => {
+            match Ulid::from_string(&id_str) {
+                Ok(ulid) => Some(DieselUlid(ulid)),
+                Err(_) => return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
+                    "error": "Invalid organization_id format"
+                }))).into_response(),
+            }
+        }
+        None => None,
+    };
+
+    let organization_position_id = match request.organization_position_id {
+        Some(id_str) => {
+            match Ulid::from_string(&id_str) {
+                Ok(ulid) => Some(DieselUlid(ulid)),
+                Err(_) => return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
+                    "error": "Invalid organization_position_id format"
+                }))).into_response(),
+            }
+        }
+        None => None,
+    };
+
     // Create update data structure and validate
     let update_data = crate::app::models::user_organization::UpdateUserOrganization {
-        organization_id: request.organization_id,
-        organization_position_id: request.organization_position_id,
+        organization_id,
+        organization_position_id,
         is_active: request.is_active,
         started_at: request.started_at,
-        ended_at: request.ended_at,
+        ended_at: Some(request.ended_at),
     };
 
     // Update in database using service
@@ -249,7 +246,6 @@ pub async fn update(
     }
 }
 
-/// Delete a user organization relationship
 #[utoipa::path(
     delete,
     path = "/api/user-organizations/{id}",
@@ -310,7 +306,6 @@ pub async fn destroy(
     }
 }
 
-/// Transfer user to different organization
 #[utoipa::path(
     post,
     path = "/api/user-organizations/{id}/transfer",
@@ -406,7 +401,6 @@ pub async fn transfer(
     }
 }
 
-/// Activate user organization relationship
 #[utoipa::path(
     post,
     path = "/api/user-organizations/{id}/activate",
@@ -466,7 +460,6 @@ pub async fn activate(
     }
 }
 
-/// Deactivate user organization relationship
 #[utoipa::path(
     post,
     path = "/api/user-organizations/{id}/deactivate",

@@ -68,6 +68,14 @@ pub struct User {
     /// Last update timestamp
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
+    /// Soft delete timestamp
+    pub deleted_at: Option<DateTime<Utc>>,
+    /// User who created this record
+    pub created_by: Option<DieselUlid>,
+    /// User who last updated this record
+    pub updated_by: Option<DieselUlid>,
+    /// User who deleted this record
+    pub deleted_by: Option<DieselUlid>,
 }
 
 /// Create user payload for service layer
@@ -83,6 +91,22 @@ pub struct CreateUser {
 pub struct UpdateUser {
     pub name: Option<String>,
     pub email: Option<String>,
+}
+
+/// Insertable struct for creating new users in the database
+#[derive(Debug, Insertable)]
+#[diesel(table_name = crate::schema::sys_users)]
+pub struct NewUser {
+    pub id: DieselUlid,
+    pub name: String,
+    pub email: String,
+    pub username: Option<String>,
+    pub password: String,
+    pub last_seen_at: DateTime<Utc>,
+    pub failed_login_attempts: i32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub created_by: Option<DieselUlid>,
 }
 
 /// Login request payload
@@ -168,6 +192,10 @@ impl User {
             zoneinfo: None,
             created_at: now,
             updated_at: now,
+            deleted_at: None,
+            created_by: None,
+            updated_by: None,
+            deleted_by: None,
         }
     }
 
@@ -204,6 +232,36 @@ impl User {
             refresh_token == token && Utc::now() < *expires_at
         } else {
             false
+        }
+    }
+
+    pub fn is_deleted(&self) -> bool {
+        self.deleted_at.is_some()
+    }
+
+    pub fn delete(&mut self, deleted_by: Option<DieselUlid>) {
+        self.deleted_at = Some(Utc::now());
+        self.deleted_by = deleted_by;
+    }
+
+    pub fn restore(&mut self) {
+        self.deleted_at = None;
+        self.deleted_by = None;
+    }
+
+    pub fn to_new_user(name: String, email: String, password: String, created_by: Option<DieselUlid>) -> NewUser {
+        let now = Utc::now();
+        NewUser {
+            id: DieselUlid::new(),
+            name,
+            email,
+            username: None,
+            password,
+            last_seen_at: now,
+            failed_login_attempts: 0,
+            created_at: now,
+            updated_at: now,
+            created_by,
         }
     }
 }

@@ -7,47 +7,81 @@ use crate::app::http::form_request::FormRequest;
 use crate::app::validation::ValidationRules;
 use crate::validation_rules;
 use crate::impl_form_request_extractor;
+use crate::app::models::{DieselUlid, DecimalWrapper};
+use serde_json::Value as JsonValue;
 
 /// Create organization position form request
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct CreateOrganizationPositionRequest {
-    /// Organization position name (2-100 characters)
+    /// Organization ID this position belongs to
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub organization_id: DieselUlid,
+    /// Position level ID (ULID format)
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub organization_position_level_id: DieselUlid,
+    /// Position code (2-20 characters)
+    #[schema(example = "SSE001")]
+    pub code: String,
+    /// Position name (2-100 characters)
     #[schema(example = "Senior Software Engineer")]
     pub name: String,
-    /// Organization position code (optional, 2-20 characters)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(example = "SSE001")]
-    pub code: Option<String>,
-    /// Job level ID (ULID format)
-    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub organization_position_level_id: String,
-    /// Organization position description (optional, max 500 characters)
+    /// Position description (optional, max 500 characters)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "Senior software engineer responsible for system architecture")]
     pub description: Option<String>,
+    /// Minimum salary for this position
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "75000.00")]
+    pub min_salary: Option<DecimalWrapper>,
+    /// Maximum salary for this position
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "120000.00")]
+    pub max_salary: Option<DecimalWrapper>,
+    /// Maximum number of incumbents allowed
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = 5)]
+    pub max_incumbents: Option<i32>,
+    /// Required qualifications (JSON array)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub qualifications: Option<JsonValue>,
+    /// Position responsibilities (JSON array)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub responsibilities: Option<JsonValue>,
 }
 
 #[async_trait]
 impl FormRequest for CreateOrganizationPositionRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
+            "organization_id" => ["required", "string", "regex:^[0-9A-HJKMNP-TV-Z]{26}$"],
+            "organization_position_level_id" => ["required", "string", "regex:^[0-9A-HJKMNP-TV-Z]{26}$"],
+            "code" => ["required", "string", "min:2", "max:20"],
             "name" => ["required", "string", "min:2", "max:100"],
-            "code" => ["string", "min:2", "max:20"],
-            "organization_position_level_id" => ["required", "string", "ulid_format"],
-            "description" => ["string", "max:500"]
+            "description" => ["string", "max:500"],
+            "min_salary" => ["numeric", "min:0"],
+            "max_salary" => ["numeric", "min:0"],
+            "max_incumbents" => ["numeric", "min:1"],
+            "qualifications" => ["json"],
+            "responsibilities" => ["json"]
         }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
         let mut messages = HashMap::new();
-        messages.insert("name.required", "Organization position name is required");
-        messages.insert("name.min", "Organization position name must be at least 2 characters");
-        messages.insert("name.max", "Organization position name cannot exceed 100 characters");
-        messages.insert("code.min", "Organization position code must be at least 2 characters");
-        messages.insert("code.max", "Organization position code cannot exceed 20 characters");
-        messages.insert("organization_position_level_id.required", "Job level ID is required");
-        messages.insert("organization_position_level_id.ulid_format", "Job level ID must be a valid ULID");
+        messages.insert("organization_id.required", "Organization ID is required");
+        messages.insert("organization_id.regex", "Organization ID must be a valid ULID");
+        messages.insert("organization_position_level_id.required", "Position level ID is required");
+        messages.insert("organization_position_level_id.regex", "Position level ID must be a valid ULID");
+        messages.insert("code.required", "Position code is required");
+        messages.insert("code.min", "Position code must be at least 2 characters");
+        messages.insert("code.max", "Position code cannot exceed 20 characters");
+        messages.insert("name.required", "Position name is required");
+        messages.insert("name.min", "Position name must be at least 2 characters");
+        messages.insert("name.max", "Position name cannot exceed 100 characters");
         messages.insert("description.max", "Description cannot exceed 500 characters");
+        messages.insert("min_salary.min", "Minimum salary must be at least 0");
+        messages.insert("max_salary.min", "Maximum salary must be at least 0");
+        messages.insert("max_incumbents.min", "Maximum incumbents must be at least 1");
         messages
     }
 
@@ -66,59 +100,97 @@ impl_form_request_extractor!(CreateOrganizationPositionRequest);
 /// Update organization position form request
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct UpdateOrganizationPositionRequest {
-    /// Organization position name (optional, 2-100 characters)
+    /// Organization ID this position belongs to (optional)
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(example = "Senior Software Engineer")]
-    pub name: Option<String>,
-    /// Organization position code (optional, 2-20 characters)
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub organization_id: Option<DieselUlid>,
+    /// Position level ID (optional, ULID format)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub organization_position_level_id: Option<DieselUlid>,
+    /// Position code (optional, 2-20 characters)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "SSE001")]
     pub code: Option<String>,
-    /// Job level ID (optional, ULID format)
+    /// Position name (optional, 2-100 characters)
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub organization_position_level_id: Option<String>,
-    /// Organization position description (optional, max 500 characters)
+    #[schema(example = "Senior Software Engineer")]
+    pub name: Option<String>,
+    /// Position description (optional, max 500 characters)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "Senior software engineer responsible for system architecture")]
-    pub description: Option<String>,
+    pub description: Option<Option<String>>,
     /// Active status
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = true)]
     pub is_active: Option<bool>,
+    /// Minimum salary for this position
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "75000.00")]
+    pub min_salary: Option<DecimalWrapper>,
+    /// Maximum salary for this position
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "120000.00")]
+    pub max_salary: Option<DecimalWrapper>,
+    /// Maximum number of incumbents allowed
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = 5)]
+    pub max_incumbents: Option<i32>,
+    /// Required qualifications (JSON array)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub qualifications: Option<JsonValue>,
+    /// Position responsibilities (JSON array)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub responsibilities: Option<JsonValue>,
 }
 
 #[async_trait]
 impl FormRequest for UpdateOrganizationPositionRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
-            "name" => ["string", "min:2", "max:100"],
+            "organization_id" => ["string", "regex:^[0-9A-HJKMNP-TV-Z]{26}$"],
+            "organization_position_level_id" => ["string", "regex:^[0-9A-HJKMNP-TV-Z]{26}$"],
             "code" => ["string", "min:2", "max:20"],
-            "organization_position_level_id" => ["string", "ulid_format"],
+            "name" => ["string", "min:2", "max:100"],
             "description" => ["string", "max:500"],
-            "is_active" => ["boolean"]
+            "is_active" => ["boolean"],
+            "min_salary" => ["numeric", "min:0"],
+            "max_salary" => ["numeric", "min:0"],
+            "max_incumbents" => ["numeric", "min:1"],
+            "qualifications" => ["json"],
+            "responsibilities" => ["json"]
         }
     }
 
     fn messages() -> HashMap<&'static str, &'static str> {
         let mut messages = HashMap::new();
-        messages.insert("name.min", "Organization position name must be at least 2 characters");
-        messages.insert("name.max", "Organization position name cannot exceed 100 characters");
-        messages.insert("code.min", "Organization position code must be at least 2 characters");
-        messages.insert("code.max", "Organization position code cannot exceed 20 characters");
-        messages.insert("organization_position_level_id.ulid_format", "Job level ID must be a valid ULID");
+        messages.insert("organization_id.regex", "Organization ID must be a valid ULID");
+        messages.insert("organization_position_level_id.regex", "Position level ID must be a valid ULID");
+        messages.insert("code.min", "Position code must be at least 2 characters");
+        messages.insert("code.max", "Position code cannot exceed 20 characters");
+        messages.insert("name.min", "Position name must be at least 2 characters");
+        messages.insert("name.max", "Position name cannot exceed 100 characters");
         messages.insert("description.max", "Description cannot exceed 500 characters");
         messages.insert("is_active.boolean", "Active status must be true or false");
+        messages.insert("min_salary.min", "Minimum salary must be at least 0");
+        messages.insert("max_salary.min", "Maximum salary must be at least 0");
+        messages.insert("max_incumbents.min", "Maximum incumbents must be at least 1");
         messages
     }
 
     fn attributes() -> HashMap<&'static str, &'static str> {
         let mut attributes = HashMap::new();
-        attributes.insert("name", "organization position name");
-        attributes.insert("code", "organization position code");
-        attributes.insert("organization_position_level_id", "organization position level");
-        attributes.insert("description", "organization position description");
+        attributes.insert("organization_id", "organization ID");
+        attributes.insert("organization_position_level_id", "position level ID");
+        attributes.insert("code", "position code");
+        attributes.insert("name", "position name");
+        attributes.insert("description", "position description");
         attributes.insert("is_active", "active status");
+        attributes.insert("min_salary", "minimum salary");
+        attributes.insert("max_salary", "maximum salary");
+        attributes.insert("max_incumbents", "maximum incumbents");
+        attributes.insert("qualifications", "qualifications");
+        attributes.insert("responsibilities", "responsibilities");
         attributes
     }
 }

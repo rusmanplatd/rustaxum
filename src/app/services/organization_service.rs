@@ -1,11 +1,10 @@
 use anyhow::Result;
-use ulid::Ulid;
 use diesel::prelude::*;
 use crate::database::DbPool;
 use crate::schema::organizations;
 use std::collections::HashMap;
 
-use crate::app::models::organization::{Organization, CreateOrganization, UpdateOrganization};
+use crate::app::models::organization::{Organization, CreateOrganization, UpdateOrganization, NewOrganization};
 
 pub struct OrganizationService;
 
@@ -13,32 +12,10 @@ impl OrganizationService {
     pub fn create(pool: &DbPool, data: CreateOrganization) -> Result<Organization> {
         let mut conn = pool.get()?;
 
-        let parent_id = if let Some(parent_id_str) = data.parent_id {
-            Some(Ulid::from_string(&parent_id_str)?)
-        } else {
-            None
-        };
-
-        let organization = Organization::new(
-            data.name,
-            data.organization_type,
-            parent_id.map(|id| id.to_string()),
-            data.code,
-            data.description,
-        );
+        let new_org = NewOrganization::new(data, None); // TODO: Add created_by from auth context
 
         let result = diesel::insert_into(organizations::table)
-            .values((
-                organizations::id.eq(organization.id.to_string()),
-                organizations::name.eq(&organization.name),
-                organizations::type_.eq(&organization.organization_type),
-                organizations::parent_id.eq(organization.parent_id.map(|id| id.to_string())),
-                organizations::code.eq(&organization.code),
-                organizations::description.eq(&organization.description),
-                organizations::is_active.eq(organization.is_active),
-                organizations::created_at.eq(organization.created_at),
-                organizations::updated_at.eq(organization.updated_at),
-            ))
+            .values(&new_org)
             .get_result::<Organization>(&mut conn)?;
 
         Ok(result)
@@ -79,8 +56,8 @@ impl OrganizationService {
     pub fn update(pool: &DbPool, id: String, data: UpdateOrganization) -> Result<Organization> {
         let mut conn = pool.get()?;
 
-        let parent_id = if let Some(parent_id_str) = data.parent_id {
-            Some(Ulid::from_string(&parent_id_str)?)
+        let parent_id = if let Some(parent_id_ulid) = data.parent_id {
+            Some(parent_id_ulid)
         } else {
             None
         };
@@ -89,7 +66,7 @@ impl OrganizationService {
             .set((
                 data.name.map(|n| organizations::name.eq(n)),
                 data.organization_type.map(|t| organizations::type_.eq(t)),
-                parent_id.map(|p| organizations::parent_id.eq(p.to_string())),
+                parent_id.map(|p| organizations::parent_id.eq(p)),
                 data.code.map(|c| organizations::code.eq(c)),
                 data.description.map(|d| organizations::description.eq(d)),
                 data.is_active.map(|a| organizations::is_active.eq(a)),

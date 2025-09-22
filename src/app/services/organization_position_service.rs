@@ -1,12 +1,11 @@
 use anyhow::Result;
 use crate::database::DbPool;
-use ulid::Ulid;
 use chrono::Utc;
 use serde_json::{json, Value};
 use diesel::prelude::*;
 use crate::schema::organization_positions;
 
-use crate::app::models::organization_position::OrganizationPosition;
+use crate::app::models::organization_position::{OrganizationPosition, NewOrganizationPosition, CreateOrganizationPosition};
 use crate::app::http::requests::organization_position_requests::{
     CreateOrganizationPositionRequest, UpdateOrganizationPositionRequest, IndexOrganizationPositionRequest, OrganizationPositionsByLevelRequest
 };
@@ -81,45 +80,92 @@ impl OrganizationPositionService {
 
     pub fn create(pool: &DbPool, request: &CreateOrganizationPositionRequest) -> Result<OrganizationPosition> {
         let mut conn = pool.get()?;
-        let id = Ulid::new();
-        let now = Utc::now();
 
-        let organization_position = diesel::insert_into(organization_positions::table)
-            .values((
-                organization_positions::id.eq(id.to_string()),
-                organization_positions::name.eq(&request.name),
-                organization_positions::code.eq(&request.code),
-                organization_positions::organization_position_level_id.eq(&request.organization_position_level_id),
-                organization_positions::description.eq(&request.description),
-                organization_positions::is_active.eq(true),
-                organization_positions::created_at.eq(now),
-                organization_positions::updated_at.eq(now),
-            ))
+        // Convert request to CreateOrganizationPosition model
+        let create_data = CreateOrganizationPosition {
+            organization_id: request.organization_id,
+            organization_position_level_id: request.organization_position_level_id,
+            code: request.code.clone(),
+            name: request.name.clone(),
+            description: request.description.clone(),
+            min_salary: request.min_salary.clone(),
+            max_salary: request.max_salary.clone(),
+            max_incumbents: request.max_incumbents,
+            qualifications: request.qualifications.clone(),
+            responsibilities: request.responsibilities.clone(),
+        };
+
+        let new_position = NewOrganizationPosition::new(create_data, None); // TODO: Add created_by from auth context
+
+        let result = diesel::insert_into(organization_positions::table)
+            .values(&new_position)
             .get_result::<OrganizationPosition>(&mut conn)?;
 
-        Ok(organization_position)
+        Ok(result)
     }
 
     pub fn update(pool: &DbPool, id: &str, request: &UpdateOrganizationPositionRequest) -> Result<OrganizationPosition> {
         let mut conn = pool.get()?;
         let now = Utc::now();
 
-        let changeset = organization_positions::table.filter(organization_positions::id.eq(id));
+        // First get the current position
+        let mut current = Self::show(pool, id)?;
 
-        let organization_position = diesel::update(changeset)
+        // Update fields if provided
+        if let Some(organization_id) = request.organization_id {
+            current.organization_id = organization_id;
+        }
+        if let Some(organization_position_level_id) = request.organization_position_level_id {
+            current.organization_position_level_id = organization_position_level_id;
+        }
+        if let Some(code) = &request.code {
+            current.code = code.clone();
+        }
+        if let Some(name) = &request.name {
+            current.name = name.clone();
+        }
+        if let Some(description) = &request.description {
+            current.description = description.clone();
+        }
+        if let Some(is_active) = request.is_active {
+            current.is_active = is_active;
+        }
+        if let Some(min_salary) = &request.min_salary {
+            current.min_salary = min_salary.clone();
+        }
+        if let Some(max_salary) = &request.max_salary {
+            current.max_salary = max_salary.clone();
+        }
+        if let Some(max_incumbents) = request.max_incumbents {
+            current.max_incumbents = max_incumbents;
+        }
+        if let Some(qualifications) = &request.qualifications {
+            current.qualifications = qualifications.clone();
+        }
+        if let Some(responsibilities) = &request.responsibilities {
+            current.responsibilities = responsibilities.clone();
+        }
+        current.updated_at = now;
+        // TODO: Set updated_by from auth context
+
+        let result = diesel::update(organization_positions::table.filter(organization_positions::id.eq(id)))
             .set((
-                organization_positions::name.eq(request.name.as_ref().unwrap_or(&"".to_string())),
-                organization_positions::code.eq(request.code.as_ref().unwrap_or(&"".to_string())),
-                organization_positions::organization_position_level_id.eq(request.organization_position_level_id.as_ref().unwrap_or(&"".to_string())),
-                organization_positions::description.eq(request.description.as_ref().unwrap_or(&"".to_string())),
-                organization_positions::is_active.eq(request.is_active.unwrap_or(true)),
-                organization_positions::updated_at.eq(now),
+                organization_positions::organization_id.eq(current.organization_id),
+                organization_positions::organization_position_level_id.eq(current.organization_position_level_id),
+                organization_positions::code.eq(&current.code),
+                organization_positions::name.eq(&current.name),
+                organization_positions::description.eq(&current.description),
+                organization_positions::is_active.eq(current.is_active),
+                organization_positions::min_salary.eq(&current.min_salary),
+                organization_positions::max_salary.eq(&current.max_salary),
+                organization_positions::max_incumbents.eq(current.max_incumbents),
+                organization_positions::qualifications.eq(&current.qualifications),
+                organization_positions::responsibilities.eq(&current.responsibilities),
+                organization_positions::updated_at.eq(current.updated_at),
             ))
-            .get_result::<OrganizationPosition>(&mut conn)
-            .optional()?
-            .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
+            .get_result::<OrganizationPosition>(&mut conn)?;
 
-        Ok(organization_position)
+        Ok(result)
     }
 
     pub fn delete(pool: &DbPool, id: &str) -> Result<()> {

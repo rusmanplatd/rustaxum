@@ -5,9 +5,8 @@ use serde::{Deserialize, Serialize};
 use chrono::{Duration, Utc, DateTime};
 use ulid::Ulid;
 use crate::database::DbPool;
-use crate::app::models::DieselUlid;
 
-use crate::app::models::user::{User, CreateUser, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest, RefreshTokenRequest, UserResponse};
+use crate::app::models::user::{CreateUser, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest, RefreshTokenRequest, UserResponse};
 // use crate::app::utils::password_validator::PasswordValidator;
 use crate::app::utils::token_utils::TokenUtils;
 use crate::app::services::user_service::UserService;
@@ -106,8 +105,12 @@ impl AuthService {
         let hashed_password = Self::hash_password(&data.password)?;
 
         // Create user
-        let user = User::new(data.name, data.email, hashed_password);
-        let created_user = UserService::create_user_record(pool, user)?;
+        let create_user_data = CreateUser {
+            name: data.name,
+            email: data.email,
+            password: hashed_password,
+        };
+        let created_user = UserService::create_user(pool, create_user_data, None)?;
 
         // Generate tokens
         let access_token = Self::generate_access_token(&created_user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
@@ -229,7 +232,7 @@ impl AuthService {
         let hashed_password = Self::hash_password(&data.password)?;
 
         // Update user password and clear reset token
-        UserService::update_password(pool, user.id.clone(), hashed_password)?;
+        UserService::update_password(pool, user.id.clone(), hashed_password, None)?;
         UserService::update_password_reset_token(pool, user.id.clone(), None, None)?;
 
         Ok(MessageResponse {
@@ -255,24 +258,10 @@ impl AuthService {
         let hashed_password = Self::hash_password(&data.new_password)?;
 
         // Update password
-        UserService::update_password(pool, user.id, hashed_password)?;
+        UserService::update_password(pool, user.id, hashed_password, None)?;
 
         Ok(MessageResponse {
             message: "Password changed successfully.".to_string(),
-        })
-    }
-
-    pub fn revoke_token(_pool: &DbPool, token: &str, _user_id: String, _reason: Option<String>) -> Result<MessageResponse> {
-        // Decode token to get expiration
-        let claims = Self::decode_token(token, "jwt-secret")?;
-        let _expires_at = DateTime::from_timestamp(claims.exp as i64, 0)
-            .ok_or_else(|| anyhow::anyhow!("Invalid token expiration"))?;
-
-        // Hash token for storage
-        let _token_hash = TokenUtils::hash_token(token);
-
-        Ok(MessageResponse {
-            message: "Token revoked successfully.".to_string(),
         })
     }
 
@@ -303,18 +292,6 @@ impl AuthService {
             user: user.to_response(),
             expires_at,
             refresh_expires_at,
-        })
-    }
-
-    pub fn revoke_all_tokens(pool: &DbPool, user_id: DieselUlid) -> Result<MessageResponse> {
-        // Clear refresh token
-        UserService::update_refresh_token(pool, user_id, None, None)?;
-
-        // Note: Access tokens can't be revoked directly since they're stateless JWTs
-        // In a production system, you might want to maintain a blacklist or use shorter-lived tokens
-
-        Ok(MessageResponse {
-            message: "All tokens revoked successfully.".to_string(),
         })
     }
 }

@@ -1,4 +1,5 @@
 pub mod diesel_ulid;
+pub mod decimal_wrapper;
 pub mod user;
 pub mod migration;
 pub mod oauth;
@@ -16,6 +17,7 @@ pub mod sys_model_has_permission;
 pub mod sys_model_has_role;
 
 pub use diesel_ulid::DieselUlid;
+pub use decimal_wrapper::DecimalWrapper;
 
 /// Trait for models that can be used in polymorphic relationships
 /// Provides the model type name for the sys_model_has_roles table

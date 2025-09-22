@@ -9,6 +9,7 @@ use crate::database::DbPool;
 use std::collections::HashMap;
 
 use crate::app::models::organization::{CreateOrganization, UpdateOrganization};
+use crate::app::models::DieselUlid;
 use crate::app::services::organization_service::OrganizationService;
 use crate::app::http::requests::{CreateOrganizationRequest, UpdateOrganizationRequest};
 
@@ -101,28 +102,6 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
     }
 }
 
-/// Create a new organization
-///
-/// Create a new organization with the provided information. All required fields must be provided
-/// and will be validated according to the business rules.
-///
-/// # Request Body
-/// The request must contain a valid CreateOrganizationRequest JSON payload with:
-/// - `name`: Organization name (2-100 characters)
-/// - `organization_type`: Type of organization (2-50 characters)
-/// - `parent_id`: Optional parent organization ID (ULID format)
-/// - `code`: Optional organization code (2-20 characters, uppercase)
-/// - `description`: Optional description (max 500 characters)
-///
-/// # Example
-/// ```json
-/// {
-///   "name": "Engineering Department",
-///   "organization_type": "department",
-///   "code": "ENG-001",
-///   "description": "Software engineering and development department"
-/// }
-/// ```
 #[utoipa::path(
     post,
     path = "/api/organizations",
@@ -137,12 +116,40 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
     )
 )]
 pub async fn store(State(pool): State<DbPool>, request: CreateOrganizationRequest) -> impl IntoResponse {
+    // Convert parent_id from String to DieselUlid if provided
+    let parent_id = match request.parent_id {
+        Some(id_str) => {
+            match Ulid::from_string(&id_str) {
+                Ok(ulid) => Some(DieselUlid(ulid)),
+                Err(_) => return (StatusCode::BAD_REQUEST, ResponseJson(ErrorResponse {
+                    error: "Invalid parent_id format".to_string(),
+                })).into_response(),
+            }
+        }
+        None => None,
+    };
+
     let payload = CreateOrganization {
         name: request.name,
         organization_type: request.organization_type,
-        parent_id: request.parent_id,
+        parent_id,
         code: request.code,
+        level: request.level,
+        address: request.address,
+        authorized_capital: request.authorized_capital,
+        business_activities: request.business_activities,
+        contact_persons: request.contact_persons,
         description: request.description,
+        email: request.email,
+        establishment_date: request.establishment_date,
+        governance_structure: request.governance_structure,
+        legal_status: request.legal_status,
+        paid_capital: request.paid_capital,
+        path: None, // path will be auto-generated based on hierarchy
+        phone: request.phone,
+        registration_number: request.registration_number,
+        tax_number: request.tax_number,
+        website: request.website,
     };
 
     match OrganizationService::create(&pool, payload) {
@@ -156,22 +163,6 @@ pub async fn store(State(pool): State<DbPool>, request: CreateOrganizationReques
     }
 }
 
-/// Update an existing organization
-///
-/// Update an existing organization with the provided information. All fields are optional
-/// for partial updates. Only provided fields will be updated.
-///
-/// # Path Parameters
-/// - `id`: The unique identifier of the organization to update (ULID format)
-///
-/// # Request Body
-/// The request should contain an UpdateOrganizationRequest JSON payload with optional fields:
-/// - `name`: Updated organization name (2-100 characters)
-/// - `organization_type`: Updated organization type (2-50 characters)
-/// - `parent_id`: Updated parent organization ID (ULID format)
-/// - `code`: Updated organization code (2-20 characters, uppercase)
-/// - `description`: Updated description (max 500 characters)
-/// - `is_active`: Updated active status
 #[utoipa::path(
     put,
     path = "/api/organizations/{id}",
@@ -204,12 +195,40 @@ pub async fn update(
         }
     };
 
+    // Convert parent_id from String to DieselUlid if provided
+    let parent_id = match request.parent_id {
+        Some(id_str) => {
+            match Ulid::from_string(&id_str) {
+                Ok(ulid) => Some(Some(DieselUlid(ulid))),
+                Err(_) => return (StatusCode::BAD_REQUEST, ResponseJson(ErrorResponse {
+                    error: "Invalid parent_id format".to_string(),
+                })).into_response(),
+            }
+        }
+        None => None,
+    };
+
     let payload = UpdateOrganization {
         name: request.name,
         organization_type: request.organization_type,
-        parent_id: request.parent_id,
-        code: request.code,
-        description: request.description,
+        parent_id,
+        code: Some(request.code),
+        level: None,
+        address: None,
+        authorized_capital: None,
+        business_activities: None,
+        contact_persons: None,
+        description: Some(request.description),
+        email: None,
+        establishment_date: None,
+        governance_structure: None,
+        legal_status: None,
+        paid_capital: None,
+        path: None, // path is typically auto-generated
+        phone: None,
+        registration_number: None,
+        tax_number: None,
+        website: None,
         is_active: request.is_active,
     };
 
@@ -224,12 +243,6 @@ pub async fn update(
     }
 }
 
-/// Delete an organization
-///
-/// Permanently delete an organization from the system. This action cannot be undone.
-///
-/// # Path Parameters
-/// - `id`: The unique identifier of the organization to delete (ULID format)
 #[utoipa::path(
     delete,
     path = "/api/organizations/{id}",
@@ -263,12 +276,6 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
     }
 }
 
-/// Get children organizations
-///
-/// Retrieve all child organizations of a specific parent organization.
-///
-/// # Path Parameters
-/// - `id`: The unique identifier of the parent organization (ULID format)
 #[utoipa::path(
     get,
     path = "/api/organizations/{id}/children",
@@ -299,9 +306,6 @@ pub async fn children(State(pool): State<DbPool>, Path(id): Path<String>) -> imp
     }
 }
 
-/// Get root organizations
-///
-/// Retrieve all root-level organizations (organizations without a parent).
 #[utoipa::path(
     get,
     path = "/api/organizations/roots",

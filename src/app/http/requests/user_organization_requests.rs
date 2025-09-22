@@ -8,19 +8,20 @@ use crate::app::http::form_request::FormRequest;
 use crate::app::validation::ValidationRules;
 use crate::validation_rules;
 use crate::impl_form_request_extractor;
+use crate::app::models::DieselUlid;
 
 /// Create user organization relationship form request
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct CreateUserOrganizationRequest {
     /// User ID (ULID format)
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub user_id: String,
+    pub user_id: DieselUlid,
     /// Organization ID (ULID format)
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub organization_id: String,
-    /// Job Position ID (ULID format)
+    pub organization_id: DieselUlid,
+    /// Position ID (ULID format)
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub organization_position_id: String,
+    pub organization_position_id: DieselUlid,
     /// Start date of the relationship (defaults to current time)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "2024-01-01T00:00:00Z")]
@@ -31,9 +32,9 @@ pub struct CreateUserOrganizationRequest {
 impl FormRequest for CreateUserOrganizationRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
-            "user_id" => ["required", "string", "ulid_format"],
-            "organization_id" => ["required", "string", "ulid_format"],
-            "organization_position_id" => ["required", "string", "ulid_format"],
+            "user_id" => ["required", "string", "regex:^[0-9A-HJKMNP-TV-Z]{26}$"],
+            "organization_id" => ["required", "string", "regex:^[0-9A-HJKMNP-TV-Z]{26}$"],
+            "organization_position_id" => ["required", "string", "regex:^[0-9A-HJKMNP-TV-Z]{26}$"],
             "started_at" => ["date"]
         }
     }
