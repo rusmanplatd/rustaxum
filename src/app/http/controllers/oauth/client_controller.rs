@@ -10,6 +10,7 @@ use crate::database::DbPool;
 use crate::app::services::oauth::ClientService;
 use crate::app::services::auth_service::AuthService;
 use crate::app::models::oauth::{CreateClient, UpdateClient};
+use crate::app::models::DieselUlid;
 use crate::app::utils::token_utils::TokenUtils;
 
 #[derive(Serialize, ToSchema)]
@@ -54,7 +55,17 @@ pub async fn create_client(
     Json(payload): Json<CreateClientRequest>,
 ) -> impl IntoResponse {
     let user_id = match get_authenticated_user(&pool, &headers).await {
-        Ok(user_id) => Some(user_id),
+        Ok(user_id_str) => {
+            match DieselUlid::from_string(&user_id_str) {
+                Ok(ulid) => Some(ulid),
+                Err(_) => {
+                    let error = ErrorResponse {
+                        error: "Invalid user ID format".to_string(),
+                    };
+                    return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+                }
+            }
+        },
         Err(e) => {
             let error = ErrorResponse {
                 error: e.to_string(),
@@ -161,7 +172,7 @@ pub async fn get_client(
         Ok(Some(client)) => {
             // Check if user owns this client or if it's a system client
             if let Some(ref owner_id) = client.user_id {
-                if owner_id != &user_id {
+                if owner_id.to_string() != user_id {
                     let error = ErrorResponse {
                         error: "Access denied".to_string(),
                     };
@@ -225,7 +236,7 @@ pub async fn update_client(
     match ClientService::find_by_id(&pool, client_id.clone()) {
         Ok(Some(client)) => {
             if let Some(ref owner_id) = client.user_id {
-                if owner_id != &user_id {
+                if owner_id.to_string() != user_id {
                     let error = ErrorResponse {
                         error: "Access denied".to_string(),
                     };
@@ -302,7 +313,7 @@ pub async fn delete_client(
     match ClientService::find_by_id(&pool, client_id.clone()) {
         Ok(Some(client)) => {
             if let Some(ref owner_id) = client.user_id {
-                if owner_id != &user_id {
+                if owner_id.to_string() != user_id {
                     let error = ErrorResponse {
                         error: "Access denied".to_string(),
                     };
@@ -373,7 +384,7 @@ pub async fn regenerate_secret(
     match ClientService::find_by_id(&pool, client_id.clone()) {
         Ok(Some(client)) => {
             if let Some(ref owner_id) = client.user_id {
-                if owner_id != &user_id {
+                if owner_id.to_string() != user_id {
                     let error = ErrorResponse {
                         error: "Access denied".to_string(),
                     };

@@ -9,7 +9,7 @@ use crate::app::models::oauth::{
     Client, CreateClient, UpdateClient, ClientResponse,
     PersonalAccessClient
 };
-use crate::app::models::{user_organization::UserOrganization, DieselUlid};
+use crate::app::models::DieselUlid;
 
 pub struct ClientService;
 

@@ -5,7 +5,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use crate::database::DbPool;
-use utoipa::{ToSchema, OpenApi};
+use utoipa::ToSchema;
 
 use crate::app::services::oauth::ScopeService;
 use crate::app::services::auth_service::AuthService;
@@ -35,7 +35,7 @@ pub struct CreateScopeRequest {
     pub is_default: Option<bool>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdateScopeRequest {
     pub name: Option<String>,
     pub description: Option<String>,

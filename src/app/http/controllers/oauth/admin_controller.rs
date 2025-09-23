@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Json as ResponseJson},
 };
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use crate::database::DbPool;
 use chrono::{Utc, DateTime, Duration};
 
@@ -11,13 +12,13 @@ use chrono::{Utc, DateTime, Duration};
 use crate::app::services::auth_service::AuthService;
 use crate::app::utils::token_utils::TokenUtils;
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct ErrorResponse {
     error: String,
     error_description: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema, utoipa::IntoParams)]
 pub struct AdminStatsQuery {
     pub days: Option<i32>,
     pub include_details: Option<bool>,
@@ -146,7 +147,7 @@ pub struct HealthIssue {
     pub recommendation: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SystemCleanupRequest {
     pub remove_expired_tokens: Option<bool>,
     pub remove_revoked_tokens: Option<bool>,
@@ -162,6 +163,21 @@ pub struct CleanupResult {
 }
 
 /// Get comprehensive OAuth2 dashboard statistics (admin only)
+#[utoipa::path(
+    get,
+    path = "/oauth/admin/dashboard-stats",
+    tags = ["OAuth Admin"],
+    summary = "Get dashboard statistics",
+    description = "Get comprehensive OAuth dashboard statistics (admin only)",
+    params(
+        AdminStatsQuery
+    ),
+    responses(
+        (status = 200, description = "Dashboard statistics", body = crate::app::docs::oauth::OAuthDashboardStats),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn get_dashboard_stats(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -285,6 +301,18 @@ pub async fn get_dashboard_stats(
 }
 
 /// Get OAuth2 system configuration (admin only)
+#[utoipa::path(
+    get,
+    path = "/oauth/admin/system-config",
+    tags = ["OAuth Admin"],
+    summary = "Get system configuration",
+    description = "Get OAuth system configuration and settings (admin only)",
+    responses(
+        (status = 200, description = "System configuration"),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn get_system_config(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -370,6 +398,19 @@ pub async fn get_system_config(
 }
 
 /// Perform system cleanup operations (admin only)
+#[utoipa::path(
+    post,
+    path = "/oauth/admin/system-cleanup",
+    tags = ["OAuth Admin"],
+    summary = "Perform system cleanup",
+    description = "Perform OAuth system cleanup operations (admin only)",
+    request_body = SystemCleanupRequest,
+    responses(
+        (status = 200, description = "Cleanup completed", body = crate::app::docs::oauth::CleanupResult),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn system_cleanup(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -421,6 +462,21 @@ pub async fn system_cleanup(
 }
 
 /// Get OAuth2 audit log (admin only)
+#[utoipa::path(
+    get,
+    path = "/oauth/admin/audit-log",
+    tags = ["OAuth Admin"],
+    summary = "Get audit log",
+    description = "Get OAuth system audit log entries (admin only)",
+    params(
+        AdminStatsQuery
+    ),
+    responses(
+        (status = 200, description = "Audit log entries", body = Vec<crate::app::docs::oauth::ActivityItem>),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn get_audit_log(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -444,6 +500,21 @@ pub async fn get_audit_log(
 }
 
 /// Export OAuth2 data (admin only)
+#[utoipa::path(
+    get,
+    path = "/oauth/admin/export-data",
+    tags = ["OAuth Admin"],
+    summary = "Export OAuth data",
+    description = "Export OAuth system data for backup or analysis (admin only)",
+    params(
+        AdminStatsQuery
+    ),
+    responses(
+        (status = 200, description = "Data exported successfully"),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn export_data(
     State(pool): State<DbPool>,
     headers: HeaderMap,

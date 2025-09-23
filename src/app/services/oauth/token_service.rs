@@ -307,17 +307,20 @@ impl TokenService {
         }
 
         // Verify client and user organization access
+        let user_id_ulid = DieselUlid::from_string(&auth_code.user_id)
+            .map_err(|_| anyhow::anyhow!("Invalid user ID format"))?;
+
         let client = match client_secret {
             Some(secret) => ClientService::find_by_id_and_secret_with_user_validation(
                 pool,
                 client_id.clone(),
                 secret,
-                auth_code.user_id.clone()
+                user_id_ulid
             )?,
             None => ClientService::find_by_id_with_user_validation(
                 pool,
                 client_id.clone(),
-                auth_code.user_id.clone()
+                user_id_ulid
             )?,
         };
 

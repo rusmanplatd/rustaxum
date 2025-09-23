@@ -24,7 +24,7 @@ struct MessageResponse {
     message: String,
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize, ToSchema, utoipa::IntoParams)]
 pub struct ListAuthCodesQuery {
     pub user_id: Option<String>,
     pub client_id: Option<String>,
@@ -54,7 +54,7 @@ pub struct AuthCodeResponse {
     pub created_at: chrono::DateTime<Utc>,
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize, ToSchema, utoipa::IntoParams)]
 pub struct AuthorizedClientQuery {
     pub client_id: Option<String>,
     pub scope: Option<String>,
@@ -158,6 +158,22 @@ pub async fn create_auth_code(
 }
 
 /// List authorization codes (admin only)
+#[utoipa::path(
+    get,
+    path = "/oauth/auth-codes",
+    tags = ["OAuth Authorization"],
+    summary = "List authorization codes",
+    description = "Get list of authorization codes (admin only)",
+    params(
+        ListAuthCodesQuery
+    ),
+    responses(
+        (status = 200, description = "List of authorization codes", body = Vec<crate::app::docs::oauth::AuthCodeResponse>),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn list_auth_codes(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -182,6 +198,22 @@ pub async fn list_auth_codes(
 }
 
 /// Get a specific authorization code (admin only)
+#[utoipa::path(
+    get,
+    path = "/oauth/auth-codes/{code_id}",
+    tags = ["OAuth Authorization"],
+    summary = "Get authorization code",
+    description = "Get a specific authorization code by ID (admin only)",
+    params(
+        ("code_id" = String, Path, description = "Authorization code identifier")
+    ),
+    responses(
+        (status = 200, description = "Authorization code found", body = crate::app::docs::oauth::AuthCodeResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 404, description = "Authorization code not found", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn get_auth_code(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -228,6 +260,22 @@ pub async fn get_auth_code(
 }
 
 /// Revoke an authorization code (admin only)
+#[utoipa::path(
+    delete,
+    path = "/oauth/auth-codes/{code_id}",
+    tags = ["OAuth Authorization"],
+    summary = "Revoke authorization code",
+    description = "Revoke an authorization code by ID (admin only)",
+    params(
+        ("code_id" = String, Path, description = "Authorization code identifier")
+    ),
+    responses(
+        (status = 200, description = "Authorization code revoked successfully"),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 404, description = "Authorization code not found", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn revoke_auth_code(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -260,6 +308,22 @@ pub async fn revoke_auth_code(
 }
 
 /// List authorized clients for the authenticated user
+#[utoipa::path(
+    get,
+    path = "/oauth/authorized-clients",
+    tags = ["OAuth Authorization"],
+    summary = "List authorized clients",
+    description = "Get list of clients authorized by the user",
+    params(
+        AuthorizedClientQuery
+    ),
+    responses(
+        (status = 200, description = "List of authorized clients", body = Vec<crate::app::docs::oauth::ClientResponse>),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn list_authorized_clients(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -332,6 +396,22 @@ pub async fn list_authorized_clients(
 }
 
 /// Revoke access for a specific client (user can revoke their own authorizations)
+#[utoipa::path(
+    delete,
+    path = "/oauth/authorized-clients/{client_id}",
+    tags = ["OAuth Authorization"],
+    summary = "Revoke client authorization",
+    description = "Revoke all authorizations for a specific client",
+    params(
+        ("client_id" = String, Path, description = "Client identifier")
+    ),
+    responses(
+        (status = 200, description = "Client authorization revoked successfully"),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 404, description = "Client not found", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn revoke_client_authorization(
     State(pool): State<DbPool>,
     headers: HeaderMap,

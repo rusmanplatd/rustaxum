@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Json as ResponseJson},
 };
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use crate::database::DbPool;
 use chrono::{Utc};
 
@@ -11,7 +12,7 @@ use crate::app::services::oauth::TokenService;
 use crate::app::services::auth_service::AuthService;
 use crate::app::utils::token_utils::TokenUtils;
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct ErrorResponse {
     error: String,
     error_description: Option<String>,
@@ -22,7 +23,7 @@ struct MessageResponse {
     message: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema, utoipa::IntoParams)]
 pub struct ListTokensQuery {
     pub user_id: Option<String>,
     pub client_id: Option<String>,
@@ -32,7 +33,7 @@ pub struct ListTokensQuery {
     pub offset: Option<i64>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema, utoipa::IntoParams)]
 pub struct TokenStatsQuery {
     pub days: Option<i32>,
 }
@@ -68,17 +69,33 @@ pub struct DailyTokenStats {
     pub count: i64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct RevokeTokensRequest {
     pub token_ids: Vec<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ExtendTokenRequest {
     pub expires_in_seconds: i64,
 }
 
 /// List access tokens with filtering and pagination
+#[utoipa::path(
+    get,
+    path = "/oauth/tokens",
+    tags = ["OAuth Tokens"],
+    summary = "List OAuth tokens",
+    description = "Get list of OAuth tokens (admin only)",
+    params(
+        ListTokensQuery
+    ),
+    responses(
+        (status = 200, description = "List of tokens", body = Vec<crate::app::docs::oauth::AccessTokenResponse>),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn list_tokens(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -145,6 +162,22 @@ pub async fn list_tokens(
 }
 
 /// Get detailed information about a specific token
+#[utoipa::path(
+    get,
+    path = "/oauth/tokens/{token_id}",
+    tags = ["OAuth Tokens"],
+    summary = "Get OAuth token",
+    description = "Get a specific OAuth token by ID",
+    params(
+        ("token_id" = String, Path, description = "Token identifier")
+    ),
+    responses(
+        (status = 200, description = "Token found", body = crate::app::docs::oauth::AccessTokenResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 404, description = "Token not found", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn get_token(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -217,6 +250,22 @@ pub async fn get_token(
 }
 
 /// Revoke a specific token
+#[utoipa::path(
+    delete,
+    path = "/oauth/tokens/{token_id}",
+    tags = ["OAuth Tokens"],
+    summary = "Revoke OAuth token",
+    description = "Revoke a specific OAuth token by ID",
+    params(
+        ("token_id" = String, Path, description = "Token identifier")
+    ),
+    responses(
+        (status = 200, description = "Token revoked successfully"),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 404, description = "Token not found", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn revoke_token(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -280,6 +329,20 @@ pub async fn revoke_token(
 }
 
 /// Revoke multiple tokens at once (admin only)
+#[utoipa::path(
+    post,
+    path = "/oauth/tokens/revoke-bulk",
+    tags = ["OAuth Tokens"],
+    summary = "Revoke multiple tokens",
+    description = "Revoke multiple OAuth tokens at once (admin only)",
+    request_body = RevokeTokensRequest,
+    responses(
+        (status = 200, description = "Tokens revoked successfully"),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 400, description = "Invalid request", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn revoke_tokens(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -321,6 +384,21 @@ pub async fn revoke_tokens(
 }
 
 /// Get token statistics (admin only)
+#[utoipa::path(
+    get,
+    path = "/oauth/tokens/stats",
+    tags = ["OAuth Tokens"],
+    summary = "Get token statistics",
+    description = "Get OAuth token usage statistics (admin only)",
+    params(
+        TokenStatsQuery
+    ),
+    responses(
+        (status = 200, description = "Token statistics", body = crate::app::docs::oauth::TokenStats),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn get_token_stats(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -355,6 +433,23 @@ pub async fn get_token_stats(
 }
 
 /// Extend token expiration (admin only)
+#[utoipa::path(
+    patch,
+    path = "/oauth/tokens/{token_id}/extend",
+    tags = ["OAuth Tokens"],
+    summary = "Extend token expiration",
+    description = "Extend the expiration time of an OAuth token (admin only)",
+    params(
+        ("token_id" = String, Path, description = "Token identifier")
+    ),
+    request_body = ExtendTokenRequest,
+    responses(
+        (status = 200, description = "Token extended successfully", body = crate::app::docs::oauth::AccessTokenResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 404, description = "Token not found", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn extend_token(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -379,6 +474,22 @@ pub async fn extend_token(
 }
 
 /// Get current user's tokens
+#[utoipa::path(
+    get,
+    path = "/oauth/my-tokens",
+    tags = ["OAuth Tokens"],
+    summary = "Get my tokens",
+    description = "Get OAuth tokens for the authenticated user",
+    params(
+        ListTokensQuery
+    ),
+    responses(
+        (status = 200, description = "List of user's tokens", body = Vec<crate::app::docs::oauth::AccessTokenResponse>),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(("Bearer" = []))
+)]
 pub async fn get_my_tokens(
     State(pool): State<DbPool>,
     headers: HeaderMap,
