@@ -255,8 +255,8 @@ impl QueryBuilderExamples {
         use crate::app::query_builder::PaginationType;
 
         // Creating pagination types from strings
-        let cursor_type = PaginationType::from_str("cursor")?;
-        let offset_type = PaginationType::from_str("offset")?;
+        let cursor_type = PaginationType::from_str("cursor").map_err(|e| anyhow::anyhow!(e))?;
+        let offset_type = PaginationType::from_str("offset").map_err(|e| anyhow::anyhow!(e))?;
 
         println!("Cursor type: {}", cursor_type.as_str());
         println!("Offset type: {}", offset_type.as_str());

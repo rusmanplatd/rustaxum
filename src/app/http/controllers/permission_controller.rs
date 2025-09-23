@@ -13,6 +13,7 @@ use crate::app::services::sys_model_has_permission_service::SysModelHasPermissio
 use crate::app::models::user::User;
 use crate::app::models::HasModelType;
 use crate::app::models::DieselUlid;
+use crate::app::query_builder::{QueryParams, QueryBuilderService};
 
 #[derive(Deserialize)]
 pub struct CreatePermissionRequest {
@@ -83,24 +84,11 @@ impl From<Permission> for PermissionData {
 
 pub async fn index(
     State(pool): State<DbPool>,
-    Query(params): Query<ListPermissionsQuery>
+    Query(params): Query<QueryParams>
 ) -> impl IntoResponse {
-    let limit = params.limit.unwrap_or(20);
-    let offset = params.offset.unwrap_or(0);
-
-    match PermissionService::list(&pool, limit, offset) {
-        Ok(permissions) => {
-            let total = PermissionService::count(&pool).unwrap_or(0);
-            let permission_data: Vec<PermissionData> = permissions.into_iter().map(PermissionData::from).collect();
-            let response = PermissionListResponse {
-                data: permission_data,
-                meta: Meta {
-                    total,
-                    limit,
-                    offset,
-                },
-            };
-            (StatusCode::OK, Json(response)).into_response()
+    match <Permission as QueryBuilderService<Permission>>::index(Query(params), &pool) {
+        Ok(result) => {
+            (StatusCode::OK, Json(serde_json::json!(result))).into_response()
         }
         Err(e) => {
             (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({

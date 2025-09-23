@@ -4,12 +4,12 @@ use axum::{
     response::{IntoResponse, Json as ResponseJson},
 };
 use crate::database::DbPool;
-use std::collections::HashMap;
 use crate::app::models::DieselUlid;
 
-use crate::app::models::sys_model_has_permission::{CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse};
+use crate::app::models::sys_model_has_permission::{CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse, SysModelHasPermission};
 use crate::app::services::sys_model_has_permission_service::SysModelHasPermissionService;
 use crate::app::http::requests::{CreateSysModelHasPermissionRequest, UpdateSysModelHasPermissionRequest};
+use crate::app::query_builder::{QueryParams, QueryBuilderService};
 
 use crate::app::docs::{ErrorResponse, MessageResponse};
 
@@ -32,12 +32,11 @@ use crate::app::docs::{ErrorResponse, MessageResponse};
 )]
 pub async fn index(
     State(pool): State<DbPool>,
-    Query(params): Query<HashMap<String, String>>,
+    Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
-    match SysModelHasPermissionService::list(&pool, params) {
-        Ok(permissions) => {
-            let responses: Vec<_> = permissions.into_iter().map(|p| p.to_response()).collect();
-            (StatusCode::OK, ResponseJson(responses)).into_response()
+    match <SysModelHasPermission as QueryBuilderService<SysModelHasPermission>>::index(Query(params), &pool) {
+        Ok(result) => {
+            (StatusCode::OK, ResponseJson(serde_json::json!(result))).into_response()
         }
         Err(e) => {
             let error = ErrorResponse {
@@ -315,21 +314,18 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn by_model(State(pool): State<DbPool>, Path((model_type, model_id)): Path<(String, String)>) -> impl IntoResponse {
-    let diesel_model_id = match DieselUlid::from_string(&model_id) {
-        Ok(id) => id,
-        Err(_) => {
-            let error = ErrorResponse {
-                error: "Invalid model_id format".to_string(),
-            };
-            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
-        }
-    };
+pub async fn by_model(
+    State(pool): State<DbPool>,
+    Path((model_type, model_id)): Path<(String, String)>,
+    Query(mut params): Query<QueryParams>,
+) -> impl IntoResponse {
+    // Add model filters to the query parameters
+    params.filter.insert("model_type".to_string(), serde_json::json!(model_type));
+    params.filter.insert("model_id".to_string(), serde_json::json!(model_id));
 
-    match SysModelHasPermissionService::find_by_model(&pool, &model_type, diesel_model_id) {
-        Ok(permissions) => {
-            let responses: Vec<_> = permissions.into_iter().map(|p| p.to_response()).collect();
-            (StatusCode::OK, ResponseJson(responses)).into_response()
+    match <SysModelHasPermission as QueryBuilderService<SysModelHasPermission>>::index(Query(params), &pool) {
+        Ok(result) => {
+            (StatusCode::OK, ResponseJson(serde_json::json!(result))).into_response()
         }
         Err(e) => {
             let error = ErrorResponse {

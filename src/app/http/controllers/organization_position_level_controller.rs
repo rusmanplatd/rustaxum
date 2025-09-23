@@ -6,11 +6,11 @@ use axum::{
 use serde::Serialize;
 use ulid::Ulid;
 use crate::database::DbPool;
-use std::collections::HashMap;
 
-use crate::app::models::organization_position_level::{CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel};
+use crate::app::models::organization_position_level::{CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel, OrganizationPositionLevel};
 use crate::app::services::organization_position_level_service::OrganizationPositionLevelService;
 use crate::app::http::requests::{CreateOrganizationPositionLevelRequest, UpdateOrganizationPositionLevelRequest};
+use crate::app::query_builder::{QueryParams, QueryBuilderService};
 
 #[derive(Serialize)]
 struct ErrorResponse {
@@ -41,15 +41,11 @@ struct MessageResponse {
 )]
 pub async fn index(
     State(pool): State<DbPool>,
-    Query(params): Query<HashMap<String, String>>,
+    Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
-    // TODO: Extract user_id from auth context when available
-    let user_id = None; // Replace with actual user extraction
-
-    match OrganizationPositionLevelService::list(&pool, params, user_id).await {
-        Ok(organization_position_level) => {
-            let responses: Vec<_> = organization_position_level.into_iter().map(|jl| jl.to_response()).collect();
-            (StatusCode::OK, ResponseJson(responses)).into_response()
+    match <OrganizationPositionLevel as QueryBuilderService<OrganizationPositionLevel>>::index(Query(params), &pool) {
+        Ok(result) => {
+            (StatusCode::OK, ResponseJson(serde_json::json!(result))).into_response()
         }
         Err(e) => {
             let error = ErrorResponse {

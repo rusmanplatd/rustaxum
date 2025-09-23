@@ -6,12 +6,12 @@ use axum::{
 use serde::Serialize;
 use ulid::Ulid;
 use crate::database::DbPool;
-use std::collections::HashMap;
 
-use crate::app::models::organization::{CreateOrganization, UpdateOrganization};
+use crate::app::models::organization::{CreateOrganization, UpdateOrganization, Organization};
 use crate::app::models::DieselUlid;
 use crate::app::services::organization_service::OrganizationService;
 use crate::app::http::requests::{CreateOrganizationRequest, UpdateOrganizationRequest};
+use crate::app::query_builder::{QueryParams, QueryBuilderService};
 
 #[derive(Serialize)]
 struct ErrorResponse {
@@ -42,12 +42,11 @@ struct MessageResponse {
 )]
 pub async fn index(
     State(pool): State<DbPool>,
-    Query(params): Query<HashMap<String, String>>,
+    Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
-    match OrganizationService::list(&pool, params) {
-        Ok(organizations) => {
-            let responses: Vec<_> = organizations.into_iter().map(|o| o.to_response()).collect();
-            (StatusCode::OK, ResponseJson(responses)).into_response()
+    match <Organization as QueryBuilderService<Organization>>::index(Query(params), &pool) {
+        Ok(result) => {
+            (StatusCode::OK, ResponseJson(serde_json::json!(result))).into_response()
         }
         Err(e) => {
             let error = ErrorResponse {

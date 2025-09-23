@@ -5,11 +5,11 @@ use axum::{
 };
 use serde::Serialize;
 use crate::database::DbPool;
-use std::collections::HashMap;
 
-use crate::app::models::country::{CreateCountry, UpdateCountry};
+use crate::app::models::country::{CreateCountry, UpdateCountry, Country};
 use crate::app::services::country_service::CountryService;
 use crate::app::http::requests::{CreateCountryRequest, UpdateCountryRequest};
+use crate::app::query_builder::{QueryParams, QueryBuilderService};
 
 #[derive(Serialize)]
 struct ErrorResponse {
@@ -40,12 +40,11 @@ struct MessageResponse {
 )]
 pub async fn index(
     State(pool): State<DbPool>,
-    Query(params): Query<HashMap<String, String>>,
+    Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
-    match CountryService::list(&pool, params) {
-        Ok(countries) => {
-            let responses: Vec<_> = countries.into_iter().map(|c| c.to_response()).collect();
-            (StatusCode::OK, ResponseJson(responses)).into_response()
+    match <Country as QueryBuilderService<Country>>::index(Query(params), &pool) {
+        Ok(result) => {
+            (StatusCode::OK, ResponseJson(serde_json::json!(result))).into_response()
         }
         Err(e) => {
             let error = ErrorResponse {

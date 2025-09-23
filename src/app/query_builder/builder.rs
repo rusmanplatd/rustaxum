@@ -1,7 +1,7 @@
 use crate::app::query_builder::{
     Filter, Sort, Include, Pagination, QueryParams, Queryable,
 };
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use std::collections::HashMap;
 
 /// Main query builder for constructing and executing database queries
@@ -397,6 +397,190 @@ where
     pub fn get_cursor_where(&self) -> Option<(String, Vec<i64>)> {
         self.pagination.as_ref().and_then(|p| p.cursor_where_clause())
     }
+
+    /// Count total records without pagination
+    pub fn count(&self) -> Self {
+        let mut builder = self.clone();
+        builder.pagination = None;
+        builder
+    }
+
+    /// Add a raw where clause (use with caution)
+    pub fn where_raw(self, sql: impl Into<String>, bindings: Vec<serde_json::Value>) -> Self {
+        self.filter(Filter::raw(sql, bindings))
+    }
+
+    /// Add a where clause that checks if a field exists (NOT NULL)
+    pub fn where_exists(self, field: impl Into<String>) -> Self {
+        self.filter(Filter::is_not_null(field))
+    }
+
+    /// Add a where clause that checks if a field doesn't exist (IS NULL)
+    pub fn where_not_exists(self, field: impl Into<String>) -> Self {
+        self.filter(Filter::is_null(field))
+    }
+
+    /// Add a where clause with OR logic (for next filter)
+    pub fn or_where(self, field: impl Into<String>, value: impl Into<serde_json::Value>) -> Self {
+        self.filter(Filter::or_eq(field, value))
+    }
+
+    /// Add multiple filters with AND logic
+    pub fn where_all(mut self, conditions: Vec<(String, serde_json::Value)>) -> Self {
+        for (field, value) in conditions {
+            self = self.where_eq(field, value);
+        }
+        self
+    }
+
+    /// Add multiple filters with OR logic
+    pub fn where_any(mut self, conditions: Vec<(String, serde_json::Value)>) -> Self {
+        for (field, value) in conditions {
+            self = self.or_where(field, value);
+        }
+        self
+    }
+
+    /// Add a where date filter (matches specific date)
+    pub fn where_date(self, field: impl Into<String>, date: impl Into<String>) -> Self {
+        self.filter(Filter::date(field, date))
+    }
+
+    /// Add a where year filter
+    pub fn where_year(self, field: impl Into<String>, year: i32) -> Self {
+        self.filter(Filter::year(field, year))
+    }
+
+    /// Add a where month filter
+    pub fn where_month(self, field: impl Into<String>, month: u32) -> Self {
+        self.filter(Filter::month(field, month))
+    }
+
+    /// Add a where day filter
+    pub fn where_day(self, field: impl Into<String>, day: u32) -> Self {
+        self.filter(Filter::day(field, day))
+    }
+
+    /// Add a search filter across multiple fields
+    pub fn search(mut self, term: impl Into<String>, fields: Vec<String>) -> Self {
+        let search_term = term.into();
+        for field in fields {
+            if T::is_filter_allowed(&field) {
+                self = self.or_where(field, format!("%{}%", search_term));
+            }
+        }
+        self
+    }
+
+    /// Add a JSON field filter (for JSONB columns)
+    pub fn where_json(self, field: impl Into<String>, path: impl Into<String>, value: impl Into<serde_json::Value>) -> Self {
+        self.filter(Filter::json(field, path, value))
+    }
+
+    /// Add a relationship exists filter
+    pub fn has(self, relation: impl Into<String>) -> Self {
+        self.filter(Filter::has_relation(relation))
+    }
+
+    /// Add a relationship doesn't exist filter
+    pub fn doesnt_have(self, relation: impl Into<String>) -> Self {
+        self.filter(Filter::doesnt_have_relation(relation))
+    }
+
+    /// Add a relationship count filter
+    pub fn has_count(self, relation: impl Into<String>, operator: impl Into<String>, count: u32) -> Self {
+        self.filter(Filter::has_relation_count(relation, operator, count))
+    }
+
+    /// Clone the current query builder
+    pub fn clone_query(&self) -> Self {
+        self.clone()
+    }
+
+    /// Reset all filters
+    pub fn reset_filters(mut self) -> Self {
+        self.filters.clear();
+        self
+    }
+
+    /// Reset all sorts
+    pub fn reset_sorts(mut self) -> Self {
+        self.sorts.clear();
+        self
+    }
+
+    /// Reset pagination
+    pub fn reset_pagination(mut self) -> Self {
+        self.pagination = None;
+        self
+    }
+
+    /// Get a copy of the query builder without pagination (useful for counting)
+    pub fn without_pagination(&self) -> Self {
+        let mut builder = self.clone();
+        builder.pagination = None;
+        builder
+    }
+
+    /// Get a copy of the query builder without sorting (useful for specific operations)
+    pub fn without_sorting(&self) -> Self {
+        let mut builder = self.clone();
+        builder.sorts.clear();
+        builder
+    }
+
+    /// Apply a closure to conditionally modify the query
+    pub fn when<F>(self, condition: bool, callback: F) -> Self
+    where
+        F: FnOnce(Self) -> Self,
+    {
+        if condition {
+            callback(self)
+        } else {
+            self
+        }
+    }
+
+    /// Apply a closure to conditionally modify the query with an option
+    pub fn when_some<T2, F>(self, option: Option<T2>, callback: F) -> Self
+    where
+        F: FnOnce(Self, T2) -> Self,
+    {
+        match option {
+            Some(value) => callback(self, value),
+            None => self,
+        }
+    }
+
+    /// Get query statistics and metadata
+    pub fn get_query_info(&self) -> QueryInfo {
+        QueryInfo {
+            filters_count: self.filters.len(),
+            sorts_count: self.sorts.len(),
+            includes_count: self.includes.len(),
+            has_pagination: self.pagination.is_some(),
+            pagination_type: self.pagination.as_ref().map(|p| p.pagination_type.as_str()),
+            has_field_selection: self.fields.is_some(),
+            selected_fields_count: self.fields.as_ref().map(|f| f.len()).unwrap_or(0),
+            with_trashed: self.with_trashed,
+            only_trashed: self.only_trashed,
+        }
+    }
+}
+
+/// Query metadata and statistics
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct QueryInfo {
+    pub filters_count: usize,
+    pub sorts_count: usize,
+    pub includes_count: usize,
+    pub has_pagination: bool,
+    pub pagination_type: Option<&'static str>,
+    pub has_field_selection: bool,
+    pub selected_fields_count: usize,
+    pub with_trashed: bool,
+    pub only_trashed: bool,
+}
 
     /// Clear all filters
     pub fn clear_filters(mut self) -> Self {

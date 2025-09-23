@@ -6,11 +6,11 @@ use axum::{
 use serde::Serialize;
 use ulid::Ulid;
 use crate::database::DbPool;
-use std::collections::HashMap;
 
-use crate::app::models::province::{CreateProvince, UpdateProvince};
+use crate::app::models::province::{CreateProvince, UpdateProvince, Province};
 use crate::app::services::province_service::ProvinceService;
 use crate::app::http::requests::{CreateProvinceRequest, UpdateProvinceRequest};
+use crate::app::query_builder::{QueryParams, QueryBuilderService};
 
 #[derive(Serialize)]
 struct ErrorResponse {
@@ -24,12 +24,11 @@ struct MessageResponse {
 
 pub async fn index(
     State(pool): State<DbPool>,
-    Query(params): Query<HashMap<String, String>>,
+    Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
-    match ProvinceService::list(&pool, params) {
-        Ok(provinces) => {
-            let responses: Vec<_> = provinces.into_iter().map(|p| p.to_response()).collect();
-            (StatusCode::OK, ResponseJson(responses)).into_response()
+    match <Province as QueryBuilderService<Province>>::index(Query(params), &pool) {
+        Ok(result) => {
+            (StatusCode::OK, ResponseJson(serde_json::json!(result))).into_response()
         }
         Err(e) => {
             let error = ErrorResponse {
@@ -125,11 +124,17 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
     }
 }
 
-pub async fn by_country(State(pool): State<DbPool>, Path(country_id): Path<String>) -> impl IntoResponse {
-    match ProvinceService::find_by_country_id(&pool, country_id) {
-        Ok(provinces) => {
-            let responses: Vec<_> = provinces.into_iter().map(|p| p.to_response()).collect();
-            (StatusCode::OK, ResponseJson(responses)).into_response()
+pub async fn by_country(
+    State(pool): State<DbPool>,
+    Path(country_id): Path<String>,
+    Query(mut params): Query<QueryParams>,
+) -> impl IntoResponse {
+    // Add country_id filter to the query parameters
+    params.filter.insert("country_id".to_string(), serde_json::json!(country_id));
+
+    match <Province as QueryBuilderService<Province>>::index(Query(params), &pool) {
+        Ok(result) => {
+            (StatusCode::OK, ResponseJson(serde_json::json!(result))).into_response()
         }
         Err(e) => {
             let error = ErrorResponse {

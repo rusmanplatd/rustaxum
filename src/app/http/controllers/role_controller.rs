@@ -13,6 +13,7 @@ use crate::app::services::sys_model_has_role_service::SysModelHasRoleService;
 use crate::app::models::user::User;
 use crate::app::models::HasModelType;
 use crate::app::models::DieselUlid;
+use crate::app::query_builder::{QueryParams, QueryBuilderService};
 
 #[derive(Deserialize)]
 pub struct CreateRoleRequest {
@@ -77,24 +78,11 @@ impl From<Role> for RoleData {
 
 pub async fn index(
     State(pool): State<DbPool>,
-    Query(params): Query<ListRolesQuery>
+    Query(params): Query<QueryParams>
 ) -> impl IntoResponse {
-    let limit = params.limit.unwrap_or(20);
-    let offset = params.offset.unwrap_or(0);
-
-    match RoleService::list(&pool, limit, offset) {
-        Ok(roles) => {
-            let total = RoleService::count(&pool).unwrap_or(0);
-            let role_data: Vec<RoleData> = roles.into_iter().map(RoleData::from).collect();
-            let response = RoleListResponse {
-                data: role_data,
-                meta: Meta {
-                    total,
-                    limit,
-                    offset,
-                },
-            };
-            (StatusCode::OK, Json(response)).into_response()
+    match <Role as QueryBuilderService<Role>>::index(Query(params), &pool) {
+        Ok(result) => {
+            (StatusCode::OK, Json(serde_json::json!(result))).into_response()
         }
         Err(e) => {
             (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({

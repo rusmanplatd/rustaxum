@@ -5,12 +5,12 @@ use axum::{
 };
 use serde::{Serialize, Deserialize};
 use crate::database::DbPool;
-use std::collections::HashMap;
 use rust_decimal::Decimal;
 
-use crate::app::models::city::{CreateCity, UpdateCity};
+use crate::app::models::city::{CreateCity, UpdateCity, City};
 use crate::app::services::city_service::CityService;
 use crate::app::http::requests::{CreateCityRequest, UpdateCityRequest};
+use crate::app::query_builder::{QueryParams, QueryBuilderService};
 
 #[derive(Serialize)]
 struct ErrorResponse {
@@ -31,12 +31,11 @@ pub struct NearbyQuery {
 
 pub async fn index(
     State(pool): State<DbPool>,
-    Query(params): Query<HashMap<String, String>>,
+    Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
-    match CityService::list(&pool, params) {
-        Ok(cities) => {
-            let responses: Vec<_> = cities.into_iter().map(|c| c.to_response()).collect();
-            (StatusCode::OK, ResponseJson(responses)).into_response()
+    match <City as QueryBuilderService<City>>::index(Query(params), &pool) {
+        Ok(result) => {
+            (StatusCode::OK, ResponseJson(serde_json::json!(result))).into_response()
         }
         Err(e) => {
             let error = ErrorResponse {
@@ -126,11 +125,17 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
     }
 }
 
-pub async fn by_province(State(pool): State<DbPool>, Path(province_id): Path<String>) -> impl IntoResponse {
-    match CityService::find_by_province_id(&pool, province_id) {
-        Ok(cities) => {
-            let responses: Vec<_> = cities.into_iter().map(|c| c.to_response()).collect();
-            (StatusCode::OK, ResponseJson(responses)).into_response()
+pub async fn by_province(
+    State(pool): State<DbPool>,
+    Path(province_id): Path<String>,
+    Query(mut params): Query<QueryParams>,
+) -> impl IntoResponse {
+    // Add province_id filter to the query parameters
+    params.filter.insert("province_id".to_string(), serde_json::json!(province_id));
+
+    match <City as QueryBuilderService<City>>::index(Query(params), &pool) {
+        Ok(result) => {
+            (StatusCode::OK, ResponseJson(serde_json::json!(result))).into_response()
         }
         Err(e) => {
             let error = ErrorResponse {
