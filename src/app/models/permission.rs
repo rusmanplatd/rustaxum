@@ -9,10 +9,13 @@ use super::DieselUlid;
 #[diesel(table_name = crate::schema::sys_permissions)]
 pub struct Permission {
     pub id: DieselUlid,
+    pub organization_id: Option<DieselUlid>,
     pub name: String,
     pub guard_name: String,
     pub resource: Option<String>,
     pub action: String,
+    pub scope_type: Option<String>,
+    pub scope_id: Option<DieselUlid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -49,10 +52,13 @@ impl Permission {
         let now = Utc::now();
         Self {
             id: DieselUlid::new(),
+            organization_id: None,
             name,
             guard_name: guard_name.unwrap_or_else(|| "api".to_string()),
             resource,
             action,
+            scope_type: None,
+            scope_id: None,
             created_at: now,
             updated_at: now,
         }

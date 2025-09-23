@@ -21,6 +21,10 @@ pub struct City {
     pub longitude: Option<Decimal>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
+    pub created_by: Option<DieselUlid>,
+    pub updated_by: Option<DieselUlid>,
+    pub deleted_by: Option<DieselUlid>,
 }
 
 /// Create city payload for service layer
@@ -47,6 +51,10 @@ pub struct NewCity {
     pub longitude: Option<Decimal>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
+    pub created_by: Option<DieselUlid>,
+    pub updated_by: Option<DieselUlid>,
+    pub deleted_by: Option<DieselUlid>,
 }
 
 /// Update city payload for service layer
@@ -94,6 +102,10 @@ impl City {
             longitude,
             created_at: now,
             updated_at: now,
+            deleted_at: None,
+            created_by: None,
+            updated_by: None,
+            deleted_by: None,
         }
     }
 
@@ -129,6 +141,10 @@ impl NewCity {
             longitude,
             created_at: now,
             updated_at: now,
+            deleted_at: None,
+            created_by: None,
+            updated_by: None,
+            deleted_by: None,
         }
     }
 }

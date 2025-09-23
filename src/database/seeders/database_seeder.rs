@@ -2,14 +2,16 @@ use crate::database::DbPool;
 use anyhow::Result;
 use crate::database::seeder::{Seeder, SeederContext};
 use crate::database::seeders::{
+    user_seeder::UserSeeder,
+    role_permission_seeder::RolePermissionSeeder,
+    OAuthScopeSeeder,
     country_seeder::Countryseeder,
     province_seeder::Provinceseeder,
     city_seeder::Cityseeder,
-    user_seeder::UserSeeder,
-    role_permission_seeder::RolePermissionSeeder,
     organization_seeder::OrganizationSeeder,
-    organization_position_level_seeder::OrganizationPositionLevelSeeder,
-    OAuthScopeSeeder,
+    OrganizationPositionLevelSeeder,
+    OrganizationPositionSeeder,
+    UserOrganizationSeeder,
 };
 
 pub struct DatabaseSeeder;
@@ -36,7 +38,7 @@ impl Seeder for DatabaseSeeder {
         // OAuth2 scopes
         context.call(OAuthScopeSeeder)?;
 
-        // Geographic data seeders (order matters due to foreign keys)
+        // Geographic data seeders
         context.call(Countryseeder)?;
         context.call(Provinceseeder)?;
         context.call(Cityseeder)?;
@@ -44,6 +46,8 @@ impl Seeder for DatabaseSeeder {
         // Organization and position structure
         context.call(OrganizationSeeder)?;
         context.call(OrganizationPositionLevelSeeder)?;
+        context.call(OrganizationPositionSeeder)?;
+        context.call(UserOrganizationSeeder)?;
 
 
         println!("───────────────────────────");

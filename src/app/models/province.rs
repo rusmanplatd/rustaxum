@@ -28,6 +28,14 @@ pub struct Province {
     /// Last update timestamp
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
+    /// Soft delete timestamp
+    pub deleted_at: Option<DateTime<Utc>>,
+    /// User who created this record
+    pub created_by: Option<DieselUlid>,
+    /// User who last updated this record
+    pub updated_by: Option<DieselUlid>,
+    /// User who deleted this record
+    pub deleted_by: Option<DieselUlid>,
 }
 
 /// Create province payload for service layer
@@ -48,6 +56,10 @@ pub struct NewProvince {
     pub code: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
+    pub created_by: Option<DieselUlid>,
+    pub updated_by: Option<DieselUlid>,
+    pub deleted_by: Option<DieselUlid>,
 }
 
 /// Update province payload for service layer
@@ -79,6 +91,10 @@ impl NewProvince {
             code,
             created_at: now,
             updated_at: now,
+            deleted_at: None,
+            created_by: None,
+            updated_by: None,
+            deleted_by: None,
         }
     }
 }
@@ -93,6 +109,10 @@ impl Province {
             code,
             created_at: now,
             updated_at: now,
+            deleted_at: None,
+            created_by: None,
+            updated_by: None,
+            deleted_by: None,
         }
     }
 

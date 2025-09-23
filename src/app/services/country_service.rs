@@ -2,24 +2,17 @@ use anyhow::Result;
 use diesel::prelude::*;
 use crate::database::DbPool;
 use crate::schema::countries;
-use crate::app::models::country::{Country, CreateCountry, UpdateCountry};
+use crate::app::models::country::{Country, CreateCountry, UpdateCountry, NewCountry};
 
 pub struct CountryService;
 
 impl CountryService {
     pub fn create(pool: &DbPool, data: CreateCountry) -> Result<Country> {
         let mut conn = pool.get()?;
-        let country = Country::new(data.name, data.iso_code, data.phone_code);
+        let new_country = NewCountry::new(data.name, data.iso_code, data.phone_code);
 
         let result = diesel::insert_into(countries::table)
-            .values((
-                countries::id.eq(country.id.to_string()),
-                countries::name.eq(&country.name),
-                countries::iso_code.eq(&country.iso_code),
-                countries::phone_code.eq(&country.phone_code),
-                countries::created_at.eq(country.created_at),
-                countries::updated_at.eq(country.updated_at),
-            ))
+            .values(&new_country)
             .get_result::<Country>(&mut conn)?;
 
         Ok(result)

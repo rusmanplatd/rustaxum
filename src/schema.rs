@@ -5,6 +5,8 @@ diesel::table! {
         #[max_length = 26]
         id -> Bpchar,
         #[max_length = 255]
+        correlation_id -> Nullable<Varchar>,
+        #[max_length = 255]
         log_name -> Nullable<Varchar>,
         description -> Text,
         #[max_length = 255]
@@ -16,8 +18,6 @@ diesel::table! {
         #[max_length = 255]
         causer_id -> Nullable<Varchar>,
         properties -> Nullable<Jsonb>,
-        #[max_length = 26]
-        correlation_id -> Nullable<Bpchar>,
         #[max_length = 255]
         batch_uuid -> Nullable<Varchar>,
         #[max_length = 255]
@@ -39,6 +39,13 @@ diesel::table! {
         longitude -> Nullable<Numeric>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        updated_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        deleted_by -> Nullable<Bpchar>,
     }
 }
 
@@ -51,6 +58,13 @@ diesel::table! {
         phone_code -> Nullable<Varchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        updated_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        deleted_by -> Nullable<Bpchar>,
     }
 }
 
@@ -69,58 +83,6 @@ diesel::table! {
         occurred_at -> Timestamptz,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    organization_position_levels (id) {
-        #[max_length = 26]
-        id -> Bpchar,
-        #[max_length = 26]
-        organization_id -> Bpchar,
-        code -> Varchar,
-        name -> Varchar,
-        description -> Nullable<Text>,
-        level -> Int4,
-        is_active -> Bool,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-        deleted_at -> Nullable<Timestamptz>,
-        #[max_length = 26]
-        created_by -> Nullable<Bpchar>,
-        #[max_length = 26]
-        updated_by -> Nullable<Bpchar>,
-        #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
-    }
-}
-
-diesel::table! {
-    organization_positions (id) {
-        #[max_length = 26]
-        id -> Bpchar,
-        #[max_length = 26]
-        organization_id -> Bpchar,
-        #[max_length = 26]
-        organization_position_level_id -> Bpchar,
-        code -> Varchar,
-        name -> Varchar,
-        description -> Nullable<Text>,
-        is_active -> Bool,
-        min_salary -> Numeric,
-        max_salary -> Numeric,
-        max_incumbents -> Int4,
-        qualifications -> Jsonb,
-        responsibilities -> Jsonb,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-        deleted_at -> Nullable<Timestamptz>,
-        #[max_length = 26]
-        created_by -> Nullable<Bpchar>,
-        #[max_length = 26]
-        updated_by -> Nullable<Bpchar>,
-        #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
     }
 }
 
@@ -285,6 +247,58 @@ diesel::table! {
 }
 
 diesel::table! {
+    organization_position_levels (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        organization_id -> Bpchar,
+        code -> Varchar,
+        name -> Varchar,
+        description -> Nullable<Text>,
+        level -> Int4,
+        is_active -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        updated_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        deleted_by -> Nullable<Bpchar>,
+    }
+}
+
+diesel::table! {
+    organization_positions (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        organization_id -> Bpchar,
+        #[max_length = 26]
+        organization_position_level_id -> Bpchar,
+        code -> Varchar,
+        name -> Varchar,
+        description -> Nullable<Text>,
+        is_active -> Bool,
+        min_salary -> Numeric,
+        max_salary -> Numeric,
+        max_incumbents -> Int4,
+        qualifications -> Jsonb,
+        responsibilities -> Jsonb,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        updated_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        deleted_by -> Nullable<Bpchar>,
+    }
+}
+
+diesel::table! {
     organizations (id) {
         #[max_length = 26]
         id -> Bpchar,
@@ -333,6 +347,13 @@ diesel::table! {
         code -> Nullable<Varchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        updated_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        deleted_by -> Nullable<Bpchar>,
     }
 }
 
@@ -393,10 +414,16 @@ diesel::table! {
     sys_permissions (id) {
         #[max_length = 26]
         id -> Bpchar,
+        #[max_length = 26]
+        organization_id -> Nullable<Bpchar>,
         name -> Varchar,
         guard_name -> Varchar,
         resource -> Nullable<Varchar>,
         action -> Varchar,
+        #[max_length = 255]
+        scope_type -> Nullable<Varchar>,
+        #[max_length = 26]
+        scope_id -> Nullable<Bpchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
@@ -406,6 +433,8 @@ diesel::table! {
     sys_roles (id) {
         #[max_length = 26]
         id -> Bpchar,
+        #[max_length = 26]
+        organization_id -> Nullable<Bpchar>,
         name -> Varchar,
         description -> Nullable<Text>,
         guard_name -> Varchar,
@@ -415,6 +444,13 @@ diesel::table! {
         scope_id -> Nullable<Bpchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        updated_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        deleted_by -> Nullable<Bpchar>,
     }
 }
 
@@ -481,31 +517,29 @@ diesel::table! {
 }
 
 diesel::joinable!(cities -> provinces (province_id));
-diesel::joinable!(organization_position_levels -> organizations (organization_id));
-diesel::joinable!(organization_positions -> organization_position_levels (organization_position_level_id));
-diesel::joinable!(organization_positions -> organizations (organization_id));
 diesel::joinable!(oauth_access_tokens -> oauth_clients (client_id));
 diesel::joinable!(oauth_access_tokens -> sys_users (user_id));
 diesel::joinable!(oauth_auth_codes -> oauth_clients (client_id));
 diesel::joinable!(oauth_auth_codes -> sys_users (user_id));
 diesel::joinable!(oauth_clients -> organizations (organization_id));
-diesel::joinable!(oauth_clients -> sys_users (user_id));
 diesel::joinable!(oauth_personal_access_clients -> oauth_clients (client_id));
 diesel::joinable!(oauth_refresh_tokens -> oauth_access_tokens (access_token_id));
+diesel::joinable!(organization_position_levels -> organizations (organization_id));
+diesel::joinable!(organization_positions -> organization_position_levels (organization_position_level_id));
+diesel::joinable!(organization_positions -> organizations (organization_id));
 diesel::joinable!(provinces -> countries (country_id));
 diesel::joinable!(sys_model_has_permissions -> sys_permissions (permission_id));
 diesel::joinable!(sys_model_has_roles -> sys_roles (role_id));
+diesel::joinable!(sys_permissions -> organizations (organization_id));
+diesel::joinable!(sys_roles -> organizations (organization_id));
 diesel::joinable!(user_organizations -> organization_positions (organization_position_id));
 diesel::joinable!(user_organizations -> organizations (organization_id));
-diesel::joinable!(user_organizations -> sys_users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     activity_log,
     cities,
     countries,
     events,
-    organization_position_levels,
-    organization_positions,
     jobs,
     migrations,
     notifications,
@@ -515,6 +549,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     oauth_personal_access_clients,
     oauth_refresh_tokens,
     oauth_scopes,
+    organization_position_levels,
+    organization_positions,
     organizations,
     provinces,
     push_subscriptions,

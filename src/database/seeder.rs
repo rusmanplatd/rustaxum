@@ -63,7 +63,6 @@ pub enum RegisteredSeeder {
     User,
     RolePermission,
     Organization,
-    OrganizationPositionLevel,
     OAuthScope,
 }
 
@@ -77,7 +76,6 @@ impl RegisteredSeeder {
             user_seeder::UserSeeder,
             role_permission_seeder::RolePermissionSeeder,
             organization_seeder::OrganizationSeeder,
-            organization_position_level_seeder::OrganizationPositionLevelSeeder,
             OAuthScopeSeeder,
         };
 
@@ -110,10 +108,6 @@ impl RegisteredSeeder {
                 let seeder = OrganizationSeeder;
                 seeder.run(pool)
             }
-            RegisteredSeeder::OrganizationPositionLevel => {
-                let seeder = OrganizationPositionLevelSeeder;
-                seeder.run(pool)
-            }
             RegisteredSeeder::OAuthScope => {
                 let seeder = OAuthScopeSeeder;
                 seeder.run(pool)
@@ -123,28 +117,26 @@ impl RegisteredSeeder {
 
     pub fn class_name(&self) -> &'static str {
         match self {
+            RegisteredSeeder::Database => "DatabaseSeeder",
             RegisteredSeeder::Country => "CountrySeeder",
             RegisteredSeeder::Province => "ProvinceSeeder",
             RegisteredSeeder::City => "CitySeeder",
-            RegisteredSeeder::Database => "DatabaseSeeder",
             RegisteredSeeder::User => "UserSeeder",
             RegisteredSeeder::RolePermission => "RolePermissionSeeder",
             RegisteredSeeder::Organization => "OrganizationSeeder",
-            RegisteredSeeder::OrganizationPositionLevel => "OrganizationPositionLevelSeeder",
             RegisteredSeeder::OAuthScope => "OAuthScopeSeeder",
         }
     }
 
     pub fn description(&self) -> Option<&'static str> {
         match self {
+            RegisteredSeeder::Database => Some("Run all seeders in the correct order"),
             RegisteredSeeder::Country => Some("Seed countries table from CSV data"),
             RegisteredSeeder::Province => Some("Seed provinces table from CSV data, requires countries"),
             RegisteredSeeder::City => Some("Seed cities table from CSV data with coordinates, requires provinces"),
-            RegisteredSeeder::Database => Some("Run all seeders in the correct order"),
             RegisteredSeeder::User => Some("Seed default users"),
             RegisteredSeeder::RolePermission => Some("Seed sys_roles and permissions for RBAC"),
             RegisteredSeeder::Organization => Some("Seed organization data"),
-            RegisteredSeeder::OrganizationPositionLevel => Some("Seed organization position levels and positions"),
             RegisteredSeeder::OAuthScope => Some("Seed OAuth2 scopes for Laravel Passport-like functionality"),
         }
     }
@@ -162,14 +154,13 @@ impl SeederRegistry {
         };
 
         // Auto-register all available seeders
+        registry.register_seeder("DatabaseSeeder", RegisteredSeeder::Database);
         registry.register_seeder("CountrySeeder", RegisteredSeeder::Country);
         registry.register_seeder("ProvinceSeeder", RegisteredSeeder::Province);
         registry.register_seeder("CitySeeder", RegisteredSeeder::City);
-        registry.register_seeder("DatabaseSeeder", RegisteredSeeder::Database);
         registry.register_seeder("UserSeeder", RegisteredSeeder::User);
         registry.register_seeder("RolePermissionSeeder", RegisteredSeeder::RolePermission);
         registry.register_seeder("OrganizationSeeder", RegisteredSeeder::Organization);
-        registry.register_seeder("OrganizationPositionLevelSeeder", RegisteredSeeder::OrganizationPositionLevel);
         registry.register_seeder("OAuthScopeSeeder", RegisteredSeeder::OAuthScope);
 
         registry
