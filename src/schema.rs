@@ -199,6 +199,8 @@ diesel::table! {
         #[max_length = 26]
         id -> Bpchar,
         #[max_length = 26]
+        organization_id -> Nullable<Bpchar>,
+        #[max_length = 26]
         user_id -> Nullable<Bpchar>,
         name -> Varchar,
         secret -> Nullable<Varchar>,
@@ -209,6 +211,13 @@ diesel::table! {
         revoked -> Bool,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        updated_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        deleted_by -> Nullable<Bpchar>,
     }
 }
 
@@ -452,6 +461,7 @@ diesel::joinable!(oauth_access_tokens -> oauth_clients (client_id));
 diesel::joinable!(oauth_access_tokens -> sys_users (user_id));
 diesel::joinable!(oauth_auth_codes -> oauth_clients (client_id));
 diesel::joinable!(oauth_auth_codes -> sys_users (user_id));
+diesel::joinable!(oauth_clients -> organizations (organization_id));
 diesel::joinable!(oauth_clients -> sys_users (user_id));
 diesel::joinable!(oauth_personal_access_clients -> oauth_clients (client_id));
 diesel::joinable!(oauth_refresh_tokens -> oauth_access_tokens (access_token_id));

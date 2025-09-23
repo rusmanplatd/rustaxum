@@ -3,12 +3,13 @@ use crate::database::DbPool;
 use rand::{Rng, thread_rng};
 use rand::distributions::Alphanumeric;
 use diesel::prelude::*;
-use crate::schema::{oauth_clients, oauth_personal_access_clients};
+use crate::schema::{oauth_clients, oauth_personal_access_clients, user_organizations};
 
 use crate::app::models::oauth::{
     Client, CreateClient, UpdateClient, ClientResponse,
     PersonalAccessClient
 };
+use crate::app::models::{user_organization::UserOrganization, DieselUlid};
 
 pub struct ClientService;
 
@@ -24,6 +25,7 @@ impl ClientService {
         };
 
         let client = Client::new(
+            data.organization_id,
             data.user_id,
             data.name,
             secret,
@@ -49,6 +51,7 @@ impl ClientService {
         diesel::insert_into(oauth_clients::table)
             .values((
                 oauth_clients::id.eq(client.id.clone()),
+                oauth_clients::organization_id.eq(client.organization_id.clone()),
                 oauth_clients::user_id.eq(client.user_id.clone()),
                 oauth_clients::name.eq(&client.name),
                 oauth_clients::secret.eq(&client.secret),
@@ -59,6 +62,10 @@ impl ClientService {
                 oauth_clients::revoked.eq(client.revoked),
                 oauth_clients::created_at.eq(client.created_at),
                 oauth_clients::updated_at.eq(client.updated_at),
+                oauth_clients::deleted_at.eq(client.deleted_at),
+                oauth_clients::created_by.eq(client.created_by.clone()),
+                oauth_clients::updated_by.eq(client.updated_by.clone()),
+                oauth_clients::deleted_by.eq(client.deleted_by.clone()),
             ))
             .execute(&mut conn)?;
 
@@ -263,6 +270,65 @@ impl ClientService {
         } else {
             Ok(false)
         }
+    }
+
+    /// Validates if a user belongs to the OAuth client's organization
+    /// Returns true if the client has no organization_id (global client)
+    /// or if the user is an active member of the client's organization
+    pub fn validate_user_organization_access(pool: &DbPool, client_id: String, user_id: DieselUlid) -> Result<bool> {
+        let client = Self::find_by_id(pool, client_id)?
+            .ok_or_else(|| anyhow::anyhow!("Client not found"))?;
+
+        // If client has no organization_id, allow access (global client)
+        if client.organization_id.is_none() {
+            return Ok(true);
+        }
+
+        let organization_id = client.organization_id.unwrap();
+
+        // Check if user is an active member of the client's organization
+        let mut conn = pool.get()?;
+
+        let count = user_organizations::table
+            .filter(user_organizations::user_id.eq(user_id))
+            .filter(user_organizations::organization_id.eq(organization_id))
+            .filter(user_organizations::is_active.eq(true))
+            .filter(user_organizations::deleted_at.is_null())
+            .count()
+            .get_result::<i64>(&mut conn)?;
+
+        Ok(count > 0)
+    }
+
+    /// Find client by ID and validate user's organization access
+    pub fn find_by_id_with_user_validation(pool: &DbPool, client_id: String, user_id: DieselUlid) -> Result<Option<Client>> {
+        let client = Self::find_by_id(pool, client_id.clone())?;
+
+        if let Some(ref _client) = client {
+            if !Self::validate_user_organization_access(pool, client_id, user_id)? {
+                return Ok(None); // User doesn't have access to this client
+            }
+        }
+
+        Ok(client)
+    }
+
+    /// Find client by ID and secret with user organization validation
+    pub fn find_by_id_and_secret_with_user_validation(
+        pool: &DbPool,
+        client_id: String,
+        secret: &str,
+        user_id: DieselUlid
+    ) -> Result<Option<Client>> {
+        let client = Self::find_by_id_and_secret(pool, client_id.clone(), secret)?;
+
+        if let Some(ref _client) = client {
+            if !Self::validate_user_organization_access(pool, client_id, user_id)? {
+                return Ok(None); // User doesn't have access to this client
+            }
+        }
+
+        Ok(client)
     }
 }
 

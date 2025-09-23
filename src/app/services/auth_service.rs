@@ -294,4 +294,41 @@ impl AuthService {
             refresh_expires_at,
         })
     }
+
+    /// Authenticate user for OAuth password grant
+    /// Returns user ID if authentication successful
+    pub async fn authenticate_user(username: &str, password: &str, pool: &DbPool) -> Result<String> {
+        // Find user by email (username in OAuth context is typically email)
+        let mut user = UserService::find_by_email(pool, username)?
+            .ok_or_else(|| anyhow::anyhow!("Invalid credentials"))?;
+
+        // Check if account is locked
+        if user.is_locked() {
+            bail!("Account is temporarily locked due to too many failed login attempts");
+        }
+
+        // Verify password
+        if !Self::verify_password(password, &user.password)? {
+            // Increment failed attempts
+            user.failed_login_attempts += 1;
+
+            // Lock account if too many failed attempts
+            if user.failed_login_attempts >= MAX_FAILED_ATTEMPTS {
+                user.locked_until = Some(Utc::now() + Duration::minutes(LOCKOUT_DURATION_MINUTES));
+            }
+
+            UserService::update_failed_attempts(pool, user.id, user.failed_login_attempts, user.locked_until)?;
+            bail!("Invalid credentials");
+        }
+
+        // Reset failed attempts on successful login
+        if user.failed_login_attempts > 0 {
+            UserService::reset_failed_attempts(pool, user.id.clone())?;
+        }
+
+        // Update last login
+        UserService::update_last_login(pool, user.id.clone())?;
+
+        Ok(user.id.to_string())
+    }
 }

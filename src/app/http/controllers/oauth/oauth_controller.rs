@@ -5,6 +5,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use crate::database::DbPool;
+use utoipa::ToSchema;
 use ulid::Ulid;
 use chrono::{Duration, Utc};
 use std::collections::HashMap;
@@ -13,8 +14,9 @@ use crate::app::services::oauth::{TokenService, ClientService, ScopeService};
 use crate::app::services::auth_service::AuthService;
 use crate::app::models::oauth::{CreateAuthCode};
 use crate::app::utils::token_utils::TokenUtils;
+use crate::app::models::DieselUlid;
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct ErrorResponse {
     error: String,
     error_description: Option<String>,
@@ -31,7 +33,7 @@ pub struct AuthorizeQuery {
     pub code_challenge_method: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct TokenRequest {
     pub grant_type: String,
     pub code: Option<String>,
@@ -41,15 +43,17 @@ pub struct TokenRequest {
     pub code_verifier: Option<String>,
     pub refresh_token: Option<String>,
     pub scope: Option<String>,
+    pub username: Option<String>,
+    pub password: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct IntrospectRequest {
     pub token: String,
     pub token_type_hint: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct IntrospectResponse {
     pub active: bool,
     pub scope: Option<String>,
@@ -61,6 +65,29 @@ pub struct IntrospectResponse {
     pub aud: Option<String>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/oauth/authorize",
+    tags = ["OAuth Core"],
+    summary = "OAuth2 authorization endpoint",
+    description = "Initiate OAuth2 authorization code flow",
+    params(
+        ("response_type" = String, Query, description = "Response type (must be 'code')"),
+        ("client_id" = String, Query, description = "Client identifier"),
+        ("redirect_uri" = String, Query, description = "Redirect URI"),
+        ("scope" = Option<String>, Query, description = "Requested scopes"),
+        ("state" = Option<String>, Query, description = "State parameter"),
+        ("code_challenge" = Option<String>, Query, description = "PKCE code challenge"),
+        ("code_challenge_method" = Option<String>, Query, description = "PKCE challenge method")
+    ),
+    responses(
+        (status = 302, description = "Redirect to authorization page or back to client"),
+        (status = 400, description = "Invalid request", body = ErrorResponse)
+    ),
+    security(
+        ("Bearer" = [])
+    )
+)]
 pub async fn authorize(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -126,6 +153,39 @@ pub async fn authorize(
         }
     };
 
+    // Validate user has access to this OAuth client's organization
+    let user_id_ulid = match Ulid::from_string(&user_id) {
+        Ok(id) => DieselUlid(id),
+        Err(_) => {
+            let error_url = format!(
+                "{}?error=server_error&error_description=Invalid+user+ID{}",
+                params.redirect_uri,
+                params.state.as_ref().map(|s| format!("&state={}", s)).unwrap_or_default()
+            );
+            return Redirect::temporary(&error_url).into_response();
+        }
+    };
+
+    match ClientService::validate_user_organization_access(&pool, client_id.to_string(), user_id_ulid) {
+        Ok(true) => {}, // User has access
+        Ok(false) => {
+            let error_url = format!(
+                "{}?error=access_denied&error_description=User+does+not+have+access+to+this+application{}",
+                params.redirect_uri,
+                params.state.as_ref().map(|s| format!("&state={}", s)).unwrap_or_default()
+            );
+            return Redirect::temporary(&error_url).into_response();
+        },
+        Err(_) => {
+            let error_url = format!(
+                "{}?error=server_error&error_description=Organization+validation+failed{}",
+                params.redirect_uri,
+                params.state.as_ref().map(|s| format!("&state={}", s)).unwrap_or_default()
+            );
+            return Redirect::temporary(&error_url).into_response();
+        }
+    }
+
     // Validate and parse scopes
     let requested_scopes: Vec<String> = params.scope
         .as_deref()
@@ -180,11 +240,25 @@ pub async fn authorize(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/oauth/token",
+    tags = ["OAuth Core"],
+    summary = "OAuth2 token endpoint",
+    description = "Exchange authorization code for access token",
+    request_body = TokenRequest,
+    responses(
+        (status = 200, description = "Token granted", body = crate::app::docs::oauth::TokenResponse),
+        (status = 400, description = "Invalid request", body = ErrorResponse),
+        (status = 401, description = "Client authentication failed", body = ErrorResponse)
+    )
+)]
 pub async fn token(State(pool): State<DbPool>, Form(params): Form<TokenRequest>) -> impl IntoResponse {
     match params.grant_type.as_str() {
         "authorization_code" => handle_authorization_code_grant(&pool, params).await.into_response(),
         "refresh_token" => handle_refresh_token_grant(&pool, params).await.into_response(),
         "client_credentials" => handle_client_credentials_grant(&pool, params).await.into_response(),
+        "password" => handle_password_grant(&pool, params).await.into_response(),
         _ => {
             let error = ErrorResponse {
                 error: "unsupported_grant_type".to_string(),
@@ -385,6 +459,18 @@ async fn handle_client_credentials_grant(pool: &DbPool, params: TokenRequest) ->
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/oauth/introspect",
+    tags = ["OAuth Core"],
+    summary = "OAuth2 token introspection endpoint",
+    description = "Inspect access token validity and metadata",
+    request_body = IntrospectRequest,
+    responses(
+        (status = 200, description = "Token introspection result", body = IntrospectResponse),
+        (status = 400, description = "Invalid request", body = ErrorResponse)
+    )
+)]
 pub async fn introspect(State(pool): State<DbPool>, Json(params): Json<IntrospectRequest>) -> impl IntoResponse {
     let token_claims = match TokenService::decode_jwt_token(&params.token) {
         Ok(claims) => claims,
@@ -452,6 +538,18 @@ pub async fn introspect(State(pool): State<DbPool>, Json(params): Json<Introspec
     (StatusCode::OK, ResponseJson(response)).into_response()
 }
 
+#[utoipa::path(
+    post,
+    path = "/oauth/revoke",
+    tags = ["OAuth Core"],
+    summary = "OAuth2 token revocation endpoint",
+    description = "Revoke access or refresh token",
+    request_body(content = HashMap<String, String>, description = "Token revocation form data"),
+    responses(
+        (status = 200, description = "Token revoked successfully"),
+        (status = 400, description = "Invalid request", body = ErrorResponse)
+    )
+)]
 pub async fn revoke(State(pool): State<DbPool>, Form(params): Form<HashMap<String, String>>) -> impl IntoResponse {
     let token = match params.get("token") {
         Some(token) => token,
@@ -503,6 +601,186 @@ pub async fn revoke(State(pool): State<DbPool>, Form(params): Form<HashMap<Strin
 
     // Token not found, but still return success per OAuth spec
     (StatusCode::OK, ResponseJson(serde_json::json!({"revoked": true}))).into_response()
+}
+
+async fn handle_password_grant(pool: &DbPool, params: TokenRequest) -> impl IntoResponse + use<> {
+    let username = match params.username {
+        Some(username) => username,
+        None => {
+            let error = ErrorResponse {
+                error: "invalid_request".to_string(),
+                error_description: Some("Missing username parameter".to_string()),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+        }
+    };
+
+    let password = match params.password {
+        Some(password) => password,
+        None => {
+            let error = ErrorResponse {
+                error: "invalid_request".to_string(),
+                error_description: Some("Missing password parameter".to_string()),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+        }
+    };
+
+    let client_id = match Ulid::from_string(&params.client_id) {
+        Ok(id) => id,
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "invalid_client".to_string(),
+                error_description: Some("Invalid client ID".to_string()),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+        }
+    };
+
+    // Verify client credentials
+    let client = match params.client_secret {
+        Some(ref secret) => ClientService::find_by_id_and_secret(pool, client_id.to_string(), secret),
+        None => ClientService::find_by_id(pool, client_id.to_string()),
+    };
+
+    let client = match client {
+        Ok(Some(client)) => client,
+        _ => {
+            let error = ErrorResponse {
+                error: "invalid_client".to_string(),
+                error_description: Some("Invalid client credentials".to_string()),
+            };
+            return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
+        }
+    };
+
+    // Check if client supports password grant
+    if !client.password_client {
+        let error = ErrorResponse {
+            error: "unauthorized_client".to_string(),
+            error_description: Some("Client is not authorized for password grant".to_string()),
+        };
+        return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
+    }
+
+    if client.has_secret() && params.client_secret.is_none() {
+        let error = ErrorResponse {
+            error: "invalid_client".to_string(),
+            error_description: Some("Client secret is required".to_string()),
+        };
+        return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
+    }
+
+    // Authenticate user
+    let user_id = match AuthService::authenticate_user(&username, &password, pool).await {
+        Ok(user_id) => user_id,
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "invalid_grant".to_string(),
+                error_description: Some("Invalid user credentials".to_string()),
+            };
+            return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
+        }
+    };
+
+    // Validate user has access to this OAuth client's organization
+    let user_id_ulid = match Ulid::from_string(&user_id) {
+        Ok(id) => DieselUlid(id),
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "server_error".to_string(),
+                error_description: Some("Invalid user ID".to_string()),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
+
+    match ClientService::validate_user_organization_access(pool, client_id.to_string(), user_id_ulid) {
+        Ok(true) => {}, // User has access
+        Ok(false) => {
+            let error = ErrorResponse {
+                error: "access_denied".to_string(),
+                error_description: Some("User does not have access to this application".to_string()),
+            };
+            return (StatusCode::FORBIDDEN, ResponseJson(error)).into_response();
+        },
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "server_error".to_string(),
+                error_description: Some("Organization validation failed".to_string()),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    }
+
+    // Parse requested scopes
+    let requested_scopes: Vec<String> = params.scope
+        .as_deref()
+        .unwrap_or("")
+        .split_whitespace()
+        .map(|s| s.to_string())
+        .collect();
+
+    let scopes = match ScopeService::validate_scopes(pool, &requested_scopes).await {
+        Ok(scopes) => scopes,
+        Err(e) => {
+            let error = ErrorResponse {
+                error: "invalid_scope".to_string(),
+                error_description: Some(e.to_string()),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+        }
+    };
+
+    // Create access token for the authenticated user
+    let create_token = crate::app::models::oauth::CreateAccessToken {
+        user_id: Some(user_id),
+        client_id: client_id.to_string(),
+        name: Some("Password Grant Token".to_string()),
+        scopes: ScopeService::get_scope_names(&scopes),
+        expires_at: Some(Utc::now() + Duration::seconds(3600)), // 1 hour
+    };
+
+    match TokenService::create_access_token(pool, create_token, Some(3600)).await {
+        Ok(access_token) => {
+            // Create refresh token
+            let refresh_token = match TokenService::create_refresh_token(
+                pool,
+                access_token.id.to_string(),
+                Some(604800), // 7 days
+            ) {
+                Ok(token) => Some(token.id.to_string()),
+                Err(_) => None,
+            };
+
+            match TokenService::generate_jwt_token(&access_token, &client_id.to_string()) {
+                Ok(jwt_token) => {
+                    let token_response = crate::app::services::oauth::TokenResponse {
+                        access_token: jwt_token,
+                        token_type: "Bearer".to_string(),
+                        expires_in: 3600,
+                        refresh_token,
+                        scope: ScopeService::get_scope_names(&scopes).join(" "),
+                    };
+                    (StatusCode::OK, ResponseJson(token_response)).into_response()
+                },
+                Err(e) => {
+                    let error = ErrorResponse {
+                        error: "server_error".to_string(),
+                        error_description: Some(e.to_string()),
+                    };
+                    (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response()
+                }
+            }
+        },
+        Err(e) => {
+            let error = ErrorResponse {
+                error: "server_error".to_string(),
+                error_description: Some(e.to_string()),
+            };
+            (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response()
+        }
+    }
 }
 
 async fn get_user_from_token(_pool: &DbPool, auth_header: Option<&str>) -> anyhow::Result<String> {

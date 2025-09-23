@@ -58,6 +58,7 @@ async fn handle_install(pool: &DbPool) -> Result<()> {
         },
         None => {
             let create_client = CreateClient {
+                organization_id: None,
                 user_id: None,
                 name: "Personal Access Client".to_string(),
                 redirect_uris: vec!["http://localhost".to_string()],
@@ -99,6 +100,7 @@ async fn handle_create_client(pool: &DbPool, name: String, redirect_uris: String
         .collect();
 
     let create_client = CreateClient {
+        organization_id: None,
         user_id: None, // System client
         name: name.clone(),
         redirect_uris: redirect_uri_list,

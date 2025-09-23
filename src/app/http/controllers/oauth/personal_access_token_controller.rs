@@ -4,24 +4,41 @@ use axum::{
     response::{IntoResponse, Json as ResponseJson},
 };
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use crate::database::DbPool;
 
 use crate::app::services::oauth::TokenService;
 use crate::app::services::auth_service::AuthService;
 use crate::app::utils::token_utils::TokenUtils;
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct ErrorResponse {
     error: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct CreatePersonalAccessTokenRequest {
     pub name: String,
     pub scopes: Vec<String>,
     pub expires_in_seconds: Option<i64>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/oauth/personal-access-tokens",
+    tags = ["Personal Access Tokens"],
+    summary = "Create personal access token",
+    description = "Create a new personal access token for API access",
+    request_body = CreatePersonalAccessTokenRequest,
+    responses(
+        (status = 201, description = "Token created successfully", body = crate::app::docs::oauth::PersonalAccessTokenResponse),
+        (status = 400, description = "Invalid request data", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    security(
+        ("Bearer" = [])
+    )
+)]
 pub async fn create_personal_access_token(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -54,6 +71,21 @@ pub async fn create_personal_access_token(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/oauth/personal-access-tokens",
+    tags = ["Personal Access Tokens"],
+    summary = "List personal access tokens",
+    description = "Get list of personal access tokens for authenticated user",
+    responses(
+        (status = 200, description = "List of personal access tokens", body = Vec<crate::app::docs::oauth::PersonalAccessTokenResponse>),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(
+        ("Bearer" = [])
+    )
+)]
 pub async fn list_personal_access_tokens(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -82,6 +114,25 @@ pub async fn list_personal_access_tokens(
     }
 }
 
+#[utoipa::path(
+    delete,
+    path = "/oauth/personal-access-tokens/{token_id}",
+    tags = ["Personal Access Tokens"],
+    summary = "Revoke personal access token",
+    description = "Revoke a personal access token by its ID",
+    params(
+        ("token_id" = String, Path, description = "Token identifier")
+    ),
+    responses(
+        (status = 200, description = "Token revoked successfully"),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 404, description = "Token not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(
+        ("Bearer" = [])
+    )
+)]
 pub async fn revoke_personal_access_token(
     State(pool): State<DbPool>,
     headers: HeaderMap,

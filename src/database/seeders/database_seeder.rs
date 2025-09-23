@@ -9,6 +9,7 @@ use crate::database::seeders::{
     role_permission_seeder::RolePermissionSeeder,
     organization_seeder::OrganizationSeeder,
     organization_position_level_seeder::OrganizationPositionLevelSeeder,
+    OAuthScopeSeeder,
 };
 
 pub struct DatabaseSeeder;
@@ -32,6 +33,8 @@ impl Seeder for DatabaseSeeder {
         context.call(UserSeeder)?;
         // Authorization systems
         context.call(RolePermissionSeeder)?;
+        // OAuth2 scopes
+        context.call(OAuthScopeSeeder)?;
 
         // Geographic data seeders (order matters due to foreign keys)
         context.call(Countryseeder)?;

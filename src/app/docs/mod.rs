@@ -1,6 +1,6 @@
 use utoipa::OpenApi;
 
-pub mod extractor;
+pub mod oauth;
 
 // Import only basic models to prevent circular dependencies
 use crate::app::models::country::{Country, CreateCountry, UpdateCountry, CountryResponse};
@@ -127,6 +127,13 @@ use crate::app::models::organization::{Organization, CreateOrganization, UpdateO
         (name = "Permissions", description = "Permission management operations"),
         (name = "Model Permissions", description = "Polymorphic model permission assignments - assign permissions to any model type"),
         (name = "Model Roles", description = "Polymorphic model role assignments - assign roles to any model type"),
+        (name = "OAuth Core", description = "OAuth2 authentication and authorization core endpoints"),
+        (name = "OAuth Clients", description = "OAuth2 client management operations"),
+        (name = "OAuth Scopes", description = "OAuth2 scope management and validation"),
+        (name = "OAuth Tokens", description = "OAuth2 token management and analytics"),
+        (name = "OAuth Authorization", description = "OAuth2 authorization management"),
+        (name = "OAuth Admin", description = "OAuth2 administrative dashboard and system management"),
+        (name = "Personal Access Tokens", description = "Personal access token management"),
     )
 )]
 pub struct ApiDoc;

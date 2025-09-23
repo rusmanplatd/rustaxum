@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Json as ResponseJson},
 };
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use crate::database::DbPool;
 
 use crate::app::services::oauth::ClientService;
@@ -11,12 +12,12 @@ use crate::app::services::auth_service::AuthService;
 use crate::app::models::oauth::{CreateClient, UpdateClient};
 use crate::app::utils::token_utils::TokenUtils;
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct ErrorResponse {
     error: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct CreateClientRequest {
     pub name: String,
     pub redirect_uris: Vec<String>,
@@ -24,13 +25,29 @@ pub struct CreateClientRequest {
     pub password_client: Option<bool>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdateClientRequest {
     pub name: Option<String>,
     pub redirect_uris: Option<Vec<String>>,
     pub revoked: Option<bool>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/oauth/clients",
+    tags = ["OAuth Clients"],
+    summary = "Create a new OAuth2 client",
+    description = "Create a new OAuth2 client application",
+    request_body = CreateClientRequest,
+    responses(
+        (status = 201, description = "Client created successfully", body = crate::app::docs::oauth::ClientResponse),
+        (status = 400, description = "Invalid request data", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    security(
+        ("Bearer" = [])
+    )
+)]
 pub async fn create_client(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -47,6 +64,7 @@ pub async fn create_client(
     };
 
     let create_data = CreateClient {
+        organization_id: None,
         user_id,
         name: payload.name,
         redirect_uris: payload.redirect_uris,
@@ -65,6 +83,21 @@ pub async fn create_client(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/oauth/clients",
+    tags = ["OAuth Clients"],
+    summary = "List OAuth2 clients",
+    description = "Get list of OAuth2 clients for authenticated user",
+    responses(
+        (status = 200, description = "List of clients", body = Vec<crate::app::docs::oauth::ClientResponse>),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(
+        ("Bearer" = [])
+    )
+)]
 pub async fn list_clients(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -90,6 +123,25 @@ pub async fn list_clients(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/oauth/clients/{client_id}",
+    tags = ["OAuth Clients"],
+    summary = "Get OAuth2 client by ID",
+    description = "Retrieve a specific OAuth2 client by its unique identifier",
+    params(
+        ("client_id" = String, Path, description = "Client identifier")
+    ),
+    responses(
+        (status = 200, description = "Client found", body = crate::app::docs::oauth::ClientResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 404, description = "Client not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(
+        ("Bearer" = [])
+    )
+)]
 pub async fn get_client(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -133,6 +185,26 @@ pub async fn get_client(
     }
 }
 
+#[utoipa::path(
+    put,
+    path = "/oauth/clients/{client_id}",
+    tags = ["OAuth Clients"],
+    summary = "Update OAuth2 client",
+    description = "Update an existing OAuth2 client application",
+    params(
+        ("client_id" = String, Path, description = "Client identifier")
+    ),
+    request_body = UpdateClientRequest,
+    responses(
+        (status = 200, description = "Client updated successfully", body = crate::app::docs::oauth::ClientResponse),
+        (status = 400, description = "Invalid request data", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 404, description = "Client not found", body = ErrorResponse)
+    ),
+    security(
+        ("Bearer" = [])
+    )
+)]
 pub async fn update_client(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -192,6 +264,25 @@ pub async fn update_client(
     }
 }
 
+#[utoipa::path(
+    delete,
+    path = "/oauth/clients/{client_id}",
+    tags = ["OAuth Clients"],
+    summary = "Delete OAuth2 client",
+    description = "Delete an existing OAuth2 client application",
+    params(
+        ("client_id" = String, Path, description = "Client identifier")
+    ),
+    responses(
+        (status = 200, description = "Client deleted successfully"),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 404, description = "Client not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(
+        ("Bearer" = [])
+    )
+)]
 pub async fn delete_client(
     State(pool): State<DbPool>,
     headers: HeaderMap,
@@ -244,6 +335,25 @@ pub async fn delete_client(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/oauth/clients/{client_id}/regenerate-secret",
+    tags = ["OAuth Clients"],
+    summary = "Regenerate OAuth2 client secret",
+    description = "Generate a new secret for an existing OAuth2 client",
+    params(
+        ("client_id" = String, Path, description = "Client identifier")
+    ),
+    responses(
+        (status = 200, description = "Client secret regenerated successfully", body = crate::app::docs::oauth::ClientResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 404, description = "Client not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(
+        ("Bearer" = [])
+    )
+)]
 pub async fn regenerate_secret(
     State(pool): State<DbPool>,
     headers: HeaderMap,

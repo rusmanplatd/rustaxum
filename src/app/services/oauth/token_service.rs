@@ -306,13 +306,22 @@ impl TokenService {
             }
         }
 
-        // Verify client
+        // Verify client and user organization access
         let client = match client_secret {
-            Some(secret) => ClientService::find_by_id_and_secret(pool, client_id.clone(), secret)?,
-            None => ClientService::find_by_id(pool, client_id.clone())?,
+            Some(secret) => ClientService::find_by_id_and_secret_with_user_validation(
+                pool,
+                client_id.clone(),
+                secret,
+                auth_code.user_id.clone()
+            )?,
+            None => ClientService::find_by_id_with_user_validation(
+                pool,
+                client_id.clone(),
+                auth_code.user_id.clone()
+            )?,
         };
 
-        let client = client.ok_or_else(|| anyhow::anyhow!("Invalid client credentials"))?;
+        let client = client.ok_or_else(|| anyhow::anyhow!("Invalid client credentials or user does not have access to this application"))?;
 
         if client.has_secret() && client_secret.is_none() {
             return Err(anyhow::anyhow!("Client secret is required"));
@@ -377,13 +386,31 @@ impl TokenService {
             return Err(anyhow::anyhow!("Refresh token was not issued to this client"));
         }
 
-        // Verify client
-        let client = match client_secret {
-            Some(secret) => ClientService::find_by_id_and_secret(pool, client_id.clone(), secret)?,
-            None => ClientService::find_by_id(pool, client_id.clone())?,
+        // Verify client and user organization access (if user_id exists)
+        let client = if let Some(user_id) = &access_token.user_id {
+            let user_id_ulid = DieselUlid::from_string(user_id)?;
+            match client_secret {
+                Some(secret) => ClientService::find_by_id_and_secret_with_user_validation(
+                    pool,
+                    client_id.clone(),
+                    secret,
+                    user_id_ulid
+                )?,
+                None => ClientService::find_by_id_with_user_validation(
+                    pool,
+                    client_id.clone(),
+                    user_id_ulid
+                )?,
+            }
+        } else {
+            // For client credentials tokens (no user), use standard validation
+            match client_secret {
+                Some(secret) => ClientService::find_by_id_and_secret(pool, client_id.clone(), secret)?,
+                None => ClientService::find_by_id(pool, client_id.clone())?,
+            }
         };
 
-        let _client = client.ok_or_else(|| anyhow::anyhow!("Invalid client credentials"))?;
+        let _client = client.ok_or_else(|| anyhow::anyhow!("Invalid client credentials or user does not have access to this application"))?;
 
         // Revoke old tokens
         Self::revoke_access_token(pool, access_token.id.to_string())?;

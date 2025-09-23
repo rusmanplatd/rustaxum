@@ -8,3 +8,5 @@ pub mod city_seeder;
 pub mod role_permission_seeder;
 pub mod organization_seeder;
 pub mod organization_position_level_seeder;
+pub mod oauthscopeseeder;
+pub use oauthscopeseeder::OAuthScopeSeeder;

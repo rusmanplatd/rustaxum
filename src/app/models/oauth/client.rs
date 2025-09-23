@@ -3,12 +3,14 @@ use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use chrono::{DateTime, Utc};
 use crate::app::query_builder::{SortDirection};
+use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, QueryableByName)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, QueryableByName, ToSchema)]
 #[diesel(table_name = crate::schema::oauth_clients)]
 pub struct Client {
     pub id: DieselUlid,
-    pub user_id: Option<String>,
+    pub organization_id: Option<DieselUlid>,
+    pub user_id: Option<DieselUlid>,
     pub name: String,
     pub secret: Option<String>,
     pub provider: Option<String>,
@@ -18,27 +20,36 @@ pub struct Client {
     pub revoked: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
+    pub created_by: Option<DieselUlid>,
+    pub updated_by: Option<DieselUlid>,
+    pub deleted_by: Option<DieselUlid>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateClient {
-    pub user_id: Option<String>,
+    pub organization_id: Option<DieselUlid>,
+    pub user_id: Option<DieselUlid>,
+    #[schema(example = "My OAuth App")]
     pub name: String,
     pub redirect_uris: Vec<String>,
+    #[schema(example = false)]
     pub personal_access_client: bool,
+    #[schema(example = false)]
     pub password_client: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateClient {
     pub name: Option<String>,
     pub redirect_uris: Option<Vec<String>>,
     pub revoked: Option<bool>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ClientResponse {
     pub id: DieselUlid,
+    #[schema(example = "My OAuth App")]
     pub name: String,
     pub secret: Option<String>,
     pub redirect_uris: Vec<String>,
@@ -51,7 +62,8 @@ pub struct ClientResponse {
 
 impl Client {
     pub fn new(
-        user_id: Option<String>,
+        organization_id: Option<DieselUlid>,
+        user_id: Option<DieselUlid>,
         name: String,
         secret: Option<String>,
         redirect_uris: String,
@@ -61,6 +73,7 @@ impl Client {
         let now = Utc::now();
         Self {
             id: DieselUlid::new(),
+            organization_id,
             user_id,
             name,
             secret,
@@ -71,6 +84,10 @@ impl Client {
             revoked: false,
             created_at: now,
             updated_at: now,
+            deleted_at: None,
+            created_by: None,
+            updated_by: None,
+            deleted_by: None,
         }
     }
 
@@ -129,6 +146,7 @@ impl crate::app::query_builder::Queryable for Client {
     fn allowed_filters() -> Vec<&'static str> {
         vec![
             "id",
+            "organization_id",
             "user_id",
             "name",
             "personal_access_client",
@@ -136,6 +154,10 @@ impl crate::app::query_builder::Queryable for Client {
             "revoked",
             "created_at",
             "updated_at",
+            "deleted_at",
+            "created_by",
+            "updated_by",
+            "deleted_by",
         ]
     }
 
@@ -151,6 +173,7 @@ impl crate::app::query_builder::Queryable for Client {
     fn allowed_fields() -> Vec<&'static str> {
         vec![
             "id",
+            "organization_id",
             "user_id",
             "name",
             "redirect_uris",
@@ -159,6 +182,10 @@ impl crate::app::query_builder::Queryable for Client {
             "revoked",
             "created_at",
             "updated_at",
+            "deleted_at",
+            "created_by",
+            "updated_by",
+            "deleted_by",
         ]
     }
 

@@ -3,9 +3,11 @@ use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use chrono::{DateTime, Utc};
 use crate::app::query_builder::{SortDirection};
+use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, ToSchema)]
 #[diesel(table_name = crate::schema::oauth_scopes)]
+#[schema(description = "OAuth2 scope definition")]
 pub struct Scope {
     pub id: DieselUlid,
     pub name: String,
@@ -40,7 +42,7 @@ pub struct UpdateScope {
     pub is_default: Option<bool>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ScopeResponse {
     pub id: DieselUlid,
     pub name: String,

@@ -64,6 +64,7 @@ pub enum RegisteredSeeder {
     RolePermission,
     Organization,
     OrganizationPositionLevel,
+    OAuthScope,
 }
 
 impl RegisteredSeeder {
@@ -77,6 +78,7 @@ impl RegisteredSeeder {
             role_permission_seeder::RolePermissionSeeder,
             organization_seeder::OrganizationSeeder,
             organization_position_level_seeder::OrganizationPositionLevelSeeder,
+            OAuthScopeSeeder,
         };
 
         match self {
@@ -112,6 +114,10 @@ impl RegisteredSeeder {
                 let seeder = OrganizationPositionLevelSeeder;
                 seeder.run(pool)
             }
+            RegisteredSeeder::OAuthScope => {
+                let seeder = OAuthScopeSeeder;
+                seeder.run(pool)
+            }
         }
     }
 
@@ -125,6 +131,7 @@ impl RegisteredSeeder {
             RegisteredSeeder::RolePermission => "RolePermissionSeeder",
             RegisteredSeeder::Organization => "OrganizationSeeder",
             RegisteredSeeder::OrganizationPositionLevel => "OrganizationPositionLevelSeeder",
+            RegisteredSeeder::OAuthScope => "OAuthScopeSeeder",
         }
     }
 
@@ -138,6 +145,7 @@ impl RegisteredSeeder {
             RegisteredSeeder::RolePermission => Some("Seed sys_roles and permissions for RBAC"),
             RegisteredSeeder::Organization => Some("Seed organization data"),
             RegisteredSeeder::OrganizationPositionLevel => Some("Seed organization position levels and positions"),
+            RegisteredSeeder::OAuthScope => Some("Seed OAuth2 scopes for Laravel Passport-like functionality"),
         }
     }
 }
@@ -162,6 +170,7 @@ impl SeederRegistry {
         registry.register_seeder("RolePermissionSeeder", RegisteredSeeder::RolePermission);
         registry.register_seeder("OrganizationSeeder", RegisteredSeeder::Organization);
         registry.register_seeder("OrganizationPositionLevelSeeder", RegisteredSeeder::OrganizationPositionLevel);
+        registry.register_seeder("OAuthScopeSeeder", RegisteredSeeder::OAuthScope);
 
         registry
     }
