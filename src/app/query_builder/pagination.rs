@@ -12,6 +12,40 @@ pub struct CursorData {
     pub per_page: u32,
 }
 
+impl CursorData {
+    /// Create new cursor data
+    pub fn new(timestamp: i64, position: u32, per_page: u32) -> Self {
+        Self {
+            timestamp,
+            position,
+            per_page,
+        }
+    }
+
+    /// Create cursor data for current time
+    pub fn now(position: u32, per_page: u32) -> Self {
+        Self::new(chrono::Utc::now().timestamp_millis(), position, per_page)
+    }
+
+    /// Get the timestamp as a DateTime
+    pub fn datetime(&self) -> chrono::DateTime<chrono::Utc> {
+        chrono::DateTime::from_timestamp_millis(self.timestamp)
+            .unwrap_or_else(chrono::Utc::now)
+    }
+
+    /// Check if this cursor is expired (older than a certain duration)
+    pub fn is_expired(&self, max_age_seconds: i64) -> bool {
+        let now = chrono::Utc::now().timestamp();
+        let cursor_time = self.timestamp / 1000; // Convert millis to seconds
+        (now - cursor_time) > max_age_seconds
+    }
+
+    /// Validate cursor data consistency
+    pub fn is_valid(&self) -> bool {
+        self.per_page > 0 && self.per_page <= 100 && self.timestamp > 0
+    }
+}
+
 /// Pagination type enum
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "lowercase")]
@@ -25,6 +59,35 @@ pub enum PaginationType {
 impl Default for PaginationType {
     fn default() -> Self {
         PaginationType::Cursor
+    }
+}
+
+impl PaginationType {
+    /// Create pagination type from string
+    pub fn from_str(s: &str) -> Result<Self, String> {
+        match s.to_lowercase().as_str() {
+            "cursor" => Ok(PaginationType::Cursor),
+            "offset" => Ok(PaginationType::Offset),
+            _ => Err(format!("Invalid pagination type: {}. Must be 'cursor' or 'offset'", s)),
+        }
+    }
+
+    /// Convert to string representation
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PaginationType::Cursor => "cursor",
+            PaginationType::Offset => "offset",
+        }
+    }
+
+    /// Check if this is cursor-based pagination
+    pub fn is_cursor(&self) -> bool {
+        matches!(self, PaginationType::Cursor)
+    }
+
+    /// Check if this is offset-based pagination
+    pub fn is_offset(&self) -> bool {
+        matches!(self, PaginationType::Offset)
     }
 }
 
@@ -220,6 +283,31 @@ impl Pagination {
         };
 
         self.encode_cursor(&cursor_data)
+    }
+
+    /// Generate a cursor from a specific position
+    pub fn generate_cursor_from_position(&self, position: u32) -> Option<String> {
+        let timestamp = chrono::Utc::now().timestamp_millis();
+        let cursor_data = CursorData {
+            timestamp,
+            position,
+            per_page: self.per_page,
+        };
+        self.encode_cursor(&cursor_data)
+    }
+
+    /// Get the SQL WHERE clause for cursor-based pagination
+    pub fn cursor_where_clause(&self) -> Option<(String, Vec<i64>)> {
+        if let Some(ref cursor_str) = self.cursor {
+            if let Some(cursor_data) = self.decode_cursor(cursor_str) {
+                // For cursor pagination, we use the timestamp to maintain consistent ordering
+                return Some((
+                    "created_at > $1 OR (created_at = $1 AND id > $2)".to_string(),
+                    vec![cursor_data.timestamp, cursor_data.position as i64],
+                ));
+            }
+        }
+        None
     }
 
     /// Generate a cursor for the previous page
@@ -437,10 +525,10 @@ mod tests {
         let result = pagination.paginate(25, data);
 
         assert_eq!(result.data, vec![1, 2, 3, 4, 5]);
-        assert_eq!(result.pagination.current_page, 2);
+        assert_eq!(result.pagination.current_page, Some(2));
         assert_eq!(result.pagination.per_page, 10);
-        assert_eq!(result.pagination.total, 25);
-        assert_eq!(result.pagination.total_pages, 3);
+        assert_eq!(result.pagination.total, Some(25));
+        assert_eq!(result.pagination.total_pages, Some(3));
         assert_eq!(result.pagination.from, Some(11));
         assert_eq!(result.pagination.to, Some(15));
         assert!(result.pagination.has_more_pages);
@@ -457,5 +545,121 @@ mod tests {
         assert_eq!(result.pagination.path, "/api/users");
         assert!(result.pagination.first_page_url.unwrap().starts_with("/api/users?"));
         assert!(result.pagination.next_page_url.unwrap().starts_with("/api/users?"));
+    }
+
+    #[test]
+    fn test_pagination_type_from_str() {
+        assert_eq!(PaginationType::from_str("cursor").unwrap(), PaginationType::Cursor);
+        assert_eq!(PaginationType::from_str("offset").unwrap(), PaginationType::Offset);
+        assert_eq!(PaginationType::from_str("CURSOR").unwrap(), PaginationType::Cursor);
+        assert_eq!(PaginationType::from_str("OFFSET").unwrap(), PaginationType::Offset);
+        assert!(PaginationType::from_str("invalid").is_err());
+    }
+
+    #[test]
+    fn test_pagination_type_as_str() {
+        assert_eq!(PaginationType::Cursor.as_str(), "cursor");
+        assert_eq!(PaginationType::Offset.as_str(), "offset");
+    }
+
+    #[test]
+    fn test_pagination_type_checks() {
+        assert!(PaginationType::Cursor.is_cursor());
+        assert!(!PaginationType::Cursor.is_offset());
+        assert!(!PaginationType::Offset.is_cursor());
+        assert!(PaginationType::Offset.is_offset());
+    }
+
+    #[test]
+    fn test_cursor_data_creation() {
+        let cursor_data = CursorData::new(1000, 5, 20);
+        assert_eq!(cursor_data.timestamp, 1000);
+        assert_eq!(cursor_data.position, 5);
+        assert_eq!(cursor_data.per_page, 20);
+    }
+
+    #[test]
+    fn test_cursor_data_now() {
+        let cursor_data = CursorData::now(10, 15);
+        assert_eq!(cursor_data.position, 10);
+        assert_eq!(cursor_data.per_page, 15);
+        assert!(cursor_data.timestamp > 0);
+    }
+
+    #[test]
+    fn test_cursor_data_validation() {
+        let valid_cursor = CursorData::new(1000, 5, 20);
+        assert!(valid_cursor.is_valid());
+
+        let invalid_cursor_per_page = CursorData::new(1000, 5, 0);
+        assert!(!invalid_cursor_per_page.is_valid());
+
+        let invalid_cursor_timestamp = CursorData::new(0, 5, 20);
+        assert!(!invalid_cursor_timestamp.is_valid());
+
+        let invalid_cursor_per_page_too_large = CursorData::new(1000, 5, 200);
+        assert!(!invalid_cursor_per_page_too_large.is_valid());
+    }
+
+    #[test]
+    fn test_cursor_data_expiration() {
+        let old_timestamp = chrono::Utc::now().timestamp_millis() - 7200000; // 2 hours ago
+        let old_cursor = CursorData::new(old_timestamp, 5, 20);
+        assert!(old_cursor.is_expired(3600)); // 1 hour max age
+
+        let recent_cursor = CursorData::now(5, 20);
+        assert!(!recent_cursor.is_expired(3600)); // 1 hour max age
+    }
+
+    #[test]
+    fn test_cursor_based_pagination() {
+        let pagination = Pagination::cursor(20, Some("test_cursor".to_string()));
+        assert_eq!(pagination.pagination_type, PaginationType::Cursor);
+        assert_eq!(pagination.per_page, 20);
+        assert_eq!(pagination.cursor, Some("test_cursor".to_string()));
+        assert!(pagination.is_cursor());
+        assert!(!pagination.is_offset());
+    }
+
+    #[test]
+    fn test_offset_based_pagination() {
+        let pagination = Pagination::page_based(3, 25);
+        assert_eq!(pagination.pagination_type, PaginationType::Offset);
+        assert_eq!(pagination.page, 3);
+        assert_eq!(pagination.per_page, 25);
+        assert_eq!(pagination.offset(), 50); // (3-1) * 25
+        assert_eq!(pagination.limit(), 25);
+        assert!(!pagination.is_cursor());
+        assert!(pagination.is_offset());
+    }
+
+    #[test]
+    fn test_cursor_encode_decode() {
+        let pagination = Pagination::cursor(20, None);
+        let cursor_data = CursorData::now(5, 20);
+
+        // Test encoding
+        let encoded = pagination.encode_cursor(&cursor_data);
+        assert!(encoded.is_some());
+
+        // Test decoding
+        if let Some(encoded_cursor) = encoded {
+            let decoded = pagination.decode_cursor(&encoded_cursor);
+            assert!(decoded.is_some());
+
+            let decoded_data = decoded.unwrap();
+            assert_eq!(decoded_data.position, cursor_data.position);
+            assert_eq!(decoded_data.per_page, cursor_data.per_page);
+        }
+    }
+
+    #[test]
+    fn test_cursor_validation() {
+        let pagination = Pagination::cursor(20, None);
+        let cursor_data = CursorData::now(5, 20);
+        let encoded = pagination.encode_cursor(&cursor_data).unwrap();
+
+        assert!(pagination.is_valid_cursor(&encoded));
+        assert!(!pagination.is_valid_cursor("invalid_cursor"));
     }
 }

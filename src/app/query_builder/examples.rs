@@ -51,19 +51,39 @@ impl QueryBuilderExamples {
     pub async fn pagination_examples(
         pool: &DbPool,
     ) -> anyhow::Result<()> {
-        // Offset-based pagination (traditional)
+        // Offset-based pagination (traditional) - using the new helper method
         let offset_builder = User::query()
             .where_eq("active", true)
-            .paginate(crate::app::query_builder::Pagination::page_based(1, 15));
+            .offset_paginate(1, 15); // page 1, 15 items per page
 
         let _offset_results = User::execute_paginated(offset_builder, pool)?;
 
-        // Cursor-based pagination (better for performance)
+        // Cursor-based pagination (better for performance) - using the new helper method
         let cursor_builder = User::query()
             .where_eq("active", true)
-            .paginate(crate::app::query_builder::Pagination::cursor(15, None));
+            .cursor_paginate(15, None); // 15 items per page, no cursor (first page)
 
         let _cursor_results = User::execute_paginated(cursor_builder, pool)?;
+
+        // Using cursor pagination with an existing cursor
+        let cursor_next_builder = User::query()
+            .where_eq("active", true)
+            .cursor_paginate(15, Some("encoded_cursor_value".to_string()));
+
+        let _cursor_next_results = User::execute_paginated(cursor_next_builder, pool)?;
+
+        // Switching pagination types dynamically
+        let mut dynamic_builder = User::query()
+            .where_eq("active", true);
+
+        // Start with cursor pagination
+        dynamic_builder = dynamic_builder.cursor_paginate(20, None);
+        assert!(dynamic_builder.is_cursor_pagination());
+
+        // Switch to offset pagination
+        dynamic_builder = dynamic_builder.offset_paginate(2, 25);
+        assert!(dynamic_builder.is_offset_pagination());
+        assert_eq!(dynamic_builder.get_offset(), 25); // (2-1) * 25
 
         Ok(())
     }
@@ -165,6 +185,95 @@ impl QueryBuilderExamples {
             .where_eq("active", true);
 
         User::execute_first(builder, pool)
+    }
+
+    /// Example 10: Advanced pagination techniques
+    pub async fn advanced_pagination_examples(
+        pool: &DbPool,
+    ) -> anyhow::Result<()> {
+        // Dynamic pagination type selection based on data size
+        let total_count = User::query()
+            .where_eq("active", true)
+            .execute_count(pool)?;
+
+        let builder = User::query()
+            .where_eq("active", true);
+
+        // Use cursor pagination for large datasets, offset for smaller ones
+        let paginated_builder = if total_count > 1000 {
+            builder.cursor_paginate(50, None)
+        } else {
+            builder.offset_paginate(1, 20)
+        };
+
+        let _results = User::execute_paginated(paginated_builder, pool)?;
+
+        // Working with cursors - getting cursor info
+        let cursor_builder = User::query()
+            .cursor_paginate(20, Some("example_cursor".to_string()));
+
+        if let Some(pagination) = cursor_builder.get_pagination() {
+            if let Some(cursor_str) = &pagination.cursor {
+                // Check if cursor is valid
+                if pagination.is_valid_cursor(cursor_str) {
+                    println!("Cursor is valid");
+
+                    // Get cursor metadata
+                    if let Some(cursor_info) = pagination.cursor_info(cursor_str) {
+                        println!("Cursor timestamp: {}", cursor_info.timestamp);
+                        println!("Cursor position: {}", cursor_info.position);
+                        println!("Cursor per_page: {}", cursor_info.per_page);
+                    }
+                }
+            }
+        }
+
+        // Using pagination utility methods
+        let utility_builder = User::query()
+            .where_eq("active", true)
+            .offset_paginate(3, 20);
+
+        println!("Is cursor pagination: {}", utility_builder.is_cursor_pagination());
+        println!("Is offset pagination: {}", utility_builder.is_offset_pagination());
+        println!("SQL LIMIT value: {}", utility_builder.get_limit());
+        println!("SQL OFFSET value: {}", utility_builder.get_offset());
+
+        // Get cursor WHERE clause for SQL (when using cursor pagination)
+        let cursor_sql_builder = User::query()
+            .cursor_paginate(20, Some("encoded_cursor".to_string()));
+
+        if let Some((where_clause, params)) = cursor_sql_builder.get_cursor_where() {
+            println!("Cursor WHERE clause: {}", where_clause);
+            println!("Cursor parameters: {:?}", params);
+        }
+
+        Ok(())
+    }
+
+    /// Example 11: Pagination type conversion and validation
+    pub fn pagination_type_examples() -> anyhow::Result<()> {
+        use crate::app::query_builder::PaginationType;
+
+        // Creating pagination types from strings
+        let cursor_type = PaginationType::from_str("cursor")?;
+        let offset_type = PaginationType::from_str("offset")?;
+
+        println!("Cursor type: {}", cursor_type.as_str());
+        println!("Offset type: {}", offset_type.as_str());
+
+        // Type checking
+        assert!(cursor_type.is_cursor());
+        assert!(!cursor_type.is_offset());
+        assert!(offset_type.is_offset());
+        assert!(!offset_type.is_cursor());
+
+        // Error handling for invalid types
+        match PaginationType::from_str("invalid") {
+            Ok(_) => unreachable!(),
+            Err(e) => println!("Expected error: {}", e),
+        }
+
+        Ok(())
     }
 }
 

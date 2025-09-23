@@ -262,17 +262,71 @@ where
         self
     }
 
-    /// Set page size
-    pub fn per_page(mut self, per_page: u32) -> Self {
-        let current_page = self.pagination.as_ref().map(|p| p.page).unwrap_or(1);
-        self.pagination = Some(Pagination::new(current_page, per_page));
+    /// Set cursor-based pagination
+    pub fn cursor_paginate(mut self, per_page: u32, cursor: Option<String>) -> Self {
+        self.pagination = Some(Pagination::cursor(per_page, cursor));
         self
     }
 
-    /// Set page number
+    /// Set offset-based pagination (traditional page/per_page)
+    pub fn offset_paginate(mut self, page: u32, per_page: u32) -> Self {
+        self.pagination = Some(Pagination::page_based(page, per_page));
+        self
+    }
+
+    /// Set page size for current pagination type
+    pub fn per_page(mut self, per_page: u32) -> Self {
+        if let Some(ref pagination) = self.pagination {
+            match pagination.pagination_type {
+                crate::app::query_builder::PaginationType::Cursor => {
+                    self.pagination = Some(Pagination::cursor(per_page, pagination.cursor.clone()));
+                }
+                crate::app::query_builder::PaginationType::Offset => {
+                    self.pagination = Some(Pagination::page_based(pagination.page, per_page));
+                }
+            }
+        } else {
+            // Default to cursor pagination if no pagination is set
+            self.pagination = Some(Pagination::cursor(per_page, None));
+        }
+        self
+    }
+
+    /// Set page number (only valid for offset pagination)
     pub fn page(mut self, page: u32) -> Self {
-        let current_per_page = self.pagination.as_ref().map(|p| p.per_page).unwrap_or(15);
-        self.pagination = Some(Pagination::new(page, current_per_page));
+        if let Some(ref pagination) = self.pagination {
+            match pagination.pagination_type {
+                crate::app::query_builder::PaginationType::Offset => {
+                    self.pagination = Some(Pagination::page_based(page, pagination.per_page));
+                }
+                crate::app::query_builder::PaginationType::Cursor => {
+                    // For cursor pagination, we ignore page numbers
+                    // This maintains the existing cursor-based setup
+                }
+            }
+        } else {
+            // Default to offset pagination when setting a page
+            self.pagination = Some(Pagination::page_based(page, 15));
+        }
+        self
+    }
+
+    /// Set cursor (only valid for cursor pagination)
+    pub fn cursor(mut self, cursor: Option<String>) -> Self {
+        if let Some(ref pagination) = self.pagination {
+            match pagination.pagination_type {
+                crate::app::query_builder::PaginationType::Cursor => {
+                    self.pagination = Some(Pagination::cursor(pagination.per_page, cursor));
+                }
+                crate::app::query_builder::PaginationType::Offset => {
+                    // For offset pagination, we ignore cursors
+                    // This maintains the existing offset-based setup
+                }
+            }
+        } else {
+            // Default to cursor pagination when setting a cursor
+            self.pagination = Some(Pagination::cursor(15, cursor));
+        }
         self
     }
 
@@ -317,6 +371,31 @@ where
     /// Get the current pagination
     pub fn get_pagination(&self) -> Option<&Pagination> {
         self.pagination.as_ref()
+    }
+
+    /// Check if using cursor-based pagination
+    pub fn is_cursor_pagination(&self) -> bool {
+        self.pagination.as_ref().map_or(false, |p| p.is_cursor())
+    }
+
+    /// Check if using offset-based pagination
+    pub fn is_offset_pagination(&self) -> bool {
+        self.pagination.as_ref().map_or(false, |p| p.is_offset())
+    }
+
+    /// Get SQL LIMIT clause value
+    pub fn get_limit(&self) -> u32 {
+        self.pagination.as_ref().map_or(15, |p| p.limit())
+    }
+
+    /// Get SQL OFFSET clause value (only for offset pagination)
+    pub fn get_offset(&self) -> u32 {
+        self.pagination.as_ref().map_or(0, |p| p.offset())
+    }
+
+    /// Get cursor WHERE clause for SQL queries (only for cursor pagination)
+    pub fn get_cursor_where(&self) -> Option<(String, Vec<i64>)> {
+        self.pagination.as_ref().and_then(|p| p.cursor_where_clause())
     }
 
     /// Clear all filters
@@ -513,5 +592,107 @@ mod tests {
         assert_eq!(builder.get_sorts().len(), 1);
         assert_eq!(builder.get_sorts()[0].field, "created_at");
         assert_eq!(builder.get_sorts()[0].direction, SortDirection::Desc);
+    }
+
+    #[test]
+    fn test_cursor_pagination() {
+        let builder = TestModel::query()
+            .cursor_paginate(20, Some("test_cursor".to_string()));
+
+        assert!(builder.is_cursor_pagination());
+        assert!(!builder.is_offset_pagination());
+        assert_eq!(builder.get_limit(), 20);
+
+        let pagination = builder.get_pagination().unwrap();
+        assert_eq!(pagination.pagination_type, crate::app::query_builder::PaginationType::Cursor);
+        assert_eq!(pagination.per_page, 20);
+        assert_eq!(pagination.cursor, Some("test_cursor".to_string()));
+    }
+
+    #[test]
+    fn test_offset_pagination() {
+        let builder = TestModel::query()
+            .offset_paginate(3, 25);
+
+        assert!(!builder.is_cursor_pagination());
+        assert!(builder.is_offset_pagination());
+        assert_eq!(builder.get_limit(), 25);
+        assert_eq!(builder.get_offset(), 50); // (3-1) * 25 = 50
+
+        let pagination = builder.get_pagination().unwrap();
+        assert_eq!(pagination.pagination_type, crate::app::query_builder::PaginationType::Offset);
+        assert_eq!(pagination.page, 3);
+        assert_eq!(pagination.per_page, 25);
+    }
+
+    #[test]
+    fn test_pagination_type_switching() {
+        // Start with cursor pagination
+        let mut builder = TestModel::query()
+            .cursor_paginate(15, None);
+        assert!(builder.is_cursor_pagination());
+
+        // Switch to offset pagination
+        builder = builder.offset_paginate(2, 20);
+        assert!(builder.is_offset_pagination());
+        assert_eq!(builder.get_offset(), 20);
+
+        // Switch back to cursor
+        builder = builder.cursor_paginate(10, Some("new_cursor".to_string()));
+        assert!(builder.is_cursor_pagination());
+    }
+
+    #[test]
+    fn test_per_page_with_different_pagination_types() {
+        // Test with cursor pagination
+        let cursor_builder = TestModel::query()
+            .cursor_paginate(15, None)
+            .per_page(30);
+        assert!(cursor_builder.is_cursor_pagination());
+        assert_eq!(cursor_builder.get_limit(), 30);
+
+        // Test with offset pagination
+        let offset_builder = TestModel::query()
+            .offset_paginate(2, 15)
+            .per_page(30);
+        assert!(offset_builder.is_offset_pagination());
+        assert_eq!(offset_builder.get_limit(), 30);
+        assert_eq!(offset_builder.get_offset(), 30); // (2-1) * 30 = 30
+    }
+
+    #[test]
+    fn test_cursor_method() {
+        let builder = TestModel::query()
+            .cursor_paginate(20, None)
+            .cursor(Some("my_cursor".to_string()));
+
+        let pagination = builder.get_pagination().unwrap();
+        assert_eq!(pagination.cursor, Some("my_cursor".to_string()));
+    }
+
+    #[test]
+    fn test_page_method_with_cursor_pagination() {
+        // When using cursor pagination, page() should be ignored
+        let builder = TestModel::query()
+            .cursor_paginate(20, Some("cursor".to_string()))
+            .page(5);
+
+        // Should still be cursor pagination and ignore the page setting
+        assert!(builder.is_cursor_pagination());
+        let pagination = builder.get_pagination().unwrap();
+        assert_eq!(pagination.pagination_type, crate::app::query_builder::PaginationType::Cursor);
+    }
+
+    #[test]
+    fn test_cursor_method_with_offset_pagination() {
+        // When using offset pagination, cursor() should be ignored
+        let builder = TestModel::query()
+            .offset_paginate(2, 20)
+            .cursor(Some("cursor".to_string()));
+
+        // Should still be offset pagination and ignore the cursor setting
+        assert!(builder.is_offset_pagination());
+        let pagination = builder.get_pagination().unwrap();
+        assert_eq!(pagination.pagination_type, crate::app::query_builder::PaginationType::Offset);
     }
 }
