@@ -4,7 +4,7 @@ use axum::{
 };
 use crate::database::DbPool;
 
-use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, role_controller, permission_controller, docs_controller, user_organization_controller, organization_position_level_controller, organization_position_controller, sys_model_has_permission_controller, sys_model_has_role_controller};
+use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, role_controller, permission_controller, docs_controller, user_organization_controller, organization_position_level_controller, organization_position_controller, sys_model_has_permission_controller, sys_model_has_role_controller, activity_log_controller};
 use crate::app::http::controllers::web_push_controller::WebPushController;
 
 pub fn routes() -> Router<DbPool> {
@@ -108,11 +108,20 @@ pub fn routes() -> Router<DbPool> {
         .route("/api/sys-model-has-roles/{id}", put(sys_model_has_role_controller::update))
         .route("/api/sys-model-has-roles/{id}", delete(sys_model_has_role_controller::destroy))
         .route("/api/models/{model_type}/{model_id}/roles", get(sys_model_has_role_controller::by_model))
+        // Activity Log routes
+        .route("/api/activity-logs", get(activity_log_controller::list_activity_logs))
+        .route("/api/activity-logs", post(activity_log_controller::create_activity_log))
+        .route("/api/activity-logs/stats", get(activity_log_controller::get_activity_stats))
+        .route("/api/activity-logs/{id}", get(activity_log_controller::get_activity_log))
+        .route("/api/activity-logs/correlation/{correlation_id}", get(activity_log_controller::get_activities_by_correlation))
+        .route("/api/activity-logs/batch/{batch_uuid}", get(activity_log_controller::get_activities_by_batch))
+        .route("/api/activity-logs/subject/{subject_type}/{subject_id}", get(activity_log_controller::get_activities_by_subject))
+        .route("/api/activity-logs/causer/{causer_type}/{causer_id}", get(activity_log_controller::get_activities_by_causer))
         // Documentation routes
         .route("/api/docs", get(docs_controller::docs_info))
         .route("/api/docs/openapi.json", get(docs_controller::openapi_json))
         .route("/api/docs/openapi.yaml", get(docs_controller::openapi_yaml));
 
-    tracing::info!("API routes created successfully with {} route handlers", 60); // Approximate count
+    tracing::info!("API routes created successfully with {} route handlers", 68); // Approximate count
     router
 }

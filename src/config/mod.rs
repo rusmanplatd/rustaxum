@@ -15,6 +15,7 @@ pub mod webpush;
 pub mod events;
 pub mod broadcasting;
 pub mod notifications;
+pub mod activity_log;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -30,6 +31,7 @@ pub struct Config {
     pub events: events::EventsConfig,
     pub broadcasting: broadcasting::BroadcastingConfig,
     pub notifications: notifications::NotificationsConfig,
+    pub activity_log: activity_log::ActivityLogConfig,
 }
 
 impl Config {
@@ -49,6 +51,7 @@ impl Config {
             events: events::EventsConfig::from_env()?,
             broadcasting: broadcasting::BroadcastingConfig::from_env()?,
             notifications: notifications::NotificationsConfig::from_env()?,
+            activity_log: activity_log::ActivityLogConfig::from_env()?,
         })
     }
 

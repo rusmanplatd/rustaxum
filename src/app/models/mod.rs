@@ -15,6 +15,7 @@ pub mod user_organization;
 pub mod notification;
 pub mod sys_model_has_permission;
 pub mod sys_model_has_role;
+pub mod activity_log;
 
 pub use diesel_ulid::DieselUlid;
 pub use decimal_wrapper::DecimalWrapper;

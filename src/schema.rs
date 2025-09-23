@@ -1,6 +1,33 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    activity_log (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 255]
+        log_name -> Nullable<Varchar>,
+        description -> Text,
+        #[max_length = 255]
+        subject_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        subject_id -> Nullable<Varchar>,
+        #[max_length = 255]
+        causer_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        causer_id -> Nullable<Varchar>,
+        properties -> Nullable<Jsonb>,
+        #[max_length = 26]
+        correlation_id -> Nullable<Bpchar>,
+        #[max_length = 255]
+        batch_uuid -> Nullable<Varchar>,
+        #[max_length = 255]
+        event -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     cities (id) {
         #[max_length = 26]
         id -> Bpchar,
@@ -473,6 +500,7 @@ diesel::joinable!(user_organizations -> organizations (organization_id));
 diesel::joinable!(user_organizations -> sys_users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    activity_log,
     cities,
     countries,
     events,

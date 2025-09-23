@@ -5,7 +5,7 @@ CREATE TABLE organization_position_levels (
     code VARCHAR NOT NULL,
     name VARCHAR NOT NULL,
     description TEXT,
-    level INTEGER NOT NULL COMMENTS "Lower numbers = higher hierarchy",
+    level INTEGER NOT NULL, -- Lower numbers = higher hierarchy
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

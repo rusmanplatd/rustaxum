@@ -31,8 +31,8 @@ CREATE TABLE sys_users (
 );
 
 -- Add indexes
-CREATE INDEX idx_sys_users_name ON sys_sys_users (name);
-CREATE INDEX idx_sys_users_created_at ON sys_sys_users (created_at);
+CREATE INDEX idx_sys_users_name ON sys_users (name);
+CREATE INDEX idx_sys_users_created_at ON sys_users (created_at);
 CREATE INDEX idx_sys_users_created_by ON sys_users (created_by);
 CREATE INDEX idx_sys_users_updated_by ON sys_users (updated_by);
 CREATE INDEX idx_sys_users_deleted_by ON sys_users (deleted_by);

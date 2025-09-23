@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::SortDirection;
 use super::{HasModelType, HasRoles, DieselUlid};
+use crate::app::models::activity_log::HasId;
 
 /// User model representing a registered user
 /// Contains authentication, profile, and security information
@@ -274,6 +275,12 @@ impl HasModelType for User {
 
 impl HasRoles for User {
     fn model_id(&self) -> String {
+        self.id.to_string()
+    }
+}
+
+impl HasId for User {
+    fn id(&self) -> String {
         self.id.to_string()
     }
 }

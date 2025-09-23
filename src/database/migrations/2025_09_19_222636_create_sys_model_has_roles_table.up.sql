@@ -4,8 +4,8 @@ CREATE TABLE sys_model_has_roles (
     model_type VARCHAR(255) NOT NULL,
     model_id CHAR(26) NOT NULL,
     role_id CHAR(26) NOT NULL,
-    scope_type VARCHAR(255) COMMENTS "Type of resource this permission assignment is scoped to",
-    scope_id CHAR(26) COMMENTS "ID of the resource this permission assignment is scoped to",
+    scope_type VARCHAR(255), -- Type of resource this permission assignment is scoped to
+    scope_id CHAR(26), -- ID of the resource this permission assignment is scoped to
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     FOREIGN KEY (role_id) REFERENCES sys_roles(id) ON DELETE CASCADE

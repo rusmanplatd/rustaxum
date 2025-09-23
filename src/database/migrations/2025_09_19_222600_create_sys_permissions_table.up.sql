@@ -4,8 +4,10 @@ CREATE TABLE sys_permissions (
     organization_id CHAR(26) REFERENCES organizations(id) ON DELETE RESTRICT,
     name VARCHAR NOT NULL,
     guard_name VARCHAR NOT NULL DEFAULT 'api',
-    scope_type VARCHAR(255) COMMENTS "Type of resource this permission assignment is scoped to",
-    scope_id CHAR(26) COMMENTS "ID of the resource this permission assignment is scoped to",
+    resource VARCHAR,
+    action VARCHAR NOT NULL,
+    scope_type VARCHAR(255), -- Type of resource this permission assignment is scoped to
+    scope_id CHAR(26), -- ID of the resource this permission assignment is scoped to
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(name, guard_name, scope_type, scope_id)

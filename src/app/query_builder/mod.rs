@@ -23,7 +23,7 @@ use std::collections::HashMap;
 use axum::extract::Query;
 
 /// Query parameters that can be passed to the query builder
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, utoipa::IntoParams)]
 pub struct QueryParams {
     /// Filter parameters (e.g., ?filter[name]=John&filter[age][gte]=18)
     #[serde(default)]

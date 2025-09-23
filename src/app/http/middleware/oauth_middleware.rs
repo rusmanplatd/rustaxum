@@ -103,27 +103,27 @@ fn validate_oauth_token(
 #[macro_export]
 macro_rules! require_read_scope {
     () => {
-        $crate::app::http::middleware::oauth::require_scope("read")
+        $crate::app::http::middleware::oauth_middleware::require_scope("read")
     };
 }
 
 #[macro_export]
 macro_rules! require_write_scope {
     () => {
-        $crate::app::http::middleware::oauth::require_scope("write")
+        $crate::app::http::middleware::oauth_middleware::require_scope("write")
     };
 }
 
 #[macro_export]
 macro_rules! require_admin_scope {
     () => {
-        $crate::app::http::middleware::oauth::require_scope("admin")
+        $crate::app::http::middleware::oauth_middleware::require_scope("admin")
     };
 }
 
 #[macro_export]
 macro_rules! require_custom_scopes {
     ($($scope:expr_2021),+) => {
-        $crate::app::http::middleware::oauth::require_scopes(vec![$($scope),+])
+        $crate::app::http::middleware::oauth_middleware::require_scopes(vec![$($scope),+])
     };
 }
