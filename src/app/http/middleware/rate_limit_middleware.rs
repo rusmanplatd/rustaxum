@@ -8,6 +8,7 @@ use axum::{
 use serde_json::json;
 use std::{sync::Arc, net::SocketAddr};
 use crate::app::utils::{RateLimiter, RateLimitError};
+use crate::app::http::middleware::activity_logging_middleware::activity_logger_from_request;
 
 /// Rate limiting middleware state
 #[derive(Clone)]
@@ -46,6 +47,9 @@ pub async fn web_push_subscription_rate_limit(
     // Use IP address as identifier, with user ID as fallback if available
     let identifier = extract_identifier(&addr, &headers).await;
 
+    // Create activity logger for this request
+    let logger = activity_logger_from_request(&request, "rate_limiting");
+
     // Check rate limit
     match rate_limiter.check_rate_limit(&identifier) {
         Ok(_) => {
@@ -53,6 +57,26 @@ pub async fn web_push_subscription_rate_limit(
             Ok(response)
         }
         Err(RateLimitError::Exceeded { seconds }) => {
+            // Log rate limit violation
+            let properties = json!({
+                "rate_limit_type": "web_push_subscription",
+                "identifier": identifier,
+                "client_ip": addr.ip().to_string(),
+                "retry_after_seconds": seconds,
+                "path": request.uri().path(),
+                "method": request.method().as_str()
+            });
+
+            tokio::spawn(async move {
+                if let Err(e) = logger.log_custom(
+                    &format!("Rate limit exceeded for web push subscription: {}", identifier),
+                    Some("security.rate_limit_exceeded"),
+                    Some(properties)
+                ).await {
+                    eprintln!("Failed to log rate limit violation: {}", e);
+                }
+            });
+
             let error_response = Json(json!({
                 "success": false,
                 "error": "rate_limit_exceeded",
@@ -67,6 +91,25 @@ pub async fn web_push_subscription_rate_limit(
         }
         Err(RateLimitError::Internal(msg)) => {
             tracing::error!("Rate limiter internal error: {}", msg);
+
+            // Log internal rate limiter error
+            let properties = json!({
+                "rate_limit_type": "web_push_subscription",
+                "error": msg,
+                "identifier": identifier,
+                "client_ip": addr.ip().to_string()
+            });
+
+            tokio::spawn(async move {
+                if let Err(e) = logger.log_custom(
+                    &format!("Rate limiter internal error: {}", msg),
+                    Some("system.rate_limiter_error"),
+                    Some(properties)
+                ).await {
+                    eprintln!("Failed to log rate limiter error: {}", e);
+                }
+            });
+
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }

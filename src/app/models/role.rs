@@ -3,7 +3,8 @@ use diesel::prelude::*;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::SortDirection;
-use crate::app::models::DieselUlid;
+use crate::app::models::{DieselUlid, HasModelType};
+use crate::app::models::activity_log::HasId;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, QueryableByName, Identifiable)]
 #[diesel(table_name = crate::schema::sys_roles)]
@@ -119,3 +120,14 @@ impl crate::app::query_builder::Queryable for Role {
 // Implement the query builder service for Role
 crate::impl_query_builder_service!(Role);
 
+impl HasModelType for Role {
+    fn model_type() -> &'static str {
+        "Role"
+    }
+}
+
+impl HasId for Role {
+    fn id(&self) -> String {
+        self.id.to_string()
+    }
+}

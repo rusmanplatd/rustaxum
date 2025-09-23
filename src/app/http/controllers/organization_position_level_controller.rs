@@ -43,7 +43,10 @@ pub async fn index(
     State(pool): State<DbPool>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    match OrganizationPositionLevelService::list(&pool, params) {
+    // TODO: Extract user_id from auth context when available
+    let user_id = None; // Replace with actual user extraction
+
+    match OrganizationPositionLevelService::list(&pool, params, user_id).await {
         Ok(organization_position_level) => {
             let responses: Vec<_> = organization_position_level.into_iter().map(|jl| jl.to_response()).collect();
             (StatusCode::OK, ResponseJson(responses)).into_response()
@@ -84,7 +87,10 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         }
     };
 
-    match OrganizationPositionLevelService::find_by_id(&pool, &organization_position_level_id.to_string()) {
+    // TODO: Extract user_id from auth context when available
+    let user_id = None; // Replace with actual user extraction
+
+    match OrganizationPositionLevelService::find_by_id(&pool, &organization_position_level_id.to_string(), user_id).await {
         Ok(Some(organization_position_level)) => (StatusCode::OK, ResponseJson(organization_position_level.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -123,7 +129,10 @@ pub async fn store(State(pool): State<DbPool>, request: CreateOrganizationPositi
         level: request.level,
     };
 
-    match OrganizationPositionLevelService::create(&pool, payload) {
+    // TODO: Extract user_id from auth context when available
+    let created_by = None; // Replace with actual user extraction
+
+    match OrganizationPositionLevelService::create(&pool, payload, created_by).await {
         Ok(organization_position_level) => (StatusCode::CREATED, ResponseJson(organization_position_level.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -165,7 +174,10 @@ pub async fn update(
         is_active: request.is_active,
     };
 
-    match OrganizationPositionLevelService::update(&pool, id, payload) {
+    // TODO: Extract user_id from auth context when available
+    let updated_by = None; // Replace with actual user extraction
+
+    match OrganizationPositionLevelService::update(&pool, id, payload, updated_by).await {
         Ok(organization_position_level) => (StatusCode::OK, ResponseJson(organization_position_level.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -203,7 +215,10 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     };
 
-    match OrganizationPositionLevelService::delete(&pool, organization_position_level_id.to_string()) {
+    // TODO: Extract user_id from auth context when available
+    let deleted_by = None; // Replace with actual user extraction
+
+    match OrganizationPositionLevelService::delete(&pool, organization_position_level_id.to_string(), deleted_by).await {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Job level deleted successfully".to_string(),
@@ -243,7 +258,10 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
 )]
 pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
     // Get current organization position level and update its active status
-    match OrganizationPositionLevelService::find_by_id(&pool, &id) {
+    // TODO: Extract user_id from auth context when available
+    let user_id = None; // Replace with actual user extraction
+
+    match OrganizationPositionLevelService::find_by_id(&pool, &id, user_id).await {
         Ok(Some(_organization_position_level)) => {
             let payload = UpdateOrganizationPositionLevel {
                 organization_id: None,
@@ -254,7 +272,10 @@ pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> imp
                 is_active: Some(true),
             };
 
-            match OrganizationPositionLevelService::update(&pool, id, payload) {
+            // TODO: Extract user_id from auth context when available
+            let updated_by = None; // Replace with actual user extraction
+
+            match OrganizationPositionLevelService::update(&pool, id, payload, updated_by).await {
                 Ok(updated_organization_position_level) => (StatusCode::OK, ResponseJson(updated_organization_position_level.to_response())).into_response(),
                 Err(e) => {
                     let error = ErrorResponse {
@@ -297,7 +318,10 @@ pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> imp
 )]
 pub async fn deactivate(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
     // Get current organization position level and update its active status
-    match OrganizationPositionLevelService::find_by_id(&pool, &id) {
+    // TODO: Extract user_id from auth context when available
+    let user_id = None; // Replace with actual user extraction
+
+    match OrganizationPositionLevelService::find_by_id(&pool, &id, user_id).await {
         Ok(Some(_organization_position_level)) => {
             let payload = UpdateOrganizationPositionLevel {
                 organization_id: None,
@@ -308,7 +332,10 @@ pub async fn deactivate(State(pool): State<DbPool>, Path(id): Path<String>) -> i
                 is_active: Some(false),
             };
 
-            match OrganizationPositionLevelService::update(&pool, id, payload) {
+            // TODO: Extract user_id from auth context when available
+            let updated_by = None; // Replace with actual user extraction
+
+            match OrganizationPositionLevelService::update(&pool, id, payload, updated_by).await {
                 Ok(updated_organization_position_level) => (StatusCode::OK, ResponseJson(updated_organization_position_level.to_response())).into_response(),
                 Err(e) => {
                     let error = ErrorResponse {

@@ -1,15 +1,19 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
+use serde_json::json;
 use crate::app::models::DieselUlid;
 use crate::database::{DbPool};
 use crate::schema::sys_users;
 use crate::app::models::user::{User, CreateUser, UpdateUser};
+use crate::app::traits::ServiceActivityLogger;
 
 pub struct UserService;
 
+impl ServiceActivityLogger for UserService {}
+
 impl UserService {
-    pub fn create_user(pool: &DbPool, data: CreateUser, created_by: Option<DieselUlid>) -> Result<User> {
+    pub async fn create_user(pool: &DbPool, data: CreateUser, created_by: Option<DieselUlid>) -> Result<User> {
         let mut conn = pool.get()?;
 
         let new_user = User::to_new_user(data.name, data.email, data.password, created_by);
@@ -18,6 +22,23 @@ impl UserService {
             .values(&new_user)
             .returning(User::as_select())
             .get_result::<User>(&mut conn)?;
+
+        // Log the user creation activity
+        let service = UserService;
+        let causer_id = created_by.map(|id| id.to_string());
+        let properties = json!({
+            "user_name": created_user.name.clone(),
+            "user_email": created_user.email.clone(),
+            "created_by": causer_id
+        });
+
+        if let Err(e) = service.log_created(
+            &created_user,
+            causer_id.as_deref(),
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log user creation activity: {}", e);
+        }
 
         Ok(created_user)
     }
@@ -62,20 +83,59 @@ impl UserService {
         Ok(result)
     }
 
-    pub fn update_user(pool: &DbPool, id: String, data: UpdateUser, updated_by: Option<DieselUlid>) -> Result<User> {
+    pub async fn update_user(pool: &DbPool, id: String, data: UpdateUser, updated_by: Option<DieselUlid>) -> Result<User> {
         let mut conn = pool.get()?;
+
+        let original_user = sys_users::table
+            .filter(sys_users::id.eq(id.to_string()))
+            .filter(sys_users::deleted_at.is_null())
+            .select(User::as_select())
+            .first::<User>(&mut conn)
+            .optional()?;
 
         let result = diesel::update(sys_users::table
             .filter(sys_users::id.eq(id.to_string()))
             .filter(sys_users::deleted_at.is_null()))
             .set((
-                data.name.map(|n| sys_users::name.eq(n)),
-                data.email.map(|e| sys_users::email.eq(e)),
+                data.name.as_ref().map(|n| sys_users::name.eq(n)),
+                data.email.as_ref().map(|e| sys_users::email.eq(e)),
                 sys_users::updated_at.eq(Utc::now()),
                 sys_users::updated_by.eq(updated_by),
             ))
             .returning(User::as_select())
             .get_result::<User>(&mut conn)?;
+
+        // Log the user update activity
+        let service = UserService;
+        let causer_id = updated_by.map(|id| id.to_string());
+
+        let mut changes = json!({});
+        if let Some(original) = original_user {
+            if let Some(ref new_name) = data.name {
+                if &original.name != new_name {
+                    changes["name"] = json!({
+                        "from": original.name,
+                        "to": new_name
+                    });
+                }
+            }
+            if let Some(ref new_email) = data.email {
+                if &original.email != new_email {
+                    changes["email"] = json!({
+                        "from": original.email,
+                        "to": new_email
+                    });
+                }
+            }
+        }
+
+        if let Err(e) = service.log_updated(
+            &result,
+            changes,
+            causer_id.as_deref()
+        ).await {
+            eprintln!("Failed to log user update activity: {}", e);
+        }
 
         Ok(result)
     }
@@ -189,8 +249,16 @@ impl UserService {
         Ok(result)
     }
 
-    pub fn soft_delete(pool: &DbPool, id: String, deleted_by: Option<DieselUlid>) -> Result<()> {
+    pub async fn soft_delete(pool: &DbPool, id: String, deleted_by: Option<DieselUlid>) -> Result<()> {
         let mut conn = pool.get()?;
+
+        // Get the user before deletion for logging
+        let user = sys_users::table
+            .filter(sys_users::id.eq(id.clone()))
+            .filter(sys_users::deleted_at.is_null())
+            .select(User::as_select())
+            .first::<User>(&mut conn)
+            .optional()?;
 
         diesel::update(sys_users::table
             .filter(sys_users::id.eq(id))
@@ -201,6 +269,19 @@ impl UserService {
                 sys_users::updated_at.eq(Utc::now()),
             ))
             .execute(&mut conn)?;
+
+        // Log the user deletion activity
+        if let Some(user) = user {
+            let service = UserService;
+            let causer_id = deleted_by.map(|id| id.to_string());
+
+            if let Err(e) = service.log_deleted(
+                &user,
+                causer_id.as_deref()
+            ).await {
+                eprintln!("Failed to log user deletion activity: {}", e);
+            }
+        }
 
         Ok(())
     }

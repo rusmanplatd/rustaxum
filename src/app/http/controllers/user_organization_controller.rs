@@ -136,7 +136,10 @@ pub async fn store(
         started_at: request.started_at,
     };
 
-    match UserOrganizationService::create(&pool, create_data)
+    // TODO: Extract user_id from auth context when available
+    let created_by = None; // Replace with actual user extraction
+
+    match UserOrganizationService::create(&pool, create_data, created_by).await
         {
         Ok(user_org) => {
             (StatusCode::CREATED, Json(serde_json::json!(user_org.to_response()))).into_response()

@@ -2,6 +2,7 @@ use anyhow::{Result, bail};
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::{rand_core::OsRng, SaltString}};
 use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use chrono::{Duration, Utc, DateTime};
 use ulid::Ulid;
 use crate::database::DbPool;
@@ -11,6 +12,7 @@ use crate::app::models::user::{CreateUser, LoginRequest, ForgotPasswordRequest, 
 use crate::app::utils::token_utils::TokenUtils;
 use crate::app::services::user_service::UserService;
 use crate::app::services::email_service::EmailService;
+use crate::app::traits::ServiceActivityLogger;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
@@ -39,6 +41,8 @@ const LOCKOUT_DURATION_MINUTES: i64 = 30;
 const PASSWORD_RESET_EXPIRY_HOURS: i64 = 24;
 
 pub struct AuthService;
+
+impl ServiceActivityLogger for AuthService {}
 
 impl AuthService {
     pub fn hash_password(password: &str) -> Result<String> {
@@ -106,11 +110,11 @@ impl AuthService {
 
         // Create user
         let create_user_data = CreateUser {
-            name: data.name,
-            email: data.email,
+            name: data.name.clone(),
+            email: data.email.clone(),
             password: hashed_password,
         };
-        let created_user = UserService::create_user(pool, create_user_data, None)?;
+        let created_user = UserService::create_user(pool, create_user_data, None).await?;
 
         // Generate tokens
         let access_token = Self::generate_access_token(&created_user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
@@ -123,6 +127,24 @@ impl AuthService {
 
         // Update last login
         UserService::update_last_login(pool, created_user.id)?;
+
+        // Log the successful registration
+        let service = AuthService;
+        let properties = json!({
+            "user_id": created_user.id.to_string(),
+            "user_email": created_user.email.clone(),
+            "user_name": created_user.name.clone(),
+            "ip_address": "unknown" // This would be extracted from request context in real implementation
+        });
+
+        if let Err(e) = service.log_authentication(
+            "register",
+            Some(&created_user.id.to_string()),
+            true,
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log registration activity: {}", e);
+        }
 
         // Send welcome email
         if let Err(e) = EmailService::send_welcome_email(&created_user.email, &created_user.name).await {
@@ -138,7 +160,7 @@ impl AuthService {
         })
     }
 
-    pub fn login(pool: &DbPool, data: LoginRequest) -> Result<AuthResponse> {
+    pub async fn login(pool: &DbPool, data: LoginRequest) -> Result<AuthResponse> {
         // Find user by email
         let mut user = UserService::find_by_email(pool, &data.email)?
             .ok_or_else(|| anyhow::anyhow!("Invalid credentials"))?;
@@ -159,6 +181,26 @@ impl AuthService {
             }
 
             UserService::update_failed_attempts(pool, user.id, user.failed_login_attempts, user.locked_until)?;
+
+            // Log failed login attempt
+            let service = AuthService;
+            let properties = json!({
+                "user_id": user.id.to_string(),
+                "email": data.email.clone(),
+                "failed_attempts": user.failed_login_attempts,
+                "account_locked": user.failed_login_attempts >= MAX_FAILED_ATTEMPTS,
+                "reason": "invalid_password"
+            });
+
+            if let Err(e) = service.log_authentication(
+                "login",
+                Some(&data.email),
+                false,
+                Some(properties)
+            ).await {
+                eprintln!("Failed to log failed login activity: {}", e);
+            }
+
             bail!("Invalid credentials");
         }
 
@@ -179,6 +221,23 @@ impl AuthService {
         // Update last login
         UserService::update_last_login(pool, user.id.clone())?;
         user.last_login_at = Some(Utc::now());
+
+        // Log successful login
+        let service = AuthService;
+        let properties = json!({
+            "user_id": user.id.to_string(),
+            "email": user.email.clone(),
+            "last_login": user.last_login_at
+        });
+
+        if let Err(e) = service.log_authentication(
+            "login",
+            Some(&user.id.to_string()),
+            true,
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log successful login activity: {}", e);
+        }
 
         Ok(AuthResponse {
             access_token,

@@ -1,22 +1,42 @@
 use anyhow::Result;
 use diesel::prelude::*;
+use serde_json::json;
 use crate::database::DbPool;
 use crate::schema::organizations;
 use std::collections::HashMap;
 
 use crate::app::models::organization::{Organization, CreateOrganization, UpdateOrganization, NewOrganization};
+use crate::app::traits::ServiceActivityLogger;
 
 pub struct OrganizationService;
 
+impl ServiceActivityLogger for OrganizationService {}
+
 impl OrganizationService {
-    pub fn create(pool: &DbPool, data: CreateOrganization) -> Result<Organization> {
+    pub async fn create(pool: &DbPool, data: CreateOrganization, created_by: Option<&str>) -> Result<Organization> {
         let mut conn = pool.get()?;
 
-        let new_org = NewOrganization::new(data, None); // TODO: Add created_by from auth context
+        let new_org = NewOrganization::new(data.clone(), None); // TODO: Convert created_by string to DieselUlid if needed
 
         let result = diesel::insert_into(organizations::table)
             .values(&new_org)
             .get_result::<Organization>(&mut conn)?;
+
+        // Log the organization creation activity
+        let service = OrganizationService;
+        let properties = json!({
+            "organization_name": result.name,
+            "organization_code": result.code,
+            "created_by": created_by
+        });
+
+        if let Err(e) = service.log_created(
+            &result,
+            created_by,
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log organization creation activity: {}", e);
+        }
 
         Ok(result)
     }

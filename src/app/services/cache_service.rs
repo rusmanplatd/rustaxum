@@ -1,7 +1,9 @@
 use crate::cache::{Cache, manager::{CacheFacade, CacheDriver}};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::time::Duration;
+use crate::app::traits::ServiceActivityLogger;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct User {
@@ -13,6 +15,8 @@ pub struct User {
 pub struct CacheService {
     cache: Option<CacheDriver>,
 }
+
+impl ServiceActivityLogger for CacheService {}
 
 impl CacheService {
     pub fn new() -> Self {
@@ -28,20 +32,62 @@ impl CacheService {
         let key = format!("user:{}", user.id);
         let ttl = Some(Duration::from_secs(3600)); // 1 hour
 
-        match &self.cache {
+        let result = match &self.cache {
             Some(cache) => cache.put(&key, user, ttl).await,
             None => CacheFacade::put(&key, user, ttl).await,
+        };
+
+        // Log cache operation
+        if result.is_ok() {
+            let properties = json!({
+                "cache_key": key,
+                "operation": "put",
+                "ttl_seconds": 3600,
+                "user_id": user.id,
+                "data_type": "user"
+            });
+
+            if let Err(e) = self.log_system_event(
+                "cache_operation",
+                &format!("Cached user {} for 1 hour", user.id),
+                Some(properties)
+            ).await {
+                eprintln!("Failed to log cache operation: {}", e);
+            }
         }
+
+        result
     }
 
     /// Get a cached user
     pub async fn get_cached_user(&self, user_id: i32) -> Result<Option<User>> {
         let key = format!("user:{}", user_id);
 
-        match &self.cache {
+        let result = match &self.cache {
             Some(cache) => cache.get(&key).await,
             None => CacheFacade::get(&key).await,
+        };
+
+        // Log cache retrieval operation
+        if let Ok(user_option) = &result {
+            let properties = json!({
+                "cache_key": key,
+                "operation": "get",
+                "user_id": user_id,
+                "found": user_option.is_some(),
+                "data_type": "user"
+            });
+
+            if let Err(e) = self.log_system_event(
+                "cache_operation",
+                &format!("Retrieved user {} from cache (found: {})", user_id, user_option.is_some()),
+                Some(properties)
+            ).await {
+                eprintln!("Failed to log cache retrieval: {}", e);
+            }
         }
+
+        result
     }
 
     /// Get user with caching - if not in cache, load from "database" and cache it
@@ -59,43 +105,131 @@ impl CacheService {
             })
         };
 
-        match &self.cache {
+        let result = match &self.cache {
             Some(cache) => cache.remember(&key, ttl, user_loader).await,
             None => CacheFacade::remember(&key, ttl, user_loader).await,
+        };
+
+        // Log cache remember operation
+        if let Ok(user) = &result {
+            let properties = json!({
+                "cache_key": key,
+                "operation": "remember",
+                "user_id": user_id,
+                "ttl_seconds": 3600,
+                "data_type": "user"
+            });
+
+            if let Err(e) = self.log_system_event(
+                "cache_operation",
+                &format!("Retrieved/cached user {} with remember operation", user_id),
+                Some(properties)
+            ).await {
+                eprintln!("Failed to log cache remember operation: {}", e);
+            }
         }
+
+        result
     }
 
     /// Cache user stats that never expire
     pub async fn cache_user_stats_forever(&self, user_id: i32, stats: &UserStats) -> Result<()> {
         let key = format!("user_stats:{}", user_id);
 
-        match &self.cache {
+        let result = match &self.cache {
             Some(cache) => cache.forever(&key, stats).await,
             None => CacheFacade::forever(&key, stats).await,
+        };
+
+        // Log cache forever operation
+        if result.is_ok() {
+            let properties = json!({
+                "cache_key": key,
+                "operation": "forever",
+                "user_id": user_id,
+                "data_type": "user_stats",
+                "stats": {
+                    "total_logins": stats.total_logins,
+                    "posts_count": stats.posts_count
+                }
+            });
+
+            if let Err(e) = self.log_system_event(
+                "cache_operation",
+                &format!("Cached user {} stats forever", user_id),
+                Some(properties)
+            ).await {
+                eprintln!("Failed to log cache forever operation: {}", e);
+            }
         }
+
+        result
     }
 
     /// Increment user login count
     pub async fn increment_login_count(&self, user_id: i32) -> Result<i64> {
         let key = format!("login_count:{}", user_id);
 
-        match &self.cache {
+        let result = match &self.cache {
             Some(cache) => cache.increment(&key, 1).await,
             None => {
                 let cache = crate::cache::default_cache().await?;
                 cache.increment(&key, 1).await
             }
+        };
+
+        // Log cache increment operation
+        if let Ok(new_count) = &result {
+            let properties = json!({
+                "cache_key": key,
+                "operation": "increment",
+                "user_id": user_id,
+                "increment_by": 1,
+                "new_value": new_count,
+                "data_type": "counter"
+            });
+
+            if let Err(e) = self.log_system_event(
+                "cache_operation",
+                &format!("Incremented login count for user {} to {}", user_id, new_count),
+                Some(properties)
+            ).await {
+                eprintln!("Failed to log cache increment operation: {}", e);
+            }
         }
+
+        result
     }
 
     /// Clear user cache
     pub async fn clear_user_cache(&self, user_id: i32) -> Result<bool> {
         let key = format!("user:{}", user_id);
 
-        match &self.cache {
+        let result = match &self.cache {
             Some(cache) => cache.forget(&key).await,
             None => CacheFacade::forget(&key).await,
+        };
+
+        // Log cache clear operation
+        if let Ok(was_cleared) = &result {
+            let properties = json!({
+                "cache_key": key,
+                "operation": "forget",
+                "user_id": user_id,
+                "was_cleared": was_cleared,
+                "data_type": "user"
+            });
+
+            if let Err(e) = self.log_system_event(
+                "cache_operation",
+                &format!("Cleared user {} cache (was_cleared: {})", user_id, was_cleared),
+                Some(properties)
+            ).await {
+                eprintln!("Failed to log cache clear operation: {}", e);
+            }
         }
+
+        result
     }
 
     /// Check if user is cached
@@ -122,13 +256,35 @@ impl CacheService {
 
         let ttl = Some(Duration::from_secs(3600)); // 1 hour
 
-        match &self.cache {
+        let result = match &self.cache {
             Some(cache) => cache.put_many(&key_value_pairs, ttl).await,
             None => {
                 let cache = crate::cache::default_cache().await?;
                 cache.put_many(&key_value_pairs, ttl).await
             }
+        };
+
+        // Log bulk cache operation
+        if result.is_ok() {
+            let user_ids: Vec<i32> = users.iter().map(|u| u.id).collect();
+            let properties = json!({
+                "operation": "put_many",
+                "user_ids": user_ids,
+                "count": users.len(),
+                "ttl_seconds": 3600,
+                "data_type": "users_bulk"
+            });
+
+            if let Err(e) = self.log_system_event(
+                "cache_operation",
+                &format!("Cached {} users in bulk operation", users.len()),
+                Some(properties)
+            ).await {
+                eprintln!("Failed to log bulk cache operation: {}", e);
+            }
         }
+
+        result
     }
 
     /// Get multiple users from cache
@@ -154,6 +310,24 @@ impl CacheService {
             user_results.push((user_ids[i], user_option));
         }
 
+        // Log bulk retrieval operation
+        let found_count = user_results.iter().filter(|(_, user)| user.is_some()).count();
+        let properties = json!({
+            "operation": "many",
+            "user_ids": user_ids,
+            "requested_count": user_ids.len(),
+            "found_count": found_count,
+            "data_type": "users_bulk"
+        });
+
+        if let Err(e) = self.log_system_event(
+            "cache_operation",
+            &format!("Retrieved {} users from cache ({} found of {} requested)", user_ids.len(), found_count, user_ids.len()),
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log bulk retrieval operation: {}", e);
+        }
+
         Ok(user_results)
     }
 
@@ -162,13 +336,35 @@ impl CacheService {
         let key = format!("user_lock:{}", user_id);
         let lock_value = "locked";
 
-        match &self.cache {
+        let result = match &self.cache {
             Some(cache) => cache.add(&key, &lock_value, Some(lock_duration)).await,
             None => {
                 let cache = crate::cache::default_cache().await?;
                 cache.add(&key, &lock_value, Some(lock_duration)).await
             }
+        };
+
+        // Log cache lock operation
+        if let Ok(was_added) = &result {
+            let properties = json!({
+                "cache_key": key,
+                "operation": "add",
+                "user_id": user_id,
+                "lock_duration_seconds": lock_duration.as_secs(),
+                "was_added": was_added,
+                "data_type": "lock"
+            });
+
+            if let Err(e) = self.log_system_event(
+                "cache_operation",
+                &format!("Attempted to lock user {} (success: {})", user_id, was_added),
+                Some(properties)
+            ).await {
+                eprintln!("Failed to log cache lock operation: {}", e);
+            }
         }
+
+        result
     }
 }
 

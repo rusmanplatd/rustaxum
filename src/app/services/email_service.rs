@@ -3,9 +3,13 @@ use lettre::{Message, AsyncTransport};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::transport::smtp::client::{Tls, TlsParameters};
 use lettre::AsyncSmtpTransport;
+use serde_json::json;
 use crate::config::Config;
+use crate::app::traits::ServiceActivityLogger;
 
 pub struct EmailService;
+
+impl ServiceActivityLogger for EmailService {}
 
 impl EmailService {
     async fn get_mailer() -> Result<AsyncSmtpTransport<lettre::Tokio1Executor>> {
@@ -86,10 +90,47 @@ impl EmailService {
         match mailer.send(email).await {
             Ok(_) => {
                 tracing::info!("Password reset email sent successfully to: {}", to_email);
+
+                // Log the email sending activity
+                let service = EmailService;
+                let properties = json!({
+                    "email_type": "password_reset",
+                    "recipient_email": to_email,
+                    "recipient_name": name,
+                    "subject": "Password Reset Request - RustAxum"
+                });
+
+                if let Err(e) = service.log_system_event(
+                    "email_sent",
+                    &format!("Password reset email sent to {}", to_email),
+                    Some(properties)
+                ).await {
+                    eprintln!("Failed to log email sending activity: {}", e);
+                }
+
                 Ok(())
             }
             Err(e) => {
                 tracing::error!("Failed to send password reset email to {}: {}", to_email, e);
+
+                // Log the email failure activity
+                let service = EmailService;
+                let properties = json!({
+                    "email_type": "password_reset",
+                    "recipient_email": to_email,
+                    "recipient_name": name,
+                    "subject": "Password Reset Request - RustAxum",
+                    "error": e.to_string()
+                });
+
+                if let Err(log_err) = service.log_system_event(
+                    "email_failed",
+                    &format!("Failed to send password reset email to {}: {}", to_email, e),
+                    Some(properties)
+                ).await {
+                    eprintln!("Failed to log email failure activity: {}", log_err);
+                }
+
                 Err(anyhow::anyhow!("Failed to send email: {}", e))
             }
         }

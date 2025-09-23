@@ -174,3 +174,15 @@ impl crate::app::query_builder::Queryable for Country {
 
 // Implement the query builder service for Country
 crate::impl_query_builder_service!(Country);
+
+impl crate::app::models::HasModelType for Country {
+    fn model_type() -> &'static str {
+        "Country"
+    }
+}
+
+impl crate::app::models::activity_log::HasId for Country {
+    fn id(&self) -> String {
+        self.id.to_string()
+    }
+}

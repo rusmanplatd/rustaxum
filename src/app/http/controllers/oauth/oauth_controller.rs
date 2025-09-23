@@ -427,7 +427,10 @@ async fn handle_client_credentials_grant(pool: &DbPool, params: TokenRequest) ->
         expires_at: Some(Utc::now() + Duration::seconds(3600)), // 1 hour
     };
 
-    match TokenService::create_access_token(pool, create_token, Some(3600)).await {
+    // TODO: Extract user_id from auth context when available
+    let granted_by = None; // Replace with actual user extraction
+
+    match TokenService::create_access_token(pool, create_token, Some(3600), granted_by).await {
         Ok(access_token) => {
             match TokenService::generate_jwt_token(&access_token, &client_id.to_string()) {
                 Ok(jwt_token) => {
@@ -741,7 +744,10 @@ async fn handle_password_grant(pool: &DbPool, params: TokenRequest) -> impl Into
         expires_at: Some(Utc::now() + Duration::seconds(3600)), // 1 hour
     };
 
-    match TokenService::create_access_token(pool, create_token, Some(3600)).await {
+    // TODO: Extract user_id from auth context when available
+    let granted_by = None; // Replace with actual user extraction
+
+    match TokenService::create_access_token(pool, create_token, Some(3600), granted_by).await {
         Ok(access_token) => {
             // Create refresh token
             let refresh_token = match TokenService::create_refresh_token(

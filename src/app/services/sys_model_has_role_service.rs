@@ -2,11 +2,15 @@ use anyhow::Result;
 use crate::app::models::DieselUlid;
 use crate::database::DbPool;
 use diesel::prelude::*;
+use serde_json::json;
 use crate::schema::sys_model_has_roles;
+use crate::app::traits::ServiceActivityLogger;
 
 use crate::app::models::sys_model_has_role::{SysModelHasRole, CreateSysModelHasRole, UpdateSysModelHasRole};
 
 pub struct SysModelHasRoleService;
+
+impl ServiceActivityLogger for SysModelHasRoleService {}
 
 impl SysModelHasRoleService {
     pub fn create(pool: &DbPool, data: CreateSysModelHasRole) -> Result<SysModelHasRole> {
@@ -107,37 +111,79 @@ impl SysModelHasRoleService {
         Ok(())
     }
 
-    pub fn assign_role_to_model(
+    pub async fn assign_role_to_model(
         pool: &DbPool,
         model_type: &str,
         model_id: DieselUlid,
         role_id: DieselUlid,
         scope_type: Option<String>,
         scope_id: Option<DieselUlid>,
+        assigned_by: Option<&str>,
     ) -> Result<SysModelHasRole> {
         let data = CreateSysModelHasRole {
             model_type: model_type.to_string(),
             model_id: model_id,
             role_id: role_id,
-            scope_type,
+            scope_type: scope_type.clone(),
             scope_id: scope_id,
         };
-        Self::create(pool, data)
+        let result = Self::create(pool, data)?;
+
+        // Log role assignment activity
+        let service = Self;
+        let properties = json!({
+            "model_type": model_type,
+            "model_id": model_id.to_string(),
+            "role_id": role_id.to_string(),
+            "scope_type": scope_type,
+            "scope_id": scope_id.map(|id| id.to_string()),
+            "action": "role_assigned"
+        });
+
+        if let Err(e) = service.log_system_event(
+            "role_assigned_to_model",
+            &format!("Role {} assigned to {} {}", role_id, model_type, model_id),
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log role assignment activity: {}", e);
+        }
+
+        Ok(result)
     }
 
-    pub fn remove_role_from_model(
+    pub async fn remove_role_from_model(
         pool: &DbPool,
         model_type: &str,
         model_id: String,
         role_id: String,
+        removed_by: Option<&str>,
     ) -> Result<()> {
         let mut conn = pool.get()?;
 
-        diesel::delete(sys_model_has_roles::table)
+        let rows_affected = diesel::delete(sys_model_has_roles::table)
             .filter(sys_model_has_roles::model_type.eq(model_type))
-            .filter(sys_model_has_roles::model_id.eq(model_id))
-            .filter(sys_model_has_roles::role_id.eq(role_id))
+            .filter(sys_model_has_roles::model_id.eq(&model_id))
+            .filter(sys_model_has_roles::role_id.eq(&role_id))
             .execute(&mut conn)?;
+
+        if rows_affected > 0 {
+            // Log role removal activity
+            let service = Self;
+            let properties = json!({
+                "model_type": model_type,
+                "model_id": model_id,
+                "role_id": role_id,
+                "action": "role_removed"
+            });
+
+            if let Err(e) = service.log_system_event(
+                "role_removed_from_model",
+                &format!("Role {} removed from {} {}", role_id, model_type, model_id),
+                Some(properties)
+            ).await {
+                eprintln!("Failed to log role removal activity: {}", e);
+            }
+        }
 
         Ok(())
     }

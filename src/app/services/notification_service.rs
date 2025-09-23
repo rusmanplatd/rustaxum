@@ -1,13 +1,17 @@
 use anyhow::Result;
+use serde_json::json;
 use crate::app::notifications::notification::{Notification, Notifiable};
 use crate::app::notifications::channels::{ChannelManager};
 use crate::app::notifications::channels::database_channel::DatabaseChannel;
 use crate::app::models::notification::Notification as NotificationModel;
+use crate::app::traits::ServiceActivityLogger;
 
 /// Service for managing and sending notifications
 pub struct NotificationService {
     channel_manager: ChannelManager,
 }
+
+impl ServiceActivityLogger for NotificationService {}
 
 impl NotificationService {
     pub async fn new() -> Self {
@@ -48,6 +52,22 @@ impl NotificationService {
             notification.notification_type(),
             notifiable.get_key()
         );
+
+        // Log the notification sending activity
+        let properties = json!({
+            "notification_type": notification.notification_type(),
+            "recipient_key": notifiable.get_key(),
+            "channels": filtered_channels.iter().map(|c| c.to_string()).collect::<Vec<_>>(),
+            "status": "sent"
+        });
+
+        if let Err(e) = self.log_system_event(
+            "notification_sent",
+            &format!("Notification {} sent to {}", notification.notification_type(), notifiable.get_key()),
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log notification sending activity: {}", e);
+        }
 
         Ok(())
     }

@@ -1,14 +1,18 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use crate::database::DbPool;
 use crate::app::notifications::channels::web_push_channel::{PushSubscription, WebPushChannel};
 use crate::app::utils::web_push_metrics;
 use crate::config::Config;
+use crate::app::traits::ServiceActivityLogger;
 
 /// Web Push service for managing push subscriptions and sending notifications
 pub struct WebPushService {
     web_push_channel: Option<WebPushChannel>,
 }
+
+impl ServiceActivityLogger for WebPushService {}
 
 /// Request payload for subscribing to web push notifications
 #[derive(Debug, Serialize, Deserialize)]
@@ -98,6 +102,22 @@ impl WebPushService {
                     subscription.endpoint
                 );
 
+                // Log web push subscription activity
+                let properties = json!({
+                    "user_id": user_id,
+                    "endpoint": request.endpoint,
+                    "subscription_id": subscription.id.to_string(),
+                    "user_agent": user_agent
+                });
+
+                if let Err(e) = self.log_system_event(
+                    "web_push_subscribed",
+                    &format!("User {} subscribed to web push notifications", user_id),
+                    Some(properties)
+                ).await {
+                    eprintln!("Failed to log web push subscription activity: {}", e);
+                }
+
                 Ok(SubscriptionResponse {
                     success: true,
                     message: "Successfully subscribed to push notifications".to_string(),
@@ -132,6 +152,20 @@ impl WebPushService {
                     endpoint
                 );
 
+                // Log web push unsubscription activity
+                let properties = json!({
+                    "user_id": user_id,
+                    "endpoint": endpoint
+                });
+
+                if let Err(e) = self.log_system_event(
+                    "web_push_unsubscribed",
+                    &format!("User {} unsubscribed from web push notifications", user_id),
+                    Some(properties)
+                ).await {
+                    eprintln!("Failed to log web push unsubscription activity: {}", e);
+                }
+
                 Ok(SubscriptionResponse {
                     success: true,
                     message: "Successfully unsubscribed from push notifications".to_string(),
@@ -151,7 +185,25 @@ impl WebPushService {
 
     /// Get all push subscriptions for a user
     pub async fn get_user_subscriptions(&self, user_id: &str) -> Result<Vec<PushSubscription>> {
-        WebPushChannel::get_user_subscriptions(user_id)
+        let result = WebPushChannel::get_user_subscriptions(user_id);
+
+        // Log subscription retrieval activity
+        if let Ok(subscriptions) = &result {
+            let properties = json!({
+                "user_id": user_id,
+                "subscription_count": subscriptions.len()
+            });
+
+            if let Err(e) = self.log_system_event(
+                "web_push_subscriptions_retrieved",
+                &format!("Retrieved {} web push subscriptions for user {}", subscriptions.len(), user_id),
+                Some(properties)
+            ).await {
+                eprintln!("Failed to log web push subscription retrieval activity: {}", e);
+            }
+        }
+
+        result
     }
 
     /// Test if web push is configured and working
@@ -211,6 +263,24 @@ impl WebPushService {
             }
         }
 
+        // Log test notification activity
+        let properties = json!({
+            "user_id": user_id,
+            "title": title,
+            "message": message,
+            "subscription_count": subscriptions.len(),
+            "success_count": success_count,
+            "error_count": error_count
+        });
+
+        if let Err(e) = self.log_system_event(
+            "web_push_test_notification_sent",
+            &format!("Sent test notification to user {} ({} successful, {} failed)", user_id, success_count, error_count),
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log web push test notification activity: {}", e);
+        }
+
         Ok(SubscriptionResponse {
             success: success_count > 0,
             message: format!(
@@ -237,6 +307,22 @@ impl WebPushService {
         ).execute(&mut conn)?;
 
         tracing::info!("Cleaned up {} old push subscriptions", deleted_count);
+
+        // Log cleanup activity
+        let properties = json!({
+            "deleted_count": deleted_count,
+            "cutoff_days": 30,
+            "cutoff_date": cutoff_date.to_rfc3339()
+        });
+
+        if let Err(e) = self.log_system_event(
+            "web_push_subscriptions_cleanup",
+            &format!("Cleaned up {} old web push subscriptions", deleted_count),
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log web push cleanup activity: {}", e);
+        }
+
         Ok(deleted_count as u64)
     }
 

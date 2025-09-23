@@ -43,7 +43,10 @@ pub async fn index(
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match OrganizationPositionService::index(&pool, &request) {
+    // TODO: Extract user_id from auth context when available
+    let user_id = None; // Replace with actual user extraction
+
+    match OrganizationPositionService::index(&pool, &request, user_id).await {
         Ok(response) => Ok(Json(json!(response))),
         Err(e) => {
             tracing::error!("Failed to fetch organization positions: {}", e);
@@ -82,7 +85,10 @@ pub async fn show(
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match OrganizationPositionService::show(&pool, &id) {
+    // TODO: Extract user_id from auth context when available
+    let user_id = None; // Replace with actual user extraction
+
+    match OrganizationPositionService::show(&pool, &id, user_id).await {
         Ok(organization_position) => Ok(Json(json!(organization_position))),
         Err(e) => {
             tracing::error!("Failed to fetch organization position {}: {}", id, e);
@@ -125,7 +131,10 @@ pub async fn store(
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match OrganizationPositionService::create(&pool, &request) {
+    // TODO: Extract user_id from auth context when available
+    let created_by = None; // Replace with actual user extraction
+
+    match OrganizationPositionService::create(&pool, &request, created_by).await {
         Ok(organization_position) => Ok(Json(json!(organization_position))),
         Err(e) => {
             tracing::error!("Failed to create organization position: {}", e);
@@ -190,7 +199,10 @@ pub async fn update(
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match OrganizationPositionService::update(&pool, &id, &request) {
+    // TODO: Extract user_id from auth context when available
+    let updated_by = None; // Replace with actual user extraction
+
+    match OrganizationPositionService::update(&pool, &id, &request, updated_by).await {
         Ok(organization_position) => Ok(Json(json!(organization_position))),
         Err(e) => {
             tracing::error!("Failed to update organization position {}: {}", id, e);
@@ -258,7 +270,10 @@ pub async fn destroy(
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match OrganizationPositionService::delete(&pool, &id) {
+    // TODO: Extract user_id from auth context when available
+    let deleted_by = None; // Replace with actual user extraction
+
+    match OrganizationPositionService::delete(&pool, &id, deleted_by).await {
         Ok(_) => Ok(Json(json!({"message": "Organization position deleted successfully"}))),
         Err(e) => {
             tracing::error!("Failed to delete organization position {}: {}", id, e);
@@ -309,7 +324,10 @@ pub async fn activate(
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match OrganizationPositionService::activate(&pool, &id) {
+    // TODO: Extract user_id from auth context when available
+    let activated_by = None; // Replace with actual user extraction
+
+    match OrganizationPositionService::activate(&pool, &id, activated_by).await {
         Ok(organization_position) => Ok(Json(json!(organization_position))),
         Err(e) => {
             tracing::error!("Failed to activate organization position {}: {}", id, e);
@@ -355,7 +373,10 @@ pub async fn deactivate(
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    match OrganizationPositionService::deactivate(&pool, &id) {
+    // TODO: Extract user_id from auth context when available
+    let deactivated_by = None; // Replace with actual user extraction
+
+    match OrganizationPositionService::deactivate(&pool, &id, deactivated_by).await {
         Ok(organization_position) => Ok(Json(json!(organization_position))),
         Err(e) => {
             tracing::error!("Failed to deactivate organization position {}: {}", id, e);
@@ -405,7 +426,10 @@ pub async fn by_level(
     // Set the organization_position_level_id from the path parameter
     request.organization_position_level_id = organization_position_level_id;
 
-    match OrganizationPositionService::by_level(&pool, &request) {
+    // TODO: Extract user_id from auth context when available
+    let user_id = None; // Replace with actual user extraction
+
+    match OrganizationPositionService::by_level(&pool, &request, user_id).await {
         Ok(positions) => Ok(Json(json!(positions))),
         Err(e) => {
             tracing::error!("Failed to fetch organization positions by level: {}", e);

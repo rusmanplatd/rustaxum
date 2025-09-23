@@ -1,20 +1,24 @@
 use anyhow::Result;
 use ulid::Ulid;
 use diesel::prelude::*;
+use serde_json::json;
 use crate::database::DbPool;
 use crate::schema::{sys_permissions, sys_model_has_permissions, sys_model_has_roles};
 use crate::app::models::permission::{Permission, CreatePermission, UpdatePermission};
 use crate::app::models::HasRoles;
+use crate::app::traits::ServiceActivityLogger;
 
 pub struct PermissionService;
 
+impl ServiceActivityLogger for PermissionService {}
+
 impl PermissionService {
-    pub fn create(pool: &DbPool, data: CreatePermission) -> Result<Permission> {
+    pub async fn create(pool: &DbPool, data: CreatePermission, created_by: Option<&str>) -> Result<Permission> {
         let permission = Permission::new(
-            data.name,
-            data.guard_name,
-            data.resource,
-            data.action,
+            data.name.clone(),
+            data.guard_name.clone(),
+            data.resource.clone(),
+            data.action.clone(),
         );
 
         let mut conn = pool.get()?;
@@ -30,6 +34,24 @@ impl PermissionService {
                 sys_permissions::updated_at.eq(permission.updated_at),
             ))
             .execute(&mut conn)?;
+
+        // Log the permission creation activity
+        let service = PermissionService;
+        let properties = json!({
+            "permission_name": permission.name,
+            "resource": permission.resource,
+            "action": permission.action,
+            "guard_name": permission.guard_name,
+            "created_by": created_by
+        });
+
+        if let Err(e) = service.log_created(
+            &permission,
+            created_by,
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log permission creation activity: {}", e);
+        }
 
         Ok(permission)
     }

@@ -1,19 +1,40 @@
 use anyhow::Result;
 use diesel::prelude::*;
+use serde_json::json;
 use crate::database::DbPool;
 use crate::schema::countries;
 use crate::app::models::country::{Country, CreateCountry, UpdateCountry, NewCountry};
+use crate::app::traits::ServiceActivityLogger;
 
 pub struct CountryService;
 
+impl ServiceActivityLogger for CountryService {}
+
 impl CountryService {
-    pub fn create(pool: &DbPool, data: CreateCountry) -> Result<Country> {
+    pub async fn create(pool: &DbPool, data: CreateCountry, created_by: Option<&str>) -> Result<Country> {
         let mut conn = pool.get()?;
-        let new_country = NewCountry::new(data.name, data.iso_code, data.phone_code);
+        let new_country = NewCountry::new(data.name.clone(), data.iso_code.clone(), data.phone_code.clone());
 
         let result = diesel::insert_into(countries::table)
             .values(&new_country)
             .get_result::<Country>(&mut conn)?;
+
+        // Log the country creation activity
+        let service = CountryService;
+        let properties = json!({
+            "country_name": result.name,
+            "iso_code": result.iso_code,
+            "phone_code": result.phone_code,
+            "created_by": created_by
+        });
+
+        if let Err(e) = service.log_created(
+            &result,
+            created_by,
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log country creation activity: {}", e);
+        }
 
         Ok(result)
     }

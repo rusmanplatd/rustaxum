@@ -4,6 +4,7 @@ use ulid::Ulid;
 use chrono::{Utc, Duration};
 use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use diesel::prelude::*;
 use crate::schema::{oauth_access_tokens, oauth_refresh_tokens, oauth_auth_codes};
 use crate::app::models::DieselUlid;
@@ -13,6 +14,7 @@ use crate::app::models::oauth::{
     AuthCode, CreateAuthCode, NewAuthCode
 };
 use crate::app::services::oauth::client_service::ClientService;
+use crate::app::traits::ServiceActivityLogger;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenClaims {
@@ -41,11 +43,14 @@ pub struct PersonalAccessTokenResponse {
 
 pub struct TokenService;
 
+impl ServiceActivityLogger for TokenService {}
+
 impl TokenService {
     pub async fn create_access_token(
         pool: &DbPool,
         data: CreateAccessToken,
         expires_in_seconds: Option<i64>,
+        granted_by: Option<&str>,
     ) -> Result<AccessToken> {
         let expires_at = expires_in_seconds.map(|seconds| Utc::now() + Duration::seconds(seconds));
         let scopes_str = if data.scopes.is_empty() {
@@ -62,7 +67,29 @@ impl TokenService {
             expires_at,
         );
 
-        Self::create_access_token_record(pool, new_token).await
+        let created_token = Self::create_access_token_record(pool, new_token).await?;
+
+        // Log OAuth access token creation activity
+        let service = TokenService;
+        let properties = json!({
+            "token_id": created_token.id.to_string(),
+            "user_id": data.user_id.to_string(),
+            "client_id": data.client_id.to_string(),
+            "token_name": data.name,
+            "scopes": data.scopes,
+            "expires_at": expires_at,
+            "granted_by": granted_by
+        });
+
+        if let Err(e) = service.log_system_event(
+            "oauth_access_token_created",
+            &format!("OAuth access token '{}' created for user {}", data.name.unwrap_or_else(|| "unnamed".to_string()), data.user_id),
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log OAuth access token creation activity: {}", e);
+        }
+
+        Ok(created_token)
     }
 
     pub async fn create_access_token_record(pool: &DbPool, new_token: NewAccessToken) -> Result<AccessToken> {

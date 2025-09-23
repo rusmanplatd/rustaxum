@@ -3,6 +3,7 @@ use crate::database::DbPool;
 use rand::{Rng, thread_rng};
 use rand::distributions::Alphanumeric;
 use diesel::prelude::*;
+use serde_json::json;
 use crate::schema::{oauth_clients, oauth_personal_access_clients, user_organizations};
 
 use crate::app::models::oauth::{
@@ -10,11 +11,14 @@ use crate::app::models::oauth::{
     PersonalAccessClient
 };
 use crate::app::models::DieselUlid;
+use crate::app::traits::ServiceActivityLogger;
 
 pub struct ClientService;
 
+impl ServiceActivityLogger for ClientService {}
+
 impl ClientService {
-    pub fn create_client(pool: &DbPool, data: CreateClient) -> Result<ClientResponse> {
+    pub async fn create_client(pool: &DbPool, data: CreateClient, created_by: Option<&str>) -> Result<ClientResponse> {
         let redirect_uris = data.redirect_uris.join(",");
 
         // Generate client secret if needed (not for personal access clients)
@@ -26,10 +30,10 @@ impl ClientService {
 
         let client = Client::new(
             data.organization_id,
-            data.user_id,
-            data.name,
+            data.user_id.clone(),
+            data.name.clone(),
             secret,
-            redirect_uris,
+            redirect_uris.clone(),
             data.personal_access_client,
             data.password_client,
         );
@@ -40,6 +44,27 @@ impl ClientService {
         if data.personal_access_client {
             let pac = PersonalAccessClient::new(created_client.id.clone());
             Self::create_personal_access_client_record(pool, pac)?;
+        }
+
+        // Log OAuth client creation activity
+        let service = ClientService;
+        let properties = json!({
+            "client_name": data.name,
+            "client_id": created_client.id.to_string(),
+            "organization_id": data.organization_id.map(|id| id.to_string()),
+            "user_id": data.user_id.map(|id| id.to_string()),
+            "personal_access_client": data.personal_access_client,
+            "password_client": data.password_client,
+            "redirect_uris": redirect_uris,
+            "created_by": created_by
+        });
+
+        if let Err(e) = service.log_system_event(
+            "oauth_client_created",
+            &format!("OAuth client '{}' created", data.name),
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log OAuth client creation activity: {}", e);
         }
 
         Ok(created_client.to_response())

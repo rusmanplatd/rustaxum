@@ -125,3 +125,15 @@ impl crate::app::query_builder::Queryable for Permission {
 
 // Implement the query builder service for Permission
 crate::impl_query_builder_service!(Permission);
+
+impl crate::app::models::HasModelType for Permission {
+    fn model_type() -> &'static str {
+        "Permission"
+    }
+}
+
+impl crate::app::models::activity_log::HasId for Permission {
+    fn id(&self) -> String {
+        self.id.to_string()
+    }
+}

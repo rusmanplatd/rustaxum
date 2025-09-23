@@ -9,11 +9,14 @@ use crate::app::models::organization_position::{OrganizationPosition, NewOrganiz
 use crate::app::http::requests::organization_position_requests::{
     CreateOrganizationPositionRequest, UpdateOrganizationPositionRequest, IndexOrganizationPositionRequest, OrganizationPositionsByLevelRequest
 };
+use crate::app::traits::ServiceActivityLogger;
 
 pub struct OrganizationPositionService;
 
+impl ServiceActivityLogger for OrganizationPositionService {}
+
 impl OrganizationPositionService {
-    pub fn index(pool: &DbPool, request: &IndexOrganizationPositionRequest) -> Result<Value> {
+    pub async fn index(pool: &DbPool, request: &IndexOrganizationPositionRequest, user_id: Option<&str>) -> Result<Value> {
         let mut conn = pool.get()?;
 
         let mut query = organization_positions::table.into_boxed();
@@ -55,7 +58,7 @@ impl OrganizationPositionService {
 
         let total = organization_positions::table.count().get_result::<i64>(&mut conn)?;
 
-        Ok(json!({
+        let result = json!({
             "data": organization_positions,
             "meta": {
                 "total": total,
@@ -63,10 +66,33 @@ impl OrganizationPositionService {
                 "per_page": per_page,
                 "last_page": (total as f64 / per_page as f64).ceil() as u32
             }
-        }))
+        });
+
+        // Log activity
+        let service = Self;
+        let properties = json!({
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "filters": {
+                "is_active": request.is_active,
+                "organization_position_level_id": request.organization_position_level_id,
+                "name_search": request.name_search
+            }
+        });
+
+        if let Err(e) = service.log_system_event(
+            "organization_positions_viewed",
+            &format!("Retrieved {} organization positions (page {})", organization_positions.len(), page),
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log organization positions index activity: {}", e);
+        }
+
+        Ok(result)
     }
 
-    pub fn show(pool: &DbPool, id: &str) -> Result<OrganizationPosition> {
+    pub async fn show(pool: &DbPool, id: &str, user_id: Option<&str>) -> Result<OrganizationPosition> {
         let mut conn = pool.get()?;
 
         let organization_position = organization_positions::table
@@ -75,10 +101,26 @@ impl OrganizationPositionService {
             .optional()?
             .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
 
+        // Log activity
+        let service = Self;
+        let properties = json!({
+            "organization_position_id": id,
+            "organization_position_name": organization_position.name,
+            "organization_id": organization_position.organization_id.to_string()
+        });
+
+        if let Err(e) = service.log_viewed(
+            &organization_position,
+            user_id,
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log organization position view activity: {}", e);
+        }
+
         Ok(organization_position)
     }
 
-    pub fn create(pool: &DbPool, request: &CreateOrganizationPositionRequest) -> Result<OrganizationPosition> {
+    pub async fn create(pool: &DbPool, request: &CreateOrganizationPositionRequest, created_by: Option<&str>) -> Result<OrganizationPosition> {
         let mut conn = pool.get()?;
 
         // Convert request to CreateOrganizationPosition model
@@ -95,21 +137,40 @@ impl OrganizationPositionService {
             responsibilities: request.responsibilities.clone(),
         };
 
-        let new_position = NewOrganizationPosition::new(create_data, None); // TODO: Add created_by from auth context
+        let new_position = NewOrganizationPosition::new(create_data, created_by.map(|s| s.to_string()));
 
         let result = diesel::insert_into(organization_positions::table)
             .values(&new_position)
             .get_result::<OrganizationPosition>(&mut conn)?;
 
+        // Log activity
+        let service = Self;
+        let properties = json!({
+            "organization_position_name": result.name,
+            "organization_position_code": result.code,
+            "organization_id": result.organization_id.to_string(),
+            "organization_position_level_id": result.organization_position_level_id.to_string(),
+            "max_incumbents": result.max_incumbents
+        });
+
+        if let Err(e) = service.log_created(
+            &result,
+            created_by,
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log organization position creation activity: {}", e);
+        }
+
         Ok(result)
     }
 
-    pub fn update(pool: &DbPool, id: &str, request: &UpdateOrganizationPositionRequest) -> Result<OrganizationPosition> {
+    pub async fn update(pool: &DbPool, id: &str, request: &UpdateOrganizationPositionRequest, updated_by: Option<&str>) -> Result<OrganizationPosition> {
         let mut conn = pool.get()?;
         let now = Utc::now();
 
         // First get the current position
-        let mut current = Self::show(pool, id)?;
+        let mut current = Self::show(pool, id, updated_by).await?;
+        let original = current.clone();
 
         // Update fields if provided
         if let Some(organization_id) = request.organization_id {
@@ -146,7 +207,6 @@ impl OrganizationPositionService {
             current.responsibilities = responsibilities.clone();
         }
         current.updated_at = now;
-        // TODO: Set updated_by from auth context
 
         let result = diesel::update(organization_positions::table.filter(organization_positions::id.eq(id)))
             .set((
@@ -165,11 +225,42 @@ impl OrganizationPositionService {
             ))
             .get_result::<OrganizationPosition>(&mut conn)?;
 
+        // Log activity with changes
+        let service = Self;
+        let mut changes = json!({});
+
+        if original.name != result.name {
+            changes["name"] = json!({"from": original.name, "to": result.name});
+        }
+        if original.code != result.code {
+            changes["code"] = json!({"from": original.code, "to": result.code});
+        }
+        if original.is_active != result.is_active {
+            changes["is_active"] = json!({"from": original.is_active, "to": result.is_active});
+        }
+
+        let properties = json!({
+            "organization_position_id": id,
+            "organization_position_name": result.name,
+            "changes": changes
+        });
+
+        if let Err(e) = service.log_updated(
+            &result,
+            updated_by,
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log organization position update activity: {}", e);
+        }
+
         Ok(result)
     }
 
-    pub fn delete(pool: &DbPool, id: &str) -> Result<()> {
+    pub async fn delete(pool: &DbPool, id: &str, deleted_by: Option<&str>) -> Result<()> {
         let mut conn = pool.get()?;
+
+        // First get the position to log it
+        let position = Self::show(pool, id, deleted_by).await?;
 
         let rows_affected = diesel::delete(organization_positions::table.filter(organization_positions::id.eq(id)))
             .execute(&mut conn)?;
@@ -178,10 +269,27 @@ impl OrganizationPositionService {
             return Err(anyhow::anyhow!("Organization position not found"));
         }
 
+        // Log activity
+        let service = Self;
+        let properties = json!({
+            "organization_position_id": id,
+            "organization_position_name": position.name,
+            "organization_position_code": position.code,
+            "organization_id": position.organization_id.to_string()
+        });
+
+        if let Err(e) = service.log_deleted(
+            &position,
+            deleted_by,
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log organization position deletion activity: {}", e);
+        }
+
         Ok(())
     }
 
-    pub fn activate(pool: &DbPool, id: &str) -> Result<OrganizationPosition> {
+    pub async fn activate(pool: &DbPool, id: &str, activated_by: Option<&str>) -> Result<OrganizationPosition> {
         let mut conn = pool.get()?;
         let now = Utc::now();
 
@@ -194,10 +302,26 @@ impl OrganizationPositionService {
             .optional()?
             .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
 
+        // Log activity
+        let service = Self;
+        let properties = json!({
+            "organization_position_id": id,
+            "organization_position_name": organization_position.name,
+            "action": "activate"
+        });
+
+        if let Err(e) = service.log_updated(
+            &organization_position,
+            activated_by,
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log organization position activation activity: {}", e);
+        }
+
         Ok(organization_position)
     }
 
-    pub fn deactivate(pool: &DbPool, id: &str) -> Result<OrganizationPosition> {
+    pub async fn deactivate(pool: &DbPool, id: &str, deactivated_by: Option<&str>) -> Result<OrganizationPosition> {
         let mut conn = pool.get()?;
         let now = Utc::now();
 
@@ -210,10 +334,26 @@ impl OrganizationPositionService {
             .optional()?
             .ok_or_else(|| anyhow::anyhow!("Organization position not found"))?;
 
+        // Log activity
+        let service = Self;
+        let properties = json!({
+            "organization_position_id": id,
+            "organization_position_name": organization_position.name,
+            "action": "deactivate"
+        });
+
+        if let Err(e) = service.log_updated(
+            &organization_position,
+            deactivated_by,
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log organization position deactivation activity: {}", e);
+        }
+
         Ok(organization_position)
     }
 
-    pub fn by_level(pool: &DbPool, request: &OrganizationPositionsByLevelRequest) -> Result<Value> {
+    pub async fn by_level(pool: &DbPool, request: &OrganizationPositionsByLevelRequest, user_id: Option<&str>) -> Result<Value> {
         let mut conn = pool.get()?;
         let include_inactive = request.include_inactive.unwrap_or(false);
 
@@ -229,8 +369,26 @@ impl OrganizationPositionService {
             .order(organization_positions::created_at.desc())
             .load::<OrganizationPosition>(&mut conn)?;
 
-        Ok(json!({
+        let result = json!({
             "data": organization_positions.into_iter().map(|jp| jp.to_response()).collect::<Vec<_>>(),
-        }))
+        });
+
+        // Log activity
+        let service = Self;
+        let properties = json!({
+            "organization_position_level_id": request.organization_position_level_id,
+            "include_inactive": include_inactive,
+            "position_count": organization_positions.len()
+        });
+
+        if let Err(e) = service.log_system_event(
+            "organization_positions_by_level_retrieved",
+            &format!("Retrieved {} organization positions for level {}", organization_positions.len(), request.organization_position_level_id),
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log organization positions by level activity: {}", e);
+        }
+
+        Ok(result)
     }
 }

@@ -1,11 +1,15 @@
 use anyhow::Result;
 use crate::database::DbPool;
 use diesel::prelude::*;
+use serde_json::json;
 use crate::schema::user_organizations;
+use crate::app::traits::ServiceActivityLogger;
 
 use crate::app::models::user_organization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization, NewUserOrganization};
 
 pub struct UserOrganizationService;
+
+impl ServiceActivityLogger for UserOrganizationService {}
 
 impl UserOrganizationService {
     pub fn find_by_id(pool: &DbPool, id: &str) -> Result<Option<UserOrganization>> {
@@ -19,7 +23,7 @@ impl UserOrganizationService {
         Ok(user_org)
     }
 
-    pub fn create(pool: &DbPool, data: CreateUserOrganization) -> Result<UserOrganization> {
+    pub async fn create(pool: &DbPool, data: CreateUserOrganization, created_by: Option<&str>) -> Result<UserOrganization> {
         let mut conn = pool.get()?;
 
         let new_user_org = NewUserOrganization {
@@ -33,7 +37,7 @@ impl UserOrganizationService {
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
             deleted_at: None,
-            created_by: None, // TODO: Add created_by from auth context
+            created_by: created_by.map(|s| s.to_string()),
             updated_by: None,
             deleted_by: None,
         };
@@ -41,6 +45,24 @@ impl UserOrganizationService {
         let result = diesel::insert_into(user_organizations::table)
             .values(&new_user_org)
             .get_result::<UserOrganization>(&mut conn)?;
+
+        // Log user-organization assignment activity
+        let service = Self;
+        let properties = json!({
+            "user_id": result.user_id.to_string(),
+            "organization_id": result.organization_id.to_string(),
+            "organization_position_id": result.organization_position_id.map(|id| id.to_string()),
+            "started_at": result.started_at,
+            "action": "user_organization_created"
+        });
+
+        if let Err(e) = service.log_created(
+            &result,
+            created_by,
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log user organization creation activity: {}", e);
+        }
 
         Ok(result)
     }

@@ -1,12 +1,14 @@
 use axum::{
-    extract::{Path, State, Query},
+    extract::{Path, State, Query, Request},
     http::StatusCode,
     response::{IntoResponse, Json},
 };
+use serde_json::json;
 use crate::database::DbPool;
 use crate::app::query_builder::{QueryParams, QueryBuilderService};
 use crate::app::models::user::User;
 use crate::app::services::user_service::UserService;
+use crate::app::http::middleware::activity_logging_middleware::activity_logger_from_request;
 
 #[utoipa::path(
     get,
@@ -66,11 +68,21 @@ pub async fn index(
 pub async fn show(
     State(pool): State<DbPool>,
     Path(id): Path<String>,
+    request: Request,
 ) -> impl IntoResponse {
 
-    match UserService::find_by_id(&pool, id)
+    match UserService::find_by_id(&pool, id.clone())
     {
         Ok(Some(user)) => {
+            // Log user view activity
+            let logger = activity_logger_from_request(&request, "user_access");
+            if let Err(e) = logger.log_view("User", &id, Some(json!({
+                "user_name": user.name,
+                "user_email": user.email
+            }))).await {
+                eprintln!("Failed to log user view activity: {}", e);
+            }
+
             (StatusCode::OK, Json(serde_json::json!(user.to_response()))).into_response()
         },
         Ok(None) => {

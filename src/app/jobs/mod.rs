@@ -1,6 +1,7 @@
 pub mod send_email_job;
 pub mod database_queue_driver;
 pub mod queue_worker;
+pub mod activity_logged_job;
 
 use anyhow::Result;
 use async_trait::async_trait;

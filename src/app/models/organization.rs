@@ -86,7 +86,7 @@ pub struct Organization {
 }
 
 /// Create organization payload for service layer
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct CreateOrganization {
     pub name: String,
     pub organization_type: String,
@@ -283,6 +283,12 @@ impl HasModelType for Organization {
 
 impl HasRoles for Organization {
     fn model_id(&self) -> String {
+        self.id.to_string()
+    }
+}
+
+impl crate::app::models::activity_log::HasId for Organization {
+    fn id(&self) -> String {
         self.id.to_string()
     }
 }

@@ -1,12 +1,16 @@
 use anyhow::Result;
 use crate::database::DbPool;
 use diesel::prelude::*;
+use serde_json::json;
 use crate::schema::sys_model_has_permissions;
 use crate::app::models::DieselUlid;
+use crate::app::traits::ServiceActivityLogger;
 
 use crate::app::models::sys_model_has_permission::{SysModelHasPermission, CreateSysModelHasPermission, UpdateSysModelHasPermission};
 
 pub struct SysModelHasPermissionService;
+
+impl ServiceActivityLogger for SysModelHasPermissionService {}
 
 impl SysModelHasPermissionService {
     pub fn create(pool: &DbPool, data: CreateSysModelHasPermission) -> Result<SysModelHasPermission> {
@@ -108,37 +112,79 @@ impl SysModelHasPermissionService {
         Ok(())
     }
 
-    pub fn assign_permission_to_model(
+    pub async fn assign_permission_to_model(
         pool: &DbPool,
         model_type: &str,
         model_id: DieselUlid,
         permission_id: DieselUlid,
         scope_type: Option<String>,
         scope_id: Option<DieselUlid>,
+        assigned_by: Option<&str>,
     ) -> Result<SysModelHasPermission> {
         let data = CreateSysModelHasPermission {
             model_type: model_type.to_string(),
             model_id,
             permission_id,
-            scope_type,
+            scope_type: scope_type.clone(),
             scope_id,
         };
-        Self::create(pool, data)
+        let result = Self::create(pool, data)?;
+
+        // Log permission assignment activity
+        let service = Self;
+        let properties = json!({
+            "model_type": model_type,
+            "model_id": model_id.to_string(),
+            "permission_id": permission_id.to_string(),
+            "scope_type": scope_type,
+            "scope_id": scope_id.map(|id| id.to_string()),
+            "action": "permission_assigned"
+        });
+
+        if let Err(e) = service.log_system_event(
+            "permission_assigned_to_model",
+            &format!("Permission {} assigned to {} {}", permission_id, model_type, model_id),
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log permission assignment activity: {}", e);
+        }
+
+        Ok(result)
     }
 
-    pub fn remove_permission_from_model(
+    pub async fn remove_permission_from_model(
         pool: &DbPool,
         model_type: &str,
         model_id: DieselUlid,
         permission_id: DieselUlid,
+        removed_by: Option<&str>,
     ) -> Result<()> {
         let mut conn = pool.get()?;
 
-        diesel::delete(sys_model_has_permissions::table)
+        let rows_affected = diesel::delete(sys_model_has_permissions::table)
             .filter(sys_model_has_permissions::model_type.eq(model_type))
             .filter(sys_model_has_permissions::model_id.eq(model_id))
             .filter(sys_model_has_permissions::permission_id.eq(permission_id))
             .execute(&mut conn)?;
+
+        if rows_affected > 0 {
+            // Log permission removal activity
+            let service = Self;
+            let properties = json!({
+                "model_type": model_type,
+                "model_id": model_id.to_string(),
+                "permission_id": permission_id.to_string(),
+                "action": "permission_removed"
+            });
+
+            if let Err(e) = service.log_system_event(
+                "permission_removed_from_model",
+                &format!("Permission {} removed from {} {}", permission_id, model_type, model_id),
+                Some(properties)
+            ).await {
+                eprintln!("Failed to log permission removal activity: {}", e);
+            }
+        }
 
         Ok(())
     }

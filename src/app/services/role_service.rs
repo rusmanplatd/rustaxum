@@ -1,17 +1,21 @@
 use anyhow::Result;
 use ulid::Ulid;
 use diesel::prelude::*;
+use serde_json::json;
 use crate::database::{DbPool};
 use crate::schema::sys_roles;
 use crate::app::models::role::{Role, CreateRole, UpdateRole};
 use crate::app::models::HasRoles;
+use crate::app::traits::ServiceActivityLogger;
 
 pub struct RoleService;
 
+impl ServiceActivityLogger for RoleService {}
+
 impl RoleService {
-    pub fn create(pool: &DbPool, data: CreateRole) -> Result<Role> {
+    pub async fn create(pool: &DbPool, data: CreateRole, created_by: Option<&str>) -> Result<Role> {
         let mut conn = pool.get()?;
-        let role = Role::new(data.name, data.description, data.guard_name);
+        let role = Role::new(data.name.clone(), data.description.clone(), data.guard_name.clone());
 
         diesel::insert_into(sys_roles::table)
             .values((
@@ -23,6 +27,23 @@ impl RoleService {
                 sys_roles::updated_at.eq(role.updated_at),
             ))
             .execute(&mut conn)?;
+
+        // Log the role creation activity
+        let service = RoleService;
+        let properties = json!({
+            "role_name": role.name,
+            "role_description": role.description,
+            "guard_name": role.guard_name,
+            "created_by": created_by
+        });
+
+        if let Err(e) = service.log_created(
+            &role,
+            created_by,
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log role creation activity: {}", e);
+        }
 
         Ok(role)
     }
@@ -53,19 +74,40 @@ impl RoleService {
         Ok(role)
     }
 
-    pub fn update(pool: &DbPool, id: String, data: UpdateRole) -> Result<Role> {
+    pub async fn update(pool: &DbPool, id: String, data: UpdateRole, updated_by: Option<&str>) -> Result<Role> {
         let mut conn = pool.get()?;
-        let mut role = Self::find_by_id(pool, id.clone())?
+        let original_role = Self::find_by_id(pool, id.clone())?
             .ok_or_else(|| anyhow::anyhow!("Role not found"))?;
 
-        if let Some(name) = data.name {
-            role.name = name;
+        let mut role = original_role.clone();
+        let mut changes = json!({});
+
+        if let Some(ref name) = data.name {
+            if &role.name != name {
+                changes["name"] = json!({
+                    "from": role.name,
+                    "to": name
+                });
+                role.name = name.clone();
+            }
         }
-        if data.description.is_some() {
-            role.description = data.description;
+        if let Some(ref description) = data.description {
+            if role.description.as_ref() != Some(description) {
+                changes["description"] = json!({
+                    "from": role.description,
+                    "to": description
+                });
+                role.description = Some(description.clone());
+            }
         }
-        if let Some(guard_name) = data.guard_name {
-            role.guard_name = guard_name;
+        if let Some(ref guard_name) = data.guard_name {
+            if &role.guard_name != guard_name {
+                changes["guard_name"] = json!({
+                    "from": role.guard_name,
+                    "to": guard_name
+                });
+                role.guard_name = guard_name.clone();
+            }
         }
         role.updated_at = chrono::Utc::now();
 
@@ -78,14 +120,37 @@ impl RoleService {
             ))
             .execute(&mut conn)?;
 
+        // Log the role update activity
+        let service = RoleService;
+        if let Err(e) = service.log_updated(
+            &role,
+            changes,
+            updated_by
+        ).await {
+            eprintln!("Failed to log role update activity: {}", e);
+        }
+
         Ok(role)
     }
 
-    pub fn delete(pool: &DbPool, id: String) -> Result<()> {
+    pub async fn delete(pool: &DbPool, id: String, deleted_by: Option<&str>) -> Result<()> {
         let mut conn = pool.get()?;
+
+        // Get the role before deletion for logging
+        let role = Self::find_by_id(pool, id.clone())?
+            .ok_or_else(|| anyhow::anyhow!("Role not found"))?;
 
         diesel::delete(sys_roles::table.filter(sys_roles::id.eq(id.to_string())))
             .execute(&mut conn)?;
+
+        // Log the role deletion activity
+        let service = RoleService;
+        if let Err(e) = service.log_deleted(
+            &role,
+            deleted_by
+        ).await {
+            eprintln!("Failed to log role deletion activity: {}", e);
+        }
 
         Ok(())
     }
@@ -104,7 +169,7 @@ impl RoleService {
     }
 
     /// Generic method to assign a role to any model that implements HasRoles
-    pub fn assign_to_model<T: HasRoles>(pool: &DbPool, model: &T, role_id: String) -> Result<()> {
+    pub async fn assign_to_model<T: HasRoles>(pool: &DbPool, model: &T, role_id: String, assigned_by: Option<&str>) -> Result<()> {
         use crate::schema::sys_model_has_roles;
         let mut conn = pool.get()?;
         let model_role_id = Ulid::new();
@@ -115,7 +180,7 @@ impl RoleService {
                 sys_model_has_roles::id.eq(model_role_id.to_string()),
                 sys_model_has_roles::model_type.eq(T::model_type()),
                 sys_model_has_roles::model_id.eq(model.model_id()),
-                sys_model_has_roles::role_id.eq(role_id),
+                sys_model_has_roles::role_id.eq(role_id.clone()),
                 sys_model_has_roles::scope_type.eq::<Option<String>>(None),
                 sys_model_has_roles::scope_id.eq::<Option<String>>(None),
                 sys_model_has_roles::created_at.eq(now),
@@ -125,11 +190,29 @@ impl RoleService {
             .do_nothing()
             .execute(&mut conn)?;
 
+        // Log the role assignment activity
+        let service = RoleService;
+        let properties = json!({
+            "model_type": T::model_type(),
+            "model_id": model.model_id(),
+            "role_id": role_id,
+            "action": "role_assigned",
+            "assigned_by": assigned_by
+        });
+
+        if let Err(e) = service.log_system_event(
+            "role_assignment",
+            &format!("Assigned role {} to {} {}", role_id, T::model_type(), model.model_id()),
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log role assignment activity: {}", e);
+        }
+
         Ok(())
     }
 
     /// Generic method to remove a role from any model that implements HasRoles
-    pub fn remove_from_model<T: HasRoles>(pool: &DbPool, model: &T, role_id: String) -> Result<()> {
+    pub async fn remove_from_model<T: HasRoles>(pool: &DbPool, model: &T, role_id: String, removed_by: Option<&str>) -> Result<()> {
         use crate::schema::sys_model_has_roles;
         let mut conn = pool.get()?;
 
@@ -137,9 +220,27 @@ impl RoleService {
             sys_model_has_roles::table
                 .filter(sys_model_has_roles::model_type.eq(T::model_type()))
                 .filter(sys_model_has_roles::model_id.eq(model.model_id()))
-                .filter(sys_model_has_roles::role_id.eq(role_id))
+                .filter(sys_model_has_roles::role_id.eq(role_id.clone()))
         )
         .execute(&mut conn)?;
+
+        // Log the role removal activity
+        let service = RoleService;
+        let properties = json!({
+            "model_type": T::model_type(),
+            "model_id": model.model_id(),
+            "role_id": role_id,
+            "action": "role_removed",
+            "removed_by": removed_by
+        });
+
+        if let Err(e) = service.log_system_event(
+            "role_removal",
+            &format!("Removed role {} from {} {}", role_id, T::model_type(), model.model_id()),
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log role removal activity: {}", e);
+        }
 
         Ok(())
     }

@@ -31,7 +31,7 @@ pub async fn register(State(pool): State<DbPool>, Json(payload): Json<CreateUser
 }
 
 pub async fn login(State(pool): State<DbPool>, Json(payload): Json<LoginRequest>) -> impl IntoResponse {
-    match AuthService::login(&pool, payload) {
+    match AuthService::login(&pool, payload).await {
         Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
