@@ -1,9 +1,10 @@
 use axum::{
     extract::Request,
-    http::{HeaderName, HeaderValue},
+    http::{HeaderMap, HeaderName, HeaderValue},
     middleware::Next,
     response::Response,
 };
+use std::collections::HashMap;
 use std::str::FromStr;
 use uuid::Uuid;
 
@@ -15,17 +16,42 @@ pub const CORRELATION_ID_HEADER_LOWERCASE: &str = "x-correlation-id";
 #[derive(Clone, Debug)]
 pub struct CorrelationContext {
     pub correlation_id: DieselUlid,
+    pub request_data: Option<RequestData>,
+}
+
+#[derive(Clone, Debug)]
+pub struct RequestData {
+    pub method: String,
+    pub uri: String,
+    pub path: String,
+    pub query_string: Option<String>,
+    pub headers: HashMap<String, String>,
+    pub content_type: Option<String>,
+    pub content_length: Option<u64>,
+    pub user_agent: Option<String>,
+    pub remote_ip: Option<String>,
 }
 
 impl CorrelationContext {
     pub fn new() -> Self {
         Self {
             correlation_id: DieselUlid::new(),
+            request_data: None,
         }
     }
 
     pub fn with_id(correlation_id: DieselUlid) -> Self {
-        Self { correlation_id }
+        Self {
+            correlation_id,
+            request_data: None,
+        }
+    }
+
+    pub fn with_id_and_request_data(correlation_id: DieselUlid, request_data: RequestData) -> Self {
+        Self {
+            correlation_id,
+            request_data: Some(request_data),
+        }
     }
 
     pub fn id(&self) -> DieselUlid {
@@ -49,8 +75,14 @@ pub async fn correlation_middleware(
 ) -> Response {
     let correlation_id = extract_or_generate_correlation_id(&request);
 
-    // Add correlation context to request extensions
-    request.extensions_mut().insert(CorrelationContext::with_id(correlation_id));
+    // Extract comprehensive request data
+    let request_data = extract_request_data(&request);
+
+    // Add correlation context with request data to request extensions
+    request.extensions_mut().insert(CorrelationContext::with_id_and_request_data(
+        correlation_id,
+        request_data,
+    ));
 
     // Call the next handler
     let mut response = next.run(request).await;
@@ -96,10 +128,101 @@ fn extract_or_generate_correlation_id(request: &Request) -> DieselUlid {
     DieselUlid::new()
 }
 
+/// Extract comprehensive request data for logging
+fn extract_request_data(request: &Request) -> RequestData {
+    let method = request.method().to_string();
+    let uri = request.uri().to_string();
+    let path = request.uri().path().to_string();
+    let query_string = request.uri().query().map(|q| q.to_string());
+
+    // Extract headers (sanitize sensitive ones)
+    let headers = extract_safe_headers(request.headers());
+
+    // Extract content type and length
+    let content_type = request.headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+
+    let content_length = request.headers()
+        .get("content-length")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.parse::<u64>().ok());
+
+    // Extract user agent
+    let user_agent = request.headers()
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+
+    // Extract client IP
+    let remote_ip = extract_client_ip_from_headers(request.headers());
+
+    RequestData {
+        method,
+        uri,
+        path,
+        query_string,
+        headers,
+        content_type,
+        content_length,
+        user_agent,
+        remote_ip,
+    }
+}
+
+/// Extract headers while sanitizing sensitive information
+fn extract_safe_headers(headers: &HeaderMap) -> HashMap<String, String> {
+    let sensitive_headers = [
+        "authorization", "cookie", "set-cookie", "x-api-key",
+        "x-auth-token", "x-csrf-token", "x-access-token",
+        "proxy-authorization", "www-authenticate",
+    ];
+
+    headers
+        .iter()
+        .filter_map(|(name, value)| {
+            let name_str = name.as_str().to_lowercase();
+            if sensitive_headers.contains(&name_str.as_str()) {
+                // Redact sensitive headers
+                Some((name_str, "[REDACTED]".to_string()))
+            } else {
+                value.to_str().ok().map(|v| (name_str, v.to_string()))
+            }
+        })
+        .collect()
+}
+
+/// Extract client IP from headers
+fn extract_client_ip_from_headers(headers: &HeaderMap) -> Option<String> {
+    let headers_to_check = [
+        "cf-connecting-ip",      // Cloudflare
+        "x-real-ip",            // Nginx
+        "x-forwarded-for",      // Standard proxy header
+        "x-client-ip",          // Alternative
+        "x-cluster-client-ip",  // Cluster environments
+    ];
+
+    for header_name in &headers_to_check {
+        if let Some(header_value) = headers.get(*header_name) {
+            if let Ok(ip_str) = header_value.to_str() {
+                // For X-Forwarded-For, take the first IP (client)
+                let ip = ip_str.split(',').next().unwrap_or(ip_str).trim();
+                if !ip.is_empty() && ip != "unknown" {
+                    return Some(ip.to_string());
+                }
+            }
+        }
+    }
+
+    None
+}
+
 // Extension trait to easily get correlation context from request
 pub trait CorrelationExt {
     fn correlation_id(&self) -> Option<DieselUlid>;
     fn correlation_context(&self) -> Option<&CorrelationContext>;
+    fn request_data(&self) -> Option<&RequestData>;
 }
 
 impl CorrelationExt for Request {
@@ -111,6 +234,12 @@ impl CorrelationExt for Request {
 
     fn correlation_context(&self) -> Option<&CorrelationContext> {
         self.extensions().get::<CorrelationContext>()
+    }
+
+    fn request_data(&self) -> Option<&RequestData> {
+        self.extensions()
+            .get::<CorrelationContext>()
+            .and_then(|ctx| ctx.request_data.as_ref())
     }
 }
 

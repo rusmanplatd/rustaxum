@@ -1,6 +1,7 @@
 use axum::{
+    body::Bytes,
     extract::{Request, MatchedPath},
-    http::{Method, StatusCode},
+    http::StatusCode,
     middleware::Next,
     response::Response,
 };
@@ -11,6 +12,7 @@ use crate::app::http::middleware::correlation_middleware::CorrelationContext;
 use crate::app::models::activity_log::NewActivityLog;
 use crate::app::services::activity_log_service::ActivityLogService;
 use crate::app::models::DieselUlid;
+use crate::logging::Log;
 
 /// Middleware for automatic activity logging of HTTP requests
 pub async fn activity_logging_middleware(
@@ -18,24 +20,29 @@ pub async fn activity_logging_middleware(
     next: Next,
 ) -> Response {
     let start_time = Instant::now();
-    let method = request.method().clone();
-    let path = request.uri().path().to_string();
-    let query = request.uri().query().map(|q| q.to_string());
 
-    // Extract correlation context if available
-    let correlation_id = request.extensions()
+    // Extract correlation context if available (with request data)
+    let correlation_context = request.extensions()
         .get::<CorrelationContext>()
-        .map(|ctx| ctx.correlation_id)
-        .unwrap_or_else(DieselUlid::new);
+        .cloned();
 
     // Extract matched path pattern if available
     let matched_path = request.extensions()
         .get::<MatchedPath>()
         .map(|mp| mp.as_str().to_string())
-        .unwrap_or_else(|| path.clone());
+        .unwrap_or_else(|| request.uri().path().to_string());
 
-    // Get remote IP if available
-    let remote_ip = extract_client_ip(&request);
+    // Capture request body for logging (limit to first 1KB for safety)
+    let (parts, body) = request.into_parts();
+    let body_bytes = axum::body::to_bytes(body, 1024).await.unwrap_or_default();
+    let body_preview = if !body_bytes.is_empty() {
+        extract_body_preview(&body_bytes, parts.headers.get("content-type"))
+    } else {
+        None
+    };
+
+    // Reconstruct request with captured body
+    let request = Request::from_parts(parts, axum::body::Body::from(body_bytes.clone()));
 
     // Call the next handler
     let response = next.run(request).await;
@@ -49,64 +56,165 @@ pub async fn activity_logging_middleware(
 
     // Log the activity asynchronously (fire and forget)
     tokio::spawn(async move {
-        let _ = log_http_request_activity(
-            method,
-            path,
+        if let Err(e) = log_comprehensive_http_activity(
+            correlation_context,
             matched_path,
-            query,
+            body_preview,
             status_code,
             duration_ms,
-            correlation_id,
-            remote_ip,
-        ).await;
+        ).await {
+            tracing::error!("Failed to log HTTP activity to database: {}", e);
+        }
     });
 
     response
 }
 
-/// Log HTTP request activity
-async fn log_http_request_activity(
-    method: Method,
-    path: String,
+/// Extract body preview for logging (limit content for safety)
+fn extract_body_preview(body_bytes: &Bytes, content_type: Option<&axum::http::HeaderValue>) -> Option<String> {
+    if body_bytes.is_empty() {
+        return None;
+    }
+
+    let content_type_str = content_type
+        .and_then(|ct| ct.to_str().ok())
+        .unwrap_or("");
+
+    // Limit body preview to 1KB
+    let preview_limit = 1024;
+    let limited_bytes = if body_bytes.len() > preview_limit {
+        &body_bytes[..preview_limit]
+    } else {
+        body_bytes
+    };
+
+    // Handle different content types
+    if content_type_str.contains("application/json") {
+        // Try to parse and pretty-print JSON
+        if let Ok(json_str) = std::str::from_utf8(limited_bytes) {
+            if let Ok(json_value) = serde_json::from_str::<Value>(json_str) {
+                return Some(serde_json::to_string_pretty(&json_value).unwrap_or_else(|_| json_str.to_string()));
+            }
+            return Some(json_str.to_string());
+        }
+    } else if content_type_str.starts_with("text/") || content_type_str.contains("application/x-www-form-urlencoded") {
+        // Handle text content
+        if let Ok(text) = std::str::from_utf8(limited_bytes) {
+            return Some(text.to_string());
+        }
+    } else if content_type_str.contains("multipart/form-data") {
+        // For multipart data, just show summary
+        return Some(format!("[MULTIPART_DATA: {} bytes]", body_bytes.len()));
+    }
+
+    // For binary content, show size and type
+    Some(format!("[BINARY_DATA: {} bytes, type: {}]", body_bytes.len(), content_type_str))
+}
+
+/// Log comprehensive HTTP request activity with all captured data
+async fn log_comprehensive_http_activity(
+    correlation_context: Option<CorrelationContext>,
     matched_path: String,
-    query: Option<String>,
+    body_preview: Option<String>,
     status_code: StatusCode,
     duration_ms: u64,
-    correlation_id: DieselUlid,
-    remote_ip: Option<String>,
 ) -> Result<(), anyhow::Error> {
     let service = ActivityLogService::new();
 
-    let description = format!(
-        "{} {} - {} ({}ms)",
-        method.as_str(),
-        path,
-        status_code.as_u16(),
-        duration_ms
-    );
+    let (correlation_id, request_data) = if let Some(ctx) = correlation_context {
+        (ctx.correlation_id, ctx.request_data)
+    } else {
+        (DieselUlid::new(), None)
+    };
 
+    let description = if let Some(ref data) = request_data {
+        format!(
+            "{} {} - {} ({}ms)",
+            data.method,
+            data.path,
+            status_code.as_u16(),
+            duration_ms
+        )
+    } else {
+        format!("HTTP Request - {} ({}ms)", status_code.as_u16(), duration_ms)
+    };
+
+    // Enhanced properties with all available context data
     let mut properties = json!({
-        "method": method.as_str(),
-        "path": path,
-        "matched_path": matched_path,
-        "status_code": status_code.as_u16(),
-        "duration_ms": duration_ms,
-        "success": status_code.is_success(),
-        "client_error": status_code.is_client_error(),
-        "server_error": status_code.is_server_error(),
+        "correlation_id": correlation_id.to_string(),
+        "http": {
+            "status_code": status_code.as_u16(),
+            "status_class": {
+                "success": status_code.is_success(),
+                "client_error": status_code.is_client_error(),
+                "server_error": status_code.is_server_error(),
+                "informational": status_code.is_informational(),
+                "redirection": status_code.is_redirection()
+            },
+            "matched_path": matched_path
+        },
+        "performance": {
+            "duration_ms": duration_ms,
+            "duration_category": classify_duration(duration_ms)
+        },
+        "timestamp": chrono::Utc::now().to_rfc3339()
     });
 
-    // Add query parameters if present
-    if let Some(query_string) = query {
-        properties["query"] = Value::String(query_string);
-    }
+    // Add comprehensive request data if available
+    let event_name = if let Some(ref data) = request_data {
+        // Core request information
+        properties["request"] = json!({
+            "method": data.method,
+            "uri": data.uri,
+            "path": data.path,
+            "query_string": data.query_string,
+            "content_info": {
+                "type": data.content_type,
+                "length": data.content_length,
+                "has_body": body_preview.is_some()
+            }
+        });
 
-    // Add remote IP if available
-    if let Some(ip) = remote_ip {
-        properties["remote_ip"] = Value::String(ip);
-    }
+        // Client information
+        properties["client"] = json!({
+            "ip": data.remote_ip,
+            "user_agent": data.user_agent,
+        });
 
+        // Headers (sanitized)
+        properties["headers"] = json!(data.headers);
+
+        // Body preview if available
+        if let Some(body) = &body_preview {
+            properties["request"]["body_preview"] = json!({
+                "content": body,
+                "truncated": body.len() >= 1024,
+                "size_bytes": body.len()
+            });
+        }
+
+        // Security context
+        properties["security"] = json!({
+            "has_auth_header": data.headers.contains_key("authorization"),
+            "has_api_key": data.headers.contains_key("x-api-key") || data.headers.contains_key("x-auth-token"),
+            "https": data.uri.starts_with("https://"),
+            "sensitive_headers_redacted": true
+        });
+
+        format!("http.{}", data.method.to_lowercase())
+    } else {
+        "http.unknown".to_string()
+    };
+
+    // Add structured console logging
+    log_to_console(&correlation_id, &request_data, status_code, duration_ms, &body_preview);
+
+    // Add enhanced file logging to storage/logs
+    log_to_file(&correlation_id, &request_data, status_code, duration_ms, &body_preview, &properties);
+
+    // Store in database
     let new_activity = NewActivityLog {
+        id: DieselUlid::new(),
         log_name: Some("http_request".to_string()),
         description,
         subject_type: None,
@@ -116,38 +224,230 @@ async fn log_http_request_activity(
         properties: Some(properties),
         correlation_id: Some(correlation_id),
         batch_uuid: None,
-        event: Some(format!("http.{}", method.as_str().to_lowercase())),
+        event: Some(event_name),
     };
 
     service.create(new_activity).await?;
     Ok(())
 }
 
-/// Extract client IP from request headers
-fn extract_client_ip(request: &Request) -> Option<String> {
-    // Try various headers in order of preference
-    let headers_to_check = [
-        "cf-connecting-ip",      // Cloudflare
-        "x-real-ip",            // Nginx
-        "x-forwarded-for",      // Standard proxy header
-        "x-client-ip",          // Alternative
-        "x-cluster-client-ip",  // Cluster environments
-    ];
+/// Classify request duration for analysis
+fn classify_duration(duration_ms: u64) -> &'static str {
+    match duration_ms {
+        0..=50 => "very_fast",
+        51..=200 => "fast",
+        201..=500 => "normal",
+        501..=1000 => "slow",
+        1001..=2000 => "very_slow",
+        _ => "extremely_slow"
+    }
+}
 
-    for header_name in &headers_to_check {
-        if let Some(header_value) = request.headers().get(*header_name) {
-            if let Ok(ip_str) = header_value.to_str() {
-                // For X-Forwarded-For, take the first IP (client)
-                let ip = ip_str.split(',').next().unwrap_or(ip_str).trim();
-                if !ip.is_empty() && ip != "unknown" {
-                    return Some(ip.to_string());
-                }
-            }
+/// Enhanced console logging with structured data
+fn log_to_console(
+    correlation_id: &DieselUlid,
+    request_data: &Option<crate::app::http::middleware::correlation_middleware::RequestData>,
+    status_code: StatusCode,
+    duration_ms: u64,
+    body_preview: &Option<String>
+) {
+    if let Some(data) = request_data {
+        let status_emoji = match status_code.as_u16() {
+            200..=299 => "✅",
+            300..=399 => "🔄",
+            400..=499 => "⚠️",
+            500..=599 => "❌",
+            _ => "ℹ️"
+        };
+
+        let duration_emoji = match duration_ms {
+            0..=50 => "⚡",
+            51..=200 => "🚀",
+            201..=500 => "⏱️",
+            501..=1000 => "🐌",
+            _ => "🚨"
+        };
+
+        // Main request log line
+        tracing::info!(
+            correlation_id = %correlation_id,
+            method = %data.method,
+            path = %data.path,
+            status = status_code.as_u16(),
+            duration_ms = duration_ms,
+            remote_ip = %data.remote_ip.as_deref().unwrap_or("unknown"),
+            user_agent = %data.user_agent.as_deref().unwrap_or("unknown"),
+            "{} {} {} {} - {} {}ms from {}",
+            status_emoji,
+            data.method,
+            data.path,
+            status_code.as_u16(),
+            duration_emoji,
+            duration_ms,
+            data.remote_ip.as_deref().unwrap_or("unknown")
+        );
+
+        // Additional debug info
+        if !data.headers.is_empty() {
+            tracing::debug!(
+                correlation_id = %correlation_id,
+                headers = ?data.headers,
+                "Request headers (sensitive data redacted)"
+            );
+        }
+
+        if let Some(query) = &data.query_string {
+            tracing::debug!(
+                correlation_id = %correlation_id,
+                query_string = %query,
+                "Request query parameters"
+            );
+        }
+
+        if let Some(body) = body_preview {
+            tracing::debug!(
+                correlation_id = %correlation_id,
+                body_size = body.len(),
+                content_type = %data.content_type.as_deref().unwrap_or("unknown"),
+                body_preview = %body,
+                "Request body preview (truncated to 1KB)"
+            );
+        }
+
+        // Performance warning for slow requests
+        if duration_ms > 1000 {
+            tracing::warn!(
+                correlation_id = %correlation_id,
+                duration_ms = duration_ms,
+                method = %data.method,
+                path = %data.path,
+                "🚨 Slow request detected - consider optimization"
+            );
+        }
+
+        // Security events
+        if data.headers.contains_key("authorization") && status_code == 401 {
+            tracing::warn!(
+                correlation_id = %correlation_id,
+                method = %data.method,
+                path = %data.path,
+                remote_ip = %data.remote_ip.as_deref().unwrap_or("unknown"),
+                "🔒 Authentication failed"
+            );
+        }
+
+    } else {
+        // Fallback logging when no request data is available
+        tracing::info!(
+            correlation_id = %correlation_id,
+            status = status_code.as_u16(),
+            duration_ms = duration_ms,
+            "HTTP Request - {} ({}ms)",
+            status_code.as_u16(),
+            duration_ms
+        );
+    }
+}
+
+/// Enhanced file logging with comprehensive context data
+fn log_to_file(
+    correlation_id: &DieselUlid,
+    request_data: &Option<crate::app::http::middleware::correlation_middleware::RequestData>,
+    status_code: StatusCode,
+    duration_ms: u64,
+    body_preview: &Option<String>,
+    properties: &Value
+) {
+    use std::collections::HashMap;
+
+    // Create comprehensive context data for file logging
+    let mut file_context = HashMap::new();
+
+    // Core tracking data
+    file_context.insert("correlation_id".to_string(), json!(correlation_id.to_string()));
+    file_context.insert("timestamp".to_string(), json!(chrono::Utc::now().to_rfc3339()));
+    file_context.insert("component".to_string(), json!("activity_logging_middleware"));
+
+    // HTTP response data
+    file_context.insert("http_status_code".to_string(), json!(status_code.as_u16()));
+    file_context.insert("http_status_class".to_string(), json!({
+        "success": status_code.is_success(),
+        "client_error": status_code.is_client_error(),
+        "server_error": status_code.is_server_error(),
+        "informational": status_code.is_informational(),
+        "redirection": status_code.is_redirection()
+    }));
+
+    // Performance data
+    file_context.insert("performance_duration_ms".to_string(), json!(duration_ms));
+    file_context.insert("performance_category".to_string(), json!(classify_duration(duration_ms)));
+
+    if let Some(data) = request_data {
+        // HTTP request data
+        file_context.insert("http_method".to_string(), json!(data.method));
+        file_context.insert("http_uri".to_string(), json!(data.uri));
+        file_context.insert("http_path".to_string(), json!(data.path));
+        file_context.insert("http_query_string".to_string(), json!(data.query_string));
+
+        // Content information
+        file_context.insert("content_type".to_string(), json!(data.content_type));
+        file_context.insert("content_length".to_string(), json!(data.content_length));
+        file_context.insert("has_request_body".to_string(), json!(body_preview.is_some()));
+
+        // Client information
+        file_context.insert("client_ip".to_string(), json!(data.remote_ip));
+        file_context.insert("user_agent".to_string(), json!(data.user_agent));
+
+        // Security context
+        file_context.insert("security_has_auth_header".to_string(), json!(data.headers.contains_key("authorization")));
+        file_context.insert("security_has_api_key".to_string(), json!(
+            data.headers.contains_key("x-api-key") || data.headers.contains_key("x-auth-token")
+        ));
+        file_context.insert("security_https".to_string(), json!(data.uri.starts_with("https://")));
+
+        // Headers (sanitized)
+        file_context.insert("request_headers".to_string(), json!(data.headers));
+
+        // Body preview if available (with size information)
+        if let Some(body) = body_preview {
+            file_context.insert("request_body_preview".to_string(), json!({
+                "content": body,
+                "size_bytes": body.len(),
+                "truncated": body.len() >= 1024
+            }));
         }
     }
 
-    None
+    // Add all the structured properties from the database logging
+    file_context.insert("full_properties".to_string(), properties.clone());
+
+    // Create the main log message
+    let log_message = if let Some(data) = request_data {
+        format!("HTTP {} {} - {} ({}ms) from {}",
+            data.method,
+            data.path,
+            status_code.as_u16(),
+            duration_ms,
+            data.remote_ip.as_deref().unwrap_or("unknown")
+        )
+    } else {
+        format!("HTTP Request - {} ({}ms)", status_code.as_u16(), duration_ms)
+    };
+
+    // Log to file with comprehensive context
+    if status_code.is_server_error() {
+        Log::error_with_context(&log_message, file_context);
+    } else if status_code.is_client_error() {
+        Log::warning_with_context(&log_message, file_context);
+    } else if duration_ms > 1000 {
+        Log::warning_with_context(&format!("SLOW REQUEST: {}", log_message), file_context);
+    } else {
+        Log::info_with_context(&log_message, file_context);
+    }
 }
+
+// Note: Old client IP extraction function removed - now handled in correlation_middleware.rs
+// This reduces duplication and ensures consistent IP extraction across the application
 
 /// Helper struct for operation-specific activity logging
 pub struct ActivityLogger {
@@ -223,6 +523,7 @@ impl ActivityLogger {
 
         let service = ActivityLogService::new();
         let new_activity = NewActivityLog {
+            id: DieselUlid::new(),
             log_name: Some(self.log_name.clone()),
             description: format!("Failed login attempt for {}: {}", email, reason),
             subject_type: None,
@@ -251,6 +552,7 @@ impl ActivityLogger {
         );
 
         let new_activity = NewActivityLog {
+            id: DieselUlid::new(),
             log_name: Some(self.log_name.clone()),
             description,
             subject_type: Some(subject_type.to_string()),
@@ -272,6 +574,7 @@ impl ActivityLogger {
         let service = ActivityLogService::new();
 
         let new_activity = NewActivityLog {
+            id: DieselUlid::new(),
             log_name: Some(self.log_name.clone()),
             description: description.to_string(),
             subject_type: None,

@@ -405,6 +405,7 @@ pub async fn create_activity_log(
         .unwrap_or_else(|| crate::app::models::DieselUlid::new());
 
     let new_activity = NewActivityLog {
+        id: crate::app::models::DieselUlid::new(),
         log_name: request.log_name,
         description: request.description,
         subject_type: request.subject_type,

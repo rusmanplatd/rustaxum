@@ -28,6 +28,7 @@ pub struct ActivityLog {
 #[derive(Insertable, Serialize, Deserialize, Debug, Clone, ToSchema)]
 #[diesel(table_name = crate::schema::activity_log)]
 pub struct NewActivityLog {
+    pub id: DieselUlid,
     pub log_name: Option<String>,
     pub description: String,
     pub subject_type: Option<String>,
@@ -254,6 +255,7 @@ impl ActivityLogBuilder {
         let description = self.description.ok_or("Description is required")?;
 
         Ok(NewActivityLog {
+            id: DieselUlid::new(),
             log_name: self.log_name,
             description,
             subject_type: self.subject_type,
