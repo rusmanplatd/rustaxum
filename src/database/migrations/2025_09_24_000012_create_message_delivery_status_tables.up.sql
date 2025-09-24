@@ -32,10 +32,6 @@ CREATE TABLE typing_indicators (
     started_typing_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '30 seconds'),
 
-    -- Mention context (encrypted if in encrypted conversation)
-    encrypted_mention_context TEXT, -- Who they're mentioning while typing
-    mention_algorithm VARCHAR,
-
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

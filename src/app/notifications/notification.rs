@@ -615,10 +615,10 @@ impl NotificationFacade {
 
     /// Assert that no notifications were sent
     pub async fn assert_nothing_sent() -> bool {
-        // In a production implementation, this would check that no notifications
+        // TODO: In a production implementation, this would check that no notifications
         // were captured during the test
         tracing::info!("Checking that no notifications were sent during test");
-        true // For now, always return true
+        true
     }
 }
 

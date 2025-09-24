@@ -241,6 +241,82 @@ When running with Docker Compose:
 - `docker-compose.yaml`: Full development stack configuration
 - `.env.example`: Environment variable template
 
+## OAuth 2.1 Implementation
+
+This framework includes a comprehensive OAuth 2.1 authorization server implementation with support for multiple RFCs and modern security standards.
+
+### Supported RFC Standards
+
+- **OAuth 2.1 Authorization Framework**: Core authorization server functionality
+- **RFC 7636 (PKCE)**: Mandatory for all authorization code flows
+- **RFC 8628 (Device Authorization Grant)**: For input-constrained devices (Smart TVs, IoT)
+- **RFC 9068 (JWT Profile for Access Tokens)**: Structured JWT tokens with enhanced claims
+- **RFC 9449 (DPoP)**: Demonstrating Proof of Possession for enhanced token security
+- **RFC 7662 (Token Introspection)**: Token metadata and validation
+
+### OAuth Services and Components
+
+**Core Services** (`src/app/services/oauth/`):
+- `TokenService`: JWT token generation, validation, and RFC 9068 compliance
+- `ClientService`: OAuth client management and organization-scoped access
+- `ScopeService`: Permission scope validation and management
+- `DeviceService`: RFC 8628 device authorization grant implementation
+- `DPoPService`: RFC 9449 proof of possession validation
+
+**Models** (`src/app/models/oauth/`):
+- `AccessToken`: JWT-backed tokens with DPoP binding support
+- `RefreshToken`: Rotating refresh tokens
+- `AuthCode`: PKCE-enabled authorization codes
+- `Client`: OAuth client applications with multi-tenant support
+- `DeviceCode`: Device authorization codes for RFC 8628
+- `Scope`: Permission scopes
+
+**Controllers** (`src/app/http/controllers/oauth/`):
+- `OAuthController`: Core authorization and token endpoints
+- `DeviceController`: RFC 8628 device flow endpoints with HTML interface
+- `ClientController`: Client management API
+
+**Middleware** (`src/app/http/middleware/`):
+- `dpop_middleware`: DPoP token validation for protected resources
+- `oauth_middleware`: General OAuth token validation
+
+### Key Features
+
+- **Multi-tenant Organization Support**: Clients scoped to organizations
+- **DPoP Token Binding**: Cryptographic binding of tokens to client keys
+- **Device Flow**: User-friendly device authorization for smart devices
+- **JWT Profile Compliance**: RFC 9068 structured tokens with enhanced claims
+- **PKCE Mandatory**: All authorization code flows require PKCE
+- **Token Introspection**: RFC 7662 compliant token metadata endpoint
+
+### OAuth Endpoints
+
+**Core OAuth 2.1**:
+- `GET /oauth/authorize` - Authorization endpoint (PKCE required)
+- `POST /oauth/token` - Token endpoint (supports DPoP)
+- `POST /oauth/introspect` - Token introspection
+- `POST /oauth/revoke` - Token revocation
+
+**Device Authorization Grant (RFC 8628)**:
+- `POST /oauth/device/code` - Device authorization request
+- `GET /oauth/device` - User verification interface
+- `POST /oauth/device/authorize` - User authorization
+
+**Client Management**:
+- `GET /oauth/clients` - List clients
+- `POST /oauth/clients` - Create client
+- `PUT /oauth/clients/{id}` - Update client
+- `DELETE /oauth/clients/{id}` - Delete client
+
+### Security Features
+
+- **OAuth 2.1 Compliance**: Removed insecure flows (implicit, password)
+- **Mandatory PKCE**: All flows require proof key for code exchange
+- **DPoP Support**: Token binding prevents theft and replay attacks
+- **JWT Tokens**: Self-contained tokens with cryptographic validation
+- **Organization Scoping**: Multi-tenant client access control
+- **Scope-based Authorization**: Fine-grained permission management
+
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.

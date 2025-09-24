@@ -26,6 +26,32 @@ pub struct TokenClaims {
     pub scopes: Vec<String>,
 }
 
+/// RFC 9068: JWT Profile for OAuth 2.0 Access Tokens
+/// Compliant JWT claims structure
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RFC9068Claims {
+    // Standard JWT claims (RFC 7519)
+    pub iss: String,              // Issuer
+    pub sub: Option<String>,      // Subject (user identifier)
+    pub aud: Vec<String>,         // Audience (client_id)
+    pub exp: usize,               // Expiration time
+    pub iat: usize,               // Issued at
+    pub jti: String,              // JWT ID (token identifier)
+
+    // OAuth 2.0 specific claims (RFC 9068)
+    pub client_id: String,        // OAuth client identifier
+    pub scope: String,            // Granted scopes (space-separated)
+    #[serde(rename = "token_use")]
+    pub token_use: String,        // Always "access_token"
+
+    // Additional optional claims (RFC 9068)
+    pub auth_time: Option<usize>, // Authentication time
+    pub username: Option<String>, // Human-readable identifier
+    pub groups: Option<Vec<String>>, // User groups
+    pub roles: Option<Vec<String>>,  // User roles
+    pub entitlements: Option<Vec<String>>, // User entitlements
+}
+
 #[derive(Debug, Serialize)]
 pub struct TokenResponse {
     pub access_token: String,
@@ -70,6 +96,7 @@ impl TokenService {
             data.name,
             scopes_str,
             expires_at,
+            data.jwk_thumbprint,
         );
 
         let created_token = Self::create_access_token_record(pool, new_token).await?;
@@ -288,6 +315,7 @@ impl TokenService {
             name: Some(name.clone()),
             scopes,
             expires_at: expires_in_seconds.map(|seconds| Utc::now() + Duration::seconds(seconds)),
+            jwk_thumbprint: None,
         };
 
         let access_token = Self::create_access_token(pool, create_token, expires_in_seconds, None).await?;
@@ -308,6 +336,26 @@ impl TokenService {
         client_secret: Option<&str>,
         redirect_uri: &str,
         code_verifier: Option<&str>,
+    ) -> Result<TokenResponse> {
+        Self::exchange_auth_code_for_tokens_with_dpop(
+            pool,
+            code,
+            client_id,
+            client_secret,
+            redirect_uri,
+            code_verifier,
+            None, // No DPoP by default
+        ).await
+    }
+
+    pub async fn exchange_auth_code_for_tokens_with_dpop(
+        pool: &DbPool,
+        code: &str,
+        client_id: String,
+        client_secret: Option<&str>,
+        redirect_uri: &str,
+        code_verifier: Option<&str>,
+        jwk_thumbprint: Option<String>,
     ) -> Result<TokenResponse> {
         // Parse code as ULID
         let code_id = Ulid::from_string(code)
@@ -369,6 +417,7 @@ impl TokenService {
             name: None,
             scopes: auth_code.get_scopes(),
             expires_at: Some(Utc::now() + Duration::seconds(3600)), // 1 hour
+            jwk_thumbprint: jwk_thumbprint.clone(), // DPoP binding if present
         };
 
         let access_token = Self::create_access_token(pool, create_token, Some(3600), None).await?;
@@ -386,9 +435,16 @@ impl TokenService {
         // Generate JWT
         let jwt_token = Self::generate_jwt_token(&access_token, &client_id.to_string())?;
 
+        // RFC 9449: Return "DPoP" as token type when DPoP is used
+        let token_type = if jwk_thumbprint.is_some() {
+            "DPoP".to_string()
+        } else {
+            "Bearer".to_string()
+        };
+
         Ok(TokenResponse {
             access_token: jwt_token,
-            token_type: "Bearer".to_string(),
+            token_type,
             expires_in: 3600,
             refresh_token: Some(refresh_token.id.to_string()),
             scope: auth_code.get_scopes().join(" "),
@@ -457,6 +513,7 @@ impl TokenService {
             name: access_token.name.clone(),
             scopes: access_token.get_scopes(),
             expires_at: Some(Utc::now() + Duration::seconds(3600)), // 1 hour
+            jwk_thumbprint: access_token.jwk_thumbprint.clone(), // Preserve existing DPoP binding
         };
 
         let new_access_token = Self::create_access_token(pool, create_token, Some(3600), None).await?;
@@ -480,28 +537,58 @@ impl TokenService {
         })
     }
 
+    /// RFC 9068: JWT Profile for OAuth 2.0 Access Tokens
+    /// Generate JWT access token compliant with RFC 9068
     pub fn generate_jwt_token(access_token: &AccessToken, client_id: &str) -> Result<String> {
         let now = Utc::now();
         let expires_at = access_token.expires_at.unwrap_or(now + Duration::days(1));
 
-        let claims = TokenClaims {
+        // RFC 9068 compliant JWT claims
+        let claims = RFC9068Claims {
+            // Standard JWT claims
+            iss: std::env::var("OAUTH_ISSUER")
+                .unwrap_or_else(|_| "https://auth.rustaxum.dev".to_string()),
             sub: access_token.user_id.as_ref()
                 .map(|id| DieselUlid::from_string(id))
                 .transpose()?
-                .unwrap_or_else(DieselUlid::new),
-            aud: DieselUlid::from_string(client_id)?,
+                .map(|id| id.to_string()),
+            aud: vec![client_id.to_string()],
             exp: expires_at.timestamp() as usize,
             iat: now.timestamp() as usize,
-            jti: access_token.id,
-            scopes: access_token.get_scopes(),
+            jti: access_token.id.to_string(),
+
+            // RFC 9068 OAuth-specific claims
+            client_id: client_id.to_string(),
+            scope: access_token.get_scopes().join(" "),
+            token_use: "access_token".to_string(),
+
+            // Additional claims (optional per RFC 9068)
+            auth_time: Some(access_token.created_at.timestamp() as usize),
+            username: access_token.user_id.clone(),
+            groups: None, // TODO: Implement user groups
+            roles: None,  // TODO: Implement user roles
+            entitlements: None, // TODO: Implement user entitlements
         };
 
-        // Get OAuth JWT secret from environment or use default
+        // Set algorithm preference (RS256 for production, HS256 for development)
+        let algorithm = std::env::var("OAUTH_JWT_ALGORITHM")
+            .unwrap_or_else(|_| "HS256".to_string());
+
+        let header = Header {
+            alg: match algorithm.as_str() {
+                "RS256" => jsonwebtoken::Algorithm::RS256,
+                "HS256" => jsonwebtoken::Algorithm::HS256,
+                _ => jsonwebtoken::Algorithm::HS256,
+            },
+            typ: Some("at+jwt".to_string()), // RFC 9068: Access Token JWT type
+            ..Default::default()
+        };
+
         let jwt_secret = std::env::var("OAUTH_JWT_SECRET")
             .unwrap_or_else(|_| "oauth-jwt-secret".to_string());
 
         let token = encode(
-            &Header::default(),
+            &header,
             &claims,
             &EncodingKey::from_secret(jwt_secret.as_ref()),
         )?;
@@ -509,15 +596,62 @@ impl TokenService {
         Ok(token)
     }
 
+    /// Decode JWT token - supports both legacy and RFC 9068 formats
     pub fn decode_jwt_token(token: &str) -> Result<TokenClaims> {
-        // Get OAuth JWT secret from environment or use default
         let jwt_secret = std::env::var("OAUTH_JWT_SECRET")
             .unwrap_or_else(|_| "oauth-jwt-secret".to_string());
 
+        // Try to decode as RFC 9068 first
+        if let Ok(token_data) = decode::<RFC9068Claims>(
+            token,
+            &DecodingKey::from_secret(jwt_secret.as_ref()),
+            &Validation::default(),
+        ) {
+            let claims = token_data.claims;
+
+            // Convert RFC 9068 claims to legacy format for compatibility
+            return Ok(TokenClaims {
+                sub: claims.sub.as_ref()
+                    .map(|id| DieselUlid::from_string(id))
+                    .transpose()?
+                    .unwrap_or_else(DieselUlid::new),
+                aud: DieselUlid::from_string(&claims.client_id)?,
+                exp: claims.exp,
+                iat: claims.iat,
+                jti: DieselUlid::from_string(&claims.jti)?,
+                scopes: claims.scope.split_whitespace().map(String::from).collect(),
+            });
+        }
+
+        // Fallback to legacy format
         let token_data = decode::<TokenClaims>(
             token,
             &DecodingKey::from_secret(jwt_secret.as_ref()),
             &Validation::default(),
+        )?;
+
+        Ok(token_data.claims)
+    }
+
+    /// RFC 9068: Decode JWT access token with full RFC 9068 claims
+    pub fn decode_rfc9068_token(token: &str) -> Result<RFC9068Claims> {
+        let jwt_secret = std::env::var("OAUTH_JWT_SECRET")
+            .unwrap_or_else(|_| "oauth-jwt-secret".to_string());
+
+        let mut validation = Validation::default();
+
+        // RFC 9068: Validate issuer if configured
+        if let Ok(expected_issuer) = std::env::var("OAUTH_ISSUER") {
+            validation.set_issuer(&[expected_issuer]);
+        }
+
+        // RFC 9068: Validate audience (client_id)
+        validation.set_audience(&[""]); // Will be validated in application logic
+
+        let token_data = decode::<RFC9068Claims>(
+            token,
+            &DecodingKey::from_secret(jwt_secret.as_ref()),
+            &validation,
         )?;
 
         Ok(token_data.claims)

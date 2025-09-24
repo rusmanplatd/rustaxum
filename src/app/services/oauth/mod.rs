@@ -1,7 +1,19 @@
 pub mod client_service;
 pub mod token_service;
 pub mod scope_service;
+pub mod device_service;
+pub mod dpop_service;
+pub mod mtls_service;
+pub mod token_exchange_service;
+pub mod par_service;
+pub mod ciba_service;
 
 pub use client_service::*;
 pub use token_service::*;
 pub use scope_service::*;
+pub use device_service::*;
+pub use dpop_service::*;
+pub use mtls_service::*;
+pub use token_exchange_service::*;
+pub use par_service::*;
+pub use ciba_service::*;

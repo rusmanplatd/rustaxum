@@ -291,7 +291,7 @@ impl MailContent {
         match self {
             MailContent::Text(text) => text.clone(),
             MailContent::Html(html) => {
-                // Simple HTML to text conversion (would use proper HTML parser in production)
+                // (TODO:  use proper HTML parser in production)
                 html.clone()
             },
             MailContent::Markdown { markdown, .. } => markdown.clone(),

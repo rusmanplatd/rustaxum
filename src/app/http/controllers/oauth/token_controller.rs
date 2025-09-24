@@ -170,8 +170,7 @@ pub async fn get_token(
             // Check if user owns this token or is admin
             if let Some(ref owner_id) = token.user_id {
                 if owner_id != &user_id {
-                    // For now, allow any authenticated user to view any token
-                    // In production, you'd check admin permissions here
+                    // TODO: In production, you'd check admin permissions here
                 }
             }
 

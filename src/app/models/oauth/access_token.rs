@@ -16,6 +16,7 @@ pub struct AccessToken {
     pub expires_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub jwk_thumbprint: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -25,6 +26,7 @@ pub struct CreateAccessToken {
     pub name: Option<String>,
     pub scopes: Vec<String>,
     pub expires_at: Option<DateTime<Utc>>,
+    pub jwk_thumbprint: Option<String>,
 }
 
 #[derive(Debug, Insertable)]
@@ -39,6 +41,7 @@ pub struct NewAccessToken {
     pub expires_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub jwk_thumbprint: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -58,6 +61,7 @@ pub struct AccessTokenResponse {
     pub expires_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub jwk_thumbprint: Option<String>,
 }
 
 impl AccessToken {
@@ -80,6 +84,7 @@ impl AccessToken {
             expires_at: self.expires_at,
             created_at: self.created_at,
             updated_at: self.updated_at,
+            jwk_thumbprint: self.jwk_thumbprint.clone(),
         }
     }
 
@@ -117,6 +122,7 @@ impl NewAccessToken {
         name: Option<String>,
         scopes: Option<String>,
         expires_at: Option<DateTime<Utc>>,
+        jwk_thumbprint: Option<String>,
     ) -> Self {
         let now = Utc::now();
         Self {
@@ -129,6 +135,7 @@ impl NewAccessToken {
             expires_at,
             created_at: now,
             updated_at: now,
+            jwk_thumbprint,
         }
     }
 }

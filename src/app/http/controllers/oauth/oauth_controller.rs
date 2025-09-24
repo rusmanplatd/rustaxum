@@ -10,7 +10,7 @@ use ulid::Ulid;
 use chrono::{Duration, Utc};
 use std::collections::HashMap;
 
-use crate::app::services::oauth::{TokenService, ClientService, ScopeService};
+use crate::app::services::oauth::{TokenService, ClientService, ScopeService}; // DPoPService - TODO: Re-enable when ready
 use crate::app::services::auth_service::AuthService;
 use crate::app::models::oauth::{CreateAuthCode};
 use crate::app::utils::token_utils::TokenUtils;
@@ -93,14 +93,43 @@ pub async fn authorize(
     headers: HeaderMap,
     Query(params): Query<AuthorizeQuery>,
 ) -> impl IntoResponse {
-    // Validate required parameters
+    // OAuth 2.1 Compliance: Only authorization code flow is supported (implicit removed)
     if params.response_type != "code" {
         let error_url = format!(
-            "{}?error=unsupported_response_type&error_description=Only+authorization+code+flow+is+supported{}",
+            "{}?error=unsupported_response_type&error_description=Only+authorization+code+flow+is+supported+-+OAuth+2.1+compliance{}",
             params.redirect_uri,
             params.state.as_ref().map(|s| format!("&state={}", s)).unwrap_or_default()
         );
         return Redirect::temporary(&error_url).into_response();
+    }
+
+    // OAuth 2.1 Compliance: PKCE is mandatory for all authorization code flows
+    if params.code_challenge.is_none() {
+        let error_url = format!(
+            "{}?error=invalid_request&error_description=PKCE+code_challenge+is+required+for+OAuth+2.1+compliance{}",
+            params.redirect_uri,
+            params.state.as_ref().map(|s| format!("&state={}", s)).unwrap_or_default()
+        );
+        return Redirect::temporary(&error_url).into_response();
+    }
+
+    // OAuth 2.1 Compliance: Validate PKCE challenge method (S256 preferred, plain deprecated)
+    if let Some(ref method) = params.code_challenge_method {
+        if method != "S256" && method != "plain" {
+            let error_url = format!(
+                "{}?error=invalid_request&error_description=Invalid+code_challenge_method+-+must+be+S256+or+plain{}",
+                params.redirect_uri,
+                params.state.as_ref().map(|s| format!("&state={}", s)).unwrap_or_default()
+            );
+            return Redirect::temporary(&error_url).into_response();
+        }
+        // Warn about plain method (deprecated in OAuth 2.1)
+        if method == "plain" {
+            tracing::warn!("Client {} using deprecated plain PKCE method", params.client_id);
+        }
+    } else if params.code_challenge.is_some() {
+        // Default to S256 if challenge provided but method is not
+        tracing::info!("Defaulting to S256 PKCE method for client {}", params.client_id);
     }
 
     // Parse client ID
@@ -116,16 +145,20 @@ pub async fn authorize(
         }
     };
 
-    // Validate client and redirect URI
+    // OAuth 2.1 Compliance: Exact string matching for redirect URIs (no wildcard matching)
     match ClientService::is_valid_redirect_uri(&pool, client_id.to_string(), &params.redirect_uri) {
-        Ok(true) => {},
+        Ok(true) => {
+            tracing::debug!("Redirect URI validated for client {}: {}", client_id, params.redirect_uri);
+        },
         Ok(false) => {
+            tracing::warn!("Invalid redirect URI for client {}: {}", client_id, params.redirect_uri);
             return (StatusCode::BAD_REQUEST, ResponseJson(ErrorResponse {
                 error: "invalid_client".to_string(),
-                error_description: Some("Invalid redirect URI".to_string()),
+                error_description: Some("Invalid redirect URI - OAuth 2.1 requires exact string matching".to_string()),
             })).into_response();
         },
         Err(_) => {
+            tracing::error!("Client not found: {}", client_id);
             return (StatusCode::BAD_REQUEST, ResponseJson(ErrorResponse {
                 error: "invalid_client".to_string(),
                 error_description: Some("Client not found".to_string()),
@@ -207,15 +240,18 @@ pub async fn authorize(
         }
     };
 
-    // Create authorization code
+    // Create authorization code with OAuth 2.1 compliant PKCE
+    let challenge_method = params.code_challenge_method.clone()
+        .or_else(|| Some("S256".to_string())); // Default to S256 per OAuth 2.1
+
     let auth_code_data = CreateAuthCode {
         user_id: user_id,
         client_id: client_id.to_string(),
         scopes: ScopeService::get_scope_names(&scopes),
         redirect_uri: params.redirect_uri.clone(),
         challenge: params.code_challenge,
-        challenge_method: params.code_challenge_method,
-        expires_at: Some(Utc::now() + Duration::minutes(10)), // 10 minutes
+        challenge_method,
+        expires_at: Some(Utc::now() + Duration::minutes(10)), // OAuth 2.1: Short-lived auth codes
     };
 
     match TokenService::create_auth_code(&pool, auth_code_data) {
@@ -253,23 +289,30 @@ pub async fn authorize(
         (status = 401, description = "Client authentication failed", body = ErrorResponse)
     )
 )]
-pub async fn token(State(pool): State<DbPool>, Form(params): Form<TokenRequest>) -> impl IntoResponse {
+pub async fn token(State(pool): State<DbPool>, headers: HeaderMap, Form(params): Form<TokenRequest>) -> impl IntoResponse {
     match params.grant_type.as_str() {
-        "authorization_code" => handle_authorization_code_grant(&pool, params).await.into_response(),
-        "refresh_token" => handle_refresh_token_grant(&pool, params).await.into_response(),
-        "client_credentials" => handle_client_credentials_grant(&pool, params).await.into_response(),
-        "password" => handle_password_grant(&pool, params).await.into_response(),
+        "authorization_code" => handle_authorization_code_grant(&pool, headers, params).await.into_response(),
+        "refresh_token" => handle_refresh_token_grant(&pool, headers, params).await.into_response(),
+        "client_credentials" => handle_client_credentials_grant(&pool, headers, params).await.into_response(),
+        "password" => {
+            // OAuth 2.1 Compliance: Password grant is removed from OAuth 2.1
+            let error = ErrorResponse {
+                error: "unsupported_grant_type".to_string(),
+                error_description: Some("Password grant is deprecated and removed in OAuth 2.1 for security reasons".to_string()),
+            };
+            (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response()
+        },
         _ => {
             let error = ErrorResponse {
                 error: "unsupported_grant_type".to_string(),
-                error_description: Some("Grant type not supported".to_string()),
+                error_description: Some("Grant type not supported - OAuth 2.1 supports: authorization_code, refresh_token, client_credentials".to_string()),
             };
             (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response()
         }
     }.into_response()
 }
 
-async fn handle_authorization_code_grant(pool: &DbPool, params: TokenRequest) -> impl IntoResponse + use<> {
+async fn handle_authorization_code_grant(pool: &DbPool, _headers: HeaderMap, params: TokenRequest) -> impl IntoResponse + use<> {
     let code = match params.code {
         Some(code) => code,
         None => {
@@ -303,13 +346,18 @@ async fn handle_authorization_code_grant(pool: &DbPool, params: TokenRequest) ->
         }
     };
 
-    match TokenService::exchange_auth_code_for_tokens(
+    // RFC 9449: DPoP (Demonstrating Proof of Possession) support - TODO: Re-enable when DPoP service is ready
+    // let dpop_proof = headers.get("dpop").and_then(|h| h.to_str().ok());
+    let jwk_thumbprint: Option<String> = None;
+
+    match TokenService::exchange_auth_code_for_tokens_with_dpop(
         pool,
         &code,
         client_id.to_string(),
         params.client_secret.as_deref(),
         &redirect_uri,
         params.code_verifier.as_deref(),
+        jwk_thumbprint,
     ).await {
         Ok(token_response) => (StatusCode::OK, ResponseJson(token_response)).into_response(),
         Err(e) => {
@@ -322,7 +370,7 @@ async fn handle_authorization_code_grant(pool: &DbPool, params: TokenRequest) ->
     }
 }
 
-async fn handle_refresh_token_grant(pool: &DbPool, params: TokenRequest) -> impl IntoResponse + use<> {
+async fn handle_refresh_token_grant(pool: &DbPool, _headers: HeaderMap, params: TokenRequest) -> impl IntoResponse + use<> {
     let refresh_token = match params.refresh_token {
         Some(token) => token,
         None => {
@@ -362,7 +410,7 @@ async fn handle_refresh_token_grant(pool: &DbPool, params: TokenRequest) -> impl
     }
 }
 
-async fn handle_client_credentials_grant(pool: &DbPool, params: TokenRequest) -> impl IntoResponse + use<> {
+async fn handle_client_credentials_grant(pool: &DbPool, _headers: HeaderMap, params: TokenRequest) -> impl IntoResponse + use<> {
     let client_id = match Ulid::from_string(&params.client_id) {
         Ok(id) => id,
         Err(_) => {
@@ -425,6 +473,7 @@ async fn handle_client_credentials_grant(pool: &DbPool, params: TokenRequest) ->
         name: None,
         scopes: ScopeService::get_scope_names(&scopes),
         expires_at: Some(Utc::now() + Duration::seconds(3600)), // 1 hour
+        jwk_thumbprint: None, // TODO: Add DPoP support for client credentials flow
     };
 
     // TODO: Extract user_id from auth context when available
@@ -742,6 +791,7 @@ async fn handle_password_grant(pool: &DbPool, params: TokenRequest) -> impl Into
         name: Some("Password Grant Token".to_string()),
         scopes: ScopeService::get_scope_names(&scopes),
         expires_at: Some(Utc::now() + Duration::seconds(3600)), // 1 hour
+        jwk_thumbprint: None, // Password flow doesn't use DPoP
     };
 
     // TODO: Extract user_id from auth context when available
