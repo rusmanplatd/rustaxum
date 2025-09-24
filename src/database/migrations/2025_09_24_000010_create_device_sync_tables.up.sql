@@ -32,41 +32,8 @@ COMMENT ON COLUMN device_sync_sessions.established_at IS 'Sync relationship esta
 COMMENT ON COLUMN device_sync_sessions.created_at IS 'Sync session creation timestamp for audit and lifecycle management';
 COMMENT ON COLUMN device_sync_sessions.updated_at IS 'Last sync session update timestamp for activity tracking';
 
--- Create device key rotations table for key management
-CREATE TABLE device_key_rotations (
-    id CHAR(26) PRIMARY KEY,
-    device_id CHAR(26) NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
-
-    -- Key rotation metadata (old and new public keys)
-    old_identity_public_key TEXT,
-    new_identity_public_key TEXT NOT NULL,
-    old_signed_prekey_public TEXT,
-    new_signed_prekey_public TEXT NOT NULL,
-
-    -- Rotation status
-    rotation_reason VARCHAR NOT NULL CHECK (rotation_reason IN ('scheduled', 'compromised', 'device_change', 'security_update')),
-    is_completed BOOLEAN NOT NULL DEFAULT false,
-    completed_at TIMESTAMPTZ,
-
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Table comment for device_key_rotations
-COMMENT ON TABLE device_key_rotations IS 'Tracks device key rotation events for E2EE security maintenance. Records transitions from old to new identity and signed prekeys, supporting both scheduled rotations and emergency key changes due to compromise or security updates.';
-
--- Column comments for device_key_rotations table
-COMMENT ON COLUMN device_key_rotations.id IS 'ULID primary key uniquely identifying this key rotation event';
-COMMENT ON COLUMN device_key_rotations.device_id IS 'Foreign key to device undergoing key rotation - enables tracking rotation history per device';
-COMMENT ON COLUMN device_key_rotations.old_identity_public_key IS 'Previous identity public key being rotated out - null for initial key establishment, enables continuity verification';
-COMMENT ON COLUMN device_key_rotations.new_identity_public_key IS 'New identity public key replacing the old key - becomes active after successful rotation completion';
-COMMENT ON COLUMN device_key_rotations.old_signed_prekey_public IS 'Previous signed prekey being rotated out - null for initial key establishment';
-COMMENT ON COLUMN device_key_rotations.new_signed_prekey_public IS 'New signed prekey for X3DH key exchange - signed with new identity key for authentication';
-COMMENT ON COLUMN device_key_rotations.rotation_reason IS 'Reason for key rotation: scheduled (regular rotation), compromised (security breach), device_change (hardware change), security_update (protocol upgrade)';
-COMMENT ON COLUMN device_key_rotations.is_completed IS 'Whether key rotation has been fully completed - false during rotation process, true when all dependent systems updated';
-COMMENT ON COLUMN device_key_rotations.completed_at IS 'Timestamp when rotation completed successfully - null for in-progress rotations';
-COMMENT ON COLUMN device_key_rotations.created_at IS 'Rotation initiation timestamp for audit and scheduling';
-COMMENT ON COLUMN device_key_rotations.updated_at IS 'Last rotation status update timestamp for progress tracking';
+-- NOTE: device_key_rotations table is now defined in migration 2025_09_24_000018_add_signal_protocol_key_rotation.up.sql
+-- This duplicate definition has been removed to prevent migration conflicts
 
 -- Create conversation encryption settings per device
 CREATE TABLE conversation_device_settings (
@@ -121,15 +88,7 @@ COMMENT ON INDEX idx_device_sync_sessions_secondary IS 'Optimizes queries for sy
 CREATE INDEX idx_device_sync_sessions_active ON device_sync_sessions (is_active, last_sync_at);
 COMMENT ON INDEX idx_device_sync_sessions_active IS 'Optimizes active sync session queries with recency ordering - enables sync scheduling and inactive session cleanup';
 
--- Indexes for key rotations
-CREATE INDEX idx_device_key_rotations_device ON device_key_rotations (device_id);
-COMMENT ON INDEX idx_device_key_rotations_device IS 'Optimizes key rotation queries per device - supports rotation history tracking and current rotation status';
-
-CREATE INDEX idx_device_key_rotations_reason ON device_key_rotations (rotation_reason);
-COMMENT ON INDEX idx_device_key_rotations_reason IS 'Optimizes rotation queries by reason type - enables security analysis and rotation pattern monitoring';
-
-CREATE INDEX idx_device_key_rotations_completed ON device_key_rotations (is_completed, created_at);
-COMMENT ON INDEX idx_device_key_rotations_completed IS 'Optimizes completion status queries with chronological ordering - supports rotation monitoring and incomplete rotation cleanup';
+-- NOTE: Indexes for device_key_rotations are now defined in migration 2025_09_24_000018_add_signal_protocol_key_rotation.up.sql
 
 -- Indexes for conversation device settings
 CREATE INDEX idx_conversation_device_settings_conversation ON conversation_device_settings (conversation_id);

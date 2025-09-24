@@ -9,10 +9,6 @@ COMMENT ON COLUMN sys_users.identity_public_key IS 'User''s Ed25519 identity pub
 ALTER TABLE sys_users ADD COLUMN identity_key_created_at TIMESTAMPTZ;
 COMMENT ON COLUMN sys_users.identity_key_created_at IS 'When the current identity key was generated, used for key rotation scheduling';
 
--- Add supported algorithms array for capability negotiation
-ALTER TABLE sys_users ADD COLUMN supported_algorithms TEXT[];
-COMMENT ON COLUMN sys_users.supported_algorithms IS 'Array of encryption algorithms this user''s devices support (e.g. aes-256-gcm, chacha20-poly1305)';
-
 -- Add indexes for E2EE key lookups
 CREATE INDEX idx_sys_users_identity_public_key ON sys_users (identity_public_key);
 COMMENT ON INDEX idx_sys_users_identity_public_key IS 'Fast lookup of users by their identity public key for verification';
