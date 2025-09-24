@@ -2,13 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Development Commands
-
-# Naming Rules (Laravel Naming Conventions)
+## Naming Rules (Laravel Naming Conventions)
 - **Follow Laravel naming exactly**: Use identical class names, method names, and conventions
 - **NO marketing adjectives**: Never use "advanced", "enhanced", "complete", "improved", "better", "superior", "features", "optimized", "premium", or similar terms in code names
 - **Laravel naming patterns**: Follow Laravel's exact naming patterns for consistency
 - **Method signatures**: Match Laravel method signatures exactly, including parameter names and types
+
+## Development Commands
 
 ### Building and Running
 ```bash
@@ -98,7 +98,7 @@ cargo run --bin artisan -- db:seed:list               # List available seeders
 cargo run --bin artisan -- serve --port 3000
 ```
 
-See `ARTISAN.md` for comprehensive CLI documentation.
+The Artisan CLI provides comprehensive code generation capabilities similar to Laravel's artisan command.
 
 ### Testing
 ```bash
@@ -144,14 +144,16 @@ This is a Laravel-inspired Rust web framework built with Axum, following familia
 
 ### Key Implementation Details
 
-**Database Integration**: Uses SQLx with PostgreSQL. Models use ULID for primary keys (stored as TEXT in database). Database migrations are in `src/database/migrations/`.
+**Database Integration**: Uses Diesel ORM with PostgreSQL. Models use ULID for primary keys (stored as TEXT in database). Database migrations are in `src/database/migrations/`.
 
 **Authentication Flow**: JWT-based authentication with bcrypt password hashing. Auth logic is split between `auth_controller.rs` and `auth_service.rs`.
 
 **Middleware Stack**: Applied globally in `main.rs` using Tower's `ServiceBuilder`:
 
+- Correlation middleware for request tracking
+- Activity logging middleware
 - Tracing for request logging
-- Permissive CORS (can be customized in `src/app/middleware/cors.rs`)
+- Permissive CORS
 
 **Error Handling**: Uses `anyhow::Result` for error propagation throughout the application.
 
@@ -215,6 +217,8 @@ The framework provides comprehensive Laravel-style generators:
 
 **Database Changes**: Add SQL migration files to `src/database/migrations/` following the naming convention `XXX_description.sql`.
 
+**Query Builder Pattern**: Controllers for GET endpoints should use the `QueryBuilderService` pattern. Models must implement the `Queryable` trait with allowed filters, sorts, fields, and includes. GET endpoints accept `QueryParams` and use `<Model as QueryBuilderService<Model>>::index(Query(params), &pool)` for consistent filtering, sorting, pagination, and field selection.
+
 ## Service Access
 
 When running with Docker Compose:
@@ -231,7 +235,14 @@ When running with Docker Compose:
 - `src/lib.rs`: Library entry point with `create_app()` function
 - `src/config/mod.rs`: Environment configuration management
 - `src/routes/api.rs` and `src/routes/web.rs`: Route definitions
+- `src/routes/oauth/mod.rs`: OAuth2 routes and endpoints
 - `src/cli/main.rs`: Artisan CLI entry point
+- `src/app/query_builder/`: Query builder system for advanced filtering, sorting, pagination
 - `docker-compose.yaml`: Full development stack configuration
 - `.env.example`: Environment variable template
-- `ARTISAN.md`: Comprehensive CLI documentation
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
