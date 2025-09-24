@@ -124,7 +124,7 @@ pub async fn store(
         guard_name: payload.guard_name,
     };
 
-    match RoleService::create(&pool, create_role) {
+    match RoleService::create(&pool, create_role, None).await {
         Ok(role) => {
             let role_data = RoleData::from(role);
             (StatusCode::CREATED, Json(json!({
@@ -196,7 +196,7 @@ pub async fn update(
         guard_name: payload.guard_name,
     };
 
-    match RoleService::update(&pool, role_id.to_string(), update_role) {
+    match RoleService::update(&pool, role_id.to_string(), update_role, None).await {
         Ok(role) => {
             let role_data = RoleData::from(role);
             (StatusCode::OK, Json(json!({
@@ -226,7 +226,7 @@ pub async fn destroy(
         }
     };
 
-    match RoleService::delete(&pool, role_id.to_string()) {
+    match RoleService::delete(&pool, role_id.to_string(), None).await {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Role deleted successfully"
@@ -282,7 +282,7 @@ pub async fn assign_to_user(
         }
     };
 
-    match SysModelHasRoleService::assign_role_to_model(&pool, User::model_type(), diesel_user_id, diesel_role_id, None, None) {
+    match SysModelHasRoleService::assign_role_to_model(&pool, User::model_type(), diesel_user_id, diesel_role_id, None, None, None).await {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Role assigned to user successfully"
@@ -319,7 +319,7 @@ pub async fn remove_from_user(
         }
     };
 
-    match SysModelHasRoleService::remove_role_from_model(&pool, User::model_type(), user_id.to_string(), role_id.to_string()) {
+    match SysModelHasRoleService::remove_role_from_model(&pool, User::model_type(), user_id.to_string(), role_id.to_string(), None).await {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Role removed from user successfully"

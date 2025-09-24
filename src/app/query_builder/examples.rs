@@ -192,9 +192,10 @@ impl QueryBuilderExamples {
         pool: &DbPool,
     ) -> anyhow::Result<()> {
         // Dynamic pagination type selection based on data size
-        let total_count = User::query()
-            .where_eq("active", true)
-            .execute_count(pool)?;
+        // TODO: Implement execute_count when needed
+        // let total_count = User::query()
+        //     .where_eq("active", true)
+        //     .execute_count(pool)?;
 
         let builder = User::query()
             .where_eq("active", true);

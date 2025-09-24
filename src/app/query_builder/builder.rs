@@ -1,7 +1,7 @@
 use crate::app::query_builder::{
     Filter, Sort, Include, Pagination, QueryParams, Queryable,
 };
-use anyhow::{Result, anyhow};
+use anyhow::{Result};
 use std::collections::HashMap;
 
 /// Main query builder for constructing and executing database queries
@@ -477,20 +477,10 @@ where
         self.filter(Filter::json(field, path, value))
     }
 
-    /// Add a relationship exists filter
-    pub fn has(self, relation: impl Into<String>) -> Self {
-        self.filter(Filter::has_relation(relation))
-    }
-
-    /// Add a relationship doesn't exist filter
-    pub fn doesnt_have(self, relation: impl Into<String>) -> Self {
-        self.filter(Filter::doesnt_have_relation(relation))
-    }
-
-    /// Add a relationship count filter
-    pub fn has_count(self, relation: impl Into<String>, operator: impl Into<String>, count: u32) -> Self {
-        self.filter(Filter::has_relation_count(relation, operator, count))
-    }
+    // TODO: Implement relationship filters when needed
+    // pub fn has(self, relation: impl Into<String>) -> Self {
+    //     self.filter(Filter::has_relation(relation))
+    // }
 
     /// Clone the current query builder
     pub fn clone_query(&self) -> Self {

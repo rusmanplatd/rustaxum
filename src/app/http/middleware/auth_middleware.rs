@@ -46,9 +46,10 @@ pub async fn auth_middleware(
                     "method": request.method().as_str()
                 });
 
+                let user_id_for_log = user_id.clone();
                 tokio::spawn(async move {
                     if let Err(e) = logger.log_custom(
-                        &format!("User {} authenticated successfully via bearer token", user_id),
+                        &format!("User {} authenticated successfully via bearer token", user_id_for_log),
                         Some("auth.success"),
                         Some(properties)
                     ).await {
@@ -57,7 +58,7 @@ pub async fn auth_middleware(
                 });
 
                 // Store user info in request extensions for later use
-                request.extensions_mut().insert(user_id.clone());
+                request.extensions_mut().insert(user_id);
 
                 Ok(next.run(request).await)
             } else {

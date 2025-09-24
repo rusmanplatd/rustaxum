@@ -73,7 +73,7 @@ impl TokenService {
         let service = TokenService;
         let properties = json!({
             "token_id": created_token.id.to_string(),
-            "user_id": data.user_id.to_string(),
+            "user_id": data.user_id.as_deref().unwrap_or("system"),
             "client_id": data.client_id.to_string(),
             "token_name": data.name,
             "scopes": data.scopes,
@@ -83,7 +83,7 @@ impl TokenService {
 
         if let Err(e) = service.log_system_event(
             "oauth_access_token_created",
-            &format!("OAuth access token '{}' created for user {}", data.name.unwrap_or_else(|| "unnamed".to_string()), data.user_id),
+            &format!("OAuth access token '{}' created for user {}", data.name.as_deref().unwrap_or("unnamed"), data.user_id.as_deref().unwrap_or("system")),
             Some(properties)
         ).await {
             eprintln!("Failed to log OAuth access token creation activity: {}", e);
@@ -285,7 +285,7 @@ impl TokenService {
             expires_at: expires_in_seconds.map(|seconds| Utc::now() + Duration::seconds(seconds)),
         };
 
-        let access_token = Self::create_access_token(pool, create_token, expires_in_seconds).await?;
+        let access_token = Self::create_access_token(pool, create_token, expires_in_seconds, None).await?;
 
         // Generate JWT
         let jwt_token = Self::generate_jwt_token(&access_token, &client_id_str)?;
@@ -366,7 +366,7 @@ impl TokenService {
             expires_at: Some(Utc::now() + Duration::seconds(3600)), // 1 hour
         };
 
-        let access_token = Self::create_access_token(pool, create_token, Some(3600)).await?;
+        let access_token = Self::create_access_token(pool, create_token, Some(3600), None).await?;
 
         // Create refresh token
         let refresh_token = Self::create_refresh_token(
@@ -454,7 +454,7 @@ impl TokenService {
             expires_at: Some(Utc::now() + Duration::seconds(3600)), // 1 hour
         };
 
-        let new_access_token = Self::create_access_token(pool, create_token, Some(3600)).await?;
+        let new_access_token = Self::create_access_token(pool, create_token, Some(3600), None).await?;
 
         // Create new refresh token
         let new_refresh_token = Self::create_refresh_token(

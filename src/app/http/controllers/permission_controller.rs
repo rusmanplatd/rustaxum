@@ -131,7 +131,7 @@ pub async fn store(
         action: payload.action,
     };
 
-    match PermissionService::create(&pool, create_permission) {
+    match PermissionService::create(&pool, create_permission, None).await {
         Ok(permission) => {
             let permission_data = PermissionData::from(permission);
             (StatusCode::CREATED, Json(json!({

@@ -218,3 +218,16 @@ impl crate::app::query_builder::Queryable for OrganizationPositionLevel {
 
 // Implement the query builder service for OrganizationPositionLevel
 crate::impl_query_builder_service!(OrganizationPositionLevel);
+
+// Implement activity logging traits
+impl crate::app::models::HasModelType for OrganizationPositionLevel {
+    fn model_type() -> &'static str {
+        "OrganizationPositionLevel"
+    }
+}
+
+impl crate::app::models::activity_log::HasId for OrganizationPositionLevel {
+    fn get_id(&self) -> String {
+        self.id.to_string()
+    }
+}

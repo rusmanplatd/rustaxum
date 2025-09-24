@@ -155,7 +155,7 @@ pub async fn store(State(pool): State<DbPool>, request: CreateOrganizationReques
         website: request.website,
     };
 
-    match OrganizationService::create(&pool, payload) {
+    match OrganizationService::create(&pool, payload, None).await {
         Ok(organization) => (StatusCode::CREATED, ResponseJson(organization.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {

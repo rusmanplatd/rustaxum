@@ -132,7 +132,7 @@ pub async fn store(State(pool): State<DbPool>, request: CreateCountryRequest) ->
         phone_code: request.phone_code,
     };
 
-    match CountryService::create(&pool, payload) {
+    match CountryService::create(&pool, payload, None).await {
         Ok(country) => (StatusCode::CREATED, ResponseJson(country.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {

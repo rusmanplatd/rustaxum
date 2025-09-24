@@ -16,7 +16,7 @@ pub struct OrganizationPositionService;
 impl ServiceActivityLogger for OrganizationPositionService {}
 
 impl OrganizationPositionService {
-    pub async fn index(pool: &DbPool, request: &IndexOrganizationPositionRequest, user_id: Option<&str>) -> Result<Value> {
+    pub async fn index(pool: &DbPool, request: &IndexOrganizationPositionRequest, _user_id: Option<&str>) -> Result<Value> {
         let mut conn = pool.get()?;
 
         let mut query = organization_positions::table.into_boxed();
