@@ -5,6 +5,8 @@ pub mod country_controller;
 pub mod docs_controller;
 pub mod province_controller;
 pub mod city_controller;
+pub mod district_controller;
+pub mod village_controller;
 pub mod role_controller;
 pub mod permission_controller;
 pub mod organization_controller;

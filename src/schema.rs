@@ -69,6 +69,26 @@ diesel::table! {
 }
 
 diesel::table! {
+    districts (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        city_id -> Bpchar,
+        name -> Varchar,
+        code -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        updated_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        deleted_by -> Nullable<Bpchar>,
+    }
+}
+
+diesel::table! {
     events (id) {
         #[max_length = 26]
         id -> Bpchar,
@@ -516,7 +536,30 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    villages (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        district_id -> Bpchar,
+        name -> Varchar,
+        code -> Nullable<Varchar>,
+        latitude -> Nullable<Numeric>,
+        longitude -> Nullable<Numeric>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        updated_by -> Nullable<Bpchar>,
+        #[max_length = 26]
+        deleted_by -> Nullable<Bpchar>,
+    }
+}
+
 diesel::joinable!(cities -> provinces (province_id));
+diesel::joinable!(districts -> cities (city_id));
 diesel::joinable!(oauth_access_tokens -> oauth_clients (client_id));
 diesel::joinable!(oauth_access_tokens -> sys_users (user_id));
 diesel::joinable!(oauth_auth_codes -> oauth_clients (client_id));
@@ -534,11 +577,13 @@ diesel::joinable!(sys_permissions -> organizations (organization_id));
 diesel::joinable!(sys_roles -> organizations (organization_id));
 diesel::joinable!(user_organizations -> organization_positions (organization_position_id));
 diesel::joinable!(user_organizations -> organizations (organization_id));
+diesel::joinable!(villages -> districts (district_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     activity_log,
     cities,
     countries,
+    districts,
     events,
     jobs,
     migrations,
@@ -560,4 +605,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     sys_roles,
     sys_users,
     user_organizations,
+    villages,
 );

@@ -6,6 +6,8 @@ pub mod oauth;
 pub mod country;
 pub mod province;
 pub mod city;
+pub mod district;
+pub mod village;
 pub mod role;
 pub mod permission;
 pub mod organization;

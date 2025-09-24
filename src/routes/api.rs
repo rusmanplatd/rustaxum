@@ -4,7 +4,7 @@ use axum::{
 };
 use crate::database::DbPool;
 
-use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, role_controller, permission_controller, docs_controller, user_organization_controller, organization_position_level_controller, organization_position_controller, sys_model_has_permission_controller, sys_model_has_role_controller, activity_log_controller};
+use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, district_controller, village_controller, role_controller, permission_controller, docs_controller, user_organization_controller, organization_position_level_controller, organization_position_controller, sys_model_has_permission_controller, sys_model_has_role_controller, activity_log_controller};
 use crate::app::http::controllers::web_push_controller::WebPushController;
 
 pub fn routes() -> Router<DbPool> {
@@ -41,6 +41,18 @@ pub fn routes() -> Router<DbPool> {
         .route("/api/cities/{id}", delete(city_controller::destroy))
         .route("/api/provinces/{province_id}/cities", get(city_controller::by_province))
         .route("/api/cities/nearby", get(city_controller::nearby))
+        // District routes
+        .route("/api/districts", get(district_controller::index))
+        .route("/api/districts", post(district_controller::store))
+        .route("/api/districts/{id}", get(district_controller::show))
+        .route("/api/districts/{id}", put(district_controller::update))
+        .route("/api/districts/{id}", delete(district_controller::destroy))
+        // Village routes
+        .route("/api/villages", get(village_controller::index))
+        .route("/api/villages", post(village_controller::store))
+        .route("/api/villages/{id}", get(village_controller::show))
+        .route("/api/villages/{id}", put(village_controller::update))
+        .route("/api/villages/{id}", delete(village_controller::destroy))
         // RBAC Role routes
         .route("/api/roles", get(role_controller::index))
         .route("/api/roles", post(role_controller::store))
@@ -122,6 +134,6 @@ pub fn routes() -> Router<DbPool> {
         .route("/api/docs/openapi.json", get(docs_controller::openapi_json))
         .route("/api/docs/openapi.yaml", get(docs_controller::openapi_yaml));
 
-    tracing::info!("API routes created successfully with {} route handlers", 68); // Approximate count
+    tracing::info!("API routes created successfully with {} route handlers", 78); // Approximate count
     router
 }
