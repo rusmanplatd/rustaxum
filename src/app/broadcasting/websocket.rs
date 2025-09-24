@@ -236,13 +236,19 @@ async fn handle_client_message(
     manager: &WebSocketManager,
     current_channel: &str,
 ) {
+    // Use the channel from the message if provided, otherwise use current channel
+    let target_channel = msg.channel.as_deref().unwrap_or(current_channel);
+
     match msg.action.as_str() {
         "ping" => {
             // Handle ping/pong for connection keep-alive
             let pong_msg = BroadcastMessage {
-                channel: current_channel.to_string(),
+                channel: target_channel.to_string(),
                 event: "pong".to_string(),
-                data: serde_json::json!({"timestamp": chrono::Utc::now()}),
+                data: serde_json::json!({
+                    "timestamp": chrono::Utc::now(),
+                    "echo_data": msg.data
+                }),
                 timestamp: chrono::Utc::now(),
             };
             let _ = manager.broadcast(pong_msg).await;
@@ -250,13 +256,14 @@ async fn handle_client_message(
         "get_stats" => {
             // Send channel statistics
             let stats = serde_json::json!({
-                "channel": current_channel,
-                "connections": manager.connection_count(current_channel).await,
-                "active_channels": manager.active_channels().await
+                "channel": target_channel,
+                "connections": manager.connection_count(target_channel).await,
+                "active_channels": manager.active_channels().await,
+                "request_data": msg.data
             });
 
             let stats_msg = BroadcastMessage {
-                channel: current_channel.to_string(),
+                channel: target_channel.to_string(),
                 event: "stats".to_string(),
                 data: stats,
                 timestamp: chrono::Utc::now(),
@@ -264,7 +271,7 @@ async fn handle_client_message(
             let _ = manager.broadcast(stats_msg).await;
         }
         _ => {
-            warn!("Unknown client action: {}", msg.action);
+            warn!("Unknown client action: {} with data: {:?}", msg.action, msg.data);
         }
     }
 }

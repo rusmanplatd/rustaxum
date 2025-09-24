@@ -455,4 +455,15 @@ impl MigrationRunner {
 
         Ok(statements)
     }
+
+    /// Get the count of applied migrations
+    pub fn count_applied_migrations(&self) -> Result<i64> {
+        self.ensure_migrations_table()?;
+
+        let mut conn = self.pool.get()?;
+        let result: CountResult = sql_query("SELECT COUNT(*) as count FROM migrations")
+            .get_result(&mut conn)?;
+
+        Ok(result.count)
+    }
 }

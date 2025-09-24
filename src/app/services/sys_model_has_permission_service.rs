@@ -119,7 +119,6 @@ impl SysModelHasPermissionService {
         permission_id: DieselUlid,
         scope_type: Option<String>,
         scope_id: Option<DieselUlid>,
-        assigned_by: Option<&str>,
     ) -> Result<SysModelHasPermission> {
         let data = CreateSysModelHasPermission {
             model_type: model_type.to_string(),
@@ -157,7 +156,6 @@ impl SysModelHasPermissionService {
         model_type: &str,
         model_id: DieselUlid,
         permission_id: DieselUlid,
-        removed_by: Option<&str>,
     ) -> Result<()> {
         let mut conn = pool.get()?;
 

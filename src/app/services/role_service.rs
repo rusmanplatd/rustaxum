@@ -169,7 +169,7 @@ impl RoleService {
     }
 
     /// Generic method to assign a role to any model that implements HasRoles
-    pub async fn assign_to_model<T: HasRoles>(pool: &DbPool, model: &T, role_id: String, assigned_by: Option<&str>) -> Result<()> {
+    pub async fn assign_to_model<T: HasRoles>(pool: &DbPool, model: &T, role_id: String) -> Result<()> {
         use crate::schema::sys_model_has_roles;
         let mut conn = pool.get()?;
         let model_role_id = Ulid::new();
@@ -196,8 +196,7 @@ impl RoleService {
             "model_type": T::model_type(),
             "model_id": model.model_id(),
             "role_id": role_id,
-            "action": "role_assigned",
-            "assigned_by": assigned_by
+            "action": "role_assigned"
         });
 
         if let Err(e) = service.log_system_event(
@@ -212,7 +211,7 @@ impl RoleService {
     }
 
     /// Generic method to remove a role from any model that implements HasRoles
-    pub async fn remove_from_model<T: HasRoles>(pool: &DbPool, model: &T, role_id: String, removed_by: Option<&str>) -> Result<()> {
+    pub async fn remove_from_model<T: HasRoles>(pool: &DbPool, model: &T, role_id: String) -> Result<()> {
         use crate::schema::sys_model_has_roles;
         let mut conn = pool.get()?;
 
@@ -231,7 +230,6 @@ impl RoleService {
             "model_id": model.model_id(),
             "role_id": role_id,
             "action": "role_removed",
-            "removed_by": removed_by
         });
 
         if let Err(e) = service.log_system_event(

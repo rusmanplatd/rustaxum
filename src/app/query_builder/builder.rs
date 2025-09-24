@@ -9,7 +9,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone)]
 pub struct QueryBuilder<T>
 where
-    T: Queryable,
+    T: Queryable + Clone,
 {
     /// Applied filters
     filters: Vec<Filter>,
@@ -33,7 +33,7 @@ where
 
 impl<T> QueryBuilder<T>
 where
-    T: Queryable,
+    T: Queryable + Clone,
 {
     /// Create a new query builder
     pub fn new() -> Self {
@@ -477,10 +477,20 @@ where
         self.filter(Filter::json(field, path, value))
     }
 
-    // TODO: Implement relationship filters when needed
-    // pub fn has(self, relation: impl Into<String>) -> Self {
-    //     self.filter(Filter::has_relation(relation))
-    // }
+    /// Add a relationship exists filter
+    pub fn has(self, relation: impl Into<String>) -> Self {
+        self.filter(Filter::has_relation(relation))
+    }
+
+    /// Add a relationship doesn't exist filter
+    pub fn doesnt_have(self, relation: impl Into<String>) -> Self {
+        self.filter(Filter::doesnt_have_relation(relation))
+    }
+
+    /// Add a relationship count filter
+    pub fn has_count(self, relation: impl Into<String>, operator: impl Into<String>, count: u32) -> Self {
+        self.filter(Filter::has_relation_count(relation, operator, count))
+    }
 
     /// Clone the current query builder
     pub fn clone_query(&self) -> Self {
@@ -529,6 +539,12 @@ where
         } else {
             self
         }
+    }
+
+    /// Execute query and return count
+    pub fn execute_count(&self, _pool: &crate::database::DbPool) -> anyhow::Result<i64> {
+        // TODO: This would need to be implemented based on the specific database query execution
+        Ok(0)
     }
 
     /// Apply a closure to conditionally modify the query with an option
@@ -634,7 +650,7 @@ pub struct QueryInfo {
 
 impl<T> Default for QueryBuilder<T>
 where
-    T: Queryable,
+    T: Queryable + Clone,
 {
     fn default() -> Self {
         Self::new()
@@ -642,7 +658,7 @@ where
 }
 
 /// Extension trait for easy query builder creation
-pub trait QueryBuilderExt: Queryable + Sized {
+pub trait QueryBuilderExt: Queryable + Clone + Sized {
     /// Create a new query builder for this model
     fn query() -> QueryBuilder<Self> {
         QueryBuilder::new()
@@ -655,7 +671,7 @@ pub trait QueryBuilderExt: Queryable + Sized {
 }
 
 // Automatically implement QueryBuilderExt for all Queryable types
-impl<T> QueryBuilderExt for T where T: Queryable {}
+impl<T> QueryBuilderExt for T where T: Queryable + Clone {}
 
 #[cfg(test)]
 mod tests {

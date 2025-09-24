@@ -15,7 +15,7 @@ impl QueryExecutor {
         conn: &mut DbConnection,
     ) -> Result<PaginationResult<serde_json::Value>>
     where
-        T: Queryable,
+        T: Queryable + Clone,
     {
         let pagination = builder.get_pagination().cloned().unwrap_or_default();
 
@@ -80,7 +80,7 @@ impl QueryExecutor {
         conn: &mut DbConnection,
     ) -> Result<Vec<serde_json::Value>>
     where
-        T: Queryable,
+        T: Queryable + Clone,
     {
         let mut query_parts = QueryParts::new(T::table_name());
 
@@ -126,7 +126,7 @@ impl QueryExecutor {
         conn: &mut DbConnection,
     ) -> Result<Option<serde_json::Value>>
     where
-        T: Queryable,
+        T: Queryable + Clone,
     {
         let limited_builder = builder.per_page(1);
         let results = Self::execute_all(limited_builder, conn)?;
@@ -139,7 +139,7 @@ impl QueryExecutor {
         conn: &mut DbConnection,
     ) -> Result<i64>
     where
-        T: Queryable,
+        T: Queryable + Clone,
     {
         let mut query_parts = QueryParts::new(T::table_name());
 

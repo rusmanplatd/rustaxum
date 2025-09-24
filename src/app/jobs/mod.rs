@@ -85,6 +85,9 @@ pub struct JobMetadata {
     pub scheduled_at: Option<DateTime<Utc>>,
     pub failed_at: Option<DateTime<Utc>>,
     pub error_message: Option<String>,
+    pub reserved_at: Option<DateTime<Utc>>,
+    pub processed_at: Option<DateTime<Utc>>,
+    pub timeout_seconds: Option<i32>,
 }
 
 impl JobMetadata {
@@ -104,16 +107,21 @@ impl JobMetadata {
             scheduled_at: None,
             failed_at: None,
             error_message: None,
+            reserved_at: None,
+            processed_at: None,
+            timeout_seconds: None,
         }
     }
 
     pub fn mark_processing(&mut self) {
         self.status = JobStatus::Processing;
+        self.reserved_at = Some(Utc::now());
         self.updated_at = Utc::now();
     }
 
     pub fn mark_completed(&mut self) {
         self.status = JobStatus::Completed;
+        self.processed_at = Some(Utc::now());
         self.updated_at = Utc::now();
     }
 
@@ -340,7 +348,18 @@ impl QueueWorker {
         if let Some(tx) = self.shutdown_tx.take() {
             let _ = tx.send(()).await;
         }
+        tracing::info!("Stopping worker for queue '{}'", self.queue_name);
         Ok(())
+    }
+
+    /// Get the name of the queue this worker is processing
+    pub fn queue_name(&self) -> &str {
+        &self.queue_name
+    }
+
+    /// Get the concurrency level of this worker
+    pub fn concurrency(&self) -> usize {
+        self.concurrency
     }
 }
 

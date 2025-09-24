@@ -17,26 +17,36 @@ pub type ValidationData = HashMap<String, Value>;
 pub trait Validatable: serde::Serialize {
     fn validation_rules() -> ValidationRules;
 
-    async fn validate(&self) -> Result<(), ValidationErrors> {
-        self.validate_with_db(None).await
+    fn validate(&self) -> impl std::future::Future<Output = Result<(), ValidationErrors>> + Send
+    where
+        Self: Sync,
+    {
+        async {
+            self.validate_with_db(None).await
+        }
     }
 
-    async fn validate_with_db(&self, db: Option<DbPool>)  -> Result<(), ValidationErrors> {
-        let data = serde_json::to_value(self)
-            .map_err(|_| {
-                let mut errors = ValidationErrors::new();
-                errors.add("_json", "serialization", "Failed to serialize data for validation");
-                errors.finalize();
-                errors
-            })?;
+    fn validate_with_db(&self, db: Option<DbPool>) -> impl std::future::Future<Output = Result<(), ValidationErrors>> + Send
+    where
+        Self: Sync,
+    {
+        async move {
+            let data = serde_json::to_value(self)
+                .map_err(|_| {
+                    let mut errors = ValidationErrors::new();
+                    errors.add("_json", "serialization", "Failed to serialize data for validation");
+                    errors.finalize();
+                    errors
+                })?;
 
-        let mut validator = make_validator(data, Self::validation_rules());
+            let mut validator = make_validator(data, Self::validation_rules());
 
-        if let Some(db) = db {
-            validator = validator.with_db(db);
+            if let Some(db) = db {
+                validator = validator.with_db(db);
+            }
+
+            validator.validate().await
         }
-
-        validator.validate().await
     }
 }
 

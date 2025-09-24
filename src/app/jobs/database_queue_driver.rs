@@ -65,6 +65,9 @@ impl DatabaseQueueDriver {
             scheduled_at: Some(row.available_at),
             failed_at: row.failed_at,
             error_message: row.error_message.clone(),
+            reserved_at: row.reserved_at,
+            processed_at: row.processed_at,
+            timeout_seconds: row.timeout_seconds,
         })
     }
 }

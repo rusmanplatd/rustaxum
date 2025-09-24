@@ -50,6 +50,8 @@ pub enum FilterOperator {
     JsonHasAllKeys,
     /// Full text search
     FullText,
+    /// Raw SQL condition
+    Raw,
 }
 
 impl FilterOperator {
@@ -78,6 +80,7 @@ impl FilterOperator {
             FilterOperator::JsonHasAnyKey => "?|",
             FilterOperator::JsonHasAllKeys => "?&",
             FilterOperator::FullText => "@@",
+            FilterOperator::Raw => "",
         }
     }
 
@@ -106,6 +109,7 @@ impl FilterOperator {
             "json_has_any_key" | "jsonhasanykey" => Some(FilterOperator::JsonHasAnyKey),
             "json_has_all_keys" | "jsonhasallkeys" => Some(FilterOperator::JsonHasAllKeys),
             "full_text" | "fulltext" => Some(FilterOperator::FullText),
+            "raw" => Some(FilterOperator::Raw),
             _ => None,
         }
     }
@@ -256,6 +260,93 @@ impl Filter {
     /// Create a BETWEEN filter
     pub fn between(field: impl Into<String>, start: impl Into<Value>, end: impl Into<Value>) -> Self {
         Self::new(field, FilterOperator::Between, FilterValue::range(start, end))
+    }
+
+    /// Create a JSON field filter (for JSONB columns)
+    pub fn json(field: impl Into<String>, path: impl Into<String>, value: impl Into<Value>) -> Self {
+        let json_field = format!("{}->'{}'", field.into(), path.into());
+        Self::new(json_field, FilterOperator::Eq, FilterValue::single(value.into()))
+    }
+
+    /// Create a relationship exists filter
+    pub fn has_relation(relation: impl Into<String>) -> Self {
+        Self::new(
+            format!("has_{}", relation.into()),
+            FilterOperator::Eq,
+            FilterValue::single(Value::Bool(true))
+        )
+    }
+
+    /// Create a relationship doesn't exist filter
+    pub fn doesnt_have_relation(relation: impl Into<String>) -> Self {
+        Self::new(
+            format!("doesnt_have_{}", relation.into()),
+            FilterOperator::Eq,
+            FilterValue::single(Value::Bool(true))
+        )
+    }
+
+    /// Create a relationship count filter
+    pub fn has_relation_count(relation: impl Into<String>, operator: impl Into<String>, count: u32) -> Self {
+        Self::new(
+            format!("has_{}_{}", relation.into(), operator.into()),
+            FilterOperator::Eq,
+            FilterValue::single(Value::Number(count.into()))
+        )
+    }
+
+    /// Create an OR equals filter
+    pub fn or_eq(field: impl Into<String>, value: impl Into<Value>) -> Self {
+        Self::new(
+            field,
+            FilterOperator::Eq,
+            FilterValue::single(value.into())
+        ).or()
+    }
+
+    /// Create a raw SQL filter (use with caution)
+    pub fn raw(sql: impl Into<String>, bindings: Vec<serde_json::Value>) -> Self {
+        Self::new(
+            format!("RAW({})", sql.into()),
+            FilterOperator::Raw,
+            FilterValue::multiple(bindings)
+        )
+    }
+
+    /// Create a date filter (matches specific date)
+    pub fn date(field: impl Into<String>, date: impl Into<String>) -> Self {
+        Self::new(
+            format!("date({})", field.into()),
+            FilterOperator::Eq,
+            FilterValue::single(Value::String(date.into()))
+        )
+    }
+
+    /// Create a year filter
+    pub fn year(field: impl Into<String>, year: i32) -> Self {
+        Self::new(
+            format!("year({})", field.into()),
+            FilterOperator::Eq,
+            FilterValue::single(Value::Number(year.into()))
+        )
+    }
+
+    /// Create a month filter
+    pub fn month(field: impl Into<String>, month: u32) -> Self {
+        Self::new(
+            format!("month({})", field.into()),
+            FilterOperator::Eq,
+            FilterValue::single(Value::Number(month.into()))
+        )
+    }
+
+    /// Create a day filter
+    pub fn day(field: impl Into<String>, day: u32) -> Self {
+        Self::new(
+            format!("day({})", field.into()),
+            FilterOperator::Eq,
+            FilterValue::single(Value::Number(day.into()))
+        )
     }
 
     /// Set this filter to use OR instead of AND

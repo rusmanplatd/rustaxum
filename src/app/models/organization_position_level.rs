@@ -227,7 +227,7 @@ impl crate::app::models::HasModelType for OrganizationPositionLevel {
 }
 
 impl crate::app::models::activity_log::HasId for OrganizationPositionLevel {
-    fn get_id(&self) -> String {
+    fn id(&self) -> String {
         self.id.to_string()
     }
 }

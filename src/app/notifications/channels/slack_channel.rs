@@ -133,54 +133,6 @@ impl SlackChannel {
             .attachment(attachment)
     }
 
-    fn create_rich_message(&self, notification_type: &str, data: &serde_json::Value) -> SlackMessage {
-        let title = data.get("title")
-            .and_then(|v| v.as_str())
-            .unwrap_or("Notification");
-
-        let message = data.get("message")
-            .and_then(|v| v.as_str())
-            .unwrap_or("You have a new notification");
-
-        // Create blocks for rich formatting
-        let blocks = vec![
-            serde_json::json!({
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": title
-                }
-            }),
-            serde_json::json!({
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": message
-                }
-            }),
-            serde_json::json!({
-                "type": "context",
-                "elements": [{
-                    "type": "mrkdwn",
-                    "text": format!("*Type:* {} | *Time:* {}",
-                        notification_type,
-                        chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
-                    )
-                }]
-            })
-        ];
-
-        let mut message = SlackMessage::new(title.to_string())
-            .channel(self.default_channel.clone())
-            .username("Notification Bot".to_string())
-            .icon_emoji(":bell:".to_string());
-
-        for block in blocks {
-            message = message.block(block);
-        }
-
-        message
-    }
 }
 
 impl Default for SlackChannel {
@@ -205,7 +157,7 @@ impl Channel for SlackChannel {
             Err(_) => {
                 // Fallback to creating from database message
                 let database_message = notification.to_database(notifiable)?;
-                self.create_rich_message(notification.notification_type(), &database_message.data)
+                self.create_notification_message(notification.notification_type(), &database_message.data)
             }
         };
 

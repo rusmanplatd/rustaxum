@@ -535,3 +535,9 @@ impl HasRoles for UserOrganization {
         self.id.to_string()
     }
 }
+
+impl crate::app::models::activity_log::HasId for UserOrganization {
+    fn id(&self) -> String {
+        self.id.to_string()
+    }
+}

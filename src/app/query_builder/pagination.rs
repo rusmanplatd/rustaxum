@@ -235,7 +235,7 @@ impl Pagination {
             None
         };
 
-        let prev_cursor = self.cursor.clone(); // Previous cursor from request
+        let prev_cursor = self.generate_prev_cursor(&actual_data);
 
         PaginationResult {
             data: actual_data,

@@ -118,7 +118,6 @@ impl SysModelHasRoleService {
         role_id: DieselUlid,
         scope_type: Option<String>,
         scope_id: Option<DieselUlid>,
-        assigned_by: Option<&str>,
     ) -> Result<SysModelHasRole> {
         let data = CreateSysModelHasRole {
             model_type: model_type.to_string(),
@@ -156,7 +155,6 @@ impl SysModelHasRoleService {
         model_type: &str,
         model_id: String,
         role_id: String,
-        removed_by: Option<&str>,
     ) -> Result<()> {
         let mut conn = pool.get()?;
 

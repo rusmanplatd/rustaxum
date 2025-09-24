@@ -282,7 +282,7 @@ pub async fn assign_to_user(
         }
     };
 
-    match SysModelHasRoleService::assign_role_to_model(&pool, User::model_type(), diesel_user_id, diesel_role_id, None, None, None).await {
+    match SysModelHasRoleService::assign_role_to_model(&pool, User::model_type(), diesel_user_id, diesel_role_id, None, None).await {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Role assigned to user successfully"
@@ -319,7 +319,7 @@ pub async fn remove_from_user(
         }
     };
 
-    match SysModelHasRoleService::remove_role_from_model(&pool, User::model_type(), user_id.to_string(), role_id.to_string(), None).await {
+    match SysModelHasRoleService::remove_role_from_model(&pool, User::model_type(), user_id.to_string(), role_id.to_string()).await {
         Ok(_) => {
             (StatusCode::OK, Json(json!({
                 "message": "Role removed from user successfully"

@@ -111,7 +111,7 @@ impl CacheService {
         };
 
         // Log cache remember operation
-        if let Ok(user) = &result {
+        if let Ok(_user) = &result {
             let properties = json!({
                 "cache_key": key,
                 "operation": "remember",

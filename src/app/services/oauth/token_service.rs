@@ -59,6 +59,11 @@ impl TokenService {
             Some(data.scopes.join(","))
         };
 
+        let user_id_for_log = data.user_id.as_deref().unwrap_or("system").to_string();
+        let client_id_for_log = data.client_id.clone();
+        let token_name_for_log = data.name.clone();
+        let scopes_for_log = data.scopes.clone();
+
         let new_token = NewAccessToken::new(
             data.user_id,
             data.client_id,
@@ -73,17 +78,17 @@ impl TokenService {
         let service = TokenService;
         let properties = json!({
             "token_id": created_token.id.to_string(),
-            "user_id": data.user_id.as_deref().unwrap_or("system"),
-            "client_id": data.client_id.to_string(),
-            "token_name": data.name,
-            "scopes": data.scopes,
+            "user_id": user_id_for_log,
+            "client_id": client_id_for_log,
+            "token_name": token_name_for_log,
+            "scopes": scopes_for_log,
             "expires_at": expires_at,
             "granted_by": granted_by
         });
 
         if let Err(e) = service.log_system_event(
             "oauth_access_token_created",
-            &format!("OAuth access token '{}' created for user {}", data.name.as_deref().unwrap_or("unnamed"), data.user_id.as_deref().unwrap_or("system")),
+            &format!("OAuth access token '{}' created for user {}", token_name_for_log.as_deref().unwrap_or("unnamed"), user_id_for_log),
             Some(properties)
         ).await {
             eprintln!("Failed to log OAuth access token creation activity: {}", e);

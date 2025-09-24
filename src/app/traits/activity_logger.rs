@@ -22,12 +22,12 @@ pub trait ServiceActivityLogger {
     }
 
     /// Log a create operation using the middleware ActivityLogger
-    async fn log_created<T: HasModelType + HasId>(
+    fn log_created<T: HasModelType + HasId>(
         &self,
         entity: &T,
         causer_id: Option<&str>,
         properties: Option<serde_json::Value>,
-    ) -> Result<()> {
+    ) -> impl std::future::Future<Output = Result<()>> + Send {
         let mut logger = self.get_activity_logger();
 
         if let Some(id) = causer_id {
@@ -38,17 +38,22 @@ pub trait ServiceActivityLogger {
         props["model_type"] = json!(T::model_type());
         props["action"] = json!("create");
 
-        logger.log_create(T::model_type(), &entity.id(), Some(props)).await
-            .map_err(anyhow::Error::from)
+        let entity_id = entity.id();
+        let model_type = T::model_type();
+
+        async move {
+            logger.log_create(model_type, &entity_id, Some(props)).await
+                .map_err(anyhow::Error::from)
+        }
     }
 
     /// Log an update operation
-    async fn log_updated<T: HasModelType + HasId>(
+    fn log_updated<T: HasModelType + HasId>(
         &self,
         entity: &T,
         changes: serde_json::Value,
         causer_id: Option<&str>,
-    ) -> Result<()> {
+    ) -> impl std::future::Future<Output = Result<()>> + Send {
         let mut logger = self.get_activity_logger();
 
         if let Some(id) = causer_id {
@@ -61,16 +66,21 @@ pub trait ServiceActivityLogger {
             "changes": changes
         });
 
-        logger.log_update(T::model_type(), &entity.id(), Some(props)).await
-            .map_err(anyhow::Error::from)
+        let entity_id = entity.id();
+        let model_type = T::model_type();
+
+        async move {
+            logger.log_update(model_type, &entity_id, Some(props)).await
+                .map_err(anyhow::Error::from)
+        }
     }
 
     /// Log a delete operation
-    async fn log_deleted<T: HasModelType + HasId>(
+    fn log_deleted<T: HasModelType + HasId>(
         &self,
         entity: &T,
         causer_id: Option<&str>,
-    ) -> Result<()> {
+    ) -> impl std::future::Future<Output = Result<()>> + Send {
         let mut logger = self.get_activity_logger();
 
         if let Some(id) = causer_id {
@@ -82,16 +92,21 @@ pub trait ServiceActivityLogger {
             "action": "delete"
         });
 
-        logger.log_delete(T::model_type(), &entity.id(), Some(props)).await
-            .map_err(anyhow::Error::from)
+        let entity_id = entity.id();
+        let model_type = T::model_type();
+
+        async move {
+            logger.log_delete(model_type, &entity_id, Some(props)).await
+                .map_err(anyhow::Error::from)
+        }
     }
 
     /// Log a view operation
-    async fn log_viewed<T: HasModelType + HasId>(
+    fn log_viewed<T: HasModelType + HasId>(
         &self,
         entity: &T,
         causer_id: Option<&str>,
-    ) -> Result<()> {
+    ) -> impl std::future::Future<Output = Result<()>> + Send {
         let mut logger = self.get_activity_logger();
 
         if let Some(id) = causer_id {
@@ -103,54 +118,64 @@ pub trait ServiceActivityLogger {
             "action": "view"
         });
 
-        logger.log_view(T::model_type(), &entity.id(), Some(props)).await
-            .map_err(anyhow::Error::from)
+        let entity_id = entity.id();
+        let model_type = T::model_type();
+
+        async move {
+            logger.log_view(model_type, &entity_id, Some(props)).await
+                .map_err(anyhow::Error::from)
+        }
     }
 
     /// Log authentication events using the middleware ActivityLogger
-    async fn log_authentication(
+    fn log_authentication(
         &self,
         event: &str,
         user_id: Option<&str>,
         success: bool,
         properties: Option<serde_json::Value>,
-    ) -> Result<()> {
+    ) -> impl std::future::Future<Output = Result<()>> + Send {
         let logger = MiddlewareActivityLogger::new("authentication");
+        let event = event.to_string();
+        let user_id = user_id.map(|s| s.to_string());
 
-        match (event, success) {
-            ("login", true) => {
-                if let Some(id) = user_id {
-                    logger.log_login(id, properties).await
+        async move {
+            match (event.as_str(), success) {
+                ("login", true) => {
+                    if let Some(id) = user_id {
+                        logger.log_login(&id, properties).await
+                            .map_err(anyhow::Error::from)
+                    } else {
+                        Ok(())
+                    }
+                },
+                ("logout", _) => {
+                    if let Some(id) = user_id {
+                        logger.log_logout(&id, properties).await
+                            .map_err(anyhow::Error::from)
+                    } else {
+                        Ok(())
+                    }
+                },
+                ("login", false) => {
+                    if let Some(email) = user_id {
+                        let reason = properties
+                            .as_ref()
+                            .and_then(|p| p.get("reason"))
+                            .and_then(|r| r.as_str())
+                            .unwrap_or("Unknown reason");
+                        logger.log_failed_login(&email, reason, properties.clone()).await
+                            .map_err(anyhow::Error::from)
+                    } else {
+                        Ok(())
+                    }
+                },
+                _ => {
+                    let description = format!("Authentication event: {} (success: {})", event, success);
+                    let event_type = format!("auth.{}", event);
+                    logger.log_custom(&description, Some(&event_type), properties).await
                         .map_err(anyhow::Error::from)
-                } else {
-                    Ok(())
                 }
-            },
-            ("logout", _) => {
-                if let Some(id) = user_id {
-                    logger.log_logout(id, properties).await
-                        .map_err(anyhow::Error::from)
-                } else {
-                    Ok(())
-                }
-            },
-            ("login", false) => {
-                if let Some(email) = user_id {
-                    let reason = properties
-                        .as_ref()
-                        .and_then(|p| p.get("reason"))
-                        .and_then(|r| r.as_str())
-                        .unwrap_or("Unknown reason");
-                    logger.log_failed_login(email, reason, properties.clone()).await
-                        .map_err(anyhow::Error::from)
-                } else {
-                    Ok(())
-                }
-            },
-            _ => {
-                let description = format!("Authentication event: {} (success: {})", event, success);
-                logger.log_custom(&description, Some(&format!("auth.{}", event)), properties).await
-                    .map_err(anyhow::Error::from)
             }
         }
     }

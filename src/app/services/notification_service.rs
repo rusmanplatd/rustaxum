@@ -44,7 +44,7 @@ impl NotificationService {
 
         // Send the notification via the appropriate channels
         self.channel_manager
-            .send(notification, notifiable, filtered_channels)
+            .send(notification, notifiable, filtered_channels.clone())
             .await?;
 
         tracing::info!(

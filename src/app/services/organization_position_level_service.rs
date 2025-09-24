@@ -7,6 +7,7 @@ use crate::schema::organization_position_levels;
 use crate::app::traits::ServiceActivityLogger;
 
 use crate::app::models::organization_position_level::{OrganizationPositionLevel, CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel, NewOrganizationPositionLevel};
+use crate::app::models::DieselUlid;
 
 pub struct OrganizationPositionLevelService;
 
@@ -52,7 +53,7 @@ impl OrganizationPositionLevelService {
         // Log activity if found
         if let Some(level) = &result {
             let service = Self;
-            let properties = json!({
+            let _properties = json!({
                 "level_id": id,
                 "level_name": level.name,
                 "level_number": level.level
@@ -80,7 +81,7 @@ impl OrganizationPositionLevelService {
         Ok(result)
     }
 
-    pub async fn list(pool: &DbPool, _query_params: HashMap<String, String>, user_id: Option<&str>) -> Result<Vec<OrganizationPositionLevel>> {
+    pub async fn list(pool: &DbPool, _query_params: HashMap<String, String>, _user_id: Option<&str>) -> Result<Vec<OrganizationPositionLevel>> {
         let mut conn = pool.get()?;
 
         let result = organization_position_levels::table
@@ -166,14 +167,13 @@ impl OrganizationPositionLevelService {
             "changes": changes
         });
 
-        // TODO: Implement activity logging traits for OrganizationPositionLevel
-        // if let Err(e) = service.log_updated(
-        //     &result,
-        //     updated_by,
-        //     Some(properties)
-        // ).await {
-        //     eprintln!("Failed to log organization position level update activity: {}", e);
-        // }
+        if let Err(e) = service.log_updated(
+            &result,
+            properties,
+            updated_by
+        ).await {
+            eprintln!("Failed to log organization position level update activity: {}", e);
+        }
 
         Ok(result)
     }
@@ -194,21 +194,19 @@ impl OrganizationPositionLevelService {
 
         // Log activity
         let service = Self;
-        let properties = json!({
+        let _properties = json!({
             "level_id": id,
             "level_name": level.name,
             "level_code": level.code,
             "level_number": level.level
         });
 
-        // TODO: Implement activity logging traits for OrganizationPositionLevel
-        // if let Err(e) = service.log_deleted(
-        //     &level,
-        //     deleted_by,
-        //     Some(properties)
-        // ).await {
-        //     eprintln!("Failed to log organization position level deletion activity: {}", e);
-        // }
+        if let Err(e) = service.log_deleted(
+            &level,
+            deleted_by
+        ).await {
+            eprintln!("Failed to log organization position level deletion activity: {}", e);
+        }
 
         Ok(())
     }

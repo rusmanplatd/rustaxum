@@ -7,7 +7,7 @@ use axum::extract::Query;
 /// This provides a high-level interface for controllers to use
 pub trait QueryBuilderService<T>
 where
-    T: Queryable,
+    T: Queryable + Clone,
 {
     /// Get paginated results using query parameters
     fn index(
@@ -109,7 +109,7 @@ impl QueryService {
         pool: &DbPool,
     ) -> Result<PaginationResult<serde_json::Value>>
     where
-        T: Queryable,
+        T: Queryable + Clone,
     {
         let mut conn = pool.get()?;
         let builder = T::from_params(query_params.0)?;
@@ -119,7 +119,7 @@ impl QueryService {
     /// Build a query for a specific model type
     pub fn for_model<T>() -> QueryBuilder<T>
     where
-        T: Queryable,
+        T: Queryable + Clone,
     {
         T::query()
     }
@@ -130,7 +130,7 @@ impl QueryService {
         pool: &DbPool,
     ) -> Result<PaginationResult<serde_json::Value>>
     where
-        T: Queryable,
+        T: Queryable + Clone,
     {
         let mut conn = pool.get()?;
         QueryExecutor::execute_paginated(builder, &mut conn)
@@ -143,7 +143,7 @@ mod tests {
     use crate::app::query_builder::{SortDirection, Pagination};
 
     // Mock model for testing
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     struct TestModel;
 
     impl Queryable for TestModel {
@@ -179,7 +179,7 @@ mod tests {
 
     #[test]
     fn test_query_builder_service_query() {
-        let builder = TestModel::query();
+        let builder = <TestModel as QueryBuilderExt>::query();
         assert_eq!(builder.get_filters().len(), 0);
         assert_eq!(builder.get_sorts().len(), 0);
     }

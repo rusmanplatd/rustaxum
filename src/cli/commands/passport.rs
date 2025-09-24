@@ -66,7 +66,7 @@ async fn handle_install(pool: &DbPool) -> Result<()> {
                 password_client: false,
             };
 
-            let client = ClientService::create_client(pool, create_client)?;
+            let client = ClientService::create_client(pool, create_client, None).await?;
             println!("✅ Created personal access client: {}", client.id);
         }
     }
@@ -108,7 +108,7 @@ async fn handle_create_client(pool: &DbPool, name: String, redirect_uris: String
         password_client: password,
     };
 
-    let client = ClientService::create_client(pool, create_client)?;
+    let client = ClientService::create_client(pool, create_client, None).await?;
 
     println!("✅ Client created successfully!");
     println!("   Client ID: {}", client.id);

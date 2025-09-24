@@ -37,7 +37,7 @@ impl UserOrganizationService {
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
             deleted_at: None,
-            created_by: created_by.map(|s| s.to_string()),
+            created_by: created_by.map(|s| crate::app::models::DieselUlid::from_string(s).unwrap()),
             updated_by: None,
             deleted_by: None,
         };
@@ -51,7 +51,7 @@ impl UserOrganizationService {
         let properties = json!({
             "user_id": result.user_id.to_string(),
             "organization_id": result.organization_id.to_string(),
-            "organization_position_id": result.organization_position_id.map(|id| id.to_string()),
+            "organization_position_id": result.organization_position_id.to_string(),
             "started_at": result.started_at,
             "action": "user_organization_created"
         });

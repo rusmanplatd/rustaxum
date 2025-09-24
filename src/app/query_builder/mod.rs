@@ -6,7 +6,6 @@ pub mod pagination;
 pub mod traits;
 pub mod executor;
 pub mod service;
-pub mod examples;
 
 // Re-exports for convenient access
 pub use builder::{QueryBuilder, QueryBuilderExt};

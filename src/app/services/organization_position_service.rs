@@ -6,6 +6,7 @@ use diesel::prelude::*;
 use crate::schema::organization_positions;
 
 use crate::app::models::organization_position::{OrganizationPosition, NewOrganizationPosition, CreateOrganizationPosition};
+use crate::app::models::DieselUlid;
 use crate::app::http::requests::organization_position_requests::{
     CreateOrganizationPositionRequest, UpdateOrganizationPositionRequest, IndexOrganizationPositionRequest, OrganizationPositionsByLevelRequest
 };
@@ -103,7 +104,7 @@ impl OrganizationPositionService {
 
         // Log activity
         let service = Self;
-        let properties = json!({
+        let _properties = json!({
             "organization_position_id": id,
             "organization_position_name": organization_position.name,
             "organization_id": organization_position.organization_id.to_string()
@@ -111,8 +112,7 @@ impl OrganizationPositionService {
 
         if let Err(e) = service.log_viewed(
             &organization_position,
-            user_id,
-            Some(properties)
+            user_id
         ).await {
             eprintln!("Failed to log organization position view activity: {}", e);
         }
@@ -137,7 +137,7 @@ impl OrganizationPositionService {
             responsibilities: request.responsibilities.clone(),
         };
 
-        let new_position = NewOrganizationPosition::new(create_data, created_by.map(|s| s.to_string()));
+        let new_position = NewOrganizationPosition::new(create_data, created_by.and_then(|s| DieselUlid::from_string(s).ok()));
 
         let result = diesel::insert_into(organization_positions::table)
             .values(&new_position)
@@ -247,8 +247,8 @@ impl OrganizationPositionService {
 
         if let Err(e) = service.log_updated(
             &result,
-            updated_by,
-            Some(properties)
+            properties,
+            updated_by
         ).await {
             eprintln!("Failed to log organization position update activity: {}", e);
         }
@@ -271,7 +271,7 @@ impl OrganizationPositionService {
 
         // Log activity
         let service = Self;
-        let properties = json!({
+        let _properties = json!({
             "organization_position_id": id,
             "organization_position_name": position.name,
             "organization_position_code": position.code,
@@ -280,8 +280,7 @@ impl OrganizationPositionService {
 
         if let Err(e) = service.log_deleted(
             &position,
-            deleted_by,
-            Some(properties)
+            deleted_by
         ).await {
             eprintln!("Failed to log organization position deletion activity: {}", e);
         }
@@ -312,8 +311,8 @@ impl OrganizationPositionService {
 
         if let Err(e) = service.log_updated(
             &organization_position,
-            activated_by,
-            Some(properties)
+            properties,
+            activated_by
         ).await {
             eprintln!("Failed to log organization position activation activity: {}", e);
         }
@@ -344,8 +343,8 @@ impl OrganizationPositionService {
 
         if let Err(e) = service.log_updated(
             &organization_position,
-            deactivated_by,
-            Some(properties)
+            properties,
+            deactivated_by
         ).await {
             eprintln!("Failed to log organization position deactivation activity: {}", e);
         }
@@ -353,7 +352,7 @@ impl OrganizationPositionService {
         Ok(organization_position)
     }
 
-    pub async fn by_level(pool: &DbPool, request: &OrganizationPositionsByLevelRequest, user_id: Option<&str>) -> Result<Value> {
+    pub async fn by_level(pool: &DbPool, request: &OrganizationPositionsByLevelRequest, _user_id: Option<&str>) -> Result<Value> {
         let mut conn = pool.get()?;
         let include_inactive = request.include_inactive.unwrap_or(false);
 
@@ -369,6 +368,7 @@ impl OrganizationPositionService {
             .order(organization_positions::created_at.desc())
             .load::<OrganizationPosition>(&mut conn)?;
 
+        let position_count = organization_positions.len();
         let result = json!({
             "data": organization_positions.into_iter().map(|jp| jp.to_response()).collect::<Vec<_>>(),
         });
@@ -378,12 +378,12 @@ impl OrganizationPositionService {
         let properties = json!({
             "organization_position_level_id": request.organization_position_level_id,
             "include_inactive": include_inactive,
-            "position_count": organization_positions.len()
+            "position_count": position_count
         });
 
         if let Err(e) = service.log_system_event(
             "organization_positions_by_level_retrieved",
-            &format!("Retrieved {} organization positions for level {}", organization_positions.len(), request.organization_position_level_id),
+            &format!("Retrieved {} organization positions for level {}", position_count, request.organization_position_level_id),
             Some(properties)
         ).await {
             eprintln!("Failed to log organization positions by level activity: {}", e);
