@@ -22,6 +22,27 @@ struct MessageResponse {
     message: String,
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/provinces",
+    tag = "Provinces",
+    summary = "List all provinces",
+    description = "Get all provinces with optional filtering, sorting, and pagination",
+    params(
+        ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
+        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, code, country_id, created_at, updated_at (prefix with '-' for descending)"),
+        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: country, cities"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, code, country_id (e.g., filter[name]=Ontario, filter[code]=ON)"),
+        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, code, country_id, created_at, updated_at"),
+        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
+    ),
+    responses(
+        (status = 200, description = "List of provinces", body = Vec<crate::app::models::province::ProvinceResponse>),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
+    )
+)]
 pub async fn index(
     State(pool): State<DbPool>,
     Query(params): Query<QueryParams>,
@@ -124,6 +145,28 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/countries/{country_id}/provinces",
+    tag = "Provinces",
+    summary = "List provinces by country",
+    description = "Get all provinces for a specific country with optional filtering, sorting, and pagination",
+    params(
+        ("country_id" = String, Path, description = "Country unique identifier (ULID format)"),
+        ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
+        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, code, created_at, updated_at (prefix with '-' for descending)"),
+        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: cities"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, code (e.g., filter[name]=Ontario, filter[code]=ON)"),
+        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, code, created_at, updated_at"),
+        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
+    ),
+    responses(
+        (status = 200, description = "List of provinces for the country", body = Vec<crate::app::models::province::ProvinceResponse>),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
+    )
+)]
 pub async fn by_country(
     State(pool): State<DbPool>,
     Path(country_id): Path<String>,

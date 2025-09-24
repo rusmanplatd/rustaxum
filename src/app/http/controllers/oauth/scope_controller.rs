@@ -9,8 +9,9 @@ use utoipa::ToSchema;
 
 use crate::app::services::oauth::ScopeService;
 use crate::app::services::auth_service::AuthService;
-use crate::app::models::oauth::{CreateScope, UpdateScope};
+use crate::app::models::oauth::{CreateScope, UpdateScope, Scope};
 use crate::app::utils::token_utils::TokenUtils;
+use crate::app::query_builder::{QueryParams, QueryBuilderService};
 
 #[derive(Serialize, ToSchema)]
 #[schema(description = "Error response for OAuth scope operations")]
@@ -102,10 +103,15 @@ pub async fn create_scope(
     path = "/oauth/scopes",
     tags = ["OAuth Scopes"],
     summary = "List OAuth2 scopes",
-    description = "Retrieve a list of OAuth2 scopes with optional filtering by default status and search term.",
+    description = "Retrieve a list of OAuth2 scopes with optional filtering, sorting, and pagination.",
     params(
-        ("default_only" = Option<bool>, Query, description = "Filter to only default scopes"),
-        ("search" = Option<String>, Query, description = "Search term to filter scopes by name or description")
+        ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
+        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, created_at, updated_at (prefix with '-' for descending)"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, is_default (e.g., filter[name]=user:read, filter[is_default]=true)"),
+        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, description, is_default, created_at, updated_at"),
+        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
     ),
     responses(
         (status = 200, description = "List of scopes", body = Vec<crate::app::models::oauth::ScopeResponse>),
@@ -119,7 +125,7 @@ pub async fn create_scope(
 pub async fn list_scopes(
     State(pool): State<DbPool>,
     headers: HeaderMap,
-    Query(params): Query<ListScopesQuery>,
+    Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
     // Verify authenticated access
     if let Err(e) = get_authenticated_user(&pool, &headers).await {
@@ -129,40 +135,17 @@ pub async fn list_scopes(
         return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
     }
 
-    let scopes = if params.default_only.unwrap_or(false) {
-        match ScopeService::list_default_scopes(&pool) {
-            Ok(scopes) => scopes.into_iter().map(|s| s.to_response()).collect(),
-            Err(e) => {
-                let error = ErrorResponse {
-                    error: e.to_string(),
-                };
-                return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
-            }
+    match <Scope as QueryBuilderService<Scope>>::index(Query(params), &pool) {
+        Ok(result) => {
+            (StatusCode::OK, ResponseJson(serde_json::json!(result))).into_response()
+        },
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response()
         }
-    } else {
-        match ScopeService::list_scopes(&pool) {
-            Ok(scopes) => {
-                if let Some(search_term) = params.search {
-                    scopes.into_iter()
-                        .filter(|s| {
-                            s.name.to_lowercase().contains(&search_term.to_lowercase()) ||
-                            s.description.as_ref().map(|d| d.to_lowercase().contains(&search_term.to_lowercase())).unwrap_or(false)
-                        })
-                        .collect()
-                } else {
-                    scopes
-                }
-            },
-            Err(e) => {
-                let error = ErrorResponse {
-                    error: e.to_string(),
-                };
-                return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
-            }
-        }
-    };
-
-    (StatusCode::OK, ResponseJson(scopes)).into_response()
+    }
 }
 
 /// Get a specific OAuth2 scope

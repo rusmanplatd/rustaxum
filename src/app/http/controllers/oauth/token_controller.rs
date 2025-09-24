@@ -11,6 +11,8 @@ use chrono::{Utc};
 use crate::app::services::oauth::TokenService;
 use crate::app::services::auth_service::AuthService;
 use crate::app::utils::token_utils::TokenUtils;
+use crate::app::query_builder::{QueryParams, QueryBuilderService};
+use crate::app::models::oauth::{AccessToken};
 
 #[derive(Serialize, ToSchema)]
 struct ErrorResponse {
@@ -85,9 +87,15 @@ pub struct ExtendTokenRequest {
     path = "/oauth/tokens",
     tags = ["OAuth Tokens"],
     summary = "List OAuth tokens",
-    description = "Get list of OAuth tokens (admin only)",
+    description = "Get list of OAuth tokens with filtering options (admin only)",
     params(
-        ListTokensQuery
+        ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
+        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, expires_at, created_at, updated_at (prefix with '-' for descending)"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: user_id, client_id, name, revoked (e.g., filter[user_id]=01ABC123, filter[revoked]=false)"),
+        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, user_id, client_id, name, scopes, revoked, expires_at, created_at, updated_at"),
+        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
     ),
     responses(
         (status = 200, description = "List of tokens", body = Vec<crate::app::docs::oauth::AccessTokenResponse>),
@@ -99,7 +107,7 @@ pub struct ExtendTokenRequest {
 pub async fn list_tokens(
     State(pool): State<DbPool>,
     headers: HeaderMap,
-    Query(params): Query<ListTokensQuery>,
+    Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
     // Verify admin access for listing all tokens
     if let Err(e) = verify_admin_access(&pool, &headers).await {
@@ -110,54 +118,17 @@ pub async fn list_tokens(
         return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
     }
 
-    // For now, if user_id is specified, use the existing method
-    if let Some(user_id) = params.user_id {
-        match TokenService::list_user_tokens(&pool, user_id).await {
-            Ok(tokens) => {
-                let mut filtered_tokens = tokens;
-
-                // Apply filters
-                if let Some(client_id) = params.client_id {
-                    filtered_tokens.retain(|t| t.client_id == client_id);
-                }
-
-                if let Some(scope) = params.scope {
-                    filtered_tokens.retain(|t| t.has_scope(&scope));
-                }
-
-                if params.active_only.unwrap_or(false) {
-                    filtered_tokens.retain(|t| t.is_valid());
-                }
-
-                // Apply pagination
-                let offset = params.offset.unwrap_or(0) as usize;
-                let limit = params.limit.unwrap_or(50) as usize;
-
-                if offset < filtered_tokens.len() {
-                    let end = std::cmp::min(offset + limit, filtered_tokens.len());
-                    filtered_tokens = filtered_tokens[offset..end].to_vec();
-                } else {
-                    filtered_tokens.clear();
-                }
-
-                let responses: Vec<_> = filtered_tokens.into_iter().map(|t| t.to_response()).collect();
-                (StatusCode::OK, ResponseJson(responses)).into_response()
-            },
-            Err(e) => {
-                let error = ErrorResponse {
-                    error: "server_error".to_string(),
-                    error_description: Some(e.to_string()),
-                };
-                (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response()
-            }
+    match <AccessToken as QueryBuilderService<AccessToken>>::index(Query(params), &pool) {
+        Ok(result) => {
+            (StatusCode::OK, ResponseJson(serde_json::json!(result))).into_response()
+        },
+        Err(e) => {
+            let error = ErrorResponse {
+                error: "server_error".to_string(),
+                error_description: Some(e.to_string()),
+            };
+            (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response()
         }
-    } else {
-        // Would need to implement a general list_all_tokens method
-        let error = ErrorResponse {
-            error: "not_implemented".to_string(),
-            error_description: Some("Listing all tokens requires user_id parameter".to_string()),
-        };
-        (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response()
     }
 }
 
@@ -479,9 +450,15 @@ pub async fn extend_token(
     path = "/oauth/my-tokens",
     tags = ["OAuth Tokens"],
     summary = "Get my tokens",
-    description = "Get OAuth tokens for the authenticated user",
+    description = "Get OAuth tokens for the authenticated user with optional filtering",
     params(
-        ListTokensQuery
+        ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
+        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, expires_at, created_at, updated_at (prefix with '-' for descending)"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: client_id, name, revoked (e.g., filter[client_id]=01ABC123, filter[revoked]=false)"),
+        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, client_id, name, scopes, revoked, expires_at, created_at, updated_at"),
+        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
     ),
     responses(
         (status = 200, description = "List of user's tokens", body = Vec<crate::app::docs::oauth::AccessTokenResponse>),
@@ -493,7 +470,7 @@ pub async fn extend_token(
 pub async fn get_my_tokens(
     State(pool): State<DbPool>,
     headers: HeaderMap,
-    Query(params): Query<ListTokensQuery>,
+    Query(mut params): Query<QueryParams>,
 ) -> impl IntoResponse {
     let user_id = match get_authenticated_user(&pool, &headers).await {
         Ok(user_id) => user_id,
@@ -506,36 +483,12 @@ pub async fn get_my_tokens(
         }
     };
 
-    match TokenService::list_user_tokens(&pool, user_id).await {
-        Ok(tokens) => {
-            let mut filtered_tokens = tokens;
+    // Add user_id filter to ensure users only see their own tokens
+    params.filter.insert("user_id".to_string(), serde_json::json!(user_id));
 
-            // Apply filters
-            if let Some(client_id) = params.client_id {
-                filtered_tokens.retain(|t| t.client_id == client_id);
-            }
-
-            if let Some(scope) = params.scope {
-                filtered_tokens.retain(|t| t.has_scope(&scope));
-            }
-
-            if params.active_only.unwrap_or(false) {
-                filtered_tokens.retain(|t| t.is_valid());
-            }
-
-            // Apply pagination
-            let offset = params.offset.unwrap_or(0) as usize;
-            let limit = params.limit.unwrap_or(50) as usize;
-
-            if offset < filtered_tokens.len() {
-                let end = std::cmp::min(offset + limit, filtered_tokens.len());
-                filtered_tokens = filtered_tokens[offset..end].to_vec();
-            } else {
-                filtered_tokens.clear();
-            }
-
-            let responses: Vec<_> = filtered_tokens.into_iter().map(|t| t.to_response()).collect();
-            (StatusCode::OK, ResponseJson(responses)).into_response()
+    match <AccessToken as QueryBuilderService<AccessToken>>::index(Query(params), &pool) {
+        Ok(result) => {
+            (StatusCode::OK, ResponseJson(serde_json::json!(result))).into_response()
         },
         Err(e) => {
             let error = ErrorResponse {

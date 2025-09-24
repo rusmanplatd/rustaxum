@@ -1,14 +1,16 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, State, Query},
     http::StatusCode,
     response::Json,
 };
 use serde_json::{json, Value};
 
 use crate::app::http::requests::organization_position_requests::{
-    CreateOrganizationPositionRequest, UpdateOrganizationPositionRequest, IndexOrganizationPositionRequest, OrganizationPositionsByLevelRequest
+    CreateOrganizationPositionRequest, UpdateOrganizationPositionRequest
 };
 use crate::app::services::organization_position_service::OrganizationPositionService;
+use crate::app::query_builder::{QueryParams, QueryBuilderService};
+use crate::app::models::organization_position::OrganizationPosition;
 use crate::database::DbPool;
 
 /// List organization positions with filtering, sorting and pagination
@@ -31,23 +33,24 @@ use crate::database::DbPool;
         (status = 200, description = "Organization positions retrieved successfully"),
         (status = 422, description = "Validation error"),
         (status = 500, description = "Internal server error")
+    ),
+    params(
+        ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
+        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, level_id, organization_id, status, created_at, updated_at (prefix with '-' for descending)"),
+        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: level, organization"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, level_id, organization_id, status (e.g., filter[name]=Manager, filter[status]=active)"),
+        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, level_id, organization_id, status, created_at, updated_at"),
+        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
     )
 )]
 pub async fn index(
     State(pool): State<DbPool>,
-    request: IndexOrganizationPositionRequest,
+    Query(params): Query<QueryParams>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    // Authorization check - uncomment when auth middleware is ready
-    // let user = auth::get_user(&state, &headers)?;
-    // if !OrganizationPositionPolicy::view_any(&user)? {
-    //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
-    // }
-
-    // TODO: Extract user_id from auth context when available
-    let user_id = None; // Replace with actual user extraction
-
-    match OrganizationPositionService::index(&pool, &request, user_id).await {
-        Ok(response) => Ok(Json(json!(response))),
+    match <OrganizationPosition as QueryBuilderService<OrganizationPosition>>::index(Query(params), &pool) {
+        Ok(result) => Ok(Json(serde_json::json!(result))),
         Err(e) => {
             tracing::error!("Failed to fetch organization positions: {}", e);
             Err((
@@ -403,8 +406,15 @@ pub async fn deactivate(
     summary = "Get positions by organization position level",
     description = "Retrieve all organization positions for a specific organization position level with optional inclusion of inactive positions",
     params(
-        ("organization_position_level_id" = String, Path, description = "Job level ULID"),
-        ("include_inactive" = Option<bool>, Query, description = "Include inactive positions (default: false)")
+        ("organization_position_level_id" = String, Path, description = "Organization position level unique identifier (ULID format)"),
+        ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
+        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, status, created_at, updated_at (prefix with '-' for descending)"),
+        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: organization"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, status (e.g., filter[name]=Manager, filter[status]=active)"),
+        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, status, created_at, updated_at"),
+        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
     ),
     responses(
         (status = 200, description = "Organization positions retrieved successfully"),
@@ -415,22 +425,13 @@ pub async fn deactivate(
 pub async fn by_level(
     State(pool): State<DbPool>,
     Path(organization_position_level_id): Path<String>,
-    mut request: OrganizationPositionsByLevelRequest,
+    Query(mut params): Query<QueryParams>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    // Authorization check - uncomment when auth middleware is ready
-    // let user = auth::get_user(&state, &headers)?;
-    // if !OrganizationPositionPolicy::view_any(&user)? {
-    //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
-    // }
+    // Add organization_position_level_id filter to the query parameters
+    params.filter.insert("organization_position_level_id".to_string(), serde_json::json!(organization_position_level_id));
 
-    // Set the organization_position_level_id from the path parameter
-    request.organization_position_level_id = organization_position_level_id;
-
-    // TODO: Extract user_id from auth context when available
-    let user_id = None; // Replace with actual user extraction
-
-    match OrganizationPositionService::by_level(&pool, &request, user_id).await {
-        Ok(positions) => Ok(Json(json!(positions))),
+    match <OrganizationPosition as QueryBuilderService<OrganizationPosition>>::index(Query(params), &pool) {
+        Ok(result) => Ok(Json(serde_json::json!(result))),
         Err(e) => {
             tracing::error!("Failed to fetch organization positions by level: {}", e);
             Err((

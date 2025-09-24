@@ -29,6 +29,27 @@ pub struct NearbyQuery {
     radius: Option<Decimal>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/cities",
+    tag = "Cities",
+    summary = "List all cities",
+    description = "Get all cities with optional filtering, sorting, and pagination",
+    params(
+        ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
+        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, province_id, latitude, longitude, created_at, updated_at (prefix with '-' for descending)"),
+        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: province"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, province_id, latitude, longitude (e.g., filter[name]=Toronto, filter[province_id]=123)"),
+        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, province_id, latitude, longitude, created_at, updated_at"),
+        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
+    ),
+    responses(
+        (status = 200, description = "List of cities", body = Vec<crate::app::models::city::CityResponse>),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
+    )
+)]
 pub async fn index(
     State(pool): State<DbPool>,
     Query(params): Query<QueryParams>,
@@ -125,6 +146,28 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/provinces/{province_id}/cities",
+    tag = "Cities",
+    summary = "List cities by province",
+    description = "Get all cities for a specific province with optional filtering, sorting, and pagination",
+    params(
+        ("province_id" = String, Path, description = "Province unique identifier (ULID format)"),
+        ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
+        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, latitude, longitude, created_at, updated_at (prefix with '-' for descending)"),
+        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: none for filtered results"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, latitude, longitude (e.g., filter[name]=Toronto)"),
+        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, latitude, longitude, created_at, updated_at"),
+        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
+    ),
+    responses(
+        (status = 200, description = "List of cities for the province", body = Vec<crate::app::models::city::CityResponse>),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
+    )
+)]
 pub async fn by_province(
     State(pool): State<DbPool>,
     Path(province_id): Path<String>,

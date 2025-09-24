@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Json, State, Path},
+    extract::{Json, State, Path, Query},
     http::{StatusCode, HeaderMap},
     response::{IntoResponse, Json as ResponseJson},
 };
@@ -9,9 +9,10 @@ use crate::database::DbPool;
 
 use crate::app::services::oauth::ClientService;
 use crate::app::services::auth_service::AuthService;
-use crate::app::models::oauth::{CreateClient, UpdateClient};
+use crate::app::models::oauth::{CreateClient, UpdateClient, Client};
 use crate::app::models::DieselUlid;
 use crate::app::utils::token_utils::TokenUtils;
+use crate::app::query_builder::{QueryParams, QueryBuilderService};
 
 #[derive(Serialize, ToSchema)]
 struct ErrorResponse {
@@ -83,7 +84,7 @@ pub async fn create_client(
         password_client: payload.password_client.unwrap_or(false),
     };
 
-    match ClientService::create_client(&pool, create_data) {
+    match ClientService::create_client(&pool, create_data, None).await {
         Ok(response) => (StatusCode::CREATED, ResponseJson(response)).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -98,12 +99,22 @@ pub async fn create_client(
     get,
     path = "/oauth/clients",
     tags = ["OAuth Clients"],
-    summary = "List OAuth2 clients",
-    description = "Get list of OAuth2 clients for authenticated user",
+    summary = "List OAuth clients",
+    description = "Get all OAuth clients with optional filtering, sorting, and pagination",
+    params(
+        ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
+        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, created_at, updated_at (prefix with '-' for descending)"),
+        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: tokens"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, redirect, revoked (e.g., filter[name]=MyApp, filter[revoked]=false)"),
+        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, secret, redirect, personal_access_client, password_client, revoked, created_at, updated_at"),
+        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
+    ),
     responses(
-        (status = 200, description = "List of clients", body = Vec<crate::app::docs::oauth::ClientResponse>),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse)
+        (status = 200, description = "List of OAuth clients", body = Vec<crate::app::models::oauth::client::ClientResponse>),
+        (status = 401, description = "Unauthorized", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     ),
     security(
         ("Bearer" = [])
@@ -111,10 +122,11 @@ pub async fn create_client(
 )]
 pub async fn list_clients(
     State(pool): State<DbPool>,
+    Query(params): Query<QueryParams>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
-    let user_id = match get_authenticated_user(&pool, &headers).await {
-        Ok(user_id) => Some(user_id),
+    let _user_id = match get_authenticated_user(&pool, &headers).await {
+        Ok(user_id) => user_id,
         Err(e) => {
             let error = ErrorResponse {
                 error: e.to_string(),
@@ -123,8 +135,8 @@ pub async fn list_clients(
         }
     };
 
-    match ClientService::list_clients(&pool, user_id) {
-        Ok(clients) => (StatusCode::OK, ResponseJson(clients)).into_response(),
+    match <Client as QueryBuilderService<Client>>::index(Query(params), &pool) {
+        Ok(result) => (StatusCode::OK, ResponseJson(serde_json::json!(result))).into_response(),
         Err(e) => {
             let error = ErrorResponse {
                 error: e.to_string(),

@@ -17,10 +17,14 @@ use crate::app::http::middleware::activity_logging_middleware::activity_logger_f
     summary = "List all users",
     description = "Get all users with optional filtering, sorting, and pagination",
     params(
-        ("page" = Option<u32>, Query, description = "Page number for pagination"),
-        ("limit" = Option<u32>, Query, description = "Number of items per page (max 100)"),
-        ("sort" = Option<String>, Query, description = "Sort field"),
-        ("direction" = Option<String>, Query, description = "Sort direction (asc/desc)"),
+        ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
+        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, email, status, created_at, updated_at (prefix with '-' for descending)"),
+        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: organizations, roles"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, email, status (e.g., filter[name]=John, filter[status]=active)"),
+        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, email, status, created_at, updated_at"),
+        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
     ),
     responses(
         (status = 200, description = "List of users", body = Vec<crate::app::models::user::UserResponse>),

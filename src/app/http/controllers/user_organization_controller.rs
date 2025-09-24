@@ -13,7 +13,7 @@ use crate::app::http::requests::user_organization_requests::{
     UpdateUserOrganizationRequest,
 };
 use crate::app::services::user_organization_service::UserOrganizationService;
-use crate::app::query_builder::{QueryParams, QueryBuilder, QueryExecutor};
+use crate::app::query_builder::{QueryParams, QueryBuilderService};
 
 /// Get all user organization relationships with filtering and pagination
 #[utoipa::path(
@@ -39,16 +39,7 @@ pub async fn index(
 ) -> impl IntoResponse {
     // Authentication is handled by middleware
 
-    let query_builder = match QueryBuilder::<UserOrganization>::from_params(params) {
-        Ok(builder) => builder,
-        Err(_) => {
-            return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
-                "error": "Invalid query parameters"
-            }))).into_response();
-        }
-    };
-
-    match QueryExecutor::execute_paginated(query_builder, &mut pool.get().unwrap()) {
+    match <UserOrganization as QueryBuilderService<UserOrganization>>::index(Query(params), &pool) {
         Ok(result) => {
             (StatusCode::OK, Json(serde_json::json!(result))).into_response()
         },

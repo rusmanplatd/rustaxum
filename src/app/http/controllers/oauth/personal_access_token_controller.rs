@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Json, State, Path},
+    extract::{Json, State, Path, Query},
     http::{StatusCode, HeaderMap},
     response::{IntoResponse, Json as ResponseJson},
 };
@@ -10,6 +10,8 @@ use crate::database::DbPool;
 use crate::app::services::oauth::TokenService;
 use crate::app::services::auth_service::AuthService;
 use crate::app::utils::token_utils::TokenUtils;
+use crate::app::query_builder::{QueryParams, QueryBuilderService};
+use crate::app::models::oauth::{AccessToken};
 
 #[derive(Serialize, ToSchema)]
 struct ErrorResponse {
@@ -76,7 +78,16 @@ pub async fn create_personal_access_token(
     path = "/oauth/personal-access-tokens",
     tags = ["Personal Access Tokens"],
     summary = "List personal access tokens",
-    description = "Get list of personal access tokens for authenticated user",
+    description = "Get list of personal access tokens for authenticated user with optional filtering, sorting, and pagination",
+    params(
+        ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
+        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, created_at, updated_at (prefix with '-' for descending)"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, revoked (e.g., filter[name]=MyToken, filter[revoked]=false)"),
+        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, scopes, revoked, created_at, updated_at"),
+        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
+    ),
     responses(
         (status = 200, description = "List of personal access tokens", body = Vec<crate::app::docs::oauth::PersonalAccessTokenResponse>),
         (status = 401, description = "Unauthorized", body = ErrorResponse),
@@ -89,6 +100,7 @@ pub async fn create_personal_access_token(
 pub async fn list_personal_access_tokens(
     State(pool): State<DbPool>,
     headers: HeaderMap,
+    Query(mut params): Query<QueryParams>,
 ) -> impl IntoResponse {
     let user_id = match get_authenticated_user(&pool, &headers).await {
         Ok(user_id) => user_id,
@@ -100,10 +112,12 @@ pub async fn list_personal_access_tokens(
         }
     };
 
-    match TokenService::list_user_tokens(&pool, user_id).await {
-        Ok(tokens) => {
-            let responses: Vec<_> = tokens.into_iter().map(|t| t.to_response()).collect();
-            (StatusCode::OK, ResponseJson(responses)).into_response()
+    // Add user_id filter to ensure users only see their own tokens
+    params.filter.insert("user_id".to_string(), serde_json::json!(user_id));
+
+    match <AccessToken as QueryBuilderService<AccessToken>>::index(Query(params), &pool) {
+        Ok(result) => {
+            (StatusCode::OK, ResponseJson(serde_json::json!(result))).into_response()
         },
         Err(e) => {
             let error = ErrorResponse {

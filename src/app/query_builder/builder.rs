@@ -566,21 +566,6 @@ where
             only_trashed: self.only_trashed,
         }
     }
-}
-
-/// Query metadata and statistics
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct QueryInfo {
-    pub filters_count: usize,
-    pub sorts_count: usize,
-    pub includes_count: usize,
-    pub has_pagination: bool,
-    pub pagination_type: Option<&'static str>,
-    pub has_field_selection: bool,
-    pub selected_fields_count: usize,
-    pub with_trashed: bool,
-    pub only_trashed: bool,
-}
 
     /// Clear all filters
     pub fn clear_filters(mut self) -> Self {
@@ -641,6 +626,20 @@ pub struct QueryInfo {
             _phantom: std::marker::PhantomData,
         }
     }
+}
+
+/// Query metadata and statistics
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct QueryInfo {
+    pub filters_count: usize,
+    pub sorts_count: usize,
+    pub includes_count: usize,
+    pub has_pagination: bool,
+    pub pagination_type: Option<&'static str>,
+    pub has_field_selection: bool,
+    pub selected_fields_count: usize,
+    pub with_trashed: bool,
+    pub only_trashed: bool,
 }
 
 impl<T> Default for QueryBuilder<T>
