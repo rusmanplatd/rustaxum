@@ -369,13 +369,13 @@
 - [ ] Pin search and organization features
 
 ### Enhanced Search
-- [ ] Client-side full-text search indexing
+- [ ] Client-side full-text search indexing (local device storage only)
 - [ ] Search filters (date, sender, message type, mentions)
 - [ ] Search result highlighting and context
-- [ ] Search history and saved searches
+- [ ] Search history and saved searches (local device storage only)
 - [ ] Advanced search operators and syntax
-- [ ] Encrypted search index management
-- [ ] Cross-device search synchronization
+- [ ] Encrypted search index management (local device storage only)
+- [ ] Cross-device search synchronization (via encrypted device-to-device messaging)
 
 ## Database Design Guidelines
 
