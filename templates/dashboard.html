@@ -1,0 +1,290 @@
+{% extends "layouts/app.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- Welcome Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <h1 class="display-4 mb-3">
+                        <i class="fas fa-tachometer-alt text-primary me-3"></i>
+                        Welcome to RustAxum
+                    </h1>
+                    <p class="lead text-muted mb-4">
+                        Hello, <strong>{{ user.name }}</strong>! You're successfully logged in.
+                    </p>
+                    <div class="row justify-content-center">
+                        <div class="col-md-8">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center justify-content-center mb-3">
+                                        <i class="fas fa-shield-alt text-success fa-2x me-3"></i>
+                                        <div>
+                                            <h6 class="mb-0">Secure</h6>
+                                            <small class="text-muted">End-to-end encryption</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center justify-content-center mb-3">
+                                        <i class="fas fa-rocket text-warning fa-2x me-3"></i>
+                                        <div>
+                                            <h6 class="mb-0">Fast</h6>
+                                            <small class="text-muted">Built with Rust</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center justify-content-center mb-3">
+                                        <i class="fas fa-code text-info fa-2x me-3"></i>
+                                        <div>
+                                            <h6 class="mb-0">Modern</h6>
+                                            <small class="text-muted">Latest technologies</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% if success_message %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                {{ success_message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if error_message %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                {{ error_message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Users</h5>
+                    <h3 class="text-primary">1,234</h3>
+                    <small class="text-muted">Active users</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-chart-line fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Requests</h5>
+                    <h3 class="text-success">45.2K</h3>
+                    <small class="text-muted">This month</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-server fa-3x text-warning mb-3"></i>
+                    <h5 class="card-title">Uptime</h5>
+                    <h3 class="text-warning">99.9%</h3>
+                    <small class="text-muted">Last 30 days</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-tachometer-alt fa-3x text-info mb-3"></i>
+                    <h5 class="card-title">Response</h5>
+                    <h3 class="text-info">12ms</h3>
+                    <small class="text-muted">Average</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="/users" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-users me-2"></i>
+                                Manage Users
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="/settings" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-cog me-2"></i>
+                                Settings
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="/api/docs" class="btn btn-outline-info w-100" target="_blank">
+                                <i class="fas fa-code me-2"></i>
+                                API Docs
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="/profile" class="btn btn-outline-success w-100">
+                                <i class="fas fa-user me-2"></i>
+                                My Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Profile Card -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user me-2"></i>
+                        Your Profile
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <div class="user-avatar bg-primary" style="width: 64px; height: 64px; font-size: 24px;">
+                                {{ user.name | first | upper }}
+                            </div>
+                        </div>
+                        <div class="col">
+                            <h6 class="mb-1">{{ user.name }}</h6>
+                            <p class="text-muted mb-2">{{ user.email }}</p>
+                            {% if user.created_at %}
+                            <small class="text-muted">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                Member since {{ user.created_at | date(format="%B %Y") }}
+                            </small>
+                            {% endif %}
+                        </div>
+                        <div class="col-auto">
+                            <a href="/profile" class="btn btn-sm btn-outline-primary">
+                                Edit Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Info -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        System Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="d-flex justify-content-between align-items-center mb-2">
+                            <span><i class="fas fa-server text-muted me-2"></i>Framework</span>
+                            <span class="badge bg-primary">RustAxum v1.0</span>
+                        </li>
+                        <li class="d-flex justify-content-between align-items-center mb-2">
+                            <span><i class="fas fa-database text-muted me-2"></i>Database</span>
+                            <span class="badge bg-success">PostgreSQL</span>
+                        </li>
+                        <li class="d-flex justify-content-between align-items-center mb-2">
+                            <span><i class="fas fa-memory text-muted me-2"></i>Cache</span>
+                            <span class="badge bg-warning">Redis</span>
+                        </li>
+                        <li class="d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-shield-alt text-muted me-2"></i>Security</span>
+                            <span class="badge bg-info">JWT + Session</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-clock me-2"></i>
+                        Recent Activity
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                <div class="badge bg-success rounded-pill me-3">
+                                    <i class="fas fa-sign-in-alt"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Successful login</h6>
+                                    <small class="text-muted">You logged in from a new device</small>
+                                </div>
+                            </div>
+                            <small class="text-muted">Just now</small>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                <div class="badge bg-info rounded-pill me-3">
+                                    <i class="fas fa-user-edit"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Profile updated</h6>
+                                    <small class="text-muted">Changed your profile information</small>
+                                </div>
+                            </div>
+                            <small class="text-muted">2 hours ago</small>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                <div class="badge bg-warning rounded-pill me-3">
+                                    <i class="fas fa-key"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Password changed</h6>
+                                    <small class="text-muted">You changed your account password</small>
+                                </div>
+                            </div>
+                            <small class="text-muted">1 day ago</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

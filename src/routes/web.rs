@@ -1,11 +1,34 @@
-use axum::{routing::{get, post}, Router, response::Html};
+use axum::{routing::{get, post}, Router, response::Html, middleware};
 use crate::database::DbPool;
 use crate::app::http::controllers::home_controller::HomeController;
 use crate::app::http::controllers::csrf_controller::CSRFController;
+use crate::app::http::controllers::web_auth_controller::WebAuthController;
+use crate::app::http::middleware::auth_guard::auth_guard;
 
 pub fn routes() -> Router<DbPool> {
     tracing::debug!("Creating web routes...");
-    let router = Router::new()
+
+    // Public web authentication routes
+    let auth_routes = Router::new()
+        .route("/auth/login", get(WebAuthController::show_login))
+        .route("/auth/login", post(WebAuthController::login))
+        .route("/auth/register", get(WebAuthController::show_register))
+        .route("/auth/register", post(WebAuthController::register))
+        .route("/auth/forgot-password", get(WebAuthController::show_forgot_password))
+        .route("/auth/forgot-password", post(WebAuthController::forgot_password))
+        .route("/auth/reset-password/:token", get(WebAuthController::show_reset_password))
+        .route("/auth/reset-password", post(WebAuthController::reset_password));
+
+    // Protected web authentication routes
+    let protected_auth_routes = Router::new()
+        .route("/auth/logout", post(WebAuthController::logout))
+        .route("/auth/change-password", get(WebAuthController::show_change_password))
+        .route("/auth/change-password", post(WebAuthController::change_password))
+        .route("/dashboard", get(WebAuthController::dashboard))
+        .route_layer(middleware::from_fn(auth_guard));
+
+    // Public routes
+    let public_routes = Router::new()
         .route("/", get(HomeController::index))
         .route("/health", get(health_check))
         .route("/web-push-demo", get(web_push_demo))
@@ -20,7 +43,13 @@ pub fn routes() -> Router<DbPool> {
         .route("/docs/rapidoc", get(rapidoc_ui))
         .route("/docs/redoc", get(redoc_ui));
 
-    tracing::info!("Web routes created successfully with working documentation UIs (Swagger, RapiDoc, Redoc)");
+    // Combine all routes
+    let router = Router::new()
+        .merge(auth_routes)
+        .merge(protected_auth_routes)
+        .merge(public_routes);
+
+    tracing::info!("Web routes created successfully with complete authentication system");
     router
 }
 
