@@ -1,4 +1,5 @@
 pub mod auth_middleware;
+pub mod auth_guard;
 pub mod cors_middleware;
 pub mod oauth_middleware;
 pub mod role_middleware;

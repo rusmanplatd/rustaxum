@@ -1,10 +1,12 @@
 use axum::{
-    extract::{Json, State},
+    extract::{Json, State, Extension},
     http::{StatusCode, HeaderMap},
     response::{IntoResponse, Json as ResponseJson},
 };
 use serde::Serialize;
+use serde_json::{json, Value};
 use crate::database::DbPool;
+use crate::app::services::session::SessionStore;
 
 use crate::app::models::user::{
     CreateUser, LoginRequest, ForgotPasswordRequest,
@@ -115,5 +117,111 @@ pub async fn refresh_token(State(pool): State<DbPool>, Json(payload): Json<Refre
             };
             (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response()
         }
+    }
+}
+
+// Session-based authentication endpoints
+
+pub async fn login_session(
+    State(pool): State<DbPool>,
+    Extension(session): Extension<SessionStore>,
+    Json(payload): Json<LoginRequest>
+) -> impl IntoResponse {
+    match AuthService::login(&pool, payload).await {
+        Ok(response) => {
+            // Store user ID in session instead of returning JWT
+            session.put("user_id", Value::String(response.user.id.to_string())).await;
+            session.put("authenticated", Value::Bool(true)).await;
+            session.regenerate().await.ok();
+
+            let session_response = json!({
+                "message": "Login successful",
+                "user": response.user,
+                "session_id": session.get_session_id().await
+            });
+            (StatusCode::OK, ResponseJson(session_response)).into_response()
+        }
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response()
+        }
+    }
+}
+
+pub async fn register_session(
+    State(pool): State<DbPool>,
+    Extension(session): Extension<SessionStore>,
+    Json(payload): Json<CreateUser>
+) -> impl IntoResponse {
+    match AuthService::register(&pool, payload).await {
+        Ok(response) => {
+            // Store user ID in session instead of returning JWT
+            session.put("user_id", Value::String(response.user.id.to_string())).await;
+            session.put("authenticated", Value::Bool(true)).await;
+            session.regenerate().await.ok();
+
+            let session_response = json!({
+                "message": "Registration successful",
+                "user": response.user,
+                "session_id": session.get_session_id().await
+            });
+            (StatusCode::CREATED, ResponseJson(session_response)).into_response()
+        }
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response()
+        }
+    }
+}
+
+pub async fn logout_session(
+    Extension(session): Extension<SessionStore>
+) -> impl IntoResponse {
+    // Clear all session data
+    session.flush().await;
+    session.regenerate().await.ok();
+
+    let response = json!({
+        "message": "Logout successful"
+    });
+    (StatusCode::OK, ResponseJson(response)).into_response()
+}
+
+pub async fn user_session(
+    State(pool): State<DbPool>,
+    Extension(session): Extension<SessionStore>
+) -> impl IntoResponse {
+    if let Some(user_id) = session.get_string("user_id").await {
+        match crate::app::services::user_service::UserService::find_by_id(&pool, user_id) {
+            Ok(Some(user)) => {
+                let response = json!({
+                    "user": user.to_response()
+                });
+                (StatusCode::OK, ResponseJson(response)).into_response()
+            }
+            Ok(None) => {
+                // User not found, clear session
+                session.flush().await;
+                let error = ErrorResponse {
+                    error: "User not found".to_string(),
+                };
+                (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response()
+            }
+            Err(e) => {
+                let error = ErrorResponse {
+                    error: e.to_string(),
+                };
+                (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response()
+            }
+        }
+    } else {
+        let error = ErrorResponse {
+            error: "Not authenticated".to_string(),
+        };
+        (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response()
     }
 }

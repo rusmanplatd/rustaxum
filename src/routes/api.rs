@@ -1,22 +1,38 @@
 use axum::{
     routing::{get, post, put, delete},
     Router,
+    middleware,
 };
 use crate::database::DbPool;
+use crate::app::http::middleware::auth_guard::{auth_guard, guest_guard};
 
 use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, district_controller, village_controller, role_controller, permission_controller, docs_controller, user_organization_controller, organization_position_level_controller, organization_position_controller, sys_model_has_permission_controller, sys_model_has_role_controller, activity_log_controller, session_controller};
 use crate::app::http::controllers::web_push_controller::WebPushController;
 
 pub fn routes() -> Router<DbPool> {
     tracing::debug!("Creating API routes...");
-    let router = Router::new()
-        // Authentication routes
+
+    // Public authentication routes (no middleware needed for these)
+    let auth_routes = Router::new()
+        // JWT-based authentication
         .route("/api/auth/register", post(auth_controller::register))
         .route("/api/auth/login", post(auth_controller::login))
         .route("/api/auth/forgot-password", post(auth_controller::forgot_password))
         .route("/api/auth/reset-password", post(auth_controller::reset_password))
-        .route("/api/auth/change-password", put(auth_controller::change_password))
         .route("/api/auth/refresh-token", post(auth_controller::refresh_token))
+        // Session-based authentication
+        .route("/api/auth/session/register", post(auth_controller::register_session))
+        .route("/api/auth/session/login", post(auth_controller::login_session));
+
+    // Protected authentication routes (require auth)
+    let protected_auth_routes = Router::new()
+        .route("/api/auth/change-password", put(auth_controller::change_password))
+        .route("/api/auth/session/logout", post(auth_controller::logout_session))
+        .route("/api/auth/session/user", get(auth_controller::user_session))
+        .route_layer(middleware::from_fn(auth_guard));
+
+    // Protected routes (require authentication)
+    let protected_routes = Router::new()
         // User routes
         .route("/api/users", get(user_controller::index))
         .route("/api/users/{id}", get(user_controller::show))
@@ -138,11 +154,22 @@ pub fn routes() -> Router<DbPool> {
         .route("/api/session/regenerate", post(session_controller::regenerate_session))
         .route("/api/session/flash", post(session_controller::flash_session))
         .route("/api/session/token", post(session_controller::regenerate_token))
+        .route_layer(middleware::from_fn(auth_guard));
+
+    // Public routes (no authentication required)
+    let public_routes = Router::new()
         // Documentation routes
         .route("/api/docs", get(docs_controller::docs_info))
         .route("/api/docs/openapi.json", get(docs_controller::openapi_json))
         .route("/api/docs/openapi.yaml", get(docs_controller::openapi_yaml));
 
-    tracing::info!("API routes created successfully with {} route handlers", 78); // Approximate count
+    // Combine all routes
+    let router = Router::new()
+        .merge(auth_routes)
+        .merge(protected_auth_routes)
+        .merge(protected_routes)
+        .merge(public_routes);
+
+    tracing::info!("API routes created successfully with authentication middleware applied");
     router
 }
