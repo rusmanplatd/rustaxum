@@ -19,3 +19,4 @@ pub mod sys_model_has_permission_service;
 pub mod sys_model_has_role_service;
 pub mod user_organization_service;
 pub mod activity_log_service;
+pub mod template_service;

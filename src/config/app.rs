@@ -9,6 +9,7 @@ pub struct AppConfig {
     pub url: String,
     pub port: u16,
     pub key: String,
+    pub templates_path: String,
 }
 
 impl AppConfig {
@@ -26,6 +27,7 @@ impl AppConfig {
                 .parse()
                 .unwrap_or(3000),
             key: env::var("APP_KEY").unwrap_or_else(|_| "".to_string()),
+            templates_path: env::var("TEMPLATES_PATH").unwrap_or_else(|_| "resources/views".to_string()),
         })
     }
 

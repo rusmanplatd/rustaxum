@@ -1,0 +1,504 @@
+<div class="data-table-wrapper">
+    {{#if title}}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">
+            {{#if icon}}
+            <i class="{{icon}} me-2"></i>
+            {{/if}}
+            {{title}}
+        </h5>
+        <div class="table-actions">
+            {{#if actions}}
+            {{#each actions}}
+            <a href="{{url}}" class="btn btn-{{#if type}}{{type}}{{else}}primary{{/if}} btn-sm me-2">
+                {{#if icon}}
+                <i class="{{icon}} me-1"></i>
+                {{/if}}
+                {{label}}
+            </a>
+            {{/each}}
+            {{/if}}
+        </div>
+    </div>
+    {{/if}}
+
+    {{#if filters}}
+    <div class="table-filters mb-3">
+        <div class="row g-2">
+            {{#each filters}}
+            <div class="col-md-{{#if width}}{{width}}{{else}}3{{/if}}">
+                {{#if (eq type 'select')}}
+                <select class="form-select form-select-sm filter-control" name="{{name}}" data-filter="{{name}}">
+                    <option value="">{{placeholder}}</option>
+                    {{#each options}}
+                    <option value="{{value}}" {{#if (eq value ../selected)}}selected{{/if}}>
+                        {{label}}
+                    </option>
+                    {{/each}}
+                </select>
+                {{else if (eq type 'date-range')}}
+                <div class="input-group input-group-sm">
+                    <input type="date" class="form-control filter-control" name="{{name}}_from" data-filter="{{name}}_from" value="{{selected.from}}" placeholder="From">
+                    <span class="input-group-text">to</span>
+                    <input type="date" class="form-control filter-control" name="{{name}}_to" data-filter="{{name}}_to" value="{{selected.to}}" placeholder="To">
+                </div>
+                {{else}}
+                <input type="{{#if type}}{{type}}{{else}}text{{/if}}"
+                       class="form-control form-control-sm filter-control"
+                       name="{{name}}"
+                       data-filter="{{name}}"
+                       value="{{selected}}"
+                       placeholder="{{placeholder}}">
+                {{/if}}
+            </div>
+            {{/each}}
+            <div class="col-md-auto">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearFilters()">
+                    <i class="fas fa-times me-1"></i>Clear
+                </button>
+            </div>
+        </div>
+    </div>
+    {{/if}}
+
+    {{#if searchable}}
+    <div class="table-search mb-3">
+        <div class="input-group">
+            <span class="input-group-text">
+                <i class="fas fa-search"></i>
+            </span>
+            <input type="text"
+                   class="form-control"
+                   id="{{table_id}}_search"
+                   placeholder="Search {{#if search_placeholder}}{{search_placeholder}}{{else}}records{{/if}}..."
+                   value="{{search_query}}">
+        </div>
+    </div>
+    {{/if}}
+
+    <div class="table-responsive">
+        <table class="table table-hover {{#if striped}}table-striped{{/if}} {{#if bordered}}table-bordered{{/if}}"
+               id="{{#if table_id}}{{table_id}}{{else}}dataTable{{/if}}">
+            <thead class="{{#if header_class}}{{header_class}}{{else}}table-light{{/if}}">
+                <tr>
+                    {{#if selectable}}
+                    <th width="30">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                        </div>
+                    </th>
+                    {{/if}}
+
+                    {{#each columns}}
+                    <th {{#if width}}width="{{width}}"{{/if}}
+                        {{#if sortable}}class="sortable" data-sort="{{sort_key}}"{{/if}}>
+                        {{label}}
+                        {{#if sortable}}
+                        <i class="fas fa-sort sort-icon ms-1"></i>
+                        {{/if}}
+                    </th>
+                    {{/each}}
+
+                    {{#if has_actions}}
+                    <th width="{{#if actions_width}}{{actions_width}}{{else}}120{{/if}}" class="text-center">
+                        Actions
+                    </th>
+                    {{/if}}
+                </tr>
+            </thead>
+            <tbody>
+                {{#if data}}
+                {{#each data}}
+                <tr {{#if row_class}}class="{{row_class}}"{{/if}} {{#if row_id}}data-id="{{row_id}}"{{/if}}>
+                    {{#if ../selectable}}
+                    <td>
+                        <div class="form-check">
+                            <input class="form-check-input row-select" type="checkbox" value="{{id}}">
+                        </div>
+                    </td>
+                    {{/if}}
+
+                    {{#each ../columns}}
+                    <td {{#if align}}class="text-{{align}}"{{/if}}>
+                        {{#if (eq type 'image')}}
+                        <img src="{{lookup ../this key}}" alt="{{lookup ../this (concat key '_alt')}}" class="table-image rounded" width="{{#if image_width}}{{image_width}}{{else}}40{{/if}}">
+
+                        {{else if (eq type 'avatar')}}
+                        <div class="d-flex align-items-center">
+                            <img src="{{lookup ../this avatar_key}}" alt="{{lookup ../this name_key}}" class="rounded-circle me-2" width="32" height="32">
+                            <span>{{lookup ../this name_key}}</span>
+                        </div>
+
+                        {{else if (eq type 'badge')}}
+                        <span class="badge bg-{{lookup ../this (concat key '_color')}}">
+                            {{lookup ../this key}}
+                        </span>
+
+                        {{else if (eq type 'boolean')}}
+                        {{#if (lookup ../this key)}}
+                        <i class="fas fa-check text-success"></i>
+                        {{else}}
+                        <i class="fas fa-times text-danger"></i>
+                        {{/if}}
+
+                        {{else if (eq type 'date')}}
+                        <span title="{{lookup ../this key}}">
+                            {{formatDate (lookup ../this key) format}}
+                        </span>
+
+                        {{else if (eq type 'currency')}}
+                        <span class="{{#if (lt (lookup ../this key) 0)}}text-danger{{else}}text-success{{/if}}">
+                            {{formatCurrency (lookup ../this key) currency}}
+                        </span>
+
+                        {{else if (eq type 'progress')}}
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-{{lookup ../this (concat key '_color')}}"
+                                 role="progressbar"
+                                 style="width: {{lookup ../this key}}%"
+                                 aria-valuenow="{{lookup ../this key}}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                        <small class="text-muted">{{lookup ../this key}}%</small>
+
+                        {{else if (eq type 'tags')}}
+                        {{#each (lookup ../this key)}}
+                        <span class="badge bg-secondary me-1">{{this}}</span>
+                        {{/each}}
+
+                        {{else if (eq type 'link')}}
+                        <a href="{{lookup ../this (concat key '_url')}}" class="text-decoration-none">
+                            {{lookup ../this key}}
+                        </a>
+
+                        {{else if (eq type 'truncate')}}
+                        <span title="{{lookup ../this key}}">
+                            {{truncate (lookup ../this key) (if length length 50)}}
+                        </span>
+
+                        {{else}}
+                        {{lookup ../this key}}
+                        {{/if}}
+                    </td>
+                    {{/each}}
+
+                    {{#if ../has_actions}}
+                    <td class="text-center">
+                        <div class="btn-group" role="group">
+                            {{#each ../row_actions}}
+                            {{#if (eq type 'dropdown')}}
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    {{#each items}}
+                                    <li>
+                                        <a class="dropdown-item" href="{{buildUrl url ../../this}}">
+                                            {{#if icon}}<i class="{{icon}} me-2"></i>{{/if}}
+                                            {{label}}
+                                        </a>
+                                    </li>
+                                    {{#if divider}}<li><hr class="dropdown-divider"></li>{{/if}}
+                                    {{/each}}
+                                </ul>
+                            </div>
+                            {{else}}
+                            <a href="{{buildUrl url ../this}}"
+                               class="btn btn-sm btn-{{#if style}}{{style}}{{else}}outline-primary{{/if}} {{#if confirm}}confirm-action{{/if}}"
+                               {{#if title}}title="{{title}}"{{/if}}
+                               {{#if confirm}}data-confirm="{{confirm}}"{{/if}}>
+                                {{#if icon}}<i class="{{icon}}"></i>{{else}}{{label}}{{/if}}
+                            </a>
+                            {{/if}}
+                            {{/each}}
+                        </div>
+                    </td>
+                    {{/if}}
+                </tr>
+                {{/each}}
+                {{else}}
+                <tr>
+                    <td colspan="{{calculateColspan columns selectable has_actions}}" class="text-center py-4 text-muted">
+                        {{#if empty_icon}}
+                        <i class="{{empty_icon}} fa-2x mb-3"></i><br>
+                        {{/if}}
+                        {{#if empty_message}}{{empty_message}}{{else}}No data available{{/if}}
+                    </td>
+                </tr>
+                {{/if}}
+            </tbody>
+        </table>
+    </div>
+
+    {{#if pagination}}
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <div class="table-info">
+            Showing {{pagination.from}} to {{pagination.to}} of {{pagination.total}} entries
+            {{#if pagination.filtered}}
+            (filtered from {{pagination.total_unfiltered}} total entries)
+            {{/if}}
+        </div>
+
+        {{#if (gt pagination.last_page 1)}}
+        <nav aria-label="Table pagination">
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item {{#if (eq pagination.current_page 1)}}disabled{{/if}}">
+                    <a class="page-link" href="{{buildPaginationUrl 1}}">&laquo;</a>
+                </li>
+                <li class="page-item {{#if (eq pagination.current_page 1)}}disabled{{/if}}">
+                    <a class="page-link" href="{{buildPaginationUrl (subtract pagination.current_page 1)}}">&lsaquo;</a>
+                </li>
+
+                {{#each pagination.links}}
+                <li class="page-item {{#if active}}active{{/if}} {{#if disabled}}disabled{{/if}}">
+                    <a class="page-link" href="{{url}}">{{label}}</a>
+                </li>
+                {{/each}}
+
+                <li class="page-item {{#if (eq pagination.current_page pagination.last_page)}}disabled{{/if}}">
+                    <a class="page-link" href="{{buildPaginationUrl (add pagination.current_page 1)}}">&rsaquo;</a>
+                </li>
+                <li class="page-item {{#if (eq pagination.current_page pagination.last_page)}}disabled{{/if}}">
+                    <a class="page-link" href="{{buildPaginationUrl pagination.last_page}}">&raquo;</a>
+                </li>
+            </ul>
+        </nav>
+        {{/if}}
+    </div>
+    {{/if}}
+</div>
+
+{{#if selectable}}
+<div class="selected-actions mt-3" id="selectedActions" style="display: none;">
+    <div class="alert alert-info">
+        <span id="selectedCount">0</span> item(s) selected.
+        {{#each bulk_actions}}
+        <button type="button" class="btn btn-sm btn-{{style}} ms-2 bulk-action"
+                data-action="{{action}}"
+                {{#if confirm}}data-confirm="{{confirm}}"{{/if}}>
+            {{#if icon}}<i class="{{icon}} me-1"></i>{{/if}}
+            {{label}}
+        </button>
+        {{/each}}
+    </div>
+</div>
+{{/if}}
+
+<script>
+// Table functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.getElementById('{{#if table_id}}{{table_id}}{{else}}dataTable{{/if}}');
+    if (!table) return;
+
+    // Filter controls
+    document.querySelectorAll('.filter-control').forEach(function(control) {
+        control.addEventListener('change', function() {
+            applyFilters();
+        });
+    });
+
+    // Search functionality
+    const searchInput = document.getElementById('{{#if table_id}}{{table_id}}{{else}}dataTable{{/if}}_search');
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                applySearch(this.value);
+            }, 500);
+        });
+    }
+
+    // Sortable columns
+    document.querySelectorAll('.sortable').forEach(function(header) {
+        header.style.cursor = 'pointer';
+        header.addEventListener('click', function() {
+            const sortKey = this.dataset.sort;
+            const currentSort = this.querySelector('.sort-icon');
+
+            // Reset all sort icons
+            document.querySelectorAll('.sort-icon').forEach(icon => {
+                icon.className = 'fas fa-sort sort-icon ms-1';
+            });
+
+            // Update current sort icon and apply sort
+            if (this.dataset.sortDirection === 'asc') {
+                currentSort.className = 'fas fa-sort-down sort-icon ms-1';
+                this.dataset.sortDirection = 'desc';
+                applySort(sortKey, 'desc');
+            } else {
+                currentSort.className = 'fas fa-sort-up sort-icon ms-1';
+                this.dataset.sortDirection = 'asc';
+                applySort(sortKey, 'asc');
+            }
+        });
+    });
+
+    {{#if selectable}}
+    // Row selection
+    document.querySelectorAll('.row-select').forEach(function(checkbox) {
+        checkbox.addEventListener('change', updateSelectionActions);
+    });
+
+    // Bulk actions
+    document.querySelectorAll('.bulk-action').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const action = this.dataset.action;
+            const confirm = this.dataset.confirm;
+            const selectedIds = getSelectedIds();
+
+            if (selectedIds.length === 0) {
+                alert('Please select at least one item.');
+                return;
+            }
+
+            if (confirm && !window.confirm(confirm)) {
+                return;
+            }
+
+            executeBulkAction(action, selectedIds);
+        });
+    });
+    {{/if}}
+
+    // Confirm actions
+    document.querySelectorAll('.confirm-action').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            const message = this.dataset.confirm || 'Are you sure?';
+            if (!confirm(message)) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+
+function applyFilters() {
+    const filters = {};
+    document.querySelectorAll('.filter-control').forEach(function(control) {
+        const name = control.dataset.filter;
+        const value = control.value;
+        if (value) {
+            filters[name] = value;
+        }
+    });
+
+    // Update URL with filters
+    const url = new URL(window.location);
+    Object.keys(filters).forEach(key => {
+        if (filters[key]) {
+            url.searchParams.set(key, filters[key]);
+        } else {
+            url.searchParams.delete(key);
+        }
+    });
+
+    window.location.href = url.toString();
+}
+
+function clearFilters() {
+    document.querySelectorAll('.filter-control').forEach(function(control) {
+        control.value = '';
+    });
+    applyFilters();
+}
+
+function applySearch(query) {
+    const url = new URL(window.location);
+    if (query) {
+        url.searchParams.set('search', query);
+    } else {
+        url.searchParams.delete('search');
+    }
+    window.location.href = url.toString();
+}
+
+function applySort(column, direction) {
+    const url = new URL(window.location);
+    url.searchParams.set('sort', column);
+    url.searchParams.set('direction', direction);
+    window.location.href = url.toString();
+}
+
+{{#if selectable}}
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.row-select');
+
+    checkboxes.forEach(function(checkbox) {
+        checkbox.checked = selectAll.checked;
+    });
+
+    updateSelectionActions();
+}
+
+function updateSelectionActions() {
+    const selectedIds = getSelectedIds();
+    const selectedActions = document.getElementById('selectedActions');
+    const selectedCount = document.getElementById('selectedCount');
+
+    if (selectedIds.length > 0) {
+        selectedActions.style.display = 'block';
+        selectedCount.textContent = selectedIds.length;
+    } else {
+        selectedActions.style.display = 'none';
+    }
+
+    // Update select all checkbox
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.row-select');
+    const checkedBoxes = document.querySelectorAll('.row-select:checked');
+
+    if (checkedBoxes.length === 0) {
+        selectAll.indeterminate = false;
+        selectAll.checked = false;
+    } else if (checkedBoxes.length === checkboxes.length) {
+        selectAll.indeterminate = false;
+        selectAll.checked = true;
+    } else {
+        selectAll.indeterminate = true;
+        selectAll.checked = false;
+    }
+}
+
+function getSelectedIds() {
+    const selected = [];
+    document.querySelectorAll('.row-select:checked').forEach(function(checkbox) {
+        selected.push(checkbox.value);
+    });
+    return selected;
+}
+
+function executeBulkAction(action, selectedIds) {
+    // Implement bulk action execution
+    console.log('Executing bulk action:', action, 'on IDs:', selectedIds);
+
+    // Example AJAX call
+    fetch(`/api/bulk-action`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            action: action,
+            ids: selectedIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Action failed: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while executing the action.');
+    });
+}
+{{/if}}
+</script>

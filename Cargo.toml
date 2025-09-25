@@ -15,6 +15,10 @@ path = "src/main.rs"
 name = "artisan"
 path = "src/cli/main.rs"
 
+[[example]]
+name = "template_demo"
+path = "examples/template_demo.rs"
+
 [dependencies]
 axum = { version = "0.8", features = ["ws"] }
 tokio = { version = "1.4", features = ["full"] }
@@ -77,6 +81,8 @@ p256 = "0.13"
 html-escape = "0.2"
 # Markdown parsing for emails
 pulldown-cmark = "0.13"
+# Template engine
+handlebars = "6.3"
 # WebSocket support for broadcasting
 tokio-tungstenite = "0.27"
 # Additional serialization

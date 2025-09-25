@@ -1,10 +1,11 @@
 use axum::{routing::get, Router, response::Html};
 use crate::database::DbPool;
+use crate::app::http::controllers::home_controller::HomeController;
 
 pub fn routes() -> Router<DbPool> {
     tracing::debug!("Creating web routes...");
     let router = Router::new()
-        .route("/", get(home))
+        .route("/", get(HomeController::index))
         .route("/health", get(health_check))
         .route("/web-push-demo", get(web_push_demo))
         // Documentation UIs - custom HTML that references the OpenAPI endpoint
@@ -16,9 +17,6 @@ pub fn routes() -> Router<DbPool> {
     router
 }
 
-async fn home() -> &'static str {
-    "Welcome to RustAxum - A Laravel-inspired Rust web framework"
-}
 
 async fn health_check() -> &'static str {
     "OK"

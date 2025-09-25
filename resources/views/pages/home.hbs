@@ -1,0 +1,61 @@
+<div class="hero-section text-center py-5 mb-5">
+    <div class="container">
+        <h1 class="display-4 mb-4">Welcome to {{app_name}}</h1>
+        <p class="lead mb-4">A modern Rust web application built with Axum and Handlebars</p>
+
+        {{#unless user}}
+        <div class="d-flex gap-3 justify-content-center">
+            <a href="/register" class="btn btn-primary btn-lg">Get Started</a>
+            <a href="/login" class="btn btn-outline-primary btn-lg">Login</a>
+        </div>
+        {{/unless}}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Fast & Secure</h5>
+                <p class="card-text">Built with Rust for maximum performance and memory safety.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Modern Framework</h5>
+                <p class="card-text">Using Axum for async web development with excellent performance.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Template Engine</h5>
+                <p class="card-text">Handlebars templating for dynamic, maintainable web pages.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{#if features}}
+<div class="mt-5">
+    <h2 class="text-center mb-4">Features</h2>
+    <div class="row">
+        {{#each features}}
+        <div class="col-md-6 col-lg-4 mb-3">
+            <div class="d-flex align-items-start">
+                <i class="{{icon}} me-3 mt-1"></i>
+                <div>
+                    <h6>{{name}}</h6>
+                    <small class="text-muted">{{description}}</small>
+                </div>
+            </div>
+        </div>
+        {{/each}}
+    </div>
+</div>
+{{/if}}

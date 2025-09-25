@@ -1,0 +1,305 @@
+<div class="page-header">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Welcome back, {{user.first_name}}! Here's what's happening with your {{app_name}} account.</p>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    {{#each stats}}
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: linear-gradient(135deg, {{color.primary}} 0%, {{color.secondary}} 100%);">
+                <i class="{{icon}}"></i>
+            </div>
+            <div class="stat-card-value">{{value}}</div>
+            <div class="stat-card-label">{{label}}</div>
+            {{#if trend}}
+            <div class="stat-card-trend trend-{{trend.direction}}">
+                <i class="fas fa-arrow-{{#if (eq trend.direction 'up')}}up{{else}}down{{/if}} me-1"></i>
+                {{trend.percentage}}% {{trend.period}}
+            </div>
+            {{/if}}
+        </div>
+    </div>
+    {{/each}}
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-xl-8 mb-4">
+        <div class="data-table-wrapper">
+            <h5 class="mb-3">
+                <i class="fas fa-chart-line me-2 text-primary"></i>
+                Activity Overview
+            </h5>
+            <canvas id="activityChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+    <div class="col-xl-4 mb-4">
+        <div class="data-table-wrapper">
+            <h5 class="mb-3">
+                <i class="fas fa-chart-pie me-2 text-success"></i>
+                User Distribution
+            </h5>
+            <canvas id="userDistributionChart" width="200" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity & Notifications -->
+<div class="row mb-4">
+    <div class="col-xl-8 mb-4">
+        <div class="data-table-wrapper">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2 text-info"></i>
+                    Recent Activity
+                </h5>
+                <a href="/dashboard/activity-logs" class="btn btn-sm btn-outline-primary">
+                    View All
+                </a>
+            </div>
+
+            {{#if recent_activities}}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Activity</th>
+                            <th>User</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each recent_activities}}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="activity-icon me-3">
+                                        <i class="{{icon}} text-{{type}}"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-medium">{{description}}</div>
+                                        {{#if details}}
+                                        <small class="text-muted">{{details}}</small>
+                                        {{/if}}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img src="{{user.avatar_url}}" alt="{{user.name}}" class="rounded-circle me-2" width="24" height="24">
+                                    <span>{{user.name}}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span title="{{timestamp}}">{{time_ago}}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{status_color}}">{{status}}</span>
+                            </td>
+                        </tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            </div>
+            {{else}}
+            <div class="text-center py-4 text-muted">
+                <i class="fas fa-inbox fa-2x mb-3"></i>
+                <p>No recent activity to display.</p>
+            </div>
+            {{/if}}
+        </div>
+    </div>
+
+    <div class="col-xl-4 mb-4">
+        <div class="data-table-wrapper">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    <i class="fas fa-bell me-2 text-warning"></i>
+                    Recent Notifications
+                </h5>
+                <a href="/dashboard/notifications" class="btn btn-sm btn-outline-primary">
+                    View All
+                </a>
+            </div>
+
+            {{#if recent_notifications}}
+            <div class="list-group list-group-flush">
+                {{#each recent_notifications}}
+                <div class="list-group-item list-group-item-action border-0 {{#unless read}}bg-light{{/unless}}">
+                    <div class="d-flex align-items-start">
+                        <div class="notification-icon me-3 mt-1">
+                            <i class="{{icon}} text-{{type}}"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-medium">{{title}}</div>
+                            <p class="mb-1 small text-muted">{{message}}</p>
+                            <small class="text-muted">{{time_ago}}</small>
+                        </div>
+                        {{#unless read}}
+                        <div class="unread-indicator">
+                            <span class="badge bg-primary rounded-pill">•</span>
+                        </div>
+                        {{/unless}}
+                    </div>
+                </div>
+                {{/each}}
+            </div>
+            {{else}}
+            <div class="text-center py-4 text-muted">
+                <i class="fas fa-bell-slash fa-2x mb-3"></i>
+                <p>No notifications to display.</p>
+            </div>
+            {{/if}}
+        </div>
+    </div>
+</div>
+
+<!-- System Status (for admins) -->
+{{#if user.can.manage_system}}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="data-table-wrapper">
+            <h5 class="mb-3">
+                <i class="fas fa-server me-2 text-danger"></i>
+                System Status
+            </h5>
+
+            <div class="row">
+                {{#each system_status}}
+                <div class="col-md-3 mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="status-indicator me-3">
+                            <i class="fas fa-circle text-{{status_color}}"></i>
+                        </div>
+                        <div>
+                            <div class="fw-medium">{{name}}</div>
+                            <small class="text-muted">{{description}}</small>
+                        </div>
+                    </div>
+                </div>
+                {{/each}}
+            </div>
+        </div>
+    </div>
+</div>
+{{/if}}
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="data-table-wrapper">
+            <h5 class="mb-3">
+                <i class="fas fa-bolt me-2 text-primary"></i>
+                Quick Actions
+            </h5>
+
+            <div class="row">
+                {{#each quick_actions}}
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <a href="{{url}}" class="btn btn-outline-{{color}} w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3 text-decoration-none">
+                        <i class="{{icon}} fa-2x mb-2"></i>
+                        <span>{{title}}</span>
+                        {{#if description}}
+                        <small class="text-muted mt-1">{{description}}</small>
+                        {{/if}}
+                    </a>
+                </div>
+                {{/each}}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Activity Chart
+const activityCtx = document.getElementById('activityChart').getContext('2d');
+const activityChart = new Chart(activityCtx, {
+    type: 'line',
+    data: {
+        labels: {{{json activity_chart.labels}}},
+        datasets: [{
+            label: 'Daily Activities',
+            data: {{{json activity_chart.data}}},
+            borderColor: 'rgb(102, 126, 234)',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                }
+            },
+            x: {
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+// User Distribution Chart
+const userDistCtx = document.getElementById('userDistributionChart').getContext('2d');
+const userDistChart = new Chart(userDistCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{{json user_distribution.labels}}},
+        datasets: [{
+            data: {{{json user_distribution.data}}},
+            backgroundColor: [
+                'rgba(102, 126, 234, 0.8)',
+                'rgba(118, 75, 162, 0.8)',
+                'rgba(40, 167, 69, 0.8)',
+                'rgba(255, 193, 7, 0.8)',
+                'rgba(220, 53, 69, 0.8)'
+            ],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 20,
+                    usePointStyle: true
+                }
+            }
+        }
+    }
+});
+
+// Auto-refresh dashboard data every 5 minutes
+setInterval(function() {
+    // Implement auto-refresh logic here
+    console.log('Auto-refreshing dashboard data...');
+}, 300000);
+
+// Mark notifications as read when clicked
+document.querySelectorAll('.list-group-item-action').forEach(item => {
+    item.addEventListener('click', function() {
+        if (!this.classList.contains('read')) {
+            // Mark as read via AJAX
+            // Implementation depends on your API
+        }
+    });
+});
+</script>

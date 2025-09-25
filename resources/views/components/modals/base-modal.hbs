@@ -1,0 +1,160 @@
+<div class="modal fade {{class}}" id="{{id}}" tabindex="-1" aria-labelledby="{{id}}Label" aria-hidden="true" {{#if attributes}}{{{attributes}}}{{/if}}>
+    <div class="modal-dialog {{#if size}}modal-{{size}}{{/if}} {{#if centered}}modal-dialog-centered{{/if}} {{#if scrollable}}modal-dialog-scrollable{{/if}}">
+        <div class="modal-content">
+            {{#if header}}
+            <div class="modal-header {{#if header_class}}{{header_class}}{{/if}}">
+                <h5 class="modal-title" id="{{id}}Label">
+                    {{#if icon}}
+                    <i class="{{icon}} me-2"></i>
+                    {{/if}}
+                    {{title}}
+                </h5>
+                {{#unless no_close_button}}
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                {{/unless}}
+            </div>
+            {{/if}}
+
+            <div class="modal-body {{#if body_class}}{{body_class}}{{/if}}">
+                {{#if loading}}
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">{{#if loading_message}}{{loading_message}}{{else}}Loading...{{/if}}</p>
+                </div>
+                {{else}}
+                {{{content}}}
+                {{/if}}
+            </div>
+
+            {{#if footer}}
+            <div class="modal-footer {{#if footer_class}}{{footer_class}}{{/if}}">
+                {{#if custom_footer}}
+                {{{custom_footer}}}
+                {{else}}
+                {{#each footer_buttons}}
+                <button type="{{#if type}}{{type}}{{else}}button{{/if}}"
+                        class="btn btn-{{#if style}}{{style}}{{else}}secondary{{/if}} {{#if class}}{{class}}{{/if}}"
+                        {{#if id}}id="{{id}}"{{/if}}
+                        {{#if onclick}}onclick="{{onclick}}"{{/if}}
+                        {{#if data_dismiss}}data-bs-dismiss="modal"{{/if}}
+                        {{#if disabled}}disabled{{/if}}
+                        {{#if attributes}}{{{attributes}}}{{/if}}>
+                    {{#if icon}}
+                    <i class="{{icon}} me-2"></i>
+                    {{/if}}
+                    {{label}}
+                    {{#if loading_icon}}
+                    <span class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true" style="display: none;"></span>
+                    {{/if}}
+                </button>
+                {{/each}}
+                {{/if}}
+            </div>
+            {{/if}}
+        </div>
+    </div>
+</div>
+
+{{#if show_on_load}}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = new bootstrap.Modal(document.getElementById('{{id}}'));
+    modal.show();
+});
+</script>
+{{/if}}
+
+{{#if auto_focus}}
+<script>
+document.getElementById('{{id}}').addEventListener('shown.bs.modal', function () {
+    {{#if auto_focus_selector}}
+    document.querySelector('{{auto_focus_selector}}').focus();
+    {{else}}
+    document.querySelector('#{{id}} input, #{{id}} textarea, #{{id}} select').focus();
+    {{/if}}
+});
+</script>
+{{/if}}
+
+{{#if form_submit}}
+<script>
+document.getElementById('{{id}}').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const form = this.querySelector('form');
+    const submitBtn = this.querySelector('[type="submit"]');
+    const spinner = submitBtn.querySelector('.spinner-border');
+
+    // Show loading state
+    if (spinner) {
+        spinner.style.display = 'inline-block';
+    }
+    submitBtn.disabled = true;
+
+    // Submit form via AJAX
+    const formData = new FormData(form);
+
+    fetch(form.action, {
+        method: form.method || 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal and optionally reload page or update content
+            const modal = bootstrap.Modal.getInstance(document.getElementById('{{id}}'));
+            modal.hide();
+
+            {{#if reload_on_success}}
+            window.location.reload();
+            {{/if}}
+
+            {{#if success_callback}}
+            {{success_callback}}(data);
+            {{/if}}
+        } else {
+            // Show error messages
+            showFormErrors(data.errors);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while processing your request.');
+    })
+    .finally(() => {
+        // Hide loading state
+        if (spinner) {
+            spinner.style.display = 'none';
+        }
+        submitBtn.disabled = false;
+    });
+});
+
+function showFormErrors(errors) {
+    // Clear existing error messages
+    document.querySelectorAll('#{{id}} .invalid-feedback').forEach(el => {
+        el.style.display = 'none';
+    });
+    document.querySelectorAll('#{{id}} .is-invalid').forEach(el => {
+        el.classList.remove('is-invalid');
+    });
+
+    // Show new error messages
+    Object.keys(errors).forEach(field => {
+        const input = document.querySelector(`#{{id}} [name="${field}"]`);
+        if (input) {
+            input.classList.add('is-invalid');
+            const feedback = input.parentElement.querySelector('.invalid-feedback');
+            if (feedback) {
+                feedback.textContent = errors[field][0];
+                feedback.style.display = 'block';
+            }
+        }
+    });
+}
+</script>
+{{/if}}

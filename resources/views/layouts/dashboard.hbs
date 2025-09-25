@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{#if title}}{{title}} - {{/if}}{{app_name}} Dashboard</title>
+    <meta name="description" content="{{description}}">
+    <meta name="csrf-token" content="{{csrf_token}}">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- DataTables -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+
+    <style>
+        :root {
+            --sidebar-width: 280px;
+            --header-height: 70px;
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --sidebar-bg: #2c3e50;
+            --sidebar-hover: #34495e;
+            --content-bg: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--content-bg);
+        }
+
+        .dashboard-wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, var(--sidebar-bg) 0%, #1a252f 100%);
+            color: white;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-brand {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .sidebar-brand h4 {
+            margin: 0;
+            color: white;
+            font-weight: 600;
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-section-title {
+            padding: 1rem 1.5rem 0.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+            background: none;
+        }
+
+        .nav-link:hover {
+            color: white;
+            background-color: var(--sidebar-hover);
+            transform: translateX(5px);
+        }
+
+        .nav-link.active {
+            color: white;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            position: relative;
+        }
+
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: white;
+        }
+
+        .nav-link i {
+            width: 20px;
+            margin-right: 0.75rem;
+            text-align: center;
+        }
+
+        .nav-link .badge {
+            margin-left: auto;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        /* Header */
+        .dashboard-header {
+            background: white;
+            height: var(--header-height);
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: #6c757d;
+            margin-right: 1rem;
+            cursor: pointer;
+        }
+
+        .breadcrumb-nav {
+            background: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .breadcrumb-nav .breadcrumb-item {
+            font-size: 0.9rem;
+        }
+
+        .header-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .notification-bell {
+            position: relative;
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: #6c757d;
+            cursor: pointer;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-dropdown .dropdown-toggle {
+            background: none;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #495057;
+        }
+
+        .user-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            border: 2px solid #e9ecef;
+        }
+
+        /* Content Area */
+        .dashboard-content {
+            padding: 2rem;
+        }
+
+        .page-header {
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .page-subtitle {
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
+
+        /* Cards */
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #f1f3f4;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            line-height: 1;
+        }
+
+        .stat-card-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .stat-card-trend {
+            font-size: 0.85rem;
+            margin-top: 0.75rem;
+        }
+
+        .trend-up {
+            color: #28a745;
+        }
+
+        .trend-down {
+            color: #dc3545;
+        }
+
+        /* Tables */
+        .data-table-wrapper {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #f1f3f4;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table th {
+            border-top: none;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .dashboard-header {
+                padding: 0 1rem;
+            }
+
+            .dashboard-content {
+                padding: 1rem;
+            }
+
+            .page-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Custom scrollbar for sidebar */
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Loading states */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            display: none;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
+    {{#if css}}
+    {{{css}}}
+    {{/if}}
+</head>
+<body>
+    <div class="dashboard-wrapper">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <h4>{{app_name}}</h4>
+                {{#if user.organization}}
+                <small class="text-muted">{{user.organization.name}}</small>
+                {{/if}}
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-section-title">Main</div>
+                <a href="/dashboard" class="nav-link {{#if (eq current_route 'dashboard')}}active{{/if}}">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Dashboard
+                </a>
+
+                {{#if user.can.manage_users}}
+                <div class="nav-section-title">User Management</div>
+                <a href="/dashboard/users" class="nav-link {{#if (eq current_route 'users')}}active{{/if}}">
+                    <i class="fas fa-users"></i>
+                    Users
+                    {{#if pending_users_count}}
+                    <span class="badge bg-warning">{{pending_users_count}}</span>
+                    {{/if}}
+                </a>
+                <a href="/dashboard/roles" class="nav-link {{#if (eq current_route 'roles')}}active{{/if}}">
+                    <i class="fas fa-user-tag"></i>
+                    Roles & Permissions
+                </a>
+                <a href="/dashboard/organizations" class="nav-link {{#if (eq current_route 'organizations')}}active{{/if}}">
+                    <i class="fas fa-building"></i>
+                    Organizations
+                </a>
+                {{/if}}
+
+                {{#if user.can.manage_oauth}}
+                <div class="nav-section-title">OAuth & API</div>
+                <a href="/dashboard/oauth/clients" class="nav-link {{#if (eq current_route 'oauth-clients')}}active{{/if}}">
+                    <i class="fas fa-key"></i>
+                    OAuth Clients
+                </a>
+                <a href="/dashboard/oauth/tokens" class="nav-link {{#if (eq current_route 'oauth-tokens')}}active{{/if}}">
+                    <i class="fas fa-coins"></i>
+                    Access Tokens
+                </a>
+                {{/if}}
+
+                <div class="nav-section-title">Content</div>
+                <a href="/dashboard/notifications" class="nav-link {{#if (eq current_route 'notifications')}}active{{/if}}">
+                    <i class="fas fa-bell"></i>
+                    Notifications
+                    {{#if unread_notifications_count}}
+                    <span class="badge bg-danger">{{unread_notifications_count}}</span>
+                    {{/if}}
+                </a>
+                <a href="/dashboard/activity-logs" class="nav-link {{#if (eq current_route 'activity-logs')}}active{{/if}}">
+                    <i class="fas fa-history"></i>
+                    Activity Logs
+                </a>
+
+                {{#if user.can.manage_system}}
+                <div class="nav-section-title">System</div>
+                <a href="/dashboard/settings" class="nav-link {{#if (eq current_route 'settings')}}active{{/if}}">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+                <a href="/dashboard/maintenance" class="nav-link {{#if (eq current_route 'maintenance')}}active{{/if}}">
+                    <i class="fas fa-tools"></i>
+                    Maintenance
+                </a>
+                {{/if}}
+
+                <div class="nav-section-title">Account</div>
+                <a href="/dashboard/profile" class="nav-link {{#if (eq current_route 'profile')}}active{{/if}}">
+                    <i class="fas fa-user"></i>
+                    My Profile
+                </a>
+                <a href="/dashboard/security" class="nav-link {{#if (eq current_route 'security')}}active{{/if}}">
+                    <i class="fas fa-shield-alt"></i>
+                    Security
+                </a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="main-content" id="mainContent">
+            <!-- Header -->
+            <header class="dashboard-header">
+                <div class="header-left">
+                    <button class="sidebar-toggle" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb breadcrumb-nav">
+                            <li class="breadcrumb-item">
+                                <a href="/dashboard" class="text-decoration-none">Dashboard</a>
+                            </li>
+                            {{#each breadcrumbs}}
+                            <li class="breadcrumb-item {{#if @last}}active{{/if}}">
+                                {{#unless @last}}
+                                <a href="{{url}}" class="text-decoration-none">{{title}}</a>
+                                {{else}}
+                                {{title}}
+                                {{/unless}}
+                            </li>
+                            {{/each}}
+                        </ol>
+                    </nav>
+                </div>
+
+                <div class="header-right">
+                    {{#if notifications_enabled}}
+                    <button class="notification-bell" onclick="showNotifications()">
+                        <i class="fas fa-bell"></i>
+                        {{#if unread_notifications_count}}
+                        <span class="notification-badge">{{unread_notifications_count}}</span>
+                        {{/if}}
+                    </button>
+                    {{/if}}
+
+                    <div class="dropdown user-dropdown">
+                        <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <img src="{{user.avatar_url}}" alt="{{user.name}}" class="user-avatar">
+                            <span>{{user.name}}</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <h6 class="dropdown-header">
+                                    {{user.name}}
+                                    <br><small class="text-muted">{{user.email}}</small>
+                                </h6>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/dashboard/profile">
+                                <i class="fas fa-user me-2"></i>My Profile
+                            </a></li>
+                            <li><a class="dropdown-item" href="/dashboard/security">
+                                <i class="fas fa-shield-alt me-2"></i>Security
+                            </a></li>
+                            <li><a class="dropdown-item" href="/dashboard/settings">
+                                <i class="fas fa-cog me-2"></i>Settings
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/auth/logout">
+                                <i class="fas fa-sign-out-alt me-2"></i>Sign Out
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <main class="dashboard-content">
+                {{#if flash_message}}
+                <div class="alert alert-{{flash_type}} alert-dismissible fade show" role="alert">
+                    {{#if flash_icon}}
+                    <i class="{{flash_icon}} me-2"></i>
+                    {{/if}}
+                    {{flash_message}}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {{/if}}
+
+                {{{content}}}
+            </main>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- DataTables -->
+    <script type="text/javascript" src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        // Sidebar toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('show');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+            }
+        }
+
+        // Close sidebar on mobile when clicking outside
+        document.addEventListener('click', function(event) {
+            if (window.innerWidth <= 768) {
+                const sidebar = document.getElementById('sidebar');
+                const sidebarToggle = document.querySelector('.sidebar-toggle');
+
+                if (!sidebar.contains(event.target) && !sidebarToggle.contains(event.target)) {
+                    sidebar.classList.remove('show');
+                }
+            }
+        });
+
+        // Show loading overlay
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // AJAX setup with CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        // Auto-hide alerts
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(alert => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+
+        // Real-time notifications (if enabled)
+        {{#if notifications_enabled}}
+        function showNotifications() {
+            // Implementation for showing notifications dropdown/modal
+            console.log('Show notifications');
+        }
+
+        // WebSocket connection for real-time updates
+        {{#if websocket_enabled}}
+        const ws = new WebSocket('{{websocket_url}}');
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            handleRealtimeUpdate(data);
+        };
+
+        function handleRealtimeUpdate(data) {
+            switch(data.type) {
+                case 'notification':
+                    updateNotificationBadge(data.count);
+                    break;
+                case 'user_status':
+                    updateUserStatus(data);
+                    break;
+            }
+        }
+
+        function updateNotificationBadge(count) {
+            const badge = document.querySelector('.notification-badge');
+            if (count > 0) {
+                if (badge) {
+                    badge.textContent = count;
+                } else {
+                    const bell = document.querySelector('.notification-bell');
+                    bell.innerHTML += '<span class="notification-badge">' + count + '</span>';
+                }
+            } else if (badge) {
+                badge.remove();
+            }
+        }
+        {{/if}}
+        {{/if}}
+    </script>
+
+    {{#if js}}
+    {{{js}}}
+    {{/if}}
+</body>
+</html>

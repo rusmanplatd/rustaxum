@@ -1,0 +1,147 @@
+<form id="loginForm" action="/auth/login" method="POST" class="needs-validation" novalidate>
+    {{#if csrf_token}}
+    <input type="hidden" name="_token" value="{{csrf_token}}">
+    {{/if}}
+
+    <div class="form-floating">
+        <input type="email"
+               class="form-control {{#if errors.email}}is-invalid{{/if}}"
+               id="email"
+               name="email"
+               placeholder="name@example.com"
+               value="{{old.email}}"
+               required
+               autocomplete="email">
+        <label for="email">
+            <i class="fas fa-envelope me-2"></i>Email Address
+        </label>
+        {{#if errors.email}}
+        <div class="invalid-feedback">
+            {{errors.email}}
+        </div>
+        {{/if}}
+    </div>
+
+    <div class="form-floating position-relative">
+        <input type="password"
+               class="form-control {{#if errors.password}}is-invalid{{/if}}"
+               id="password"
+               name="password"
+               placeholder="Password"
+               required
+               autocomplete="current-password">
+        <label for="password">
+            <i class="fas fa-lock me-2"></i>Password
+        </label>
+        <button type="button" class="password-toggle" onclick="togglePassword('password')">
+            <i class="fas fa-eye"></i>
+        </button>
+        {{#if errors.password}}
+        <div class="invalid-feedback">
+            {{errors.password}}
+        </div>
+        {{/if}}
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="remember" name="remember" {{#if old.remember}}checked{{/if}}>
+            <label class="form-check-label" for="remember">
+                Remember me
+            </label>
+        </div>
+        <a href="/auth/forgot-password" class="text-auth text-decoration-none">
+            <small>Forgot password?</small>
+        </a>
+    </div>
+
+    {{#if captcha_enabled}}
+    <div class="mb-3">
+        <div class="g-recaptcha" data-sitekey="{{captcha_site_key}}"></div>
+        {{#if errors.captcha}}
+        <div class="text-danger small mt-1">
+            {{errors.captcha}}
+        </div>
+        {{/if}}
+    </div>
+    {{/if}}
+
+    <div class="d-grid mb-3">
+        <button type="submit" class="btn btn-primary btn-auth btn-lg">
+            <span class="loading-spinner"></span>
+            <i class="fas fa-sign-in-alt me-2"></i>Sign In
+        </button>
+    </div>
+
+    {{#if social_login_enabled}}
+    <div class="divider">
+        <span>or continue with</span>
+    </div>
+
+    <div class="social-login text-center">
+        {{#if google_login}}
+        <a href="/auth/google" class="btn btn-outline-danger">
+            <i class="fab fa-google me-2"></i>Google
+        </a>
+        {{/if}}
+
+        {{#if github_login}}
+        <a href="/auth/github" class="btn btn-outline-dark">
+            <i class="fab fa-github me-2"></i>GitHub
+        </a>
+        {{/if}}
+
+        {{#if microsoft_login}}
+        <a href="/auth/microsoft" class="btn btn-outline-primary">
+            <i class="fab fa-microsoft me-2"></i>Microsoft
+        </a>
+        {{/if}}
+    </div>
+    {{/if}}
+</form>
+
+{{#if registration_enabled}}
+<div class="text-center mt-4">
+    <p class="mb-0">
+        Don't have an account?
+        <a href="/auth/register" class="text-auth text-decoration-none fw-bold">
+            Create one here
+        </a>
+    </p>
+</div>
+{{/if}}
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    // Basic client-side validation
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    if (!email || !password) {
+        return;
+    }
+
+    // Show loading state
+    showLoading('loginForm');
+
+    // Submit the form
+    this.submit();
+});
+
+// Auto-fill demo credentials if in development
+{{#if is_development}}
+document.addEventListener('DOMContentLoaded', function() {
+    const emailField = document.getElementById('email');
+    const passwordField = document.getElementById('password');
+
+    if (!emailField.value) {
+        emailField.value = '{{demo_email}}';
+    }
+    if (!passwordField.value) {
+        passwordField.value = '{{demo_password}}';
+    }
+});
+{{/if}}
+</script>
