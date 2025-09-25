@@ -45,4 +45,5 @@ impl HomeController {
 
         TemplateResponse::new("pages/home", &data)
     }
+
 }

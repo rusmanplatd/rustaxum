@@ -46,6 +46,7 @@ tokio-util = { version = "0.7", features = ["io"] }
 bytes = "1.10"
 futures = "0.3"
 async-trait = "0.1"
+async-stream = "0.3"
 mime_guess = "2.0"
 thiserror = "2.0"
 # Cache dependencies

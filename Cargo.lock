@@ -4760,6 +4760,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "argon2",
+ "async-stream",
  "async-trait",
  "aws-config",
  "aws-credential-types",
