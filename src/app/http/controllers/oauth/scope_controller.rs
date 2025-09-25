@@ -431,8 +431,7 @@ async fn verify_admin_access(pool: &DbPool, headers: &HeaderMap) -> anyhow::Resu
     let user_id = get_authenticated_user(pool, headers).await?;
 
     // Here you would typically check if the user has admin role
-    // For now, we'll accept any authenticated user
-    // In a real implementation, you'd check user roles/permissions
+    // TODO: In a real implementation, you'd check user roles/permissions
 
     Ok(user_id)
 }

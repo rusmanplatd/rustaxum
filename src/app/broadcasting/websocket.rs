@@ -373,7 +373,6 @@ async fn validate_websocket_token(token: &str, channel: &str) -> Result<WebSocke
     }
 
     // TODO: Replace with proper user lookup once available in UserService
-    // For now, create a minimal user context
     let user_id = claims.sub.clone();
     let roles: Vec<String> = Vec::new();
     let permissions: Vec<String> = Vec::new();

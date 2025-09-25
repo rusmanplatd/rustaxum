@@ -45,7 +45,6 @@ impl User {
     /// Load notification preferences from database
     async fn load_preferences_from_database(&self) -> anyhow::Result<HashMap<String, bool>> {
         // TODO: Implement user preferences with Diesel when needed
-        // For now, return default preferences
         Ok(self.default_preferences())
     }
 

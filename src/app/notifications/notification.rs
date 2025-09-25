@@ -592,8 +592,7 @@ impl NotificationFacade {
         notifiable: &N,
         notification_type: &str,
     ) -> bool {
-        // In a production implementation, this would check against captured notifications
-        // For now, we'll check if there are any database notifications of this type
+        // TODO: In a production implementation, this would check against captured notifications
         let notification_service = crate::app::services::notification_service::NotificationService::new().await;
 
         // Extract notifiable type and ID from the key

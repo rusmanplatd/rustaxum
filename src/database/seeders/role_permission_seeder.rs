@@ -83,7 +83,7 @@ impl Seeder for RolePermissionSeeder {
 
         let now = Utc::now();
 
-        // For now, use None for organization_id (global permissions/roles)
+        // use None for organization_id (global permissions/roles)
         let default_org_id: Option<String> = None;
 
         // Create permissions for all existing models

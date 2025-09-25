@@ -261,6 +261,39 @@ impl DeviceService {
         Ok(device_auth)
     }
 
+    /// Verify device code by user code and authorize it for the given user
+    pub async fn verify_device_code(pool: &DbPool, user_code: &str, user_id: &str) -> Result<()> {
+        use diesel::prelude::*;
+
+        let mut conn = pool.get()?;
+        let now = Utc::now();
+
+        // Find device code by user_code
+        let device_code: DeviceCode = oauth_device_codes::table
+            .filter(oauth_device_codes::user_code.eq(user_code))
+            .filter(oauth_device_codes::expires_at.gt(now))
+            .filter(oauth_device_codes::revoked.eq(false))
+            .select(DeviceCode::as_select())
+            .first(&mut conn)
+            .map_err(|_| anyhow::anyhow!("Invalid or expired user code"))?;
+
+        // Check if already authorized
+        if device_code.user_id.is_some() {
+            return Err(anyhow::anyhow!("Device code already authorized"));
+        }
+
+        // Update device code with user_id to authorize it
+        diesel::update(oauth_device_codes::table.filter(oauth_device_codes::id.eq(&device_code.id)))
+            .set((
+                oauth_device_codes::user_id.eq(Some(user_id)),
+                oauth_device_codes::updated_at.eq(now),
+            ))
+            .execute(&mut conn)?;
+
+        tracing::info!("Device code {} successfully authorized for user {}", user_code, user_id);
+        Ok(())
+    }
+
     /// Revoke device code
     pub fn revoke_device_code(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;

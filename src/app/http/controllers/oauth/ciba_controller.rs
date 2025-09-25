@@ -7,7 +7,7 @@ use serde::Deserialize;
 use base64::Engine;
 use serde_json::{json, Value};
 use crate::database::DbPool;
-use crate::app::services::oauth::{CIBAService, BackchannelAuthRequest, CIBAMode};
+use crate::app::services::oauth::{CIBAService, BackchannelAuthRequest, CIBAMode, CIBATokenRequest};
 
 /// RFC 8955: Client Initiated Backchannel Authentication (CIBA) Controller
 ///
@@ -58,24 +58,24 @@ pub async fn create_backchannel_auth_request(
         }
     };
 
+    // Determine CIBA mode before moving values (for demo, using Poll mode)
+    let _ciba_mode = if form.client_notification_token.is_some() {
+        CIBAMode::Ping
+    } else {
+        CIBAMode::Poll
+    };
+
     // Create backchannel auth request
     let ciba_request = BackchannelAuthRequest {
         scope: form.scope,
-        client_notification_token: form.client_notification_token,
+        notification_token: form.client_notification_token,
         acr_values: form.acr_values,
         login_hint_token: form.login_hint_token,
         id_token_hint: form.id_token_hint,
         login_hint: form.login_hint,
         binding_message: form.binding_message,
         user_code: form.user_code,
-        requested_expiry: form.requested_expiry,
-    };
-
-    // Determine CIBA mode (for demo, using Poll mode)
-    let ciba_mode = if form.client_notification_token.is_some() {
-        CIBAMode::Ping
-    } else {
-        CIBAMode::Poll
+        requested_expiry: form.requested_expiry.map(|x| x as i64),
     };
 
     match CIBAService::create_backchannel_auth_request(&pool, &client_id, ciba_request).await {
@@ -175,9 +175,20 @@ pub async fn exchange_ciba_for_tokens(
         }
     };
 
-    match CIBAService::exchange_ciba_for_tokens(&pool, &client_id, &form.auth_req_id).await {
+    // Store auth_req_id for logging before moving
+    let auth_req_id = form.auth_req_id.clone();
+
+    // Create CIBA token request
+    let ciba_token_request = CIBATokenRequest {
+        grant_type: form.grant_type,
+        auth_req_id: form.auth_req_id,
+        client_id,
+        client_secret: form.client_secret,
+    };
+
+    match CIBAService::exchange_ciba_for_tokens(&pool, ciba_token_request).await {
         Ok(response) => {
-            tracing::info!("CIBA token exchange successful for auth_req_id: {}", form.auth_req_id);
+            tracing::info!("CIBA token exchange successful for auth_req_id: {}", auth_req_id);
             Ok(Json(json!({
                 "access_token": response.access_token,
                 "token_type": response.token_type,
@@ -188,7 +199,7 @@ pub async fn exchange_ciba_for_tokens(
         }
         Err(err) => {
             let error_msg = err.to_string();
-            tracing::error!("CIBA token exchange failed for auth_req_id {}: {}", form.auth_req_id, error_msg);
+            tracing::error!("CIBA token exchange failed for auth_req_id {}: {}", auth_req_id, error_msg);
 
             // Map specific CIBA errors to OAuth error codes
             let (error_code, status_code) = if error_msg.contains("authorization_pending") {

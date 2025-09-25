@@ -189,7 +189,6 @@ pub async fn list_auth_codes(
     }
 
     // Note: This would need to be implemented in TokenService
-    // For now, return a placeholder response
     let error = ErrorResponse {
         error: "not_implemented".to_string(),
         error_description: Some("List auth codes endpoint not yet implemented".to_string()),
@@ -468,8 +467,7 @@ async fn verify_admin_access(pool: &DbPool, headers: &HeaderMap) -> anyhow::Resu
     let user_id = get_authenticated_user(pool, headers).await?;
 
     // Here you would typically check if the user has admin role
-    // For now, we'll accept any authenticated user
-    // In a real implementation, you'd check user roles/permissions
+    // TODO: check user roles/permissions
 
     Ok(user_id)
 }

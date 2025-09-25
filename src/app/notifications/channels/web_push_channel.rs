@@ -198,7 +198,7 @@ impl WebPushChannel {
 
     /// Mark subscription as failed for future cleanup
     pub async fn mark_subscription_failed(subscription_id: &str) -> Result<()> {
-        // For now, we'll just log it. In a production system, you might add a failed_attempts column
+        // TODO: In a production system, you might add a failed_attempts column
         tracing::warn!("Subscription {} marked as failed for future cleanup", subscription_id);
         Ok(())
     }

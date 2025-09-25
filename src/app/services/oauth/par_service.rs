@@ -152,11 +152,13 @@ impl PARService {
         let client = ClientService::find_by_id(pool, client_id.to_string())?
             .ok_or_else(|| anyhow::anyhow!("Client not found"))?;
 
-        // TODO: In production, check if client is configured to use PAR
-        // For high-security applications, PAR might be mandatory
+        // Check if client is revoked
         if client.revoked {
             return Err(anyhow::anyhow!("Client is revoked"));
         }
+
+        // TODO: In production, made mandatory per client by adding a `require_par` field to the client configuration
+        tracing::debug!("PAR validation passed for client {}", client_id);
 
         Ok(())
     }
@@ -212,11 +214,22 @@ impl PARService {
 
     /// Validate JWT request object (FAPI requirement)
     fn validate_request_object(request_jwt: &str) -> Result<()> {
-        // TODO: In production, this would:
-        // 1. Verify JWT signature
-        // 2. Validate claims
-        // 3. Check client_id matches
-        // 4. Validate request object parameters
+        // For production implementation, you would:
+        // 1. Verify JWT signature using client's public key or shared secret
+        // 2. Validate standard claims (iat, exp, aud, iss)
+        // 3. Check client_id matches the authenticated client
+        // 4. Validate that request object parameters match PAR request
+        // 5. Ensure no security-sensitive parameters are duplicated outside JWT
+
+        // Basic JWT format validation
+        let parts: Vec<&str> = request_jwt.split('.').collect();
+        if parts.len() != 3 {
+            return Err(anyhow::anyhow!("Invalid JWT format: expected 3 parts"));
+        }
+
+        // TODO: In production, implement full cryptographic validation
+        tracing::debug!("JWT request object format validation passed");
+        tracing::warn!("JWT request object signature validation not implemented - add proper JWT verification for production");
 
         if request_jwt.is_empty() {
             return Err(anyhow::anyhow!("Empty request object"));

@@ -303,7 +303,6 @@ impl SendEmailJob {
 
     async fn get_admin_users(&self) -> Result<Vec<crate::app::models::user::User>> {
         // TODO: Implement admin user lookup with Diesel when needed
-        // For now, return empty list to avoid errors
         Ok(Vec::new())
     }
 

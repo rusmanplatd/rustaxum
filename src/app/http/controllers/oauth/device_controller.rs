@@ -1,13 +1,12 @@
 use axum::{
-    extract::{Query, Json, State, Form, Path},
+    extract::{Query, Json, State, Form},
     http::{StatusCode, HeaderMap},
-    response::{IntoResponse, Json as ResponseJson, Html, Redirect},
+    response::{IntoResponse, Json as ResponseJson, Html},
 };
 use serde::{Deserialize, Serialize};
 use crate::database::DbPool;
 use utoipa::ToSchema;
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 
 use crate::app::services::oauth::{DeviceService, ClientService};
 use crate::app::models::oauth::{CreateDeviceCode, DeviceAuthorizationResponse, DeviceCodeVerification};
@@ -405,92 +404,74 @@ pub async fn device_verification_page(
 pub async fn device_verify(
     State(pool): State<DbPool>,
     headers: HeaderMap,
-    Form(verification): Form<DeviceCodeVerification>,
+    Json(verification): Json<DeviceCodeVerification>,
 ) -> impl IntoResponse {
-    // Get authenticated user
-    let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
-    let user_id = match get_user_from_token(&pool, auth_header).await {
-        Ok(user_id) => user_id,
-        Err(_) => {
-            // Redirect to login with device code
-            let redirect_url = format!(
-                "/login?redirect_uri={}&device_code=true",
-                urlencoding::encode(&format!("/oauth/device?user_code={}", verification.user_code))
-            );
-            return Redirect::temporary(&redirect_url).into_response();
+    // Extract authenticated user from JWT token
+    let user_id = match crate::app::http::middleware::auth_middleware::validate_jwt_token(
+        &crate::app::http::middleware::auth_middleware::extract_bearer_token(&headers)
+            .unwrap_or_default()
+    ) {
+        Some(uid) => uid,
+        None => {
+            return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({
+                "error": "unauthorized",
+                "error_description": "Valid authentication required to authorize device"
+            }))).into_response();
         }
     };
 
-    // Authorize the device
-    match DeviceService::authorize_device_code(&pool, verification.user_code.clone(), user_id).await {
+    // Process the device verification
+    match DeviceService::verify_device_code(&pool, &verification.user_code, &user_id).await {
         Ok(_) => {
-            // Success - show confirmation page
-            let html_content = format!(
+            // Return success HTML page
+            Html(format!(
                 r#"<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device Authorized</title>
+    <title>Device Authorization Success</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body {{
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-            text-align: center;
-        }}
-        .container {{
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }}
-        .success {{
-            color: #2e7d32;
-            background: #e8f5e8;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #2e7d32;
-        }}
+        body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; }}
+        .success {{ color: green; }}
+        .container {{ max-width: 500px; margin: 0 auto; }}
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="success">
-            <h2>✅ Device Authorized Successfully!</h2>
-            <p>Your device with code <strong>{}</strong> has been authorized.</p>
-            <p>You can now return to your device - it should automatically receive access.</p>
-        </div>
-
-        <p style="color: #666; margin-top: 30px;">
-            You can safely close this page and return to your device.
-        </p>
-
-        <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
-            <p><strong>What happens next?</strong></p>
-            <ol style="text-align: left; display: inline-block;">
-                <li>Your device will automatically detect the authorization</li>
-                <li>It will receive secure access tokens</li>
-                <li>You can start using the application on your device</li>
-            </ol>
-        </div>
+        <h1 class="success">Device Authorization Successful</h1>
+        <p>Your device with code <strong>{}</strong> has been successfully authorized.</p>
+        <p>You may now return to your device and continue using the application.</p>
     </div>
 </body>
 </html>"#,
-                html_escape(&verification.user_code)
-            );
-
-            Html(html_content).into_response()
+                verification.user_code
+            )).into_response()
         },
         Err(e) => {
-            // Error - redirect back with error
-            let error_msg = urlencoding::encode(&e.to_string());
-            let redirect_url = format!("/oauth/device?user_code={}&error={}",
-                verification.user_code, error_msg);
-            Redirect::temporary(&redirect_url).into_response()
+            tracing::warn!("Device verification failed: {}", e);
+            (StatusCode::BAD_REQUEST, Html(format!(
+                r#"<!DOCTYPE html>
+<html>
+<head>
+    <title>Device Authorization Failed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; }}
+        .error {{ color: red; }}
+        .container {{ max-width: 500px; margin: 0 auto; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="error">Device Authorization Failed</h1>
+        <p>The device code <strong>{}</strong> could not be verified.</p>
+        <p>Error: {}</p>
+        <p>Please check the code and try again.</p>
+    </div>
+</body>
+</html>"#,
+                verification.user_code, e
+            ))).into_response()
         }
     }
 }
@@ -514,7 +495,13 @@ pub async fn admin_list_device_codes(
     State(pool): State<DbPool>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
-    // TODO: Add admin authentication check
+    // Check admin authentication
+    if let Err(status) = crate::app::http::middleware::auth_middleware::verify_admin_access(&headers, &pool).await {
+        return (status, ResponseJson(ErrorResponse {
+            error: "access_denied".to_string(),
+            error_description: Some("Admin privileges required".to_string()),
+        })).into_response();
+    }
 
     match DeviceService::list_active_codes(&pool, None) {
         Ok(device_codes) => {
@@ -548,7 +535,13 @@ pub async fn admin_device_stats(
     State(pool): State<DbPool>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
-    // TODO: Add admin authentication check
+    // Check admin authentication
+    if let Err(status) = crate::app::http::middleware::auth_middleware::verify_admin_access(&headers, &pool).await {
+        return (status, ResponseJson(ErrorResponse {
+            error: "access_denied".to_string(),
+            error_description: Some("Admin privileges required".to_string()),
+        })).into_response();
+    }
 
     match DeviceService::get_device_stats(&pool) {
         Ok(stats) => {

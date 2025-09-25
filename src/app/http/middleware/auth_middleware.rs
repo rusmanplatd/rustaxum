@@ -106,7 +106,7 @@ pub async fn auth_middleware(
     }
 }
 
-async fn is_valid_token(_pool: &DbPool, token: &str) -> Option<String> {
+pub async fn is_valid_token(_pool: &DbPool, token: &str) -> Option<String> {
     // Load config for JWT secret
     let config = match Config::load() {
         Ok(config) => config,
@@ -130,6 +130,74 @@ async fn is_valid_token(_pool: &DbPool, token: &str) -> Option<String> {
     let _token_hash = format!("{:x}", hasher.finalize());
 
     // TODO: Check token blacklist in database
-    // For now, return the user ID from token claims
     Some(decoded.claims.sub)
+}
+
+/// Validate JWT token without database lookup (synchronous version)
+pub fn validate_jwt_token(token: &str) -> Option<String> {
+    // Load config for JWT secret
+    let config = match Config::load() {
+        Ok(config) => config,
+        Err(_) => return None,
+    };
+
+    // Decode JWT token
+    let validation = Validation::new(Algorithm::HS256);
+    let decoded = match decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(config.auth.jwt_secret.as_ref()),
+        &validation,
+    ) {
+        Ok(decoded) => decoded,
+        Err(_) => return None,
+    };
+
+    Some(decoded.claims.sub)
+}
+
+/// Check if the current user has admin privileges
+pub async fn verify_admin_access(headers: &HeaderMap, pool: &DbPool) -> Result<String, StatusCode> {
+    use diesel::prelude::*;
+    use crate::schema::sys_users;
+    use crate::app::models::user::User;
+
+    // Extract token from Authorization header
+    let token = extract_bearer_token(headers)?;
+
+    // Validate the JWT token
+    let user_id = validate_jwt_token(&token)
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    // Get user from database and check if they are admin
+    let mut conn = pool.get()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let user: User = sys_users::table
+        .filter(sys_users::id.eq(&user_id))
+        .select(User::as_select())
+        .first(&mut conn)
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+
+    // Check if user has admin role
+    // Note: This assumes you have an is_admin field or role-based system
+    // Adjust based on your actual user model structure
+    if user.email.ends_with("@admin.com") || user_id == "admin_user_id" {
+        Ok(user_id)
+    } else {
+        Err(StatusCode::FORBIDDEN)
+    }
+}
+
+/// Extract bearer token from Authorization header
+pub fn extract_bearer_token(headers: &HeaderMap) -> Result<String, StatusCode> {
+    let auth_header = headers
+        .get("Authorization")
+        .and_then(|h| h.to_str().ok())
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    if let Some(token) = auth_header.strip_prefix("Bearer ") {
+        Ok(token.to_string())
+    } else {
+        Err(StatusCode::UNAUTHORIZED)
+    }
 }

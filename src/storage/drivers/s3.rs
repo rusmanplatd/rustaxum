@@ -592,8 +592,7 @@ impl Filesystem for S3Filesystem {
     }
 
     async fn get_visibility(&self, _path: &str) -> Result<String> {
-        // This would require additional S3 API calls to get ACL
-        // For now, return the default visibility
+        // TODO: This would require additional S3 API calls to get ACL
         Ok(self.visibility.clone())
     }
 

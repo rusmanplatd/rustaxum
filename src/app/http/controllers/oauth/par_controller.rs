@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 use base64::Engine;
 use crate::database::DbPool;
 use crate::app::services::oauth::{PARService, PushedAuthRequest};
-use crate::app::http::middleware::auth_middleware::AuthMiddleware;
+// Remove unused middleware import - use direct authentication via headers
 
 /// RFC 9126: OAuth 2.0 Pushed Authorization Requests Controller
 ///
@@ -112,14 +112,14 @@ pub async fn create_authorization_url(
 /// POST /oauth/par/cleanup (admin only)
 pub async fn cleanup_expired_requests(
     State(pool): State<DbPool>,
-    AuthMiddleware(user): AuthMiddleware,
+    headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    // TODO: In production, check if user has admin privileges
-    if !is_admin_user(&user) {
+    // Check admin authentication
+    if let Err(status) = crate::app::http::middleware::auth_middleware::verify_admin_access(&headers, &pool).await {
         return Err((
-            StatusCode::FORBIDDEN,
+            status,
             Json(json!({
-                "error": "insufficient_scope",
+                "error": "access_denied",
                 "error_description": "Admin privileges required"
             }))
         ));
@@ -217,8 +217,3 @@ async fn authenticate_client(
     Ok(())
 }
 
-/// Check if user is admin (simplified)
-fn is_admin_user(_user: &crate::app::models::user::User) -> bool {
-    // TODO: In production, check user roles/permissions
-    true
-}

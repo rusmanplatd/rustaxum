@@ -170,7 +170,14 @@ pub async fn get_token(
             // Check if user owns this token or is admin
             if let Some(ref owner_id) = token.user_id {
                 if owner_id != &user_id {
-                    // TODO: In production, you'd check admin permissions here
+                    // Check if user has admin privileges to view other users' tokens
+                    if let Err(_) = crate::app::http::middleware::auth_middleware::verify_admin_access(&headers, &pool).await {
+                        let error = ErrorResponse {
+                            error: "access_denied".to_string(),
+                            error_description: Some("You can only view your own tokens unless you have admin privileges".to_string()),
+                        };
+                        return (StatusCode::FORBIDDEN, ResponseJson(error)).into_response();
+                    }
                 }
             }
 
@@ -383,8 +390,7 @@ pub async fn get_token_stats(
         return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
     }
 
-    // This would need to be implemented with proper database queries
-    // For now, return a placeholder response
+    // TODO: This would need to be implemented with proper database queries
     let _response = TokenStatsResponse {
         total_tokens: 0,
         active_tokens: 0,
@@ -511,8 +517,7 @@ async fn verify_admin_access(pool: &DbPool, headers: &HeaderMap) -> anyhow::Resu
     let user_id = get_authenticated_user(pool, headers).await?;
 
     // Here you would typically check if the user has admin role
-    // For now, we'll accept any authenticated user
-    // In a real implementation, you'd check user roles/permissions
+    // TODO: In a real implementation, you'd check user roles/permissions
 
     Ok(user_id)
 }

@@ -192,8 +192,7 @@ pub async fn get_dashboard_stats(
         return (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response();
     }
 
-    // For now, return a comprehensive but placeholder response
-    // In a real implementation, you'd query the database for actual statistics
+    // TODO: query the database for actual statistics
     let stats = OAuthDashboardStats {
         overview: OverviewStats {
             total_clients: 25,
@@ -429,8 +428,7 @@ pub async fn system_cleanup(
     let mut auth_codes_removed = 0;
     let mut operations = Vec::new();
 
-    // This would need to be implemented in the respective services
-    // For now, return a placeholder response
+    // TODO: This would need to be implemented in the respective services
 
     if payload.remove_expired_tokens.unwrap_or(false) {
         operations.push("remove expired tokens");
@@ -549,8 +547,7 @@ async fn verify_admin_access(pool: &DbPool, headers: &HeaderMap) -> anyhow::Resu
     let user_id = get_authenticated_user(pool, headers).await?;
 
     // Here you would typically check if the user has admin role
-    // For now, we'll accept any authenticated user
-    // In a real implementation, you'd check user roles/permissions
+    // TODO: check user roles/permissions
 
     Ok(user_id)
 }

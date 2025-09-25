@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use crate::app::query_builder::{SortDirection};
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, ToSchema)]
 #[diesel(table_name = crate::schema::oauth_device_codes)]
 #[schema(description = "OAuth2 device authorization code for RFC 8628")]
 pub struct DeviceCode {
@@ -68,7 +68,7 @@ pub struct DeviceAuthorizationResponse {
     pub interval: i32, // minimum polling interval in seconds
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[schema(description = "Device code verification request")]
 pub struct DeviceCodeVerification {
     #[schema(example = "WDJB-MJHT")]

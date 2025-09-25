@@ -7,6 +7,9 @@ pub mod mtls_service;
 pub mod token_exchange_service;
 pub mod par_service;
 pub mod ciba_service;
+pub mod client_auth_service;
+pub mod scope_validation_service;
+pub mod identity_resolution_service;
 
 pub use client_service::*;
 pub use token_service::*;
@@ -17,3 +20,6 @@ pub use mtls_service::*;
 pub use token_exchange_service::*;
 pub use par_service::*;
 pub use ciba_service::*;
+pub use client_auth_service::*;
+pub use scope_validation_service::*;
+pub use identity_resolution_service::*;

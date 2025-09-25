@@ -109,8 +109,7 @@ impl SmtpDriver {
 
         // Add custom headers
         for (key, value) in mail_message.headers {
-            // Skip custom headers for now, as lettre requires specific Header types
-            // This would need proper header parsing for each header type
+            // TODO: This would need proper header parsing for each header type
             tracing::debug!("Skipping custom header: {}: {}", key, value);
         }
 

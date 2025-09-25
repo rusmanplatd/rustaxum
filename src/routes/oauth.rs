@@ -76,7 +76,7 @@ pub fn oauth_routes() -> Router<DbPool> {
         .route("/oauth/par", post(par_controller::create_pushed_request))
         .route("/oauth/par/authorize", get(par_controller::create_authorization_url))
         .route("/oauth/par/required/{client_id}", get(par_controller::check_par_requirement))
-        .route("/oauth/par/cleanup", post(par_controller::par_cleanup))
+        .route("/oauth/par/cleanup", post(par_controller::cleanup_expired_requests))
 
         // RFC 8693: Token Exchange endpoints
         .route("/oauth/token-exchange", post(token_exchange_controller::exchange_token))
@@ -87,7 +87,7 @@ pub fn oauth_routes() -> Router<DbPool> {
         .route("/oauth/ciba/auth", post(ciba_controller::create_backchannel_auth_request))
         .route("/oauth/ciba/complete/{auth_req_id}", post(ciba_controller::complete_user_authentication))
         .route("/oauth/ciba/status/{auth_req_id}", get(ciba_controller::get_auth_request_status))
-        .route("/oauth/ciba/cleanup", post(ciba_controller::ciba_cleanup))
+        .route("/oauth/ciba/cleanup", post(ciba_controller::cleanup_expired_requests))
 
         // RFC 8705: mTLS endpoints
         .route("/oauth/mtls/validate", post(mtls_controller::validate_client_certificate))

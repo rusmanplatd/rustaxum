@@ -130,7 +130,7 @@ pub async fn get_supported_token_types(
 /// Validate token exchange request (for testing/debugging)
 /// POST /oauth/token-exchange/validate
 pub async fn validate_exchange_request(
-    State(pool): State<DbPool>,
+    State(_pool): State<DbPool>,
     headers: HeaderMap,
     Json(request): Json<TokenExchangeRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {

@@ -317,26 +317,74 @@ impl DPoPService {
         Ok(())
     }
 
-    /// Store JTI for replay protection (implementation-specific)
-    /// This is a placeholder - real implementation would use Redis or database
+    /// Store JTI for replay protection using Redis
     pub async fn store_jti_for_replay_protection(
         _pool: &DbPool,
-        _jti: &str,
-        _expiry: chrono::DateTime<Utc>,
+        jti: &str,
+        expiry: chrono::DateTime<Utc>,
     ) -> Result<()> {
-        // TODO: Implement JTI storage for replay protection
-        // Could use Redis with TTL or database table with cleanup job
+        // Use Redis for JTI storage with TTL for automatic cleanup
+        use redis::{AsyncCommands, Client};
+
+        // Get Redis URL from environment or use default
+        let redis_url = std::env::var("REDIS_URL")
+            .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+
+        // Connect to Redis
+        let client = Client::open(redis_url)
+            .map_err(|e| anyhow::anyhow!("Failed to connect to Redis: {}", e))?;
+
+        let mut conn = client.get_multiplexed_async_connection()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to get Redis connection: {}", e))?;
+
+        // Calculate TTL in seconds
+        let now = chrono::Utc::now();
+        let ttl_seconds = if expiry > now {
+            (expiry - now).num_seconds() as u64
+        } else {
+            3600 // Default 1 hour TTL if expiry is in the past
+        };
+
+        // Store JTI with TTL
+        let key = format!("dpop:jti:{}", jti);
+        let _: () = conn.set_ex(&key, "1", ttl_seconds)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to store JTI in Redis: {}", e))?;
+
+        tracing::debug!("Stored JTI {} for replay protection with TTL {}s", jti, ttl_seconds);
         Ok(())
     }
 
-    /// Check JTI for replay attacks (implementation-specific)
-    /// This is a placeholder - real implementation would use Redis or database
+    /// Check JTI for replay attacks using Redis
     pub async fn check_jti_replay(
         _pool: &DbPool,
-        _jti: &str,
+        jti: &str,
     ) -> Result<bool> {
-        // TODO: Implement JTI replay check
-        // Return true if JTI has been used before, false otherwise
-        Ok(false)
+        use redis::{AsyncCommands, Client};
+
+        // Get Redis URL from environment or use default
+        let redis_url = std::env::var("REDIS_URL")
+            .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+
+        // Connect to Redis
+        let client = Client::open(redis_url)
+            .map_err(|e| anyhow::anyhow!("Failed to connect to Redis: {}", e))?;
+
+        let mut conn = client.get_multiplexed_async_connection()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to get Redis connection: {}", e))?;
+
+        // Check if JTI exists
+        let key = format!("dpop:jti:{}", jti);
+        let exists: bool = conn.exists(&key)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to check JTI in Redis: {}", e))?;
+
+        if exists {
+            tracing::warn!("JTI {} has been used before - potential replay attack", jti);
+        }
+
+        Ok(exists)
     }
 }

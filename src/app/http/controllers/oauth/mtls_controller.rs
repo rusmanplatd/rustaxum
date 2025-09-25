@@ -117,14 +117,25 @@ pub async fn validate_certificate_bound_token(
         ))?;
 
     // Extract client certificate
-    let certificate = match MTLSService::extract_client_certificate(&headers)? {
-        Some(cert) => cert,
-        None => {
+    let certificate = match MTLSService::extract_client_certificate(&headers) {
+        Ok(cert_opt) => match cert_opt {
+            Some(cert) => cert,
+            None => {
+                return Err((
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({
+                        "error": "invalid_request",
+                        "error_description": "Client certificate required for bound token validation"
+                    }))
+                ));
+            }
+        },
+        Err(err) => {
             return Err((
                 StatusCode::BAD_REQUEST,
                 Json(json!({
                     "error": "invalid_request",
-                    "error_description": "Client certificate required for bound token validation"
+                    "error_description": format!("Certificate extraction failed: {}", err)
                 }))
             ));
         }
@@ -160,14 +171,25 @@ pub async fn create_certificate_bound_claims(
     Json(base_claims): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Extract client certificate
-    let certificate = match MTLSService::extract_client_certificate(&headers)? {
-        Some(cert) => cert,
-        None => {
+    let certificate = match MTLSService::extract_client_certificate(&headers) {
+        Ok(cert_opt) => match cert_opt {
+            Some(cert) => cert,
+            None => {
+                return Err((
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({
+                        "error": "invalid_request",
+                        "error_description": "Client certificate required for creating bound claims"
+                    }))
+                ));
+            }
+        },
+        Err(err) => {
             return Err((
                 StatusCode::BAD_REQUEST,
                 Json(json!({
                     "error": "invalid_request",
-                    "error_description": "Client certificate required for creating bound claims"
+                    "error_description": format!("Certificate extraction failed: {}", err)
                 }))
             ));
         }

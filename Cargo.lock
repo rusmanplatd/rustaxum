@@ -4639,6 +4639,7 @@ dependencies = [
  "dotenv",
  "futures",
  "google-cloud-storage",
+ "hex",
  "html-escape",
  "jsonwebtoken",
  "lettre",

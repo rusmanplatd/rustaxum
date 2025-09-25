@@ -16,7 +16,7 @@ pub struct CIBAService;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BackchannelAuthRequest {
     pub scope: Option<String>,
-    pub client_notification_token: Option<String>, // For ping/push modes
+    pub notification_token: Option<String>, // For ping/push modes
     pub acr_values: Option<String>, // Authentication context class reference
     pub login_hint_token: Option<String>, // Opaque user identifier
     pub id_token_hint: Option<String>, // Previously issued ID token
@@ -66,8 +66,9 @@ pub enum AuthRequestStatus {
     Expired,        // Request has expired
 }
 
-#[derive(Debug, Clone, Queryable, Insertable)]
+#[derive(Debug, Clone, Queryable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::oauth_ciba_requests)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct StoredCIBARequest {
     pub id: DieselUlid,
     pub auth_req_id: String,
@@ -77,7 +78,7 @@ pub struct StoredCIBARequest {
     pub login_hint: Option<String>,
     pub binding_message: Option<String>,
     pub user_code: Option<String>,
-    pub client_notification_token: Option<String>,
+    pub notification_token: Option<String>,
     pub status: String, // Serialized AuthRequestStatus
     pub expires_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
@@ -122,7 +123,7 @@ impl CIBAService {
             login_hint: request.login_hint.clone(),
             binding_message: request.binding_message.clone(),
             user_code: request.user_code.clone(),
-            client_notification_token: request.client_notification_token.clone(),
+            notification_token: request.notification_token.clone(),
             status: "Pending".to_string(),
             expires_at,
             created_at: Utc::now(),
@@ -232,7 +233,7 @@ impl CIBAService {
 
         // If using ping/push mode, notify the client
         let auth_request = Self::find_auth_request(pool, auth_req_id, "").await?;
-        if approved && auth_request.client_notification_token.is_some() {
+        if approved && auth_request.notification_token.is_some() {
             Self::notify_client_auth_complete(&auth_request).await?;
         }
 
@@ -352,7 +353,7 @@ impl CIBAService {
     }
 
     /// Get client CIBA mode configuration
-    async fn get_client_ciba_mode(pool: &DbPool, _client_id: &str) -> Result<CIBAMode> {
+    async fn get_client_ciba_mode(_pool: &DbPool, _client_id: &str) -> Result<CIBAMode> {
         // TODO: In production, this would be stored in client configuration
         Ok(CIBAMode::Poll)
     }
@@ -385,6 +386,7 @@ impl CIBAService {
         }
 
         let request: StoredCIBARequest = query
+            .select(StoredCIBARequest::as_select())
             .first(&mut conn)
             .map_err(|_| anyhow::anyhow!("Authentication request not found"))?;
 
@@ -509,7 +511,7 @@ impl CIBAService {
         //TODO: In production, send HTTP notification to client_notification_endpoint
         // with the client_notification_token
 
-        if let Some(notification_token) = &auth_request.client_notification_token {
+        if let Some(notification_token) = &auth_request.notification_token {
             tracing::info!("Notifying client {} that auth request {} is complete (token: {})",
                           auth_request.client_id,
                           auth_request.auth_req_id,
@@ -517,6 +519,26 @@ impl CIBAService {
         }
 
         Ok(())
+    }
+
+    /// Get authentication request status
+    pub async fn get_auth_request_status(
+        pool: &DbPool,
+        auth_req_id: &str,
+        client_id: &str,
+    ) -> Result<StoredCIBARequest> {
+        let mut conn = pool.get()?;
+
+        let query = oauth_ciba_requests::table
+            .filter(oauth_ciba_requests::auth_req_id.eq(auth_req_id))
+            .filter(oauth_ciba_requests::client_id.eq(client_id));
+
+        let request: StoredCIBARequest = query
+            .select(StoredCIBARequest::as_select())
+            .first(&mut conn)
+            .map_err(|_| anyhow::anyhow!("Authentication request not found"))?;
+
+        Ok(request)
     }
 
     /// Clean up expired CIBA requests
@@ -557,7 +579,7 @@ mod tests {
         let request = BackchannelAuthRequest {
             scope: Some("openid profile".to_string()),
             login_hint: Some("user@example.com".to_string()),
-            client_notification_token: None,
+            notification_token: None,
             acr_values: None,
             login_hint_token: None,
             id_token_hint: None,

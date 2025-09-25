@@ -1,7 +1,7 @@
 use anyhow::Result;
 use axum::http::HeaderMap;
 use base64::Engine;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use crate::database::DbPool;
@@ -361,22 +361,57 @@ impl ClientAuthService {
         Ok(())
     }
 
-    /// Verify JWT signature (production implementation needed)
+    /// Verify JWT signature using proper cryptographic validation
     fn verify_jwt_signature(
-        _client: &Client,
-        _jwt: &str,
-        _claims: &ClientAssertionClaims,
+        client: &Client,
+        jwt: &str,
+        claims: &ClientAssertionClaims,
     ) -> Result<()> {
-        // TODO: Implement proper JWT signature verification
-        // For client_secret_jwt: Use HMAC with client secret
-        // For private_key_jwt: Use public key verification (RSA/ECDSA)
+        use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
 
-        // This would require:
-        // 1. Parsing JWT header to get algorithm
-        // 2. Getting appropriate key (client secret or public key)
-        // 3. Verifying signature using cryptographic library
+        // Parse JWT header to get algorithm
+        let header = jsonwebtoken::decode_header(jwt)
+            .map_err(|e| anyhow::anyhow!("Invalid JWT header: {}", e))?;
 
-        tracing::warn!("JWT signature verification not implemented - accepting all JWTs");
+        // Validate algorithm - currently only HMAC algorithms are supported
+        if client.secret.is_some() {
+            match header.alg {
+                Algorithm::HS256 | Algorithm::HS384 | Algorithm::HS512 => {},
+                _ => return Err(anyhow::anyhow!(
+                    "Only HMAC algorithms (HS256, HS384, HS512) are currently supported for JWT client assertions"
+                )),
+            }
+        } else {
+            return Err(anyhow::anyhow!(
+                "JWT client assertion requires client_secret for HMAC verification"
+            ));
+        }
+
+        // Create validation settings
+        let mut validation = Validation::new(header.alg);
+        validation.set_audience(&[&claims.aud]);
+        validation.set_issuer(&[&claims.iss]);
+        validation.validate_exp = true;
+        validation.validate_nbf = true;
+        validation.leeway = 60; // Allow 60 seconds clock skew
+
+        // Get appropriate key for verification
+        let decoding_key = if let Some(client_secret) = &client.secret {
+            // HMAC verification with client secret
+            DecodingKey::from_secret(client_secret.as_bytes())
+        } else {
+            // For RSA/ECDSA verification, we need public keys stored in the client record
+            // TODO: Add public_key_pem field to oauth_clients table for asymmetric JWT support
+            return Err(anyhow::anyhow!(
+                "JWT client assertion requires client_secret for HMAC verification. Asymmetric keys not yet supported - add public_key_pem field to oauth_clients table."
+            ));
+        };
+
+        // Verify the JWT signature and claims
+        decode::<ClientAssertionClaims>(jwt, &decoding_key, &validation)
+            .map_err(|e| anyhow::anyhow!("JWT verification failed: {}", e))?;
+
+        tracing::debug!("JWT signature verification successful for client {}", client.id);
         Ok(())
     }
 
