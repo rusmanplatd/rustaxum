@@ -4,7 +4,7 @@ use axum::{
 };
 use crate::database::DbPool;
 
-use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, district_controller, village_controller, role_controller, permission_controller, docs_controller, user_organization_controller, organization_position_level_controller, organization_position_controller, sys_model_has_permission_controller, sys_model_has_role_controller, activity_log_controller};
+use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, district_controller, village_controller, role_controller, permission_controller, docs_controller, user_organization_controller, organization_position_level_controller, organization_position_controller, sys_model_has_permission_controller, sys_model_has_role_controller, activity_log_controller, session_controller};
 use crate::app::http::controllers::web_push_controller::WebPushController;
 
 pub fn routes() -> Router<DbPool> {
@@ -129,6 +129,15 @@ pub fn routes() -> Router<DbPool> {
         .route("/api/activity-logs/batch/{batch_uuid}", get(activity_log_controller::get_activities_by_batch))
         .route("/api/activity-logs/subject/{subject_type}/{subject_id}", get(activity_log_controller::get_activities_by_subject))
         .route("/api/activity-logs/causer/{causer_type}/{causer_id}", get(activity_log_controller::get_activities_by_causer))
+        // Session routes
+        .route("/api/session", get(session_controller::get_session))
+        .route("/api/session", post(session_controller::put_session))
+        .route("/api/session/{key}", get(session_controller::get_session_value))
+        .route("/api/session/{key}", delete(session_controller::forget_session_value))
+        .route("/api/session/flush", post(session_controller::flush_session))
+        .route("/api/session/regenerate", post(session_controller::regenerate_session))
+        .route("/api/session/flash", post(session_controller::flash_session))
+        .route("/api/session/token", post(session_controller::regenerate_token))
         // Documentation routes
         .route("/api/docs", get(docs_controller::docs_info))
         .route("/api/docs/openapi.json", get(docs_controller::openapi_json))

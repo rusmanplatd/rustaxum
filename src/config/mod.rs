@@ -16,6 +16,8 @@ pub mod events;
 pub mod broadcasting;
 pub mod notifications;
 pub mod activity_log;
+pub mod session;
+pub mod csrf;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -32,6 +34,8 @@ pub struct Config {
     pub broadcasting: broadcasting::BroadcastingConfig,
     pub notifications: notifications::NotificationsConfig,
     pub activity_log: activity_log::ActivityLogConfig,
+    pub session: session::SessionConfig,
+    pub csrf: csrf::CSRFConfig,
 }
 
 impl Config {
@@ -52,6 +56,8 @@ impl Config {
             broadcasting: broadcasting::BroadcastingConfig::from_env()?,
             notifications: notifications::NotificationsConfig::from_env()?,
             activity_log: activity_log::ActivityLogConfig::from_env()?,
+            session: session::SessionConfig::from_env()?,
+            csrf: csrf::CSRFConfig::from_env()?,
         })
     }
 

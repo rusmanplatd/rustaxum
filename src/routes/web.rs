@@ -1,6 +1,7 @@
-use axum::{routing::get, Router, response::Html};
+use axum::{routing::{get, post}, Router, response::Html};
 use crate::database::DbPool;
 use crate::app::http::controllers::home_controller::HomeController;
+use crate::app::http::controllers::csrf_controller::CSRFController;
 
 pub fn routes() -> Router<DbPool> {
     tracing::debug!("Creating web routes...");
@@ -8,6 +9,12 @@ pub fn routes() -> Router<DbPool> {
         .route("/", get(HomeController::index))
         .route("/health", get(health_check))
         .route("/web-push-demo", get(web_push_demo))
+        // CSRF test routes
+        .route("/csrf/token", get(CSRFController::token))
+        .route("/csrf/form", get(CSRFController::form))
+        .route("/csrf/test", post(CSRFController::test_form))
+        .route("/csrf/api-test", post(CSRFController::test_api))
+        .route("/csrf/regenerate", post(CSRFController::regenerate))
         // Documentation UIs - custom HTML that references the OpenAPI endpoint
         .route("/docs/swagger", get(swagger_ui))
         .route("/docs/rapidoc", get(rapidoc_ui))

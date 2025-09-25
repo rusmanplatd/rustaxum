@@ -20,3 +20,5 @@ pub mod web_push_controller;
 pub mod sys_model_has_permission_controller;
 pub mod sys_model_has_role_controller;
 pub mod activity_log_controller;
+pub mod session_controller;
+pub mod csrf_controller;

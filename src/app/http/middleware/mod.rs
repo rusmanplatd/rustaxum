@@ -7,3 +7,5 @@ pub mod rate_limit_middleware;
 pub mod correlation_middleware;
 pub mod activity_logging_middleware;
 pub mod dpop_middleware;
+pub mod session_middleware;
+pub mod csrf_middleware;

@@ -1429,6 +1429,20 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    sessions (id) {
+        #[max_length = 40]
+        id -> Varchar,
+        #[max_length = 26]
+        user_id -> Nullable<Bpchar>,
+        #[max_length = 45]
+        ip_address -> Nullable<Varchar>,
+        user_agent -> Nullable<Text>,
+        payload -> Text,
+        last_activity -> Int4,
+    }
+}
+
 diesel::joinable!(cities -> provinces (province_id));
 diesel::joinable!(conversation_algorithm_negotiations -> conversations (conversation_id));
 diesel::joinable!(conversation_device_settings -> conversations (conversation_id));
@@ -1503,6 +1517,7 @@ diesel::joinable!(scheduled_messages -> sys_users (sender_user_id));
 diesel::joinable!(security_incidents -> conversations (conversation_id));
 diesel::joinable!(security_incidents -> devices (device_id));
 diesel::joinable!(security_incidents -> sys_users (user_id));
+diesel::joinable!(sessions -> sys_users (user_id));
 diesel::joinable!(sender_key_sessions -> conversations (conversation_id));
 diesel::joinable!(sender_key_sessions -> devices (sender_device_id));
 diesel::joinable!(session_recovery_log -> devices (requesting_device_id));
@@ -1579,6 +1594,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     security_incidents,
     sender_key_sessions,
     session_recovery_log,
+    sessions,
     signal_sessions,
     skipped_message_keys,
     sys_model_has_permissions,

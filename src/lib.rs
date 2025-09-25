@@ -15,6 +15,9 @@ use axum::{Router, middleware};
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
+use app::http::middleware::session_middleware::session_middleware;
+// use app::http::middleware::csrf_middleware::csrf_middleware;
+
 pub async fn create_app() -> anyhow::Result<Router> {
     tracing::debug!("Starting application creation process");
 
@@ -34,14 +37,17 @@ pub async fn create_app() -> anyhow::Result<Router> {
     // database::run_migrations(&pool).await?; // Temporarily disabled - already applied
     tracing::debug!("Database migrations skipped (already applied)");
 
+
     tracing::debug!("Building router with routes...");
     let app = Router::new()
         .merge(routes::api::routes())
         .merge(routes::web::routes())
         .merge(routes::oauth::oauth_routes())
-        .with_state(pool)
+        .with_state(pool.clone())
         .layer(
             ServiceBuilder::new()
+                .layer(middleware::from_fn_with_state(pool, session_middleware))
+                // .layer(middleware::from_fn(csrf_middleware))
                 .layer(middleware::from_fn(app::http::middleware::correlation_middleware::correlation_middleware))
                 .layer(middleware::from_fn(app::http::middleware::activity_logging_middleware::activity_logging_middleware))
                 .layer(TraceLayer::new_for_http())
