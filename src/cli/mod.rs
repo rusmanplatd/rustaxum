@@ -69,6 +69,9 @@ pub enum Commands {
     /// OAuth2/Passport commands
     #[command(subcommand)]
     Passport(PassportCommands),
+    /// List application routes
+    #[command(subcommand)]
+    Route(RouteCommands),
 }
 
 #[derive(Subcommand)]
@@ -266,6 +269,22 @@ pub enum PassportCommands {
     },
 }
 
+#[derive(Subcommand)]
+pub enum RouteCommands {
+    /// List all application routes
+    List {
+        /// Filter routes by name
+        #[arg(long)]
+        name: Option<String>,
+        /// Filter routes by HTTP method (GET, POST, etc.)
+        #[arg(long)]
+        method: Option<String>,
+        /// Filter routes by URI pattern
+        #[arg(long)]
+        uri: Option<String>,
+    },
+}
+
 pub async fn run_cli(cli: Cli) -> Result<()> {
     match cli.command {
         Commands::Make(make_cmd) => commands::make::handle_make_command(make_cmd).await,
@@ -278,5 +297,8 @@ pub async fn run_cli(cli: Cli) -> Result<()> {
         Commands::DbSeedList => commands::seed::handle_seed_list_command(),
         Commands::Serve { port, host } => commands::serve::handle_serve_command(host, port).await,
         Commands::Passport(passport_cmd) => commands::passport::handle_passport_command(passport_cmd).await,
+        Commands::Route(route_cmd) => match route_cmd {
+            RouteCommands::List { name, method, uri } => commands::route::handle_route_list_command_filtered(name, method, uri).await,
+        },
     }
 }

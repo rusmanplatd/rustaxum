@@ -96,6 +96,12 @@ cargo run --bin artisan -- db:seed:list               # List available seeders
 
 # Start development server
 cargo run --bin artisan -- serve --port 3000
+
+# Route listing commands
+cargo run --bin artisan -- route list                         # List all routes
+cargo run --bin artisan -- route list --method GET            # Filter by HTTP method
+cargo run --bin artisan -- route list --uri "/api"           # Filter by URI pattern
+cargo run --bin artisan -- route list --name auth            # Filter by route name
 ```
 
 The Artisan CLI provides comprehensive code generation capabilities similar to Laravel's artisan command.
