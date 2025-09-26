@@ -280,7 +280,7 @@ async fn handle_client_message(
 pub fn websocket_routes() -> Router<Arc<WebSocketManager>> {
     Router::new()
         .route("/ws", get(websocket_handler))
-        .route("/ws/:channel", get(websocket_handler_with_channel))
+        .route("/ws/{channel}", get(websocket_handler_with_channel))
 }
 
 /// WebSocket handler with channel parameter

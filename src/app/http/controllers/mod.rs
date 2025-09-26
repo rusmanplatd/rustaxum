@@ -4,6 +4,7 @@ pub mod user_controller;
 pub mod home_controller;
 pub mod auth_demo_controller;
 pub mod dashboard_demo_controller;
+pub mod template_demo_controller;
 pub mod oauth;
 pub mod country_controller;
 pub mod docs_controller;

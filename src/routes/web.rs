@@ -3,6 +3,7 @@ use crate::database::DbPool;
 use crate::app::http::controllers::home_controller::HomeController;
 use crate::app::http::controllers::csrf_controller::CSRFController;
 use crate::app::http::controllers::web_auth_controller::WebAuthController;
+use crate::app::http::controllers::template_demo_controller::TemplateDemoController;
 use crate::app::http::middleware::auth_guard::auth_guard;
 
 pub fn routes() -> Router<DbPool> {
@@ -17,6 +18,7 @@ pub fn routes() -> Router<DbPool> {
         .route("/auth/forgot-password", get(WebAuthController::show_forgot_password))
         .route("/auth/forgot-password", post(WebAuthController::forgot_password))
         .route("/auth/reset-password/{token}", get(WebAuthController::show_reset_password))
+        .route("/auth/reset-password", get(WebAuthController::show_reset_password_query))
         .route("/auth/reset-password", post(WebAuthController::reset_password));
 
     // Protected web authentication routes
@@ -32,6 +34,7 @@ pub fn routes() -> Router<DbPool> {
         .route("/", get(HomeController::index))
         .route("/health", get(health_check))
         .route("/web-push-demo", get(web_push_demo))
+        .route("/template-showcase", get(TemplateDemoController::showcase))
         // CSRF test routes
         .route("/csrf/token", get(CSRFController::token))
         .route("/csrf/form", get(CSRFController::form))

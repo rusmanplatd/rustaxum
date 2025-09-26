@@ -124,8 +124,7 @@ pub mod handlebars_helpers {
         _: &mut RenderContext,
         out: &mut dyn Output,
     ) -> HelperResult {
-        // In a real implementation, you'd extract the token from context
-        // For now, this is a placeholder showing the structure
+        // TODO extract the token from context
         let token = "placeholder_token"; // This would come from the template context
         let csrf_service = super::CSRFService::new();
 

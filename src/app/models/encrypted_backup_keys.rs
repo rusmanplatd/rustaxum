@@ -169,8 +169,7 @@ impl EncryptedBackupKey {
     }
 
     pub fn verify(&mut self) -> bool {
-        // In a real implementation, this would verify the backup hash
-        // For now, we just mark it as verified
+        // TODO: verify the backup hash
         self.is_verified = true;
         self.updated_at = Utc::now();
         true

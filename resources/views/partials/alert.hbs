@@ -1,0 +1,29 @@
+{{! Alert Partial - Reusable alert component }}
+<div class="alert alert-{{ default type "info" }} alert-dismissible fade show" role="alert">
+    {{#if icon}}
+    <i class="fas fa-{{ icon }} me-2"></i>
+    {{else}}
+        {{#if (eq type "success")}}
+        <i class="fas fa-check-circle me-2"></i>
+        {{/if}}
+        {{#if (eq type "danger")}}
+        <i class="fas fa-exclamation-circle me-2"></i>
+        {{/if}}
+        {{#if (eq type "warning")}}
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        {{/if}}
+        {{#if (eq type "info")}}
+        <i class="fas fa-info-circle me-2"></i>
+        {{/if}}
+    {{/if}}
+
+    {{#if title}}
+    <strong>{{ title }}</strong><br>
+    {{/if}}
+
+    {{ message }}
+
+    {{#unless no_dismiss}}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    {{/unless}}
+</div>

@@ -1,0 +1,21 @@
+{{! Card Partial - Reusable card component }}
+<div class="card {{#if class}}{{ class }}{{/if}}">
+    {{#if header}}
+    <div class="card-header {{#if header_class}}{{ header_class }}{{/if}}">
+        {{#if header_icon}}
+        <i class="fas fa-{{ header_icon }} me-2"></i>
+        {{/if}}
+        {{ header }}
+    </div>
+    {{/if}}
+
+    <div class="card-body {{#if body_class}}{{ body_class }}{{/if}}">
+        {{{ content }}}
+    </div>
+
+    {{#if footer}}
+    <div class="card-footer {{#if footer_class}}{{ footer_class }}{{/if}}">
+        {{ footer }}
+    </div>
+    {{/if}}
+</div>

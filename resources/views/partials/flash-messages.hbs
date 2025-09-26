@@ -1,0 +1,22 @@
+{{! Flash Messages Partial }}
+{{#if success_message}}
+{{> alert type="success" message=success_message icon="check-circle"}}
+{{/if}}
+
+{{#if error_message}}
+{{> alert type="danger" message=error_message icon="exclamation-circle"}}
+{{/if}}
+
+{{#if warning_message}}
+{{> alert type="warning" message=warning_message icon="exclamation-triangle"}}
+{{/if}}
+
+{{#if info_message}}
+{{> alert type="info" message=info_message icon="info-circle"}}
+{{/if}}
+
+{{#if flash}}
+{{#each flash}}
+{{> alert type=type message=message title=title icon=icon}}
+{{/each}}
+{{/if}}

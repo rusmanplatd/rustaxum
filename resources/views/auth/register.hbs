@@ -1,329 +1,178 @@
-<form id="registerForm" action="/auth/register" method="POST" class="needs-validation" novalidate>
-    {{#if csrf_token}}
-    <input type="hidden" name="_token" value="{{csrf_token}}">
-    {{/if}}
+{{! Register Template - Handlebars syntax }}
+<form method="POST" action="/auth/register" class="needs-validation" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="form-floating">
-                <input type="text"
-                       class="form-control {{#if errors.first_name}}is-invalid{{/if}}"
-                       id="first_name"
-                       name="first_name"
-                       placeholder="First Name"
-                       value="{{old.first_name}}"
-                       required
-                       autocomplete="given-name">
-                <label for="first_name">
-                    <i class="fas fa-user me-2"></i>First Name
-                </label>
-                {{#if errors.first_name}}
-                <div class="invalid-feedback">{{errors.first_name}}</div>
-                {{/if}}
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="form-floating">
-                <input type="text"
-                       class="form-control {{#if errors.last_name}}is-invalid{{/if}}"
-                       id="last_name"
-                       name="last_name"
-                       placeholder="Last Name"
-                       value="{{old.last_name}}"
-                       required
-                       autocomplete="family-name">
-                <label for="last_name">
-                    <i class="fas fa-user me-2"></i>Last Name
-                </label>
-                {{#if errors.last_name}}
-                <div class="invalid-feedback">{{errors.last_name}}</div>
-                {{/if}}
-            </div>
-        </div>
-    </div>
-
-    <div class="form-floating">
-        <input type="email"
-               class="form-control {{#if errors.email}}is-invalid{{/if}}"
-               id="email"
-               name="email"
-               placeholder="name@example.com"
-               value="{{old.email}}"
-               required
-               autocomplete="email">
-        <label for="email">
-            <i class="fas fa-envelope me-2"></i>Email Address
-        </label>
-        {{#if errors.email}}
-        <div class="invalid-feedback">{{errors.email}}</div>
-        {{/if}}
-        <div class="form-text">
-            We'll never share your email with anyone else.
-        </div>
-    </div>
-
-    <div class="form-floating position-relative">
-        <input type="password"
-               class="form-control {{#if errors.password}}is-invalid{{/if}}"
-               id="password"
-               name="password"
-               placeholder="Password"
-               required
-               autocomplete="new-password"
-               minlength="8">
-        <label for="password">
-            <i class="fas fa-lock me-2"></i>Password
-        </label>
-        <button type="button" class="password-toggle" onclick="togglePassword('password')">
-            <i class="fas fa-eye"></i>
-        </button>
-        {{#if errors.password}}
-        <div class="invalid-feedback">{{errors.password}}</div>
-        {{/if}}
-    </div>
-
-    <div class="form-floating position-relative">
-        <input type="password"
-               class="form-control {{#if errors.password_confirmation}}is-invalid{{/if}}"
-               id="password_confirmation"
-               name="password_confirmation"
-               placeholder="Confirm Password"
-               required
-               autocomplete="new-password"
-               minlength="8">
-        <label for="password_confirmation">
-            <i class="fas fa-lock me-2"></i>Confirm Password
-        </label>
-        <button type="button" class="password-toggle" onclick="togglePassword('password_confirmation')">
-            <i class="fas fa-eye"></i>
-        </button>
-        {{#if errors.password_confirmation}}
-        <div class="invalid-feedback">{{errors.password_confirmation}}</div>
-        {{/if}}
-    </div>
-
-    <!-- Password strength indicator -->
-    <div class="password-strength mb-3" style="display: none;">
-        <div class="small mb-1">Password strength:</div>
-        <div class="progress" style="height: 4px;">
-            <div class="progress-bar" id="strengthBar" role="progressbar" style="width: 0%"></div>
-        </div>
-        <div class="small text-muted mt-1" id="strengthText">Enter a password</div>
-    </div>
-
-    {{#if organization_registration}}
-    <div class="form-floating">
-        <select class="form-select {{#if errors.organization_id}}is-invalid{{/if}}"
-                id="organization_id"
-                name="organization_id">
-            <option value="">Select Organization (Optional)</option>
-            {{#each organizations}}
-            <option value="{{id}}" {{#if (eq id ../old.organization_id)}}selected{{/if}}>
-                {{name}}
-            </option>
-            {{/each}}
-        </select>
-        <label for="organization_id">
-            <i class="fas fa-building me-2"></i>Organization
-        </label>
-        {{#if errors.organization_id}}
-        <div class="invalid-feedback">{{errors.organization_id}}</div>
-        {{/if}}
-    </div>
-    {{/if}}
-
-    {{#if phone_required}}
-    <div class="form-floating">
-        <input type="tel"
-               class="form-control {{#if errors.phone}}is-invalid{{/if}}"
-               id="phone"
-               name="phone"
-               placeholder="Phone Number"
-               value="{{old.phone}}"
-               {{#if phone_required}}required{{/if}}
-               autocomplete="tel">
-        <label for="phone">
-            <i class="fas fa-phone me-2"></i>Phone Number {{#unless phone_required}}(Optional){{/unless}}
-        </label>
-        {{#if errors.phone}}
-        <div class="invalid-feedback">{{errors.phone}}</div>
-        {{/if}}
-    </div>
-    {{/if}}
-
-    <div class="form-check mb-3">
-        <input class="form-check-input {{#if errors.terms}}is-invalid{{/if}}"
-               type="checkbox"
-               id="terms"
-               name="terms"
-               required
-               {{#if old.terms}}checked{{/if}}>
-        <label class="form-check-label" for="terms">
-            I agree to the
-            <a href="/legal/terms" target="_blank" class="text-auth">Terms of Service</a>
-            and
-            <a href="/legal/privacy" target="_blank" class="text-auth">Privacy Policy</a>
-        </label>
-        {{#if errors.terms}}
-        <div class="invalid-feedback">{{errors.terms}}</div>
-        {{/if}}
-    </div>
-
-    {{#if newsletter_opt_in}}
-    <div class="form-check mb-3">
-        <input class="form-check-input" type="checkbox" id="newsletter" name="newsletter" {{#if old.newsletter}}checked{{/if}}>
-        <label class="form-check-label" for="newsletter">
-            Subscribe to our newsletter for updates and tips
-        </label>
-    </div>
-    {{/if}}
-
-    {{#if captcha_enabled}}
     <div class="mb-3">
-        <div class="g-recaptcha" data-sitekey="{{captcha_site_key}}"></div>
-        {{#if errors.captcha}}
-        <div class="text-danger small mt-1">{{errors.captcha}}</div>
-        {{/if}}
+        <label for="name" class="form-label">Full Name</label>
+        <div class="input-group">
+            <span class="input-group-text">
+                <i class="fas fa-user text-muted"></i>
+            </span>
+            <input type="text"
+                   class="form-control {{#if errors.name}}is-invalid{{/if}}"
+                   id="name"
+                   name="name"
+                   placeholder="Enter your full name"
+                   value="{{ old_input.name }}"
+                   required>
+            {{#if errors.name}}
+                <div class="invalid-feedback">
+                    {{#each errors.name}}
+                        {{ this }}
+                    {{/each}}
+                </div>
+            {{/if}}
+        </div>
     </div>
-    {{/if}}
 
-    <div class="d-grid mb-3">
-        <button type="submit" class="btn btn-primary btn-auth btn-lg" id="submitBtn">
-            <span class="loading-spinner"></span>
-            <i class="fas fa-user-plus me-2"></i>Create Account
+    <div class="mb-3">
+        <label for="email" class="form-label">Email Address</label>
+        <div class="input-group">
+            <span class="input-group-text">
+                <i class="fas fa-envelope text-muted"></i>
+            </span>
+            <input type="email"
+                   class="form-control {{#if errors.email}}is-invalid{{/if}}"
+                   id="email"
+                   name="email"
+                   placeholder="Enter your email"
+                   value="{{ old_input.email }}"
+                   required>
+            {{#if errors.email}}
+                <div class="invalid-feedback">
+                    {{#each errors.email}}
+                        {{ this }}
+                    {{/each}}
+                </div>
+            {{/if}}
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <div class="input-group">
+            <span class="input-group-text">
+                <i class="fas fa-lock text-muted"></i>
+            </span>
+            <input type="password"
+                   class="form-control {{#if errors.password}}is-invalid{{/if}}"
+                   id="password"
+                   name="password"
+                   placeholder="Create a password"
+                   minlength="6"
+                   required>
+            <button class="btn btn-outline-secondary"
+                    type="button"
+                    onclick="togglePassword('password', 'password-icon')"
+                    style="border-left: none;">
+                <i class="fas fa-eye" id="password-icon"></i>
+            </button>
+            {{#if errors.password}}
+                <div class="invalid-feedback">
+                    {{#each errors.password}}
+                        {{ this }}
+                    {{/each}}
+                </div>
+            {{/if}}
+        </div>
+        <small class="text-muted">Must be at least 6 characters long</small>
+    </div>
+
+    <div class="mb-3">
+        <label for="password_confirmation" class="form-label">Confirm Password</label>
+        <div class="input-group">
+            <span class="input-group-text">
+                <i class="fas fa-lock text-muted"></i>
+            </span>
+            <input type="password"
+                   class="form-control {{#if errors.password_confirmation}}is-invalid{{/if}}"
+                   id="password_confirmation"
+                   name="password_confirmation"
+                   placeholder="Confirm your password"
+                   minlength="6"
+                   required>
+            <button class="btn btn-outline-secondary"
+                    type="button"
+                    onclick="togglePassword('password_confirmation', 'password-confirm-icon')"
+                    style="border-left: none;">
+                <i class="fas fa-eye" id="password-confirm-icon"></i>
+            </button>
+            {{#if errors.password_confirmation}}
+                <div class="invalid-feedback">
+                    {{#each errors.password_confirmation}}
+                        {{ this }}
+                    {{/each}}
+                </div>
+            {{/if}}
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <div class="form-check">
+            <input class="form-check-input {{#if errors.terms}}is-invalid{{/if}}"
+                   type="checkbox"
+                   id="terms"
+                   name="terms"
+                   required>
+            <label class="form-check-label" for="terms">
+                I agree to the <a href="/legal/terms" target="_blank" class="text-auth">Terms of Service</a>
+                and <a href="/legal/privacy" target="_blank" class="text-auth">Privacy Policy</a>
+            </label>
+            {{#if errors.terms}}
+                <div class="invalid-feedback">
+                    {{#each errors.terms}}
+                        {{ this }}
+                    {{/each}}
+                </div>
+            {{/if}}
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <div class="form-check">
+            <input class="form-check-input"
+                   type="checkbox"
+                   id="newsletter"
+                   name="newsletter"
+                   {{#if old_input.newsletter}}checked{{/if}}>
+            <label class="form-check-label" for="newsletter">
+                <i class="fas fa-envelope me-1"></i>
+                Send me updates and news (optional)
+            </label>
+        </div>
+    </div>
+
+    <div class="d-grid gap-2 mb-3">
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-user-plus me-2"></i>
+            Create Account
         </button>
     </div>
 </form>
 
-<div class="text-center mt-4">
-    <p class="mb-0">
-        Already have an account?
-        <a href="/auth/login" class="text-auth text-decoration-none fw-bold">
-            Sign in here
-        </a>
+<div class="auth-links">
+    <p class="mb-0">Already have an account?
+        <a href="/auth/login" class="text-auth">Sign in here</a>
     </p>
 </div>
 
-<script>
-// Password strength checker
-const passwordField = document.getElementById('password');
-const strengthBar = document.getElementById('strengthBar');
-const strengthText = document.getElementById('strengthText');
-const strengthContainer = document.querySelector('.password-strength');
-
-passwordField.addEventListener('input', function() {
-    const password = this.value;
-    const strength = calculatePasswordStrength(password);
-
-    if (password.length > 0) {
-        strengthContainer.style.display = 'block';
-        updateStrengthIndicator(strength);
-    } else {
-        strengthContainer.style.display = 'none';
-    }
-});
-
-function calculatePasswordStrength(password) {
-    let score = 0;
-    let feedback = [];
-
-    if (password.length >= 8) score += 1;
-    else feedback.push('At least 8 characters');
-
-    if (/[a-z]/.test(password)) score += 1;
-    else feedback.push('Lowercase letter');
-
-    if (/[A-Z]/.test(password)) score += 1;
-    else feedback.push('Uppercase letter');
-
-    if (/[0-9]/.test(password)) score += 1;
-    else feedback.push('Number');
-
-    if (/[^A-Za-z0-9]/.test(password)) score += 1;
-    else feedback.push('Special character');
-
-    return { score, feedback };
-}
-
-function updateStrengthIndicator(strength) {
-    const percentage = (strength.score / 5) * 100;
-    const colors = ['danger', 'danger', 'warning', 'info', 'success'];
-    const labels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
-
-    strengthBar.style.width = percentage + '%';
-    strengthBar.className = `progress-bar bg-${colors[strength.score - 1] || 'danger'}`;
-
-    if (strength.score === 5) {
-        strengthText.textContent = labels[4];
-        strengthText.className = 'small text-success mt-1';
-    } else {
-        strengthText.textContent = `${labels[strength.score - 1] || 'Very Weak'} - Missing: ${strength.feedback.join(', ')}`;
-        strengthText.className = 'small text-muted mt-1';
-    }
-}
-
-// Password confirmation validation
-document.getElementById('password_confirmation').addEventListener('input', function() {
-    const password = document.getElementById('password').value;
-    const confirmation = this.value;
-
-    if (confirmation && password !== confirmation) {
-        this.classList.add('is-invalid');
-        this.setCustomValidity('Passwords do not match');
-    } else {
-        this.classList.remove('is-invalid');
-        this.setCustomValidity('');
-    }
-});
-
-// Form submission
-document.getElementById('registerForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    const password = document.getElementById('password').value;
-    const confirmation = document.getElementById('password_confirmation').value;
-
-    if (password !== confirmation) {
-        alert('Passwords do not match!');
-        return;
-    }
-
-    if (!document.getElementById('terms').checked) {
-        alert('Please accept the Terms of Service and Privacy Policy');
-        return;
-    }
-
-    // Show loading state
-    showLoading('registerForm');
-
-    // Submit the form
-    this.submit();
-});
-
-// Real-time email validation
-document.getElementById('email').addEventListener('blur', async function() {
-    const email = this.value;
-    if (!email) return;
-
-    try {
-        const response = await fetch('/auth/check-email', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email })
-        });
-
-        const data = await response.json();
-
-        if (data.exists) {
-            this.classList.add('is-invalid');
-            this.nextElementSibling.nextElementSibling.textContent = 'This email is already registered';
-        } else {
-            this.classList.remove('is-invalid');
-        }
-    } catch (error) {
-        console.error('Email validation error:', error);
-    }
-});
-</script>
+<!-- Account Benefits -->
+<div class="mt-4">
+    <div class="text-center">
+        <h6 class="mb-3">Why Join Us?</h6>
+        <div class="row text-start">
+            <div class="col-6">
+                <small>
+                    <i class="fas fa-check text-success me-2"></i>Secure & Private<br>
+                    <i class="fas fa-check text-success me-2"></i>24/7 Support<br>
+                </small>
+            </div>
+            <div class="col-6">
+                <small>
+                    <i class="fas fa-check text-success me-2"></i>Free Forever<br>
+                    <i class="fas fa-check text-success me-2"></i>No Spam
+                </small>
+            </div>
+        </div>
+    </div>
+</div>

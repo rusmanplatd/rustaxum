@@ -424,9 +424,7 @@ impl EventDispatcher {
 
     /// Handle broadcasting for events that implement ShouldBroadcast
     async fn handle_broadcasting(&self, event: Arc<dyn Event>) -> Result<()> {
-        // For now, we'll use a trait-based approach for events that implement Broadcastable
-        // This is a simplified approach - in production, you might want to use a more
-        // sophisticated registry or reflection system
+        // use a more sophisticated registry or reflection system
 
         // Check if this is a UserRegisteredEvent
         let event_name = event.event_name();

@@ -1,0 +1,9 @@
+{{! Loading Spinner Partial }}
+<div class="d-flex justify-content-center align-items-center {{#if class}}{{ class }}{{/if}}" {{#if id}}id="{{ id }}"{{/if}}>
+    <div class="spinner-border {{#if size}}spinner-border-{{ size }}{{/if}} {{#if variant}}text-{{ variant }}{{else}}text-primary{{/if}}" role="status">
+        <span class="visually-hidden">{{ default text "Loading..." }}</span>
+    </div>
+    {{#if show_text}}
+    <span class="ms-2">{{ default text "Loading..." }}</span>
+    {{/if}}
+</div>

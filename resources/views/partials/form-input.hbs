@@ -1,0 +1,75 @@
+{{! Form Input Partial - Reusable form input component }}
+<div class="mb-3">
+    {{#if label}}
+    <label for="{{ name }}" class="form-label">
+        {{ label }}
+        {{#if required}}<span class="text-danger">*</span>{{/if}}
+    </label>
+    {{/if}}
+
+    {{#if prepend_icon}}
+    <div class="input-group">
+        <span class="input-group-text">
+            <i class="fas fa-{{ prepend_icon }} text-muted"></i>
+        </span>
+    {{/if}}
+
+    {{#if (eq type "textarea")}}
+        <textarea class="form-control {{#if (lookup errors name)}}is-invalid{{/if}} {{#if class}}{{ class }}{{/if}}"
+                  id="{{ name }}"
+                  name="{{ name }}"
+                  placeholder="{{ placeholder }}"
+                  {{#if required}}required{{/if}}
+                  {{#if readonly}}readonly{{/if}}
+                  {{#if disabled}}disabled{{/if}}
+                  {{#if rows}}rows="{{ rows }}"{{/if}}>{{#if (lookup old_input name)}}{{ lookup old_input name }}{{else}}{{ value }}{{/if}}</textarea>
+    {{else if (eq type "select")}}
+        <select class="form-control {{#if (lookup errors name)}}is-invalid{{/if}} {{#if class}}{{ class }}{{/if}}"
+                id="{{ name }}"
+                name="{{ name }}"
+                {{#if required}}required{{/if}}
+                {{#if disabled}}disabled{{/if}}>
+            {{#if placeholder}}
+            <option value="">{{ placeholder }}</option>
+            {{/if}}
+            {{#each options}}
+            <option value="{{ value }}" {{#if (eq value ../selected)}}selected{{/if}}>{{ label }}</option>
+            {{/each}}
+        </select>
+    {{else}}
+        <input type="{{ default type "text" }}"
+               class="form-control {{#if (lookup errors name)}}is-invalid{{/if}} {{#if class}}{{ class }}{{/if}}"
+               id="{{ name }}"
+               name="{{ name }}"
+               placeholder="{{ placeholder }}"
+               value="{{#if (lookup old_input name)}}{{ lookup old_input name }}{{else}}{{ value }}{{/if}}"
+               {{#if required}}required{{/if}}
+               {{#if readonly}}readonly{{/if}}
+               {{#if disabled}}disabled{{/if}}
+               {{#if min}}min="{{ min }}"{{/if}}
+               {{#if max}}max="{{ max }}"{{/if}}
+               {{#if step}}step="{{ step }}"{{/if}}
+               {{#if pattern}}pattern="{{ pattern }}"{{/if}}>
+    {{/if}}
+
+    {{#if append_icon}}
+        <button class="btn btn-outline-secondary" type="button" {{#if append_action}}onclick="{{ append_action }}"{{/if}}>
+            <i class="fas fa-{{ append_icon }}"></i>
+        </button>
+    </div>
+    {{else if prepend_icon}}
+    </div>
+    {{/if}}
+
+    {{#if help}}
+    <div class="form-text">{{ help }}</div>
+    {{/if}}
+
+    {{#if (lookup errors name)}}
+    <div class="invalid-feedback">
+        {{#each (lookup errors name)}}
+        {{ this }}
+        {{/each}}
+    </div>
+    {{/if}}
+</div>

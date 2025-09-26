@@ -1,9 +1,8 @@
 use axum::{
     extract::{State, Extension, Form, Path, Query},
     response::{IntoResponse, Redirect},
-    http::StatusCode,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 use serde_json::{json, Value};
 use crate::database::DbPool;
 use crate::app::services::session::SessionStore;
@@ -53,6 +52,11 @@ pub struct ChangePasswordForm {
 #[derive(Debug, Deserialize)]
 pub struct RedirectQuery {
     pub redirect: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TokenQuery {
+    pub token: String,
 }
 
 pub struct WebAuthController;
@@ -165,6 +169,36 @@ impl WebAuthController {
                 "csrf_token": session.token().await
             });
 
+            // Clear flash data
+            session.forget("errors").await;
+            session.forget("success").await;
+            session.forget("error").await;
+
+            TemplateResponse::new("auth/reset-password", &data).with_layout("layouts/auth").into_response()
+        } else {
+            session.flash("error", Value::String("Invalid or expired reset token.".to_string())).await;
+            Redirect::to("/auth/forgot-password").into_response()
+        }
+    }
+
+    pub async fn show_reset_password_query(
+        Query(params): Query<TokenQuery>,
+        Extension(session): Extension<SessionStore>,
+        State(pool): State<DbPool>,
+    ) -> impl IntoResponse {
+        // Verify token exists and is valid
+        if let Ok(Some(_user)) = UserService::find_by_reset_token(&pool, &params.token) {
+            let data = json!({
+                "title": "Reset Password - RustAxum",
+                "page_title": "Create New Password",
+                "subtitle": "Enter your new password below",
+                "header_icon": "fas fa-lock",
+                "token": params.token,
+                "errors": session.get("errors").await.unwrap_or(Value::Null),
+                "success_message": session.get("success").await,
+                "error_message": session.get("error").await,
+                "csrf_token": session.token().await
+            });
             // Clear flash data
             session.forget("errors").await;
             session.forget("success").await;

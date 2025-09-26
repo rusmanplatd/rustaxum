@@ -1,0 +1,39 @@
+{{! Modal Partial }}
+<div class="modal fade" id="{{ id }}" tabindex="-1" aria-labelledby="{{ id }}Label" aria-hidden="true">
+    <div class="modal-dialog {{#if size}}modal-{{ size }}{{/if}} {{#if centered}}modal-dialog-centered{{/if}} {{#if scrollable}}modal-dialog-scrollable{{/if}}">
+        <div class="modal-content">
+            {{#if title}}
+            <div class="modal-header">
+                <h5 class="modal-title" id="{{ id }}Label">
+                    {{#if title_icon}}
+                    <i class="fas fa-{{ title_icon }} me-2"></i>
+                    {{/if}}
+                    {{ title }}
+                </h5>
+                {{#unless no_close}}
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                {{/unless}}
+            </div>
+            {{/if}}
+
+            <div class="modal-body">
+                {{{ content }}}
+            </div>
+
+            {{#if footer}}
+            <div class="modal-footer">
+                {{ footer }}
+            </div>
+            {{else}}
+            {{#unless no_footer}}
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ default cancel_text "Close" }}</button>
+                {{#if confirm_action}}
+                <button type="button" class="btn btn-primary" onclick="{{ confirm_action }}">{{ default confirm_text "Save changes" }}</button>
+                {{/if}}
+            </div>
+            {{/unless}}
+            {{/if}}
+        </div>
+    </div>
+</div>
