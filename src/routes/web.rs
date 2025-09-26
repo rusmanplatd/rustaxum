@@ -16,7 +16,7 @@ pub fn routes() -> Router<DbPool> {
         .route("/auth/register", post(WebAuthController::register))
         .route("/auth/forgot-password", get(WebAuthController::show_forgot_password))
         .route("/auth/forgot-password", post(WebAuthController::forgot_password))
-        .route("/auth/reset-password/:token", get(WebAuthController::show_reset_password))
+        .route("/auth/reset-password/{token}", get(WebAuthController::show_reset_password))
         .route("/auth/reset-password", post(WebAuthController::reset_password));
 
     // Protected web authentication routes

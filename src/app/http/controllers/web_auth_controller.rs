@@ -22,7 +22,8 @@ pub struct LoginForm {
 
 #[derive(Debug, Deserialize)]
 pub struct RegisterForm {
-    pub name: String,
+    pub first_name: String,
+    pub last_name: String,
     pub email: String,
     pub password: String,
     pub password_confirmation: String,
@@ -200,7 +201,7 @@ impl WebAuthController {
         session.forget("success").await;
         session.forget("error").await;
 
-        TemplateResponse::new("auth/change-password", &data).with_layout("layouts/app").into_response()
+        TemplateResponse::new("auth/change-password", &data).with_layout("layouts/dashboard").into_response()
     }
 
     // Authentication Actions
@@ -272,8 +273,11 @@ impl WebAuthController {
         // Validate form
         let mut errors = json!({});
 
-        if form.name.is_empty() {
-            errors["name"] = Value::Array(vec![Value::String("Name is required.".to_string())]);
+        if form.first_name.is_empty() {
+            errors["first_name"] = Value::Array(vec![Value::String("First name is required.".to_string())]);
+        }
+        if form.last_name.is_empty() {
+            errors["last_name"] = Value::Array(vec![Value::String("Last name is required.".to_string())]);
         }
         if form.email.is_empty() {
             errors["email"] = Value::Array(vec![Value::String("Email is required.".to_string())]);
@@ -293,7 +297,8 @@ impl WebAuthController {
         if !errors.as_object().unwrap().is_empty() {
             session.flash("errors", errors).await;
             session.flash("old_input", json!({
-                "name": form.name,
+                "first_name": form.first_name,
+                "last_name": form.last_name,
                 "email": form.email,
                 "newsletter": form.newsletter
             })).await;
@@ -301,7 +306,7 @@ impl WebAuthController {
         }
 
         let create_user = CreateUser {
-            name: form.name.clone(),
+            name: format!("{} {}", form.first_name, form.last_name).trim().to_string(),
             email: form.email.clone(),
             password: form.password,
         };
@@ -329,7 +334,8 @@ impl WebAuthController {
             Err(e) => {
                 session.flash("error", Value::String(e.to_string())).await;
                 session.flash("old_input", json!({
-                    "name": form.name,
+                    "first_name": form.first_name,
+                    "last_name": form.last_name,
                     "email": form.email,
                     "newsletter": form.newsletter
                 })).await;
@@ -509,7 +515,7 @@ impl WebAuthController {
                 session.forget("success").await;
                 session.forget("error").await;
 
-                TemplateResponse::new("dashboard", &data).with_layout("layouts/app").into_response()
+                TemplateResponse::new("dashboard/index", &data).with_layout("layouts/dashboard").into_response()
             }
             Ok(None) => {
                 session.flush().await;
