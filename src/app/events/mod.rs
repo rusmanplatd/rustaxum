@@ -378,6 +378,11 @@ impl EventDispatcher {
             return Ok(());
         }
 
+        // Handle broadcasting if the event implements ShouldBroadcast
+        if let Err(e) = self.handle_broadcasting(event.clone()).await {
+            tracing::error!("Failed to broadcast event: {}", e);
+        }
+
         let event_type = std::any::type_name_of_val(event.as_ref()).to_string();
         let listeners = self.listeners.read().await;
         let wildcard_listeners = self.wildcard_listeners.read().await;
@@ -415,6 +420,39 @@ impl EventDispatcher {
         }
 
         Ok(())
+    }
+
+    /// Handle broadcasting for events that implement ShouldBroadcast
+    async fn handle_broadcasting(&self, event: Arc<dyn Event>) -> Result<()> {
+        // For now, we'll use a trait-based approach for events that implement Broadcastable
+        // This is a simplified approach - in production, you might want to use a more
+        // sophisticated registry or reflection system
+
+        // Check if this is a UserRegisteredEvent
+        let event_name = event.event_name();
+        if event_name == "UserRegistered" {
+            // Create a broadcastable version of the event
+            let event_data = event.to_json();
+            if let (Some(user_id), Some(email), Some(name)) = (
+                event_data.get("user_id").and_then(|v| v.as_str()),
+                event_data.get("email").and_then(|v| v.as_str()),
+                event_data.get("name").and_then(|v| v.as_str()),
+            ) {
+                let user_event = crate::app::events::user_registered_event::UserRegisteredEvent::new(
+                    user_id.to_string(),
+                    email.to_string(),
+                    name.to_string(),
+                );
+                return self.broadcast_event(&user_event).await;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Broadcast an event using the broadcasting system
+    async fn broadcast_event(&self, broadcastable: &dyn crate::app::broadcasting::Broadcastable) -> Result<()> {
+        crate::app::broadcasting::broadcast(broadcastable).await
     }
 
     /// Fire an event and notify all registered listeners (alias for dispatch)

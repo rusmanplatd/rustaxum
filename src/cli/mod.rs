@@ -72,6 +72,9 @@ pub enum Commands {
     /// List application routes
     #[command(subcommand)]
     Route(RouteCommands),
+    /// Broadcasting and WebSocket commands
+    #[command(subcommand)]
+    Broadcast(BroadcastCommands),
 }
 
 #[derive(Subcommand)]
@@ -285,6 +288,69 @@ pub enum RouteCommands {
     },
 }
 
+#[derive(Subcommand)]
+pub enum BroadcastCommands {
+    /// Test broadcasting to a channel
+    Test {
+        /// Channel to broadcast to
+        #[arg(long)]
+        channel: Option<String>,
+        /// Message to broadcast
+        #[arg(long)]
+        message: Option<String>,
+    },
+    /// Start a standalone WebSocket server
+    #[command(name = "websocket")]
+    WebSocket {
+        /// Port to run WebSocket server on
+        #[arg(long, default_value = "8080")]
+        port: u16,
+    },
+    /// Show broadcasting system statistics
+    Stats,
+    /// Send ping messages to a channel
+    Ping {
+        /// Channel to ping
+        #[arg(long)]
+        channel: Option<String>,
+        /// Interval in seconds between pings
+        #[arg(long, default_value = "5")]
+        interval: u64,
+    },
+    /// List active broadcast channels
+    Channels,
+    /// Broadcast notification to a user
+    #[command(name = "notify:user")]
+    NotifyUser {
+        /// User ID to notify
+        user_id: String,
+        /// Notification title
+        title: String,
+        /// Notification message
+        message: String,
+        /// Optional action URL
+        #[arg(long)]
+        action_url: Option<String>,
+    },
+    /// Broadcast system alert
+    #[command(name = "system:alert")]
+    SystemAlert {
+        /// Alert level (info, warning, error, critical)
+        level: String,
+        /// Alert message
+        message: String,
+        /// Whether action is required from users
+        #[arg(long)]
+        action_required: Option<bool>,
+    },
+    /// Monitor broadcast activity
+    Monitor {
+        /// Duration to monitor in seconds
+        #[arg(long, default_value = "30")]
+        duration: u64,
+    },
+}
+
 pub async fn run_cli(cli: Cli) -> Result<()> {
     match cli.command {
         Commands::Make(make_cmd) => commands::make::handle_make_command(make_cmd).await,
@@ -299,6 +365,16 @@ pub async fn run_cli(cli: Cli) -> Result<()> {
         Commands::Passport(passport_cmd) => commands::passport::handle_passport_command(passport_cmd).await,
         Commands::Route(route_cmd) => match route_cmd {
             RouteCommands::List { name, method, uri } => commands::route::handle_route_list_command_filtered(name, method, uri).await,
+        },
+        Commands::Broadcast(broadcast_cmd) => match broadcast_cmd {
+            BroadcastCommands::Test { channel, message } => commands::broadcast::handle_broadcast_test_command(channel, message).await,
+            BroadcastCommands::WebSocket { port } => commands::broadcast::handle_websocket_serve_command(Some(port)).await,
+            BroadcastCommands::Stats => commands::broadcast::handle_broadcast_stats_command().await,
+            BroadcastCommands::Ping { channel, interval } => commands::broadcast::handle_broadcast_ping_command(channel, Some(interval)).await,
+            BroadcastCommands::Channels => commands::broadcast::handle_broadcast_channels_command().await,
+            BroadcastCommands::NotifyUser { user_id, title, message, action_url } => commands::broadcast::handle_broadcast_to_user_command(user_id, title, message, action_url).await,
+            BroadcastCommands::SystemAlert { level, message, action_required } => commands::broadcast::handle_system_alert_command(level, message, action_required).await,
+            BroadcastCommands::Monitor { duration } => commands::broadcast::handle_broadcast_monitor_command(Some(duration)).await,
         },
     }
 }

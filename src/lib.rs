@@ -38,11 +38,48 @@ pub async fn create_app() -> anyhow::Result<Router> {
     tracing::debug!("Database migrations skipped (already applied)");
 
 
+    // Initialize broadcasting system
+    tracing::debug!("Initializing broadcasting system...");
+    let broadcasting_config = config::Config::load()?.broadcasting;
+    let broadcast_manager = app::broadcasting::init_broadcast_manager(broadcasting_config.default_driver).await;
+
+    // Register broadcast drivers
+    {
+        let mut manager = broadcast_manager.write().await;
+
+        // Register WebSocket driver
+        if broadcasting_config.websocket_enabled {
+            let websocket_driver = app::broadcasting::WebSocketDriver::new();
+            manager.register_driver("websocket".to_string(), Box::new(websocket_driver));
+            tracing::info!("WebSocket broadcast driver registered");
+        }
+
+        // Register Redis driver
+        if broadcasting_config.redis_enabled {
+            let redis_driver = app::broadcasting::RedisDriver::new(
+                broadcasting_config.redis_host.clone(),
+                broadcasting_config.redis_port,
+            );
+            manager.register_driver("redis".to_string(), Box::new(redis_driver));
+            tracing::info!("Redis broadcast driver registered");
+        }
+
+        // Always register log driver for fallback
+        let log_driver = app::broadcasting::LogDriver::new();
+        manager.register_driver("log".to_string(), Box::new(log_driver));
+        tracing::info!("Log broadcast driver registered");
+    }
+
+    // Get WebSocket manager for routes
+    let websocket_manager = app::broadcasting::websocket::websocket_manager().await;
+
     tracing::debug!("Building router with routes...");
     let app = Router::new()
         .merge(routes::api::routes())
         .merge(routes::web::routes())
         .merge(routes::oauth::oauth_routes())
+        // Add WebSocket routes
+        .nest("/ws", app::broadcasting::websocket::websocket_routes().with_state(websocket_manager))
         .with_state(pool.clone())
         .layer(
             ServiceBuilder::new()
