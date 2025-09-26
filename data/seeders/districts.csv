@@ -1,0 +1,2052 @@
+country_iso,province_code,city_code,name,code
+US,AL,BHM,Downtown,DT
+US,AL,BHM,Five Points South,FP
+US,AL,BHM,Highland Park,HP
+US,AL,MGM,Downtown,DT
+US,AL,MGM,Oak Park,OP
+US,AL,MOB,Downtown,DT
+US,AL,MOB,Spring Hill,SH
+US,AL,HSV,Downtown,DT
+US,AL,HSV,Research Park,RP
+US,AK,ANC,Downtown,DT
+US,AK,ANC,Midtown,MT
+US,AK,ANC,Airport Heights,AH
+US,AK,JNU,Downtown,DT
+US,AK,JNU,Mendenhall Valley,MV
+US,AK,FAI,Downtown,DT
+US,AK,FAI,College,CL
+US,AZ,PHX,Downtown,DT
+US,AZ,PHX,Scottsdale,SC
+US,AZ,PHX,Tempe,TE
+US,AZ,PHX,Mesa,ME
+US,AZ,PHX,Glendale,GL
+US,AZ,PHX,Chandler,CH
+US,AZ,TUS,Downtown,DT
+US,AZ,TUS,Foothills,FH
+US,AZ,TUS,Midtown,MT
+US,AR,LIT,Downtown,DT
+US,AR,LIT,River Market,RM
+US,AR,LIT,Hillcrest,HC
+US,AR,FSM,Downtown,DT
+US,AR,FSM,Chaffee Crossing,CC
+US,CA,LA,Downtown,DT
+US,CA,LA,Hollywood,HW
+US,CA,LA,Beverly Hills,BH
+US,CA,LA,Santa Monica,SM
+US,CA,LA,West Hollywood,WH
+US,CA,LA,Koreatown,KT
+US,CA,LA,Silver Lake,SL
+US,CA,LA,Venice,VE
+US,CA,LA,Pasadena,PS
+US,CA,LA,Long Beach,LB
+US,CA,SF,SOMA,SO
+US,CA,SF,Mission,MI
+US,CA,SF,Castro,CA
+US,CA,SF,Chinatown,CT
+US,CA,SF,Financial District,FD
+US,CA,SF,North Beach,NB
+US,CA,SF,Haight-Ashbury,HA
+US,CA,SF,Presidio,PR
+US,CA,SD,Downtown,DT
+US,CA,SD,Gaslamp Quarter,GQ
+US,CA,SD,Balboa Park,BP
+US,CA,SD,La Jolla,LJ
+US,CA,SD,Mission Beach,MB
+US,CA,SJ,Downtown,DT
+US,CA,SJ,Japantown,JT
+US,CA,SJ,Willow Glen,WG
+US,CA,SJ,Santana Row,SR
+US,CO,DEN,Downtown,DT
+US,CO,DEN,LoDo,LO
+US,CO,DEN,Capitol Hill,CH
+US,CO,DEN,Cherry Creek,CC
+US,CO,DEN,Highlands,HL
+US,CO,COS,Downtown,DT
+US,CO,COS,Old Colorado City,OC
+US,CO,COS,Broadmoor,BM
+US,CT,HFD,Downtown,DT
+US,CT,HFD,West End,WE
+US,CT,HVN,Downtown,DT
+US,CT,HVN,East Rock,ER
+US,CT,HVN,Westville,WV
+US,DE,ILG,Downtown,DT
+US,DE,ILG,Trolley Square,TS
+US,DE,DOV,Downtown,DT
+US,FL,MIA,Downtown,DT
+US,FL,MIA,South Beach,SB
+US,FL,MIA,Wynwood,WY
+US,FL,MIA,Coral Gables,CG
+US,FL,MIA,Little Havana,LH
+US,FL,MIA,Brickell,BR
+US,FL,ORL,Downtown,DT
+US,FL,ORL,International Drive,ID
+US,FL,ORL,Winter Park,WP
+US,FL,TPA,Downtown,DT
+US,FL,TPA,Ybor City,YC
+US,FL,TPA,Hyde Park,HP
+US,FL,JAX,Downtown,DT
+US,FL,JAX,Riverside,RS
+US,FL,JAX,San Marco,SM
+US,GA,ATL,Downtown,DT
+US,GA,ATL,Midtown,MT
+US,GA,ATL,Buckhead,BH
+US,GA,ATL,Little Five Points,LP
+US,GA,ATL,Virginia-Highland,VH
+US,GA,SAV,Historic District,HD
+US,GA,SAV,Victorian District,VD
+US,HI,HNL,Downtown,DT
+US,HI,HNL,Waikiki,WK
+US,HI,HNL,Chinatown,CT
+US,HI,HNL,Ala Moana,AM
+US,ID,BOI,Downtown,DT
+US,ID,BOI,North End,NE
+US,ID,BOI,Bench,BE
+US,IL,CHI,Downtown,DT
+US,IL,CHI,Lincoln Park,LP
+US,IL,CHI,Wicker Park,WP
+US,IL,CHI,River North,RN
+US,IL,CHI,Gold Coast,GC
+US,IL,CHI,Old Town,OT
+US,IL,CHI,South Loop,SL
+US,IN,IND,Downtown,DT
+US,IN,IND,Mass Ave,MA
+US,IN,IND,Broad Ripple,BR
+US,IN,IND,Fountain Square,FS
+US,IA,DSM,Downtown,DT
+US,IA,DSM,East Village,EV
+US,IA,DSM,Sherman Hill,SH
+US,KS,ICT,Downtown,DT
+US,KS,ICT,Old Town,OT
+US,KS,ICT,Riverside,RS
+US,KY,SDF,Downtown,DT
+US,KY,SDF,NuLu,NL
+US,KY,SDF,Highlands,HL
+US,KY,SDF,Bardstown Road,BR
+US,LA,MSY,French Quarter,FQ
+US,LA,MSY,Garden District,GD
+US,LA,MSY,Marigny,MR
+US,LA,MSY,Warehouse District,WD
+US,LA,MSY,Uptown,UT
+US,LA,BTR,Downtown,DT
+US,LA,BTR,Spanish Town,ST
+US,ME,PWM,Old Port,OP
+US,ME,PWM,Arts District,AD
+US,ME,PWM,West End,WE
+US,MD,BWI,Inner Harbor,IH
+US,MD,BWI,Federal Hill,FH
+US,MD,BWI,Fells Point,FP
+US,MD,BWI,Canton,CN
+US,MA,BOS,Downtown,DT
+US,MA,BOS,Back Bay,BB
+US,MA,BOS,North End,NE
+US,MA,BOS,Beacon Hill,BH
+US,MA,BOS,Cambridge,CB
+US,MA,BOS,South End,SE
+US,MI,DTW,Downtown,DT
+US,MI,DTW,Midtown,MT
+US,MI,DTW,Corktown,CT
+US,MI,DTW,Eastern Market,EM
+US,MN,MSP,Downtown Minneapolis,DM
+US,MN,MSP,Downtown St. Paul,DS
+US,MN,MSP,Northeast,NE
+US,MN,MSP,Uptown,UT
+US,MN,MSP,North Loop,NL
+US,MS,JAN,Downtown,DT
+US,MS,JAN,Fondren,FD
+US,MO,MCI,Downtown,DT
+US,MO,MCI,Country Club Plaza,CP
+US,MO,MCI,Westport,WP
+US,MO,STL,Downtown,DT
+US,MO,STL,Central West End,CW
+US,MO,STL,The Hill,TH
+US,MO,STL,Soulard,SL
+US,MT,BIL,Downtown,DT
+US,MT,BIL,West End,WE
+US,NE,OMA,Downtown,DT
+US,NE,OMA,Old Market,OM
+US,NE,OMA,Benson,BE
+US,NV,LAS,The Strip,TS
+US,NV,LAS,Downtown,DT
+US,NV,LAS,Summerlin,SL
+US,NV,LAS,Henderson,HD
+US,NV,RNO,Downtown,DT
+US,NV,RNO,Midtown,MT
+US,NH,MHT,Downtown,DT
+US,NH,MHT,Millyard,MY
+US,NJ,EWR,Downtown,DT
+US,NJ,EWR,Ironbound,IB
+US,NJ,JC,Downtown,DT
+US,NJ,JC,Newport,NP
+US,NJ,JC,The Heights,TH
+US,NM,ABQ,Downtown,DT
+US,NM,ABQ,Old Town,OT
+US,NM,ABQ,Nob Hill,NH
+US,NY,NYC,Manhattan,MN
+US,NY,NYC,Brooklyn,BK
+US,NY,NYC,Queens,QN
+US,NY,NYC,Bronx,BX
+US,NY,NYC,Staten Island,SI
+US,NY,BUF,Downtown,DT
+US,NY,BUF,Elmwood Village,EV
+US,NY,ROC,Downtown,DT
+US,NY,ROC,Park Avenue,PA
+US,NC,CLT,Uptown,UT
+US,NC,CLT,South End,SE
+US,NC,CLT,NoDa,ND
+US,NC,RDU,Downtown Raleigh,DR
+US,NC,RDU,Downtown Durham,DD
+US,NC,RDU,Research Triangle,RT
+US,ND,FAR,Downtown,DT
+US,ND,FAR,West Fargo,WF
+US,OH,CMH,Downtown,DT
+US,OH,CMH,Short North,SN
+US,OH,CMH,German Village,GV
+US,OH,CLE,Downtown,DT
+US,OH,CLE,Ohio City,OC
+US,OH,CLE,Tremont,TR
+US,OH,CVG,Downtown Cincinnati,DC
+US,OH,CVG,Over-the-Rhine,OR
+US,OH,CVG,Mount Adams,MA
+US,OK,OKC,Downtown,DT
+US,OK,OKC,Bricktown,BT
+US,OK,OKC,Midtown,MT
+US,OK,TUL,Downtown,DT
+US,OK,TUL,Brady Arts District,BA
+US,OR,PDX,Downtown,DT
+US,OR,PDX,Pearl District,PD
+US,OR,PDX,Hawthorne,HT
+US,OR,PDX,Alberta,AB
+US,PA,PHL,Center City,CC
+US,PA,PHL,Old City,OC
+US,PA,PHL,South Street,SS
+US,PA,PHL,Northern Liberties,NL
+US,PA,PIT,Downtown,DT
+US,PA,PIT,Strip District,SD
+US,PA,PIT,Lawrenceville,LV
+US,PA,PIT,Shadyside,SH
+US,RI,PVD,Downtown,DT
+US,RI,PVD,Federal Hill,FH
+US,RI,PVD,The Hill,TH
+US,SC,CAE,Downtown,DT
+US,SC,CAE,Five Points,FP
+US,SC,CHS,Downtown,DT
+US,SC,CHS,King Street,KS
+US,SC,CHS,French Quarter,FQ
+US,SD,FSD,Downtown,DT
+US,SD,FSD,East Bank,EB
+US,TN,BNA,Downtown,DT
+US,TN,BNA,Music Row,MR
+US,TN,BNA,The Gulch,TG
+US,TN,BNA,Midtown,MT
+US,TN,MEM,Downtown,DT
+US,TN,MEM,Beale Street,BS
+US,TN,MEM,Cooper-Young,CY
+US,TX,HOU,Downtown,DT
+US,TX,HOU,Midtown,MT
+US,TX,HOU,Montrose,MR
+US,TX,HOU,Heights,HT
+US,TX,HOU,River Oaks,RO
+US,TX,DAL,Downtown,DT
+US,TX,DAL,Deep Ellum,DE
+US,TX,DAL,Bishop Arts District,BA
+US,TX,DAL,Uptown,UT
+US,TX,AUS,Downtown,DT
+US,TX,AUS,South by Southwest,SX
+US,TX,AUS,East Austin,EA
+US,TX,SAT,Downtown,DT
+US,TX,SAT,Southtown,ST
+US,TX,SAT,Pearl District,PD
+US,TX,SAT,River Walk,RW
+US,UT,SLC,Downtown,DT
+US,UT,SLC,Capitol Hill,CH
+US,UT,SLC,Sugar House,SH
+US,VT,BTV,Downtown,DT
+US,VT,BTV,Church Street,CS
+US,VA,ORF,Ghent,GH
+US,VA,ORF,Neon District,ND
+US,VA,RIC,Downtown,DT
+US,VA,RIC,Fan District,FD
+US,VA,RIC,Carytown,CT
+US,WA,SEA,Downtown,DT
+US,WA,SEA,Capitol Hill,CH
+US,WA,SEA,Fremont,FR
+US,WA,SEA,Ballard,BA
+US,WA,SEA,Queen Anne,QA
+US,WA,GEG,Downtown,DT
+US,WA,GEG,South Hill,SH
+US,WV,CRW,Downtown,DT
+US,WV,CRW,East End,EE
+US,WI,MKE,Downtown,DT
+US,WI,MKE,Third Ward,TW
+US,WI,MKE,Riverwest,RW
+US,WI,MSN,Downtown,DT
+US,WI,MSN,State Street,SS
+US,WY,CYS,Downtown,DT
+US,WY,CYS,Historic Depot,HD
+CA,AB,CGY,Downtown,DT
+CA,AB,CGY,Kensington,KE
+CA,AB,CGY,Mission,MI
+CA,AB,CGY,Inglewood,IN
+CA,AB,EDM,Downtown,DT
+CA,AB,EDM,Whyte Avenue,WA
+CA,AB,EDM,West Edmonton,WE
+CA,BC,VAN,Downtown,DT
+CA,BC,VAN,West End,WE
+CA,BC,VAN,Gastown,GA
+CA,BC,VAN,Yaletown,YT
+CA,BC,VAN,Kitsilano,KI
+CA,BC,VAN,Commercial Drive,CD
+CA,BC,VIC,Inner Harbour,IH
+CA,BC,VIC,James Bay,JB
+CA,BC,VIC,Fernwood,FW
+CA,MB,YWG,Downtown,DT
+CA,MB,YWG,Exchange District,ED
+CA,MB,YWG,Osborne Village,OV
+CA,NB,YSJ,Uptown,UT
+CA,NB,YSJ,South End,SE
+CA,NB,YQM,Downtown,DT
+CA,NB,YQM,Riverview,RV
+CA,NL,YYT,Downtown,DT
+CA,NL,YYT,Water Street,WS
+CA,NS,YHZ,Downtown,DT
+CA,NS,YHZ,South End,SE
+CA,NS,YHZ,North End,NE
+CA,ON,TOR,Downtown,DT
+CA,ON,TOR,Scarborough,SC
+CA,ON,TOR,North York,NY
+CA,ON,TOR,Etobicoke,ET
+CA,ON,TOR,East York,EY
+CA,ON,TOR,York,YK
+CA,ON,OTT,Downtown,DT
+CA,ON,OTT,ByWard Market,BW
+CA,ON,OTT,Glebe,GL
+CA,PE,YYG,Downtown,DT
+CA,PE,YYG,Brighton,BR
+CA,QC,MTL,Downtown,DT
+CA,QC,MTL,Old Montreal,OM
+CA,QC,MTL,Plateau,PL
+CA,QC,MTL,Mile End,ME
+CA,QC,YQB,Old Quebec,OQ
+CA,QC,YQB,Saint-Roch,SR
+CA,SK,YXE,Downtown,DT
+CA,SK,YXE,Broadway,BW
+CA,SK,YQR,Downtown,DT
+CA,SK,YQR,Cathedral,CT
+GB,ENG,LON,Westminster,WM
+GB,ENG,LON,Camden,CM
+GB,ENG,LON,Kensington,KE
+GB,ENG,LON,Tower Hamlets,TH
+GB,ENG,LON,Islington,IS
+GB,ENG,LON,Hackney,HA
+GB,ENG,LON,Southwark,SW
+GB,ENG,LON,Lambeth,LA
+GB,ENG,LON,Wandsworth,WA
+GB,ENG,LON,Hammersmith,HM
+GB,ENG,MAN,City Centre,CC
+GB,ENG,MAN,Northern Quarter,NQ
+GB,ENG,MAN,Salford,SA
+GB,ENG,MAN,Chorlton,CH
+GB,ENG,MAN,Didsbury,DI
+GB,ENG,BIR,City Centre,CC
+GB,ENG,BIR,Jewellery Quarter,JQ
+GB,ENG,BIR,Digbeth,DG
+GB,ENG,LPL,City Centre,CC
+GB,ENG,LPL,Albert Dock,AD
+GB,ENG,LPL,Bold Street,BS
+GB,ENG,LDS,City Centre,CC
+GB,ENG,LDS,Headingley,HL
+GB,ENG,LDS,Chapel Allerton,CA
+GB,SCT,EDI,Old Town,OT
+GB,SCT,EDI,New Town,NT
+GB,SCT,EDI,Leith,LE
+GB,SCT,EDI,Stockbridge,ST
+GB,SCT,GLA,City Centre,CC
+GB,SCT,GLA,Merchant City,MC
+GB,SCT,GLA,West End,WE
+GB,SCT,GLA,Southside,SS
+GB,WAL,CAR,City Centre,CC
+GB,WAL,CAR,Cardiff Bay,CB
+GB,WAL,CAR,Canton,CN
+GB,NIR,BFS,City Centre,CC
+GB,NIR,BFS,Titanic Quarter,TQ
+GB,NIR,BFS,Cathedral Quarter,CQ
+DE,BW,STU,Mitte,MI
+DE,BW,STU,West,WE
+DE,BW,STU,Süd,SU
+DE,BW,STU,Nord,NO
+DE,BY,MUN,Altstadt,AL
+DE,BY,MUN,Maxvorstadt,MX
+DE,BY,MUN,Schwabing,SC
+DE,BY,MUN,Haidhausen,HD
+DE,BY,MUN,Glockenbachviertel,GB
+DE,BE,BER,Mitte,MI
+DE,BE,BER,Kreuzberg,KR
+DE,BE,BER,Prenzlauer Berg,PB
+DE,BE,BER,Charlottenburg,CH
+DE,BE,BER,Friedrichshain,FR
+DE,HH,HAM,Altstadt,AL
+DE,HH,HAM,Neustadt,NE
+DE,HH,HAM,St. Pauli,SP
+DE,HH,HAM,HafenCity,HC
+DE,HE,FRA,Altstadt,AL
+DE,HE,FRA,Westend,WE
+DE,HE,FRA,Sachsenhausen,SA
+DE,NW,COL,Altstadt,AL
+DE,NW,COL,Neustadt,NE
+DE,NW,COL,Ehrenfeld,EH
+DE,NW,DUS,Altstadt,AL
+DE,NW,DUS,Königsallee,KO
+DE,NW,DUS,MedienHafen,MH
+FR,IDF,PAR,1st Arrondissement,01
+FR,IDF,PAR,2nd Arrondissement,02
+FR,IDF,PAR,3rd Arrondissement,03
+FR,IDF,PAR,4th Arrondissement,04
+FR,IDF,PAR,5th Arrondissement,05
+FR,IDF,PAR,6th Arrondissement,06
+FR,IDF,PAR,7th Arrondissement,07
+FR,IDF,PAR,8th Arrondissement,08
+FR,IDF,PAR,9th Arrondissement,09
+FR,IDF,PAR,10th Arrondissement,10
+FR,ARA,LYO,Presqu'île,PR
+FR,ARA,LYO,Vieux Lyon,VL
+FR,ARA,LYO,Part-Dieu,PD
+FR,ARA,LYO,Croix-Rousse,CR
+FR,PAC,MRS,Vieux-Port,VP
+FR,PAC,MRS,Le Panier,LP
+FR,PAC,MRS,Canebière,CN
+FR,PAC,NCE,Vieux Nice,VN
+FR,PAC,NCE,Promenade,PR
+FR,PAC,NCE,Cimiez,CI
+JP,13,NRT,Shibuya,SH
+JP,13,NRT,Shinjuku,SN
+JP,13,NRT,Harajuku,HR
+JP,13,NRT,Ginza,GI
+JP,13,NRT,Akihabara,AK
+JP,13,NRT,Roppongi,RO
+JP,27,KIX,Namba,NM
+JP,27,KIX,Umeda,UM
+JP,27,KIX,Tennoji,TN
+JP,27,KIX,Sumiyoshi,SU
+JP,26,KIX,Gion,GI
+JP,26,KIX,Arashiyama,AR
+JP,26,KIX,Fushimi,FU
+AU,NSW,SYD,CBD,CB
+AU,NSW,SYD,The Rocks,TR
+AU,NSW,SYD,Darling Harbour,DH
+AU,NSW,SYD,Kings Cross,KC
+AU,NSW,SYD,Bondi,BO
+AU,NSW,SYD,Newtown,NT
+AU,VIC,MEL,CBD,CB
+AU,VIC,MEL,South Yarra,SY
+AU,VIC,MEL,St Kilda,SK
+AU,VIC,MEL,Richmond,RI
+AU,VIC,MEL,Fitzroy,FZ
+AU,QLD,BNE,CBD,CB
+AU,QLD,BNE,South Bank,SB
+AU,QLD,BNE,Fortitude Valley,FV
+AU,WA,PER,CBD,CB
+AU,WA,PER,Fremantle,FR
+AU,WA,PER,Subiaco,SU
+AU,SA,ADL,CBD,CB
+AU,SA,ADL,North Adelaide,NA
+AU,SA,ADL,Glenelg,GL
+IN,MH,BOM,South Mumbai,SM
+IN,MH,BOM,Bandra,BA
+IN,MH,BOM,Andheri,AN
+IN,MH,BOM,Borivali,BO
+IN,MH,BOM,Juhu,JU
+IN,MH,PNQ,Koregaon Park,KP
+IN,MH,PNQ,Baner,BN
+IN,MH,PNQ,Hinjewadi,HJ
+IN,KA,BLR,Koramangala,KO
+IN,KA,BLR,Indiranagar,IN
+IN,KA,BLR,Whitefield,WH
+IN,KA,BLR,JP Nagar,JP
+IN,KA,BLR,MG Road,MG
+IN,TN,MAA,T. Nagar,TN
+IN,TN,MAA,Anna Nagar,AN
+IN,TN,MAA,Adyar,AD
+IN,TN,CJB,RS Puram,RS
+IN,TN,CJB,Race Course,RC
+IN,DL,DEL,Connaught Place,CP
+IN,DL,DEL,Karol Bagh,KB
+IN,DL,DEL,Lajpat Nagar,LN
+IN,DL,DEL,Chandni Chowk,CC
+IN,WB,CCU,Park Street,PS
+IN,WB,CCU,Salt Lake,SL
+IN,WB,CCU,New Town,NT
+BR,SP,GRU,Centro,CE
+BR,SP,GRU,Vila Madalena,VM
+BR,SP,GRU,Jardins,JA
+BR,SP,GRU,Liberdade,LI
+BR,SP,GRU,Bela Vista,BV
+BR,RJ,GIG,Copacabana,CO
+BR,RJ,GIG,Ipanema,IP
+BR,RJ,GIG,Leblon,LE
+BR,RJ,GIG,Santa Teresa,ST
+BR,RJ,GIG,Centro,CE
+BR,MG,CNF,Centro,CE
+BR,MG,CNF,Savassi,SA
+BR,MG,CNF,Pampulha,PA
+MX,DF,MEX,Centro Histórico,CH
+MX,DF,MEX,Polanco,PO
+MX,DF,MEX,Roma Norte,RN
+MX,DF,MEX,Condesa,CO
+MX,DF,MEX,Coyoacán,CY
+MX,JA,GDL,Centro Histórico,CH
+MX,JA,GDL,Zona Rosa,ZR
+MX,JA,GDL,Tlaquepaque,TL
+MX,NL,MTY,Centro,CE
+MX,NL,MTY,San Pedro,SP
+MX,NL,MTY,Santa Catarina,SC
+ID,31,CGK,Central Jakarta,CJ
+ID,31,CGK,South Jakarta,SJ
+ID,31,CGK,West Jakarta,WJ
+ID,31,CGK,North Jakarta,NJ
+ID,31,CGK,East Jakarta,EJ
+ID,32,BDO,Bandung Wetan,BW
+ID,32,BDO,Bandung Kulon,BK
+ID,32,BDO,Bojongloa Kaler,BL
+ID,32,BDO,Coblong,CO
+ID,32,BDO,Sumur Bandung,SB
+ID,35,MLG,Blimbing,BL
+ID,35,MLG,Klojen,KL
+ID,35,MLG,Lowokwaru,LW
+ID,35,MLG,Sukun,SK
+ID,35,MLG,Kedungkandang,KK
+ID,33,SRG,Semarang Tengah,ST
+ID,33,SRG,Semarang Utara,SU
+ID,33,SRG,Semarang Selatan,SS
+ID,33,SRG,Semarang Barat,SB
+ID,34,JOG,Yogyakarta,YG
+ID,34,JOG,Kraton,KR
+ID,34,JOG,Mergangsan,MG
+ID,34,JOG,Umbulharjo,UH
+ID,51,DPS,Denpasar Selatan,DS
+ID,51,DPS,Denpasar Utara,DU
+ID,51,DPS,Denpasar Barat,DB
+ID,51,DPS,Denpasar Timur,DT
+KR,11,ICN,Jung-gu,JG
+KR,11,ICN,Gangnam-gu,GN
+KR,11,ICN,Hongdae,HD
+KR,11,ICN,Itaewon,IT
+KR,11,ICN,Myeongdong,MD
+KR,26,PUS,Haeundae,HU
+KR,26,PUS,Jung-gu,JG
+KR,26,PUS,Seomyeon,SM
+TR,34,IST,Sultanahmet,SU
+TR,34,IST,Beyoğlu,BY
+TR,34,IST,Beşiktaş,BS
+TR,34,IST,Kadıköy,KD
+TR,34,IST,Üsküdar,US
+TR,06,ESB,Çankaya,CK
+TR,06,ESB,Kızılay,KZ
+TR,06,ESB,Ulus,UL
+SA,01,RUH,Al Olaya,AO
+SA,01,RUH,Al Malaz,AM
+SA,01,RUH,Diplomatic Quarter,DQ
+SA,02,JED,Al Balad,AB
+SA,02,JED,Al Hamra,AH
+SA,02,JED,Corniche,CO
+TH,10,BKK,Sukhumvit,SU
+TH,10,BKK,Silom,SI
+TH,10,BKK,Siam,SA
+TH,10,BKK,Khao San,KS
+TH,10,BKK,Chinatown,CT
+TH,50,CNX,Old City,OC
+TH,50,CNX,Nimmanhaemin,NH
+TH,83,HKT,Patong,PT
+TH,83,HKT,Phuket Town,PH
+SG,CR,SIN,Marina Bay,MB
+SG,CR,SIN,Orchard Road,OR
+SG,CR,SIN,Chinatown,CT
+SG,CR,SIN,Little India,LI
+SG,CR,SIN,Katong,KA
+SG,CR,SIN,East Coast,EC
+NL,NH,AMS,Centrum,CE
+NL,NH,AMS,Jordaan,JO
+NL,NH,AMS,De Pijp,DP
+NL,ZH,RTM,Centrum,CE
+NL,ZH,RTM,Kop van Zuid,KZ
+CH,ZH,ZUR,Altstadt,AL
+CH,ZH,ZUR,Kreis 4,K4
+CH,ZH,ZUR,Kreis 5,K5
+CH,GE,GVA,Vieille Ville,VV
+CH,GE,GVA,Plainpalais,PP
+SE,01,ARN,Gamla Stan,GS
+SE,01,ARN,Södermalm,SO
+SE,01,ARN,Östermalm,OS
+SE,14,GOT,Centrum,CE
+SE,14,GOT,Haga,HA
+NO,03,OSL,Sentrum,SE
+NO,03,OSL,Grünerløkka,GR
+NO,03,OSL,Frogner,FR
+US,CA,FAT,Downtown,DT
+US,CA,FAT,Tower District,TD
+US,CA,SAC,Downtown,DT
+US,CA,SAC,Midtown,MT
+US,CA,SAC,East Sacramento,ES
+US,CA,OAK,Downtown,DT
+US,CA,OAK,Jack London Square,JL
+US,CA,OAK,Temescal,TE
+US,FL,FLL,Las Olas,LO
+US,FL,FLL,Victoria Park,VP
+US,FL,TLH,Downtown,DT
+US,FL,TLH,Midtown,MT
+US,TX,DFW,Downtown,DT
+US,TX,DFW,Cultural District,CD
+US,TX,ELP,Downtown,DT
+US,TX,ELP,El Segundo Barrio,ES
+US,NY,SYR,Downtown,DT
+US,NY,SYR,University Hill,UH
+US,NY,ALB,Downtown,DT
+US,NY,ALB,Center Square,CS
+US,NC,GSO,Downtown,DT
+US,NC,GSO,Gate City,GC
+US,OH,TOL,Downtown,DT
+US,OH,TOL,Old West End,OW
+US,PA,ABE,Center City,CC
+US,PA,ABE,West End,WE
+US,PA,MDT,Downtown,DT
+US,PA,MDT,Midtown,MT
+US,WA,SEA,Georgetown,GT
+US,WA,SEA,Wallingford,WF
+US,WA,SEA,University District,UD
+US,WA,GEG,Browne's Addition,BA
+US,WA,GEG,Perry District,PD
+GB,ENG,SHF,City Centre,CC
+GB,ENG,SHF,Kelham Island,KI
+GB,ENG,SHF,Park Hill,PH
+GB,ENG,BRS,City Centre,CC
+GB,ENG,BRS,Clifton,CL
+GB,ENG,BRS,Harbourside,HS
+GB,ENG,NCL,City Centre,CC
+GB,ENG,NCL,Quayside,QS
+GB,ENG,NCL,Jesmond,JE
+GB,ENG,EMA,City Centre,CC
+GB,ENG,EMA,Lace Market,LM
+GB,ENG,LTR,City Centre,CC
+GB,ENG,LTR,Cultural Quarter,CQ
+GB,SCT,ABZ,City Centre,CC
+GB,SCT,ABZ,Old Aberdeen,OA
+GB,SCT,DND,City Centre,CC
+GB,SCT,DND,West End,WE
+GB,WAL,SWS,City Centre,CC
+GB,WAL,SWS,Uplands,UP
+GB,NIR,LDY,City Centre,CC
+GB,NIR,LDY,Waterside,WS
+DE,BW,MHG,Innenstadt,IN
+DE,BW,MHG,Jungbusch,JB
+DE,BW,FKB,Innenstadt,IN
+DE,BW,FKB,Südstadt,SU
+DE,BW,ZEU,Altstadt,AL
+DE,BW,ZEU,Neuburg,NE
+DE,BY,NUR,Altstadt,AL
+DE,BY,NUR,Südstadt,SU
+DE,BY,AGB,Altstadt,AL
+DE,BY,AGB,Antonsviertel,AN
+DE,BY,WUE,Altstadt,AL
+DE,BY,WUE,Frauenland,FR
+DE,BB,POT,Innenstadt,IN
+DE,BB,POT,Bornstedt,BO
+DE,HB,BRE,Altstadt,AL
+DE,HB,BRE,Östliche Vorstadt,OV
+DE,HE,WIE,Innenstadt,IN
+DE,HE,WIE,Biebrich,BI
+DE,NI,HAJ,Mitte,MI
+DE,NI,HAJ,Linden,LI
+DE,NI,BWE,Innenstadt,IN
+DE,NI,BWE,Weststadt,WE
+DE,MV,RLG,Stadtmitte,SM
+DE,MV,RLG,Warnemünde,WA
+DE,NW,DTM,Innenstadt,IN
+DE,NW,DTM,Kreuzviertel,KR
+DE,NW,ESS,Innenstadt,IN
+DE,NW,ESS,Rüttenscheid,RU
+DE,RP,MNZ,Altstadt,AL
+DE,RP,MNZ,Neustadt,NE
+DE,SL,SCN,Alt-Saarbrücken,AS
+DE,SL,SCN,St. Johann,SJ
+DE,SN,DRS,Altstadt,AL
+DE,SN,DRS,Neustadt,NE
+DE,SN,LEJ,Zentrum,ZE
+DE,SN,LEJ,Plagwitz,PL
+DE,ST,CSO,Altstadt,AL
+DE,ST,CSO,Stadtfeld,SF
+DE,SH,KEL,Innenstadt,IN
+DE,SH,KEL,Düsternbrook,DU
+DE,TH,ERF,Altstadt,AL
+DE,TH,ERF,Krämpfervorstadt,KR
+FR,ARA,GNB,Centre,CE
+FR,ARA,GNB,Europole,EU
+FR,ARA,EBU,Centre,CE
+FR,ARA,EBU,Méons,ME
+FR,BFC,DIJ,Centre,CE
+FR,BFC,DIJ,République,RE
+FR,BFC,QBQ,Centre,CE
+FR,BFC,QBQ,Battant,BA
+FR,BRE,RNS,Centre,CE
+FR,BRE,RNS,Villejean,VI
+FR,BRE,BES,Centre,CE
+FR,BRE,BES,Recouvrance,RE
+FR,CVL,TUF,Centre,CE
+FR,CVL,TUF,Prébendes,PR
+FR,CVL,ORE,Centre,CE
+FR,CVL,ORE,La Source,LS
+FR,COR,AJA,Centre,CE
+FR,COR,AJA,Les Cannes,LC
+FR,GES,SXB,Centre,CE
+FR,GES,SXB,Neudorf,NE
+FR,GES,ETZ,Centre,CE
+FR,GES,ETZ,Sablon,SA
+FR,GES,ENC,Centre,CE
+FR,GES,ENC,Rives de Meurthe,RM
+FR,HDF,LIL,Centre,CE
+FR,HDF,LIL,Vieux Lille,VL
+FR,HDF,XAM,Centre,CE
+FR,HDF,XAM,Saint-Leu,SL
+FR,NOR,URO,Centre,CE
+FR,NOR,URO,Quartier Histor,QH
+FR,NOR,LEH,Centre,CE
+FR,NOR,LEH,Sanvic,SA
+FR,NAQ,BOD,Centre,CE
+FR,NAQ,BOD,Chartrons,CH
+FR,NAQ,TLS,Centre,CE
+FR,NAQ,TLS,Capitole,CA
+FR,NAQ,LIG,Centre,CE
+FR,NAQ,LIG,Carnot,CA
+FR,OCC,MPL,Centre,CE
+FR,OCC,MPL,Antigone,AN
+FR,OCC,FNI,Centre,CE
+FR,OCC,FNI,Ecusson,EC
+FR,PDL,NTE,Centre,CE
+FR,PDL,NTE,Île de Nantes,IN
+FR,PDL,ANE,Centre,CE
+FR,PDL,ANE,Belle-Beille,BB
+FR,PAC,TLN,Centre,CE
+FR,PAC,TLN,Mourillon,MO
+JP,01,CTS,Chuo,CH
+JP,01,CTS,Susukino,SU
+JP,01,CTS,Odori,OD
+JP,02,AOJ,Center,CE
+JP,02,AOJ,Honcho,HO
+JP,03,GAJ,Center,CE
+JP,03,GAJ,Morioka-eki,ME
+JP,04,SDJ,Aoba,AO
+JP,04,SDJ,Sendai-eki,SE
+JP,05,AXT,Center,CE
+JP,05,AXT,Akita-eki,AE
+JP,06,GAJ,Center,CE
+JP,06,GAJ,Yamagata-eki,YE
+JP,07,FKS,Center,CE
+JP,07,FKS,Fukushima-eki,FE
+JP,08,IBR,Center,CE
+JP,08,IBR,Mito-eki,ME
+JP,09,QUT,Center,CE
+JP,09,QUT,Utsunomiya-eki,UE
+JP,10,QME,Center,CE
+JP,10,QME,Maebashi-eki,ME
+JP,11,QSA,Center,CE
+JP,11,QSA,Urawa,UR
+JP,12,QCB,Center,CE
+JP,12,QCB,Chiba-eki,CE
+JP,14,QYO,Center,CE
+JP,14,QYO,Minato Mirai,MM
+JP,15,KIJ,Center,CE
+JP,15,KIJ,Niigata-eki,NE
+JP,16,QTO,Center,CE
+JP,16,QTO,Toyama-eki,TE
+JP,17,KMQ,Center,CE
+JP,17,KMQ,Kanazawa-eki,KE
+JP,18,QFU,Center,CE
+JP,18,QFU,Fukui-eki,FE
+JP,19,QKO,Center,CE
+JP,19,QKO,Kofu-eki,KE
+JP,20,MMJ,Center,CE
+JP,20,MMJ,Nagano-eki,NE
+JP,21,QGF,Center,CE
+JP,21,QGF,Gifu-eki,GE
+JP,22,FSZ,Center,CE
+JP,22,FSZ,Shizuoka-eki,SE
+JP,23,NGO,Center,CE
+JP,23,NGO,Sakae,SA
+JP,23,NGO,Nagoya-eki,NE
+JP,24,QTS,Center,CE
+JP,24,QTS,Tsu-eki,TE
+JP,25,QOT,Center,CE
+JP,25,QOT,Otsu-eki,OE
+JP,28,UKB,Center,CE
+JP,28,UKB,Sannomiya,SA
+JP,28,UKB,Motomachi,MO
+JP,29,QNA,Center,CE
+JP,29,QNA,Nara-eki,NE
+JP,30,QWA,Center,CE
+JP,30,QWA,Wakayama-eki,WE
+JP,31,TTJ,Center,CE
+JP,31,TTJ,Tottori-eki,TE
+JP,32,IZO,Center,CE
+JP,32,IZO,Matsue-eki,ME
+JP,33,OKJ,Center,CE
+JP,33,OKJ,Okayama-eki,OE
+JP,34,HIJ,Center,CE
+JP,34,HIJ,Hiroshima-eki,HE
+JP,35,UBJ,Center,CE
+JP,35,UBJ,Yamaguchi-eki,YE
+JP,36,TKS,Center,CE
+JP,36,TKS,Tokushima-eki,TE
+JP,37,TAK,Center,CE
+JP,37,TAK,Takamatsu-eki,TE
+JP,38,MYJ,Center,CE
+JP,38,MYJ,Matsuyama-eki,ME
+JP,39,KCZ,Center,CE
+JP,39,KCZ,Kochi-eki,KE
+JP,40,FUK,Tenjin,TE
+JP,40,FUK,Hakata,HA
+JP,40,FUK,Nakasu,NA
+JP,41,HSG,Center,CE
+JP,41,HSG,Saga-eki,SE
+JP,42,NGS,Center,CE
+JP,42,NGS,Nagasaki-eki,NE
+JP,43,KMJ,Center,CE
+JP,43,KMJ,Kumamoto-eki,KE
+JP,44,OIT,Center,CE
+JP,44,OIT,Oita-eki,OE
+JP,45,KMI,Center,CE
+JP,45,KMI,Miyazaki-eki,ME
+JP,46,KOJ,Center,CE
+JP,46,KOJ,Kagoshima-eki,KE
+JP,47,OKA,Naha,NA
+JP,47,OKA,Kokusai-dori,KD
+AU,ACT,CBR,City Centre,CC
+AU,ACT,CBR,Civic,CI
+AU,NSW,NTL,City Centre,CC
+AU,NSW,NTL,The Hill,TH
+AU,NSW,WOL,City Centre,CC
+AU,NSW,WOL,Crown Street,CS
+AU,NT,DRW,City Centre,CC
+AU,NT,DRW,The Esplanade,TE
+AU,NT,ASP,Town Centre,TC
+AU,NT,ASP,Telegraph Station,TS
+AU,QLD,OOL,Surfers Paradise,SP
+AU,QLD,OOL,Broadbeach,BB
+AU,QLD,CNS,City Centre,CC
+AU,QLD,CNS,Esplanade,ES
+AU,QLD,TSV,City Centre,CC
+AU,QLD,TSV,The Strand,TS
+AU,TAS,HBA,City Centre,CC
+AU,TAS,HBA,Battery Point,BP
+AU,TAS,LST,City Centre,CC
+AU,TAS,LST,Cataract Gorge,CG
+AU,VIC,GEX,City Centre,CC
+AU,VIC,GEX,Eastern Beach,EB
+AU,VIC,BAL,City Centre,CC
+AU,VIC,BAL,Lake Wendouree,LW
+AU,WA,BME,Town Centre,TC
+AU,WA,BME,Cable Beach,CB
+AU,WA,KGI,City Centre,CC
+AU,WA,KGI,Hannan Street,HS
+IN,AP,VTZ,MVP Colony,MV
+IN,AP,VTZ,Beach Road,BR
+IN,AP,VGA,Governorpet,GP
+IN,AP,VGA,Benz Circle,BC
+IN,AP,TIR,Central,CE
+IN,AP,TIR,Railway Station,RS
+IN,AR,HGI,Itanagar,IT
+IN,AR,HGI,Naharlagun,NH
+IN,AS,GAU,Paltan Bazaar,PB
+IN,AS,GAU,Six Mile,SM
+IN,AS,DIB,New Market,NM
+IN,AS,DIB,Graham Bazaar,GB
+IN,BR,PAT,Boring Road,BR
+IN,BR,PAT,Fraser Road,FR
+IN,BR,GAY,Station Road,SR
+IN,BR,GAY,Civil Lines,CL
+IN,CT,RPR,Civil Lines,CL
+IN,CT,RPR,Shankar Nagar,SN
+IN,CT,PAB,Bilaspur,BI
+IN,CT,PAB,Link Road,LR
+IN,GA,GOI,Panjim,PA
+IN,GA,GOI,Fontainhas,FO
+IN,GA,GOX,Market Area,MA
+IN,GA,GOX,Margao Station,MS
+IN,GJ,AMD,Maninagar,MN
+IN,GJ,AMD,Navrangpura,NV
+IN,GJ,AMD,Vastrapur,VS
+IN,GJ,STV,Adajan,AD
+IN,GJ,STV,Athwa,AT
+IN,GJ,BDQ,Alkapuri,AL
+IN,GJ,BDQ,Sayajigunj,SG
+IN,HR,DEL,Cyber City,CC
+IN,HR,DEL,Old Gurgaon,OG
+IN,HR,FBD,Sector 15,S15
+IN,HR,FBD,NIT,NT
+IN,HP,SLV,Mall Road,MR
+IN,HP,SLV,Ridge,RI
+IN,HP,DHM,McLeod Ganj,MG
+IN,HP,DHM,Kotwali Bazaar,KB
+IN,JH,IXR,Main Road,MR
+IN,JH,IXR,Lalpur,LP
+IN,JH,IXW,Bistupur,BI
+IN,JH,IXW,Sakchi,SA
+IN,KL,COK,Ernakulam,ER
+IN,KL,COK,Fort Kochi,FK
+IN,KL,TRV,East Fort,EF
+IN,KL,TRV,Palayam,PA
+IN,KL,CCJ,Kozhikode Beach,KB
+IN,KL,CCJ,SM Street,SM
+IN,MP,BHO,New Market,NM
+IN,MP,BHO,MP Nagar,MP
+IN,MP,IDR,Rajwada,RJ
+IN,MP,IDR,Sarafa,SA
+IN,MP,GWL,Lashkar,LA
+IN,MP,GWL,City Centre,CC
+IN,MH,NAG,Sitabuldi,SI
+IN,MH,NAG,Sadar,SA
+IN,MH,ISK,Panchavati,PA
+IN,MH,ISK,College Road,CR
+IN,MN,IMF,Paona Bazaar,PB
+IN,MN,IMF,Thangal Bazaar,TB
+IN,ML,SHL,Police Bazaar,PB
+IN,ML,SHL,Laitumkhrah,LT
+IN,MZ,AJL,Bazar Veng,BV
+IN,MZ,AJL,Thuampui,TH
+IN,NL,DMU,Kohima Village,KV
+IN,NL,DMU,High School Junction,HS
+IN,OR,BBI,Unit 1,U1
+IN,OR,BBI,Sahid Nagar,SN
+IN,OR,CTC,Chandi Chowk,CC
+IN,OR,CTC,Link Road,LR
+IN,PB,IXC,Sector 17,S17
+IN,PB,IXC,Sector 22,S22
+IN,PB,LUH,Civil Lines,CL
+IN,PB,LUH,Ghumar Mandi,GM
+IN,PB,ATQ,Hall Gate,HG
+IN,PB,ATQ,Golden Temple,GT
+IN,RJ,JAI,Pink City,PC
+IN,RJ,JAI,C-Scheme,CS
+IN,RJ,JDH,Clock Tower,CT
+IN,RJ,JDH,Ratanada,RT
+IN,RJ,UDR,City Palace,CP
+IN,RJ,UDR,Lake Pichola,LP
+IN,SK,IXB,MG Marg,MG
+IN,SK,IXB,Lal Bazaar,LB
+IN,TN,IXM,Anna Nagar,AN
+IN,TN,IXM,Meenakshi Temple,MT
+IN,TG,HYD,Secunderabad,SE
+IN,TG,HYD,Charminar,CH
+IN,TG,WGC,Hanamkonda,HA
+IN,TG,WGC,Warangal Fort,WF
+IN,TR,IXA,Agartala,AG
+IN,TR,IXA,Palace Compound,PC
+IN,UP,LKO,Hazratganj,HZ
+IN,UP,LKO,Aminabad,AM
+IN,UP,KNU,Civil Lines,CL
+IN,UP,KNU,Kidwai Nagar,KN
+IN,UP,AGR,Sadar Bazaar,SB
+IN,UP,AGR,Taj Ganj,TG
+IN,UP,VNS,Varanasi Cantt,VC
+IN,UP,VNS,Dashashwamedh,DA
+IN,UT,DED,Paltan Bazaar,PB
+IN,UT,DED,Clock Tower,CT
+IN,UT,HRD,Har ki Pauri,HK
+IN,UT,HRD,Upper Road,UR
+IN,WB,IXB,Matigara,MA
+IN,WB,IXB,Sevoke Road,SR
+IN,AN,IXZ,Aberdeen Bazaar,AB
+IN,AN,IXZ,Delanipur,DE
+IN,DN,NMB,Nani Daman,ND
+IN,DN,NMB,Moti Daman,MD
+BR,AC,RBR,Centro,CE
+BR,AC,RBR,Bosque,BO
+BR,AL,MCZ,Pajuçara,PA
+BR,AL,MCZ,Ponta Verde,PV
+BR,AP,MCP,Centro,CE
+BR,AP,MCP,Trem,TR
+BR,AM,MAO,Centro,CE
+BR,AM,MAO,Ponta Negra,PN
+BR,BA,SSA,Pelourinho,PE
+BR,BA,SSA,Barra,BA
+BR,BA,FEC,Centro,CE
+BR,BA,FEC,Kalilândia,KA
+BR,CE,FOR,Centro,CE
+BR,CE,FOR,Meireles,ME
+BR,CE,SOB,Centro,CE
+BR,CE,SOB,Alto do Cristo,AC
+BR,DF,BSB,Plano Piloto,PP
+BR,DF,BSB,Asa Norte,AN
+BR,ES,VIX,Centro,CE
+BR,ES,VIX,Praia do Canto,PC
+BR,GO,GYN,Centro,CE
+BR,GO,GYN,Setor Sul,SS
+BR,GO,APS,Centro,CE
+BR,GO,APS,Setor Norte,SN
+BR,MA,SLZ,Centro,CE
+BR,MA,SLZ,Calhau,CA
+BR,MA,IMP,Centro,CE
+BR,MA,IMP,Mercadinho,ME
+BR,MT,CGB,Centro,CE
+BR,MT,CGB,Várzea Grande,VG
+BR,MT,VGD,Centro,CE
+BR,MT,VGD,Cristo Rei,CR
+BR,MS,CGR,Centro,CE
+BR,MS,CGR,Jardim dos Estados,JE
+BR,MS,DOU,Centro,CE
+BR,MS,DOU,Vila Progresso,VP
+BR,MG,UDI,Centro,CE
+BR,MG,UDI,Fundinho,FU
+BR,MG,PLU,Centro,CE
+BR,MG,PLU,Eldorado,EL
+BR,PA,BEL,Cidade Velha,CV
+BR,PA,BEL,Nazaré,NA
+BR,PA,AAI,Centro,CE
+BR,PA,AAI,Cidade Nova,CN
+BR,PB,JPA,Centro,CE
+BR,PB,JPA,Tambaú,TA
+BR,PB,CPV,Centro,CE
+BR,PB,CPV,Catolé,CA
+BR,PR,CWB,Centro,CE
+BR,PR,CWB,Batel,BA
+BR,PR,LDB,Centro,CE
+BR,PR,LDB,Higienópolis,HI
+BR,PR,MGF,Centro,CE
+BR,PR,MGF,Zona 2,Z2
+BR,PE,REC,Recife Antigo,RA
+BR,PE,REC,Boa Viagem,BV
+BR,PE,JBR,Centro,CE
+BR,PE,JBR,Piedade,PI
+BR,PI,THE,Centro,CE
+BR,PI,THE,Jockey,JO
+BR,PI,PHB,Centro,CE
+BR,PI,PHB,Redenção,RE
+BR,RJ,QGO,Centro,CE
+BR,RJ,QGO,Alcântara,AL
+BR,RJ,DCX,Centro,CE
+BR,RJ,DCX,Jardim Primavera,JP
+BR,RN,NAT,Cidade Alta,CA
+BR,RN,NAT,Ponta Negra,PN
+BR,RN,MVF,Centro,CE
+BR,RN,MVF,Nova Betânia,NB
+BR,RS,POA,Centro Histórico,CH
+BR,RS,POA,Moinhos de Vento,MV
+BR,RS,CXJ,Centro,CE
+BR,RS,CXJ,Pioneiro,PI
+BR,RS,PET,Centro,CE
+BR,RS,PET,Fragata,FR
+BR,RO,PVH,Centro,CE
+BR,RO,PVH,Olaria,OL
+BR,RR,BVB,Centro,CE
+BR,RR,BVB,Aparecida,AP
+BR,SC,FLN,Centro,CE
+BR,SC,FLN,Lagoa da Conceição,LC
+BR,SC,JOI,Centro,CE
+BR,SC,JOI,América,AM
+BR,SC,BNU,Centro,CE
+BR,SC,BNU,Pomerode,PO
+BR,SP,GRU,Centro,CE
+BR,SP,GRU,Jardim Brasil,JB
+BR,SP,VCP,Centro,CE
+BR,SP,VCP,Cambuí,CA
+BR,SP,QSF,Centro,CE
+BR,SP,QSF,Rudge Ramos,RR
+BR,SE,AJU,Centro,CE
+BR,SE,AJU,Atalaia,AT
+BR,TO,PMW,Centro,CE
+BR,TO,PMW,Plano Diretor Sul,PS
+MX,AG,AGU,Centro,CE
+MX,AG,AGU,San Marcos,SM
+MX,BC,TIJ,Centro,CE
+MX,BC,TIJ,Zona Río,ZR
+MX,BC,MXL,Centro,CE
+MX,BC,MXL,Mexicali,ME
+MX,BS,LAP,Centro,CE
+MX,BS,LAP,Malecón,MA
+MX,BS,SJD,Centro,CE
+MX,BS,SJD,Marina,MR
+MX,CM,CPE,Centro,CE
+MX,CM,CPE,Malecón,MA
+MX,CS,TGZ,Centro,CE
+MX,CS,TGZ,Zona Dorada,ZD
+MX,CS,SCC,Centro,CE
+MX,CS,SCC,Barrio de Guadalupe,BG
+MX,CH,CUU,Centro,CE
+MX,CH,CUU,Zona Dorada,ZD
+MX,CH,CJS,Centro,CE
+MX,CH,CJS,Pronaf,PR
+MX,CO,SLW,Centro,CE
+MX,CO,SLW,Zona Centro,ZC
+MX,CO,TRC,Centro,CE
+MX,CO,TRC,Campestre,CA
+MX,CL,CLQ,Centro,CE
+MX,CL,CLQ,Las Víboras,LV
+MX,CL,ZLO,Centro,CE
+MX,CL,ZLO,Las Brisas,LB
+MX,DG,DGO,Centro,CE
+MX,DG,DGO,Zona Dorada,ZD
+MX,GT,BJX,Centro,CE
+MX,GT,BJX,Zona Piel,ZP
+MX,GT,GTO,Centro,CE
+MX,GT,GTO,Zona Romántica,ZR
+MX,GR,ACA,Acapulco Tradicional,AT
+MX,GR,ACA,Acapulco Dorado,AD
+MX,GR,CPN,Centro,CE
+MX,GR,CPN,Zona Norte,ZN
+MX,HG,PAC,Centro,CE
+MX,HG,PAC,Zona Plateada,ZP
+MX,JA,ZPN,Centro,CE
+MX,JA,ZPN,Zapopan Centro,ZC
+MX,MX,TLC,Centro,CE
+MX,MX,TLC,Zona Industrial,ZI
+MX,MX,ECT,Centro,CE
+MX,MX,ECT,Zona Norte,ZN
+MX,MI,MLM,Centro,CE
+MX,MI,MLM,Zona Rosa,ZR
+MX,MI,UPN,Centro,CE
+MX,MI,UPN,Zona Centro,ZC
+MX,MO,CVJ,Centro,CE
+MX,MO,CVJ,Zona Norte,ZN
+MX,NA,TPQ,Centro,CE
+MX,NA,TPQ,Zona Dorada,ZD
+MX,NL,GUP,Centro,CE
+MX,NL,GUP,Zona Industrial,ZI
+MX,OA,OAX,Centro,CE
+MX,OA,OAX,Zona Rosa,ZR
+MX,PU,PBC,Centro,CE
+MX,PU,PBC,Zona Esmeralda,ZE
+MX,PU,TCN,Centro,CE
+MX,PU,TCN,Zona Norte,ZN
+MX,QT,QRO,Centro,CE
+MX,QT,QRO,Zona Rosa,ZR
+MX,QR,CUN,Zona Hotelera,ZH
+MX,QR,CUN,Centro,CE
+MX,QR,PCM,Centro,CE
+MX,QR,PCM,Playacar,PL
+MX,SL,SLP,Centro,CE
+MX,SL,SLP,Zona Industrial,ZI
+MX,SI,CUL,Centro,CE
+MX,SI,CUL,Zona Dorada,ZD
+MX,SI,MZT,Centro,CE
+MX,SI,MZT,Zona Dorada,ZD
+MX,SO,HMO,Centro,CE
+MX,SO,HMO,Zona Hotelera,ZH
+MX,SO,CEN,Centro,CE
+MX,SO,CEN,Zona Industrial,ZI
+MX,TB,VSA,Centro,CE
+MX,TB,VSA,Zona Luz,ZL
+MX,TM,TAM,Centro,CE
+MX,TM,TAM,Zona Industrial,ZI
+MX,TM,REX,Centro,CE
+MX,TM,REX,Zona Industrial,ZI
+MX,TL,TLX,Centro,CE
+MX,TL,TLX,Zona Norte,ZN
+MX,VE,VER,Centro,CE
+MX,VE,VER,Zona Conurbada,ZC
+MX,VE,JAL,Centro,CE
+MX,VE,JAL,Zona Universitaria,ZU
+MX,YU,MID,Centro,CE
+MX,YU,MID,Zona Norte,ZN
+MX,YU,CZM,Centro,CE
+MX,YU,CZM,Zona Hotelera,ZH
+MX,ZA,ZCL,Centro,CE
+MX,ZA,ZCL,Zona Plateada,ZP
+ID,11,BTJ,Kuta Alam,KA
+ID,11,BTJ,Kuta Raja,KR
+ID,11,BTJ,Meuraxa,MX
+ID,11,BTJ,Syiah Kuala,SK
+ID,11,BTJ,Baiturrahman,BR
+ID,11,BTJ,Banda Raya,BY
+ID,11,BTJ,Jaya Baru,JB
+ID,11,BTJ,Lueng Bata,LB
+ID,11,BTJ,Ulee Kareng,UK
+ID,11,LSW,Blang Mangat,BM
+ID,11,LSW,Muara Satu,MS
+ID,11,LSW,Muara Dua,MD
+ID,11,LSW,Banda Sakti,BS
+ID,11,LGS,Langsa Barat,LB
+ID,11,LGS,Langsa Kota,LK
+ID,11,LGS,Langsa Lama,LL
+ID,11,LGS,Langsa Baro,LR
+ID,11,LGS,Langsa Timur,LT
+ID,12,KNO,Medan Kota,MK
+ID,12,KNO,Medan Barat,MB
+ID,12,KNO,Medan Timur,MT
+ID,12,KNO,Medan Utara,MU
+ID,12,KNO,Medan Selatan,MS
+ID,12,KNO,Medan Area,MA
+ID,12,KNO,Medan Johor,MJ
+ID,12,KNO,Medan Amplas,MP
+ID,12,KNO,Medan Denai,MD
+ID,12,KNO,Medan Labuhan,ML
+ID,12,KNO,Medan Tuntungan,TG
+ID,12,KNO,Medan Selayang,SL
+ID,12,KNO,Medan Petisah,PT
+ID,12,KNO,Medan Baru,BR
+ID,12,KNO,Medan Polonia,PL
+ID,12,KNO,Medan Maimun,MM
+ID,12,KNO,Medan Helvetia,HV
+ID,12,KNO,Medan Sunggal,SG
+ID,12,KNO,Medan Perjuangan,PJ
+ID,12,KNO,Medan Tembung,TB
+ID,12,KNO,Medan Deli,DL
+ID,12,PSP,Siantar Barat,SB
+ID,12,PSP,Siantar Utara,SU
+ID,12,PSP,Siantar Timur,ST
+ID,12,PSP,Siantar Selatan,SS
+ID,12,PSP,Siantar Marihat,SM
+ID,12,PSP,Siantar Marimbun,SR
+ID,12,PSP,Siantar Martoba,ST
+ID,12,PSP,Siantar Sitalasari,SL
+ID,13,PDG,Padang Barat,PB
+ID,13,PDG,Padang Utara,PU
+ID,13,PDG,Padang Timur,PT
+ID,13,PDG,Padang Selatan,PS
+ID,13,PDG,Koto Tangah,KT
+ID,13,PDG,Nanggalo,NG
+ID,13,PDG,Kuranji,KR
+ID,13,PDG,Pauh,PH
+ID,13,PDG,Lubuk Kilangan,LK
+ID,13,PDG,Lubuk Begalung,LB
+ID,13,PDG,Bungus Teluk Kabung,BT
+ID,13,BKT,Bukittinggi Utara,BU
+ID,13,BKT,Bukittinggi Selatan,BS
+ID,13,BKT,Mandiangin Koto Selayan,MK
+ID,13,PKB,Payakumbuh Barat,PB
+ID,13,PKB,Payakumbuh Utara,PU
+ID,13,PKB,Payakumbuh Timur,PT
+ID,13,PKB,Payakumbuh Selatan,PS
+ID,13,SAW,Sawahlunto Utara,SU
+ID,13,SAW,Sawahlunto Selatan,SS
+ID,13,SOL,Solok Selatan,SS
+ID,13,SOL,Lubuk Sikarah,LS
+ID,13,PDL,Padang Panjang Barat,PB
+ID,13,PDL,Padang Panjang Timur,PT
+ID,14,PKU,Pekanbaru Kota,PK
+ID,14,PKU,Sukajadi,SJ
+ID,14,PKU,Pekanbaru Timur,PT
+ID,14,PKU,Lima Puluh,LP
+ID,14,PKU,Sail,SL
+ID,14,PKU,Senapelan,SN
+ID,14,PKU,Rumbai,RB
+ID,14,PKU,Rumbai Pesisir,RP
+ID,14,PKU,Bukit Raya,BR
+ID,14,PKU,Marpoyan Damai,MD
+ID,14,PKU,Tenayan Raya,TR
+ID,14,PKU,Payung Sekaki,PS
+ID,14,DRI,Dumai Timur,DT
+ID,14,DRI,Dumai Barat,DB
+ID,14,DRI,Dumai Selatan,DS
+ID,14,DRI,Medang Kampai,MK
+ID,14,DRI,Bukit Kapur,BK
+ID,14,DRI,Sungai Sembilan,SS
+ID,15,JMB,Jambi Selatan,JS
+ID,15,JMB,Jambi Timur,JT
+ID,15,JMB,Pasar Jambi,PJ
+ID,15,JMB,Pelayangan,PL
+ID,15,JMB,Danau Teluk,DT
+ID,15,JMB,Kota Baru,KB
+ID,15,JMB,Telanaipura,TN
+ID,15,JMB,Jelutung,JL
+ID,15,JMB,Alam Barajo,AB
+ID,15,JMB,Thehok,TH
+ID,15,JMB,Paal Merah,PM
+ID,15,SNG,Sungai Penuh Barat,SB
+ID,15,SNG,Sungai Penuh Timur,ST
+ID,15,SNG,Pesisir Bukit,PB
+ID,15,SNG,Hamparan Rawang,HR
+ID,15,SNG,Kumun Debai,KD
+ID,15,SNG,Tanah Kampung,TK
+ID,15,SNG,Pondok Tinggi,PT
+ID,15,SNG,Koto Baru,KB
+ID,16,PLG,Ilir Barat I,IB1
+ID,16,PLG,Ilir Barat II,IB2
+ID,16,PLG,Ilir Timur I,IT1
+ID,16,PLG,Ilir Timur II,IT2
+ID,16,PLG,Ilir Timur III,IT3
+ID,16,PLG,Kalidoni,KL
+ID,16,PLG,Bukit Kecil,BK
+ID,16,PLG,Gandus,GD
+ID,16,PLG,Kertapati,KT
+ID,16,PLG,Plaju,PL
+ID,16,PLG,Sako,SK
+ID,16,PLG,Seberang Ulu I,SU1
+ID,16,PLG,Seberang Ulu II,SU2
+ID,16,PLG,Sematang Borang,SB
+ID,16,PLG,Sukarami,SR
+ID,16,PLG,Alang-alang Lebar,AL
+ID,16,PBL,Prabumulih Barat,PB
+ID,16,PBL,Prabumulih Utara,PU
+ID,16,PBL,Prabumulih Timur,PT
+ID,16,PBL,Prabumulih Selatan,PS
+ID,16,PGR,Pagar Alam Utara,PU
+ID,16,PGR,Pagar Alam Selatan,PS
+ID,16,LBL,Lubuklinggau Timur I,LT1
+ID,16,LBL,Lubuklinggau Timur II,LT2
+ID,16,LBL,Lubuklinggau Barat I,LB1
+ID,16,LBL,Lubuklinggau Barat II,LB2
+ID,16,LBL,Lubuklinggau Utara I,LU1
+ID,16,LBL,Lubuklinggau Utara II,LU2
+ID,16,LBL,Lubuklinggau Selatan I,LS1
+ID,16,LBL,Lubuklinggau Selatan II,LS2
+ID,17,BKL,Bengkulu Selatan,BS
+ID,17,BKL,Bengkulu Utara,BU
+ID,17,BKL,Gading Cempaka,GC
+ID,17,BKL,Kampung Melayu,KM
+ID,17,BKL,Muara Bangka Hulu,MB
+ID,17,BKL,Ratu Agung,RA
+ID,17,BKL,Ratu Samban,RS
+ID,17,BKL,Selebar,SL
+ID,17,BKL,Singaran Pati,SP
+ID,17,BKL,Teluk Segara,TS
+ID,18,LPG,Teluk Betung Barat,TB
+ID,18,LPG,Teluk Betung Timur,TT
+ID,18,LPG,Teluk Betung Selatan,TS
+ID,18,LPG,Teluk Betung Utara,TU
+ID,18,LPG,Panjang,PJ
+ID,18,LPG,Tanjung Karang Barat,TK
+ID,18,LPG,Tanjung Karang Pusat,TP
+ID,18,LPG,Tanjung Karang Timur,TT
+ID,18,LPG,Rajabasa,RJ
+ID,18,LPG,Kedaton,KD
+ID,18,LPG,Sukarame,SR
+ID,18,LPG,Sukabumi,SB
+ID,18,LPG,Kemiling,KM
+ID,18,LPG,Tanjung Senang,TS
+ID,18,LPG,Way Halim,WH
+ID,18,LPG,Langkapura,LK
+ID,18,LPG,Enggal,EG
+ID,18,LPG,Labuhan Ratu,LR
+ID,18,LPG,Way Kandis,WK
+ID,18,LPG,Kedamaian,KM
+ID,18,MTR,Metro Pusat,MP
+ID,18,MTR,Metro Utara,MU
+ID,18,MTR,Metro Timur,MT
+ID,18,MTR,Metro Selatan,MS
+ID,18,MTR,Metro Barat,MB
+ID,19,PGP,Pangkal Pinang Barat,PB
+ID,19,PGP,Pangkal Pinang Timur,PT
+ID,19,PGP,Pangkal Pinang Utara,PU
+ID,19,PGP,Pangkal Pinang Selatan,PS
+ID,19,PGP,Bukit Intan,BI
+ID,19,PGP,Rangkui,RK
+ID,19,PGP,Gabek,GB
+ID,31,JKT,Menteng,MN
+ID,31,JKT,Tanah Abang,TA
+ID,31,JKT,Gambir,GB
+ID,31,JKT,Sawah Besar,SB
+ID,31,JKT,Kemayoran,KM
+ID,31,JKT,Senen,SN
+ID,31,JKT,Cempaka Putih,CP
+ID,31,JKT,Johar Baru,JB
+ID,31,JKT,Kelapa Gading,KG
+ID,31,JKT,Tanjung Priok,TP
+ID,31,JKT,Koja,KJ
+ID,31,JKT,Cilincing,CL
+ID,31,JKT,Penjaringan,PJ
+ID,31,JKT,Pademangan,PD
+ID,31,JKT,Grogol Petamburan,GP
+ID,31,JKT,Taman Sari,TS
+ID,31,JKT,Tambora,TB
+ID,31,JKT,Kebon Jeruk,KJ
+ID,31,JKT,Palmerah,PM
+ID,31,JKT,Cengkareng,CG
+ID,31,JKT,Kalideres,KL
+ID,31,JKT,Kembangan,KB
+ID,31,JKT,Tebet,TB
+ID,31,JKT,Setiabudi,ST
+ID,31,JKT,Mampang Prapatan,MP
+ID,31,JKT,Pancoran,PC
+ID,31,JKT,Jagakarsa,JG
+ID,31,JKT,Pasar Minggu,PM
+ID,31,JKT,Kebayoran Lama,KL
+ID,31,JKT,Kebayoran Baru,KB
+ID,31,JKT,Pesanggrahan,PS
+ID,31,JKT,Cilandak,CL
+ID,31,JKT,Matraman,MT
+ID,31,JKT,Pulogadung,PG
+ID,31,JKT,Jatinegara,JN
+ID,31,JKT,Kramat Jati,KJ
+ID,31,JKT,Pasar Rebo,PR
+ID,31,JKT,Cakung,CK
+ID,31,JKT,Duren Sawit,DS
+ID,31,JKT,Makasar,MK
+ID,31,JKT,Cipayung,CP
+ID,32,BDG,Sukasari,SS
+ID,32,BDG,Coblong,CB
+ID,32,BDG,Cidadap,CD
+ID,32,BDG,Bandung Wetan,BW
+ID,32,BDG,Sumur Bandung,SB
+ID,32,BDG,Andir,AD
+ID,32,BDG,Cicendo,CC
+ID,32,BDG,Bandung Kulon,BK
+ID,32,BDG,Astana Anyar,AA
+ID,32,BDG,Regol,RG
+ID,32,BDG,Lengkong,LK
+ID,32,BDG,Bandung Kidul,BK
+ID,32,BDG,Buahbatu,BB
+ID,32,BDG,Rancasari,RS
+ID,32,BDG,Gedebage,GD
+ID,32,BDG,Cibiru,CB
+ID,32,BDG,Panyileukan,PY
+ID,32,BDG,Ujung Berung,UB
+ID,32,BDG,Cinambo,CN
+ID,32,BDG,Arcamanik,AR
+ID,32,BDG,Antapani,AT
+ID,32,BDG,Mandalajati,MJ
+ID,32,BDG,Kiaracondong,KC
+ID,32,BDG,Batununggal,BT
+ID,32,BDG,Bojongloa Kaler,BK
+ID,32,BDG,Bojongloa Kidul,BL
+ID,32,BDG,Babakan Ciparay,BC
+ID,32,BDG,Margahayu,MH
+ID,32,BDG,Margaasih,MS
+ID,32,BDG,Dayeuhkolot,DK
+ID,32,CRB,Harjamukti,HM
+ID,32,CRB,Kejaksan,KK
+ID,32,CRB,Kesambi,KS
+ID,32,CRB,Pekalipan,PK
+ID,32,CRB,Lemahwungkuk,LW
+ID,32,BKS,Bekasi Timur,BT
+ID,32,BKS,Bekasi Barat,BB
+ID,32,BKS,Bekasi Utara,BU
+ID,32,BKS,Bekasi Selatan,BS
+ID,32,BKS,Rawalumbu,RL
+ID,32,BKS,Bantargebang,BG
+ID,32,BKS,Pondokgede,PG
+ID,32,BKS,Jatisampurna,JS
+ID,32,BKS,Jatiasih,JA
+ID,32,BKS,Medan Satria,MS
+ID,32,BKS,Mustika Jaya,MJ
+ID,32,BKS,Pondok Melati,PM
+ID,32,DPK,Sawangan,SW
+ID,32,DPK,Bojongsari,BJ
+ID,32,DPK,Limo,LM
+ID,32,DPK,Cinere,CN
+ID,32,DPK,Cipayung,CP
+ID,32,DPK,Sukmajaya,SM
+ID,32,DPK,Pancoran Mas,PM
+ID,32,DPK,Beji,BJ
+ID,32,DPK,Cimanggis,CM
+ID,32,DPK,Tapos,TP
+ID,32,DPK,Cilodong,CL
+ID,32,BGR,Bogor Tengah,BT
+ID,32,BGR,Bogor Utara,BU
+ID,32,BGR,Bogor Selatan,BS
+ID,32,BGR,Bogor Barat,BB
+ID,32,BGR,Bogor Timur,BE
+ID,32,BGR,Tanah Sareal,TS
+ID,32,SKH,Sukabumi Kota,SK
+ID,32,SKH,Warudoyong,WD
+ID,32,SKH,Baros,BR
+ID,32,SKH,Lembursitu,LS
+ID,32,SKH,Cikole,CK
+ID,32,SKH,Gunungpuyuh,GP
+ID,32,TSM,Tasikmalaya Kota,TK
+ID,32,TSM,Tawang,TW
+ID,32,TSM,Mangkubumi,MK
+ID,32,TSM,Cihideung,CH
+ID,32,TSM,Cipedes,CP
+ID,32,TSM,Cibeureum,CB
+ID,32,TSM,Tamansari,TS
+ID,32,TSM,Indihiang,IH
+ID,32,TSM,Kawalu,KW
+ID,32,TSM,Bungursari,BS
+ID,32,CMH,Cimahi Selatan,CS
+ID,32,CMH,Cimahi Tengah,CT
+ID,32,CMH,Cimahi Utara,CU
+ID,32,BTR,Banjar Kota,BK
+ID,32,BTR,Banjar Barat,BB
+ID,32,BTR,Banjar Timur,BT
+ID,32,BTR,Banjar Selatan,BS
+ID,33,SMG,Semarang Tengah,ST
+ID,33,SMG,Semarang Utara,SU
+ID,33,SMG,Semarang Timur,SM
+ID,33,SMG,Gayamsari,GS
+ID,33,SMG,Genuk,GN
+ID,33,SMG,Pedurungan,PD
+ID,33,SMG,Semarang Selatan,SS
+ID,33,SMG,Candisari,CS
+ID,33,SMG,Gajahmungkur,GM
+ID,33,SMG,Tembalang,TB
+ID,33,SMG,Banyumanik,BM
+ID,33,SMG,Gunungpati,GP
+ID,33,SMG,Semarang Barat,SB
+ID,33,SMG,Mijen,MJ
+ID,33,SMG,Ngaliyan,NG
+ID,33,SMG,Tugu,TG
+ID,33,SKA,Solo Baru,SB
+ID,33,SKA,Laweyan,LW
+ID,33,SKA,Serengan,SR
+ID,33,SKA,Pasarkliwon,PK
+ID,33,SKA,Jebres,JB
+ID,33,SKA,Banjarsari,BJ
+ID,33,TGL,Tegal Selatan,TS
+ID,33,TGL,Tegal Timur,TT
+ID,33,TGL,Tegal Barat,TB
+ID,33,TGL,Margadana,MG
+ID,33,SLT,Sidorejo,SD
+ID,33,SLT,Salatiga Kota,SK
+ID,33,SLT,Tingkir,TK
+ID,33,SLT,Argomulyo,AG
+ID,33,PKG,Pekalongan Barat,PB
+ID,33,PKG,Pekalongan Timur,PT
+ID,33,PKG,Pekalongan Utara,PU
+ID,33,PKG,Pekalongan Selatan,PS
+ID,33,MGL,Magelang Utara,MU
+ID,33,MGL,Magelang Tengah,MT
+ID,33,MGL,Magelang Selatan,MS
+ID,34,YGY,Danurejan,DN
+ID,34,YGY,Gedongtengen,GT
+ID,34,YGY,Gondokusuman,GK
+ID,34,YGY,Gondomanan,GD
+ID,34,YGY,Jetis,JT
+ID,34,YGY,Kotagede,KG
+ID,34,YGY,Kraton,KT
+ID,34,YGY,Mantrijeron,MJ
+ID,34,YGY,Mergangsan,MG
+ID,34,YGY,Ngampilan,NP
+ID,34,YGY,Pakualaman,PK
+ID,34,YGY,Tegalrejo,TR
+ID,34,YGY,Umbulharjo,UH
+ID,34,YGY,Wirobrajan,WB
+ID,35,SBY,Surabaya Pusat,SP
+ID,35,SBY,Surabaya Utara,SU
+ID,35,SBY,Surabaya Timur,ST
+ID,35,SBY,Surabaya Selatan,SS
+ID,35,SBY,Surabaya Barat,SB
+ID,35,SBY,Gubeng,GB
+ID,35,SBY,Tegalsari,TS
+ID,35,SBY,Genteng,GT
+ID,35,SBY,Bubutan,BB
+ID,35,SBY,Simokerto,SM
+ID,35,SBY,Pabean Cantian,PC
+ID,35,SBY,Semampir,SM
+ID,35,SBY,Krembangan,KB
+ID,35,SBY,Kenjeran,KJ
+ID,35,SBY,Bulak,BL
+ID,35,SBY,Mulyorejo,MY
+ID,35,SBY,Sukolilo,SK
+ID,35,SBY,Rungkut,RK
+ID,35,SBY,Tenggilis Mejoyo,TM
+ID,35,SBY,Gunung Anyar,GA
+ID,35,SBY,Gayungan,GY
+ID,35,SBY,Wonocolo,WN
+ID,35,SBY,Wonokromo,WK
+ID,35,SBY,Sawahan,SW
+ID,35,SBY,Dukuh Pakis,DP
+ID,35,SBY,Wiyung,WY
+ID,35,SBY,Lakarsantri,LS
+ID,35,SBY,Benowo,BN
+ID,35,SBY,Pakal,PK
+ID,35,SBY,Asemrowo,AS
+ID,35,SBY,Sukomanunggal,SM
+ID,35,SBY,Tandes,TD
+ID,35,MLG,Klojen,KL
+ID,35,MLG,Blimbing,BL
+ID,35,MLG,Kedungkandang,KK
+ID,35,MLG,Sukun,SK
+ID,35,MLG,Lowokwaru,LW
+ID,35,KDR,Kediri Kota,KK
+ID,35,KDR,Mojoroto,MJ
+ID,35,KDR,Pesantren,PS
+ID,35,BLR,Kepanjenlor,KL
+ID,35,BLR,Sananwetan,SW
+ID,35,BLR,Sukorejo,SJ
+ID,35,MDN,Madiun Utara,MU
+ID,35,MDN,Madiun Tengah,MT
+ID,35,MDN,Madiun Selatan,MS
+ID,35,PTR,Probolinggo Utara,PU
+ID,35,PTR,Probolinggo Selatan,PS
+ID,35,PTR,Probolinggo Barat,PB
+ID,35,PTR,Probolinggo Timur,PT
+ID,35,PTR,Mayangan,MY
+ID,35,PSN,Pasuruan Kota,PK
+ID,35,PSN,Gadingrejo,GR
+ID,35,PSN,Panggungrejo,PR
+ID,35,PSN,Purworejo,PW
+ID,35,BJN,Banyuwangi,BW
+ID,35,BJN,Giri,GR
+ID,35,BJN,Kalipuro,KP
+ID,35,BJN,Glagah,GL
+ID,35,JBR,Jember Utara,JU
+ID,35,JBR,Jember Tengah,JT
+ID,35,JBR,Jember Selatan,JS
+ID,35,JBR,Kaliwates,KW
+ID,35,JBR,Sumbersari,SS
+ID,35,JBR,Patrang,PT
+ID,36,PNK,Pontianak Kota,PK
+ID,36,PNK,Pontianak Selatan,PS
+ID,36,PNK,Pontianak Timur,PT
+ID,36,PNK,Pontianak Utara,PU
+ID,36,PNK,Pontianak Tenggara,PG
+ID,36,PNK,Pontianak Barat,PB
+ID,36,SGK,Singkawang Barat,SB
+ID,36,SGK,Singkawang Tengah,ST
+ID,36,SGK,Singkawang Timur,SM
+ID,36,SGK,Singkawang Utara,SU
+ID,36,SGK,Singkawang Selatan,SS
+ID,61,SMT,Samarinda Ulu,SU
+ID,61,SMT,Samarinda Ilir,SI
+ID,61,SMT,Samarinda Utara,SN
+ID,61,SMT,Samarinda Seberang,SS
+ID,61,SMT,Palaran,PL
+ID,61,SMT,Loa Janan Ilir,LJ
+ID,61,SMT,Sambutan,SB
+ID,61,SMT,Samarinda Kota,SK
+ID,61,SMT,Sungai Kunjang,SJ
+ID,61,SMT,Sungai Pinang,SP
+ID,61,BLK,Balikpapan Kota,BK
+ID,61,BLK,Balikpapan Barat,BB
+ID,61,BLK,Balikpapan Timur,BT
+ID,61,BLK,Balikpapan Utara,BU
+ID,61,BLK,Balikpapan Selatan,BS
+ID,61,BLK,Balikpapan Tengah,BG
+ID,61,BNJ,Banjarmasin Barat,BB
+ID,62,BNJ,Banjarmasin Tengah,BT
+ID,62,BNJ,Banjarmasin Timur,BM
+ID,62,BNJ,Banjarmasin Selatan,BS
+ID,62,BNJ,Banjarmasin Utara,BU
+ID,62,BJB,Banjarbaru Utara,BU
+ID,62,BJB,Banjarbaru Selatan,BS
+ID,62,BJB,Landasan Ulin,LU
+ID,62,BJB,Cempaka,CM
+ID,62,BJB,Liang Anggang,LA
+ID,63,PLR,Palu Barat,PB
+ID,63,PLR,Palu Timur,PT
+ID,63,PLR,Palu Utara,PU
+ID,63,PLR,Palu Selatan,PS
+ID,71,MKS,Makassar Barat,MB
+ID,71,MKS,Makassar Timur,MT
+ID,71,MKS,Makassar Utara,MU
+ID,71,MKS,Makassar Selatan,MS
+ID,71,MKS,Mariso,MR
+ID,71,MKS,Mamajang,MJ
+ID,71,MKS,Tamalate,TM
+ID,71,MKS,Rappocini,RP
+ID,71,MKS,Makassar Tengah,MG
+ID,71,MKS,Ujung Pandang,UP
+ID,71,MKS,Wajo,WJ
+ID,71,MKS,Bontoala,BT
+ID,71,MKS,Ujung Tanah,UT
+ID,71,MKS,Tallo,TL
+ID,71,MKS,Panakkukang,PK
+ID,71,MKS,Manggala,ML
+ID,71,MKS,Biringkanaya,BK
+ID,71,PLP,Palopo Barat,PB
+ID,71,PLP,Palopo Timur,PT
+ID,71,PLP,Wara,WR
+ID,71,PLP,Wara Utara,WU
+ID,71,PLP,Wara Selatan,WS
+ID,71,PLP,Wara Barat,WB
+ID,71,PLP,Wara Timur,WT
+ID,71,PLP,Sendana,SD
+ID,71,PLP,Bara,BR
+ID,72,KDI,Kendari,KD
+ID,72,KDI,Kendari Barat,KB
+ID,72,KDI,Kendari Caddi,KC
+ID,72,KDI,Baruga,BG
+ID,72,KDI,Poasia,PS
+ID,72,KDI,Abeli,AB
+ID,72,KDI,Kambu,KM
+ID,72,KDI,Wua-wua,WW
+ID,72,KDI,Puuwatu,PW
+ID,72,KDI,Kemaraya,KR
+ID,72,BAU,Baubau Barat,BB
+ID,72,BAU,Baubau Timur,BT
+ID,72,BAU,Murhum,MH
+ID,72,BAU,Sorawolio,SR
+ID,72,BAU,Lea-lea,LL
+ID,72,BAU,Bungi,BG
+ID,72,BAU,Kokalukuna,KK
+ID,72,BAU,Betoambari,BA
+ID,73,MND,Manado Utara,MU
+ID,73,MND,Manado Tengah,MT
+ID,73,MND,Manado Selatan,MS
+ID,73,MND,Manado Barat,MB
+ID,73,MND,Manado Timur,ME
+ID,73,MND,Mapanget,MP
+ID,73,MND,Singkil,SK
+ID,73,MND,Tuminting,TG
+ID,73,MND,Wenang,WG
+ID,73,MND,Tikala,TK
+ID,73,MND,Paal Dua,PD
+ID,73,BTG,Bitung Barat,BB
+ID,73,BTG,Bitung Tengah,BT
+ID,73,BTG,Bitung Timur,BE
+ID,73,BTG,Bitung Utara,BU
+ID,73,BTG,Girian,GR
+ID,73,BTG,Lembeh Selatan,LS
+ID,73,BTG,Lembeh Utara,LU
+ID,73,BTG,Aertembaga,AE
+ID,73,TMT,Tomohon Tengah,TT
+ID,73,TMT,Tomohon Utara,TU
+ID,73,TMT,Tomohon Selatan,TS
+ID,73,TMT,Tomohon Barat,TB
+ID,73,TMT,Tomohon Timur,TE
+ID,73,KTM,Kotamobagu Barat,KB
+ID,73,KTM,Kotamobagu Timur,KT
+ID,73,KTM,Kotamobagu Utara,KU
+ID,73,KTM,Kotamobagu Selatan,KS
+ID,74,GTO,Gorontalo Kota,GK
+ID,74,GTO,Gorontalo Barat,GB
+ID,74,GTO,Gorontalo Timur,GT
+ID,74,GTO,Gorontalo Utara,GU
+ID,74,GTO,Gorontalo Selatan,GS
+ID,74,GTO,Kota Selatan,KS
+ID,74,GTO,Kota Utara,KU
+ID,74,GTO,Kota Tengah,KT
+ID,74,GTO,Kota Barat,KB
+ID,75,MMJ,Mamuju Utara,MU
+ID,75,MMJ,Mamuju Selatan,MS
+ID,75,MMJ,Mamuju Tengah,MT
+ID,75,MMJ,Mamuju Barat,MB
+ID,75,MMJ,Mamuju Timur,ME
+ID,81,AMB,Sirimau,SR
+ID,81,AMB,Nusaniwe,NS
+ID,81,AMB,Baguala,BG
+ID,81,AMB,Teluk Ambon,TA
+ID,81,AMB,Teluk Ambon Baguala,TB
+ID,81,TUL,Tual Timur,TT
+ID,81,TUL,Tual Barat,TB
+ID,81,TUL,Tayando,TY
+ID,81,TUL,Dullah Selatan,DS
+ID,81,TUL,Dullah Utara,DU
+ID,82,TTE,Ternate Utara,TU
+ID,82,TTE,Ternate Tengah,TT
+ID,82,TTE,Ternate Selatan,TS
+ID,82,TTE,Moti,MT
+ID,82,TTE,Pulau Ternate,PT
+ID,82,TTE,Batau Putih,BP
+ID,82,TTE,Sulamadaha,SL
+ID,82,TTE,Pulau Hiri,PH
+ID,82,TID,Tidore Selatan,TS
+ID,82,TID,Tidore Utara,TU
+ID,82,TID,Tidore Timur,TT
+ID,82,TID,Oba Utara,OU
+ID,82,TID,Oba,OB
+ID,82,TID,Oba Tengah,OT
+ID,82,TID,Oba Selatan,OS
+ID,91,JYP,Jayapura Utara,JU
+ID,91,JYP,Jayapura Selatan,JS
+ID,91,JYP,Abepura,AB
+ID,91,JYP,Muara Tami,MT
+ID,91,JYP,Heram,HR
+ID,94,SRG,Sorong Barat,SB
+ID,94,SRG,Sorong Timur,ST
+ID,94,SRG,Sorong Utara,SU
+ID,94,SRG,Sorong Selatan,SS
+ID,94,SRG,Sorong Kepulauan,SK
+ID,94,SRG,Sorong Manoi,SM
+ID,21,BTM,Batam Centre,BC
+ID,21,BTM,Sekupang,SK
+ID,21,BTM,Sei Beduk,SB
+ID,21,BTM,Batam Kota,BK
+ID,21,BTM,Lubuk Baja,LB
+ID,21,BTM,Nongsa,NS
+ID,21,BTM,Batu Aji,BA
+ID,21,BTM,Batu Ampar,BM
+ID,21,BTM,Galang,GL
+ID,21,BTM,Bulang,BL
+ID,21,BTM,Belakang Padang,BP
+ID,21,BTM,Sagulung,SG
+ID,21,TPN,Tanjungpinang Barat,TB
+ID,21,TPN,Tanjungpinang Timur,TT
+ID,21,TPN,Tanjungpinang Kota,TK
+ID,21,TPN,Bukit Bestari,BB
+ID,64,BJM,Banjarmasin Barat,BB
+ID,64,BJM,Banjarmasin Tengah,BT
+ID,64,BJM,Banjarmasin Timur,BM
+ID,64,BJM,Banjarmasin Selatan,BS
+ID,64,BJM,Banjarmasin Utara,BU
+ID,65,BJB,Banjarbaru Utara,BU
+ID,65,BJB,Banjarbaru Selatan,BS
+ID,65,BJB,Landasan Ulin,LU
+ID,65,BJB,Cempaka,CM
+ID,65,BJB,Liang Anggang,LA
+ID,51,DPS,Denpasar Barat,DB
+ID,51,DPS,Denpasar Timur,DT
+ID,51,DPS,Denpasar Utara,DU
+ID,51,DPS,Denpasar Selatan,DS
+ID,52,MTM,Mataram Barat,MB
+ID,52,MTM,Mataram Timur,MT
+ID,52,MTM,Mataram Utara,MU
+ID,52,MTM,Mataram Selatan,MS
+ID,52,MTM,Sekarbela,SK
+ID,52,MTM,Sandubaya,SB
+ID,53,KPG,Kupang Barat,KB
+ID,53,KPG,Kupang Timur,KT
+ID,53,KPG,Kupang Tengah,KG
+ID,53,KPG,Alak,AL
+ID,53,KPG,Oebobo,OB
+ID,53,KPG,Kelapa Lima,KL
+MY,14,KUL,Kuala Lumpur City Centre,CC
+MY,14,KUL,Bukit Bintang,BB
+MY,14,KUL,Chinatown,CT
+MY,14,KUL,Bangsar,BG
+MY,14,KUL,Mont Kiara,MK
+MY,14,KUL,Damansara,DM
+MY,14,KUL,Cheras,CH
+MY,14,KUL,Ampang,AP
+MY,14,KUL,Kepong,KP
+MY,14,KUL,Sentul,ST
+MY,14,KUL,Seputeh,SP
+MY,14,KUL,Titiwangsa,TW
+MY,07,JHB,Johor Bahru City,JB
+MY,07,JHB,Tebrau,TB
+MY,07,JHB,Larkin,LK
+MY,07,JHB,Tampoi,TP
+MY,07,JHB,Majidee,MJ
+MY,07,JHB,Stulang,SG
+MY,02,PEN,George Town,GT
+MY,02,PEN,Jelutong,JL
+MY,02,PEN,Padang Kota,PK
+MY,02,PEN,Tanjung Tokong,TT
+MY,02,PEN,Gurney Drive,GD
+MY,02,PEN,Bayan Lepas,BL
+MY,10,KCH,Kuching Central,KC
+MY,10,KCH,Padungan,PD
+MY,10,KCH,Pending,PG
+MY,10,KCH,Batu Lintang,BL
+MY,10,KCH,Matang,MG
+MY,15,LSA,Labuan Town,LT
+MY,15,LSA,Victoria,VC
+MY,15,LSA,Rancha-Rancha,RR
+MY,13,MLK,Melaka Tengah,MT
+MY,13,MLK,Alor Gajah,AG
+MY,13,MLK,Jasin,JS
+SG,CR,SIN,Central Area,CA
+SG,CR,SIN,Marina Bay,MB
+SG,CR,SIN,Orchard Road,OR
+SG,CR,SIN,Raffles Place,RP
+SG,CR,SIN,Chinatown,CT
+SG,CR,SIN,Little India,LI
+SG,CR,SIN,Kampong Glam,KG
+SG,CR,SIN,Bugis,BG
+SG,CR,SIN,Clarke Quay,CQ
+SG,CR,SIN,Boat Quay,BQ
+SG,CR,SIN,Sentosa,ST
+SG,CR,SIN,Jurong East,JE
+SG,CR,SIN,Tampines,TP
+SG,CR,SIN,Woodlands,WD
+SG,CR,SIN,Ang Mo Kio,AM
+SG,CR,SIN,Toa Payoh,TY
+SG,CR,SIN,Bishan,BS
+SG,CR,SIN,Bedok,BD
+SG,CR,SIN,Punggol,PG
+SG,CR,SIN,Sengkang,SK
+TH,10,BKK,Phra Nakhon,PN
+TH,10,BKK,Dusit,DS
+TH,10,BKK,Nong Chok,NC
+TH,10,BKK,Bang Rak,BR
+TH,10,BKK,Bang Kho Laem,BK
+TH,10,BKK,Pathum Wan,PW
+TH,10,BKK,Pom Prap Sattru Phai,PP
+TH,10,BKK,Thon Buri,TB
+TH,10,BKK,Bangkok Yai,BY
+TH,10,BKK,Phasi Charoen,PC
+TH,10,BKK,Nong Khaem,NK
+TH,10,BKK,Rat Burana,RB
+TH,10,BKK,Bang Phlat,BP
+TH,10,BKK,Din Daeng,DD
+TH,10,BKK,Huai Khwang,HK
+TH,10,BKK,Dok Mai,DM
+TH,10,BKK,Prawet,PV
+TH,10,BKK,Suan Luang,SL
+TH,10,BKK,Saphan Phut,SP
+TH,10,BKK,Wang Thonglang,WT
+TH,10,BKK,Khlong Toei,KT
+TH,10,BKK,Watthana,WA
+TH,10,BKK,Bang Kapi,BK
+TH,10,BKK,Saphan Sung,SS
+TH,10,BKK,Bang Na,BN
+TH,10,BKK,Lat Krabang,LK
+TH,10,BKK,Yan Nawa,YN
+TH,10,BKK,Samphanthawong,ST
+TH,10,BKK,Phaya Thai,PT
+TH,10,BKK,Thung Khru,TK
+TH,10,BKK,Bang Khun Thian,BT
+TH,10,BKK,Bang Bon,BB
+TH,10,BKK,Chom Thong,CT
+TH,10,BKK,Taling Chan,TC
+TH,10,BKK,Bangkok Noi,BN
+TH,10,BKK,Bang Pho,BH
+TH,10,BKK,Min Buri,MB
+TH,10,BKK,Khlong Sam Wa,KS
+TH,10,BKK,Don Mueang,DG
+TH,10,BKK,Lak Si,LS
+TH,10,BKK,Sai Mai,SM
+TH,10,BKK,Khan Na Yao,KY
+TH,10,BKK,Bueng Kum,BG
+TH,10,BKK,Lat Phrao,LP
+TH,10,BKK,Chatuchak,CH
+TH,10,BKK,Bang Sue,BS
+TH,10,BKK,Jatujak,JT
+TH,10,BKK,Ratchathewi,RT
+TH,50,CMI,Mueang Chiang Mai,MC
+TH,50,CMI,Suthep,ST
+TH,50,CMI,Chang Khlan,CK
+TH,50,CMI,Wat Ket,WK
+TH,50,CMI,Pa Daet,PD
+TH,83,PKT,Mueang Phuket,MP
+TH,83,PKT,Kathu,KT
+TH,83,PKT,Thalang,TL
+TH,20,PYA,Mueang Pattaya,MP
+TH,20,PYA,Naklua,NK
+TH,20,PYA,Jomtien Beach,JB
+TH,76,HYI,Hua Hin,HH
+TH,76,HYI,Cha-am,CA
+VN,HN,HAN,Ba Dinh,BD
+VN,HN,HAN,Hoan Kiem,HK
+VN,HN,HAN,Tay Ho,TH
+VN,HN,HAN,Long Bien,LB
+VN,HN,HAN,Cau Giay,CG
+VN,HN,HAN,Dong Da,DD
+VN,HN,HAN,Hai Ba Trung,HB
+VN,HN,HAN,Hoang Mai,HM
+VN,HN,HAN,Thanh Xuan,TX
+VN,HN,HAN,Soc Son,SS
+VN,HN,HAN,Dong Anh,DA
+VN,HN,HAN,Gia Lam,GL
+VN,SG,SGN,District 1,D1
+VN,SG,SGN,District 3,D3
+VN,SG,SGN,District 4,D4
+VN,SG,SGN,District 5,D5
+VN,SG,SGN,District 6,D6
+VN,SG,SGN,District 7,D7
+VN,SG,SGN,District 8,D8
+VN,SG,SGN,District 10,D10
+VN,SG,SGN,District 11,D11
+VN,SG,SGN,Tan Binh,TB
+VN,SG,SGN,Tan Phu,TP
+VN,SG,SGN,Phu Nhuan,PN
+VN,SG,SGN,Binh Thanh,BT
+VN,SG,SGN,Go Vap,GV
+VN,SG,SGN,Thu Duc,TD
+VN,DN,DNA,Hai Chau,HC
+VN,DN,DNA,Thanh Khe,TK
+VN,DN,DNA,Son Tra,ST
+VN,DN,DNA,Ngu Hanh Son,NH
+VN,DN,DNA,Lien Chieu,LC
+VN,DN,DNA,Cam Le,CL
+PH,NCR,MNL,Binondo,BI
+PH,NCR,MNL,Ermita,ER
+PH,NCR,MNL,Intramuros,IN
+PH,NCR,MNL,Malate,MA
+PH,NCR,MNL,Paco,PA
+PH,NCR,MNL,Pandacan,PN
+PH,NCR,MNL,Port Area,PT
+PH,NCR,MNL,Quiapo,QU
+PH,NCR,MNL,Sampaloc,SA
+PH,NCR,MNL,San Andres,SD
+PH,NCR,MNL,San Miguel,SM
+PH,NCR,MNL,San Nicolas,SN
+PH,NCR,MNL,Santa Ana,ST
+PH,NCR,MNL,Santa Cruz,SC
+PH,NCR,MNL,Santa Mesa,SE
+PH,NCR,MNL,Tondo,TO
+PH,NCR,QZN,Bago Bantay,BB
+PH,NCR,QZN,Bagong Pag-asa,BP
+PH,NCR,QZN,Bahay Toro,BT
+PH,NCR,QZN,Balingasa,BL
+PH,NCR,QZN,Bungad,BG
+PH,NCR,QZN,Commonwealth,CW
+PH,NCR,QZN,Cubao,CB
+PH,NCR,QZN,Diliman,DL
+PH,NCR,QZN,Fairview,FV
+PH,NCR,QZN,Kamuning,KM
+PH,NCR,QZN,La Loma,LL
+PH,NCR,QZN,Libis,LI
+PH,NCR,QZN,Loyola Heights,LH
+PH,NCR,QZN,Malaya,MY
+PH,NCR,QZN,Marikina Heights,MH
+PH,NCR,QZN,New Manila,NM
+PH,NCR,QZN,North Fairview,NF
+PH,NCR,QZN,Novaliches Proper,NP
+PH,NCR,QZN,Project 6,P6
+PH,NCR,QZN,San Francisco del Monte,SF
+PH,NCR,QZN,Sikatuna Village,SV
+PH,NCR,QZN,South Triangle,ST
+PH,NCR,QZN,Teacher's Village,TV
+PH,NCR,QZN,Timog,TM
+PH,NCR,QZN,UP Village,UP
+PH,NCR,QZN,West Triangle,WT
+PH,07,CEB,Lahug,LA
+PH,07,CEB,Capitol Site,CS
+PH,07,CEB,Kamputhaw,KA
+PH,07,CEB,Zapatera,ZA
+PH,07,CEB,Parian,PA
+PH,07,CEB,Colon,CO
+PH,07,CEB,Pahina Central,PC
+PH,07,CEB,Tinago,TI
+PH,07,CEB,Mabolo,MA
+PH,07,CEB,Kasambagan,KS
+PH,07,CEB,Apas,AP
+PH,07,CEB,Banilad,BA
+PH,07,CEB,Guadalupe,GU
+PH,07,CEB,Labangon,LB
+PH,07,CEB,Basak San Nicolas,BS
+PH,07,CEB,Tisa,TS
+PH,07,CEB,Bulacao,BU
+PH,07,CEB,Inayawan,IN
+PH,07,CEB,Kinasang-an,KI
+PH,07,CEB,Pardo,PR
+PH,07,CEB,Basak Pardo,BP
+PH,11,DAV,Poblacion,PO
+PH,11,DAV,Agdao,AG
+PH,11,DAV,Buhangin,BU
+PH,11,DAV,Bunawan,BN
+PH,11,DAV,Baguio,BA
+PH,11,DAV,Calinan,CA
+PH,11,DAV,Marilog,MA
+PH,11,DAV,Paquibato,PA
+PH,11,DAV,Talomo,TA
+PH,11,DAV,Toril,TO
+AU,NSW,SYD,Darling Harbour,DH
+AU,NSW,SYD,Kings Cross,KC
+AU,NSW,SYD,The Rocks,TR
+AU,VIC,MEL,Central Business District,CB
+AU,VIC,MEL,Richmond,RI
+AU,VIC,MEL,South Kensington,SK
+AU,VIC,MEL,South Yarra,SY
+CA,BC,VAN,Downtown,DT
+CA,BC,VAN,Gastown,GA
+CA,BC,VAN,West End,WE
+CA,BC,VAN,Yaletown,YT
+CA,ON,TOR,Downtown,DT
+CA,ON,TOR,Entertainment District,ET
+CA,ON,TOR,North York,NY
+CA,ON,TOR,St. Clair,SC
+DE,BE,BER,Charlottenburg,CH
+DE,BE,BER,Kreuzberg,KR
+DE,BE,BER,Mitte,MI
+DE,BE,BER,Prenzlauer Berg,PB
+DE,BY,MUN,Altstadt,AL
+DE,BY,MUN,Haidhausen,HD
+DE,BY,MUN,Maxvorstadt,MX
+DE,BY,MUN,Schwabing,SC
+FR,ARA,LYO,Croix-Rousse,CR
+FR,ARA,LYO,Presqu'île,PD
+FR,ARA,LYO,Part-Dieu,PR
+FR,ARA,LYO,Vieux Lyon,VL
+FR,IDF,PAR,1st Arrondissement,01
+FR,IDF,PAR,2nd Arrondissement,02
+FR,IDF,PAR,3rd Arrondissement,03
+FR,IDF,PAR,4th Arrondissement,04
+GB,ENG,LON,Camden,CM
+GB,ENG,LON,Kensington,KE
+GB,ENG,LON,Tower Hamlets,TH
+GB,ENG,LON,Westminster,WM
+GB,ENG,MAN,City Centre,CC
+GB,ENG,MAN,Chinatown,CH
+GB,ENG,MAN,Northern Quarter,NQ
+GB,ENG,MAN,Salford,SA
+US,CA,LA,Beverly Hills,BH
+US,CA,LA,Downtown,DT
+US,CA,LA,Hollywood,HW
+US,CA,LA,Santa Monica,SM
+US,CA,SF,Castro,CA
+US,CA,SF,Chinatown,CT
+US,CA,SF,Mission,MI
+US,CA,SF,SOMA,SO
+US,NY,NYC,Brooklyn,BK
+US,NY,NYC,Bronx,BX
+US,NY,NYC,Manhattan,MN
+US,NY,NYC,Queens,QN

@@ -8,6 +8,8 @@ use crate::database::seeders::{
     country_seeder::Countryseeder,
     province_seeder::Provinceseeder,
     city_seeder::Cityseeder,
+    district_seeder::Districtseeder,
+    village_seeder::Villageseeder,
     organization_seeder::OrganizationSeeder,
     OrganizationPositionLevelSeeder,
     OrganizationPositionSeeder,
@@ -42,6 +44,8 @@ impl Seeder for DatabaseSeeder {
         context.call(Countryseeder)?;
         context.call(Provinceseeder)?;
         context.call(Cityseeder)?;
+        context.call(Districtseeder)?;
+        context.call(Villageseeder)?;
 
         // Organization and position structure
         context.call(OrganizationSeeder)?;

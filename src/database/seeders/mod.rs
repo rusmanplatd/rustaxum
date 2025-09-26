@@ -4,6 +4,8 @@ pub mod database_seeder;
 pub mod country_seeder;
 pub mod province_seeder;
 pub mod city_seeder;
+pub mod district_seeder;
+pub mod village_seeder;
 // pub mod testseeder;
 pub mod role_permission_seeder;
 pub mod organization_seeder;

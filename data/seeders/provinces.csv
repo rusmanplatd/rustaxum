@@ -1,33 +1,915 @@
 country_iso,name,code
+US,Alabama,AL
+US,Alaska,AK
+US,Arizona,AZ
+US,Arkansas,AR
 US,California,CA
-US,Texas,TX
+US,Colorado,CO
+US,Connecticut,CT
+US,Delaware,DE
 US,Florida,FL
-US,New York,NY
+US,Georgia,GA
+US,Hawaii,HI
+US,Idaho,ID
 US,Illinois,IL
-CA,Ontario,ON
-CA,Quebec,QC
-CA,British Columbia,BC
+US,Indiana,IN
+US,Iowa,IA
+US,Kansas,KS
+US,Kentucky,KY
+US,Louisiana,LA
+US,Maine,ME
+US,Maryland,MD
+US,Massachusetts,MA
+US,Michigan,MI
+US,Minnesota,MN
+US,Mississippi,MS
+US,Missouri,MO
+US,Montana,MT
+US,Nebraska,NE
+US,Nevada,NV
+US,New Hampshire,NH
+US,New Jersey,NJ
+US,New Mexico,NM
+US,New York,NY
+US,North Carolina,NC
+US,North Dakota,ND
+US,Ohio,OH
+US,Oklahoma,OK
+US,Oregon,OR
+US,Pennsylvania,PA
+US,Rhode Island,RI
+US,South Carolina,SC
+US,South Dakota,SD
+US,Tennessee,TN
+US,Texas,TX
+US,Utah,UT
+US,Vermont,VT
+US,Virginia,VA
+US,Washington,WA
+US,West Virginia,WV
+US,Wisconsin,WI
+US,Wyoming,WY
 CA,Alberta,AB
+CA,British Columbia,BC
 CA,Manitoba,MB
+CA,New Brunswick,NB
+CA,Newfoundland and Labrador,NL
+CA,Northwest Territories,NT
+CA,Nova Scotia,NS
+CA,Nunavut,NU
+CA,Ontario,ON
+CA,Prince Edward Island,PE
+CA,Quebec,QC
+CA,Saskatchewan,SK
+CA,Yukon,YT
 GB,England,ENG
 GB,Scotland,SCT
 GB,Wales,WAL
 GB,Northern Ireland,NIR
-DE,Bavaria,BY
-DE,North Rhine-Westphalia,NW
 DE,Baden-Württemberg,BW
+DE,Bavaria,BY
+DE,Berlin,BE
+DE,Brandenburg,BB
+DE,Bremen,HB
+DE,Hamburg,HH
+DE,Hesse,HE
+DE,Lower Saxony,NI
+DE,Mecklenburg-Vorpommern,MV
+DE,North Rhine-Westphalia,NW
+DE,Rhineland-Palatinate,RP
+DE,Saarland,SL
+DE,Saxony,SN
+DE,Saxony-Anhalt,ST
+DE,Schleswig-Holstein,SH
+DE,Thuringia,TH
+FR,Auvergne-Rhône-Alpes,ARA
+FR,Bourgogne-Franche-Comté,BFC
+FR,Brittany,BRE
+FR,Centre-Val de Loire,CVL
+FR,Corsica,COR
+FR,Grand Est,GES
+FR,Hauts-de-France,HDF
 FR,Île-de-France,IDF
-FR,Provence-Alpes-Côte d'Azur,PAC
+FR,Normandy,NOR
 FR,Nouvelle-Aquitaine,NAQ
-JP,Tokyo,13
-JP,Osaka,27
+FR,Occitanie,OCC
+FR,Pays de la Loire,PDL
+FR,Provence-Alpes-Côte d'Azur,PAC
+JP,Aichi,23
+JP,Akita,05
+JP,Aomori,02
+JP,Chiba,12
+JP,Ehime,38
+JP,Fukui,18
+JP,Fukuoka,40
+JP,Fukushima,07
+JP,Gifu,21
+JP,Gunma,10
+JP,Hiroshima,34
+JP,Hokkaido,01
+JP,Hyogo,28
+JP,Ibaraki,08
+JP,Ishikawa,17
+JP,Iwate,03
+JP,Kagawa,37
+JP,Kagoshima,46
+JP,Kanagawa,14
+JP,Kochi,39
+JP,Kumamoto,43
 JP,Kyoto,26
+JP,Mie,24
+JP,Miyagi,04
+JP,Miyazaki,45
+JP,Nagano,20
+JP,Nagasaki,42
+JP,Nara,29
+JP,Niigata,15
+JP,Oita,44
+JP,Okayama,33
+JP,Okinawa,47
+JP,Osaka,27
+JP,Saga,41
+JP,Saitama,11
+JP,Shiga,25
+JP,Shimane,32
+JP,Shizuoka,22
+JP,Tochigi,09
+JP,Tokushima,36
+JP,Tokyo,13
+JP,Tottori,31
+JP,Toyama,16
+JP,Wakayama,30
+JP,Yamagata,06
+JP,Yamaguchi,35
+JP,Yamanashi,19
+AU,Australian Capital Territory,ACT
 AU,New South Wales,NSW
-AU,Victoria,VIC
+AU,Northern Territory,NT
 AU,Queensland,QLD
-IN,Maharashtra,MH
+AU,South Australia,SA
+AU,Tasmania,TAS
+AU,Victoria,VIC
+AU,Western Australia,WA
+IN,Andhra Pradesh,AP
+IN,Arunachal Pradesh,AR
+IN,Assam,AS
+IN,Bihar,BR
+IN,Chhattisgarh,CT
+IN,Goa,GA
+IN,Gujarat,GJ
+IN,Haryana,HR
+IN,Himachal Pradesh,HP
+IN,Jharkhand,JH
 IN,Karnataka,KA
+IN,Kerala,KL
+IN,Madhya Pradesh,MP
+IN,Maharashtra,MH
+IN,Manipur,MN
+IN,Meghalaya,ML
+IN,Mizoram,MZ
+IN,Nagaland,NL
+IN,Odisha,OR
+IN,Punjab,PB
+IN,Rajasthan,RJ
+IN,Sikkim,SK
 IN,Tamil Nadu,TN
+IN,Telangana,TG
+IN,Tripura,TR
+IN,Uttar Pradesh,UP
+IN,Uttarakhand,UT
+IN,West Bengal,WB
+IN,Andaman and Nicobar Islands,AN
+IN,Chandigarh,CH
+IN,Dadra and Nagar Haveli and Daman and Diu,DN
+IN,Delhi,DL
+IN,Jammu and Kashmir,JK
+IN,Ladakh,LA
+IN,Lakshadweep,LD
+IN,Puducherry,PY
+BR,Acre,AC
+BR,Alagoas,AL
+BR,Amapá,AP
+BR,Amazonas,AM
+BR,Bahia,BA
+BR,Ceará,CE
+BR,Distrito Federal,DF
+BR,Espírito Santo,ES
+BR,Goiás,GO
+BR,Maranhão,MA
+BR,Mato Grosso,MT
+BR,Mato Grosso do Sul,MS
+BR,Minas Gerais,MG
+BR,Pará,PA
+BR,Paraíba,PB
+BR,Paraná,PR
+BR,Pernambuco,PE
+BR,Piauí,PI
+BR,Rio de Janeiro,RJ
+BR,Rio Grande do Norte,RN
+BR,Rio Grande do Sul,RS
+BR,Rondônia,RO
+BR,Roraima,RR
+BR,Santa Catarina,SC
 BR,São Paulo,SP
+BR,Sergipe,SE
+BR,Tocantins,TO
+MX,Aguascalientes,AG
+MX,Baja California,BC
+MX,Baja California Sur,BS
+MX,Campeche,CM
+MX,Chiapas,CS
+MX,Chihuahua,CH
+MX,Coahuila,CO
+MX,Colima,CL
+MX,Durango,DG
+MX,Guanajuato,GT
+MX,Guerrero,GR
+MX,Hidalgo,HG
+MX,Jalisco,JA
+MX,México,MX
+MX,Michoacán,MI
+MX,Morelos,MO
+MX,Nayarit,NA
+MX,Nuevo León,NL
+MX,Oaxaca,OA
+MX,Puebla,PU
+MX,Querétaro,QT
+MX,Quintana Roo,QR
+MX,San Luis Potosí,SL
+MX,Sinaloa,SI
+MX,Sonora,SO
+MX,Tabasco,TB
+MX,Tamaulipas,TM
+MX,Tlaxcala,TL
+MX,Veracruz,VE
+MX,Yucatán,YU
+MX,Zacatecas,ZA
+MX,Mexico City,DF
+ID,Aceh,11
+ID,Bali,51
+ID,Banten,36
+ID,Bengkulu,17
+ID,Central Java,33
+ID,Central Kalimantan,62
+ID,Central Sulawesi,72
+ID,East Java,35
+ID,East Kalimantan,64
+ID,East Nusa Tenggara,53
+ID,Gorontalo,75
+ID,Jakarta,31
+ID,Jambi,15
+ID,Lampung,18
+ID,Bangka Belitung Islands,19
+ID,Maluku,81
+ID,North Kalimantan,65
+ID,North Maluku,82
+ID,North Sulawesi,71
+ID,North Sumatra,12
+ID,Papua,94
+ID,Riau,14
+ID,Riau Islands,21
+ID,South Kalimantan,63
+ID,South Sulawesi,73
+ID,South Sumatra,16
+ID,Southeast Sulawesi,74
+ID,Special Region of Yogyakarta,34
+ID,West Java,32
+ID,West Kalimantan,61
+ID,West Nusa Tenggara,52
+ID,West Papua,91
+ID,West Sulawesi,76
+ID,West Sumatra,13
+ID,Central Papua,92
+ID,Highland Papua,93
+ID,South Papua,95
+ID,Southwest Papua,96
+KR,Seoul,11
+KR,Busan,26
+KR,Daegu,27
+KR,Incheon,28
+KR,Gwangju,29
+KR,Daejeon,30
+KR,Ulsan,31
+KR,Sejong,36
+KR,Gyeonggi,41
+KR,Gangwon,42
+KR,North Chungcheong,43
+KR,South Chungcheong,44
+KR,North Jeolla,45
+KR,South Jeolla,46
+KR,North Gyeongsang,47
+KR,South Gyeongsang,48
+KR,Jeju,50
+TR,Adana,01
+TR,Adıyaman,02
+TR,Afyonkarahisar,03
+TR,Ağrı,04
+TR,Amasya,05
+TR,Ankara,06
+TR,Antalya,07
+TR,Artvin,08
+TR,Aydın,09
+TR,Balıkesir,10
+TR,Bilecik,11
+TR,Bingöl,12
+TR,Bitlis,13
+TR,Bolu,14
+TR,Burdur,15
+TR,Bursa,16
+TR,Çanakkale,17
+TR,Çankırı,18
+TR,Çorum,19
+TR,Denizli,20
+TR,Diyarbakır,21
+TR,Edirne,22
+TR,Elazığ,23
+TR,Erzincan,24
+TR,Erzurum,25
+TR,Eskişehir,26
+TR,Gaziantep,27
+TR,Giresun,28
+TR,Gümüşhane,29
+TR,Hakkâri,30
+TR,Hatay,31
+TR,Isparta,32
+TR,Mersin,33
+TR,Istanbul,34
+TR,İzmir,35
+TR,Kars,36
+TR,Kastamonu,37
+TR,Kayseri,38
+TR,Kırklareli,39
+TR,Kırşehir,40
+TR,Kocaeli,41
+TR,Konya,42
+TR,Kütahya,43
+TR,Malatya,44
+TR,Manisa,45
+TR,Kahramanmaraş,46
+TR,Mardin,47
+TR,Muğla,48
+TR,Muş,49
+TR,Nevşehir,50
+TR,Niğde,51
+TR,Ordu,52
+TR,Rize,53
+TR,Sakarya,54
+TR,Samsun,55
+TR,Siirt,56
+TR,Sinop,57
+TR,Sivas,58
+TR,Tekirdağ,59
+TR,Tokat,60
+TR,Trabzon,61
+TR,Tunceli,62
+TR,Şanlıurfa,63
+TR,Uşak,64
+TR,Van,65
+TR,Yozgat,66
+TR,Zonguldak,67
+TR,Aksaray,68
+TR,Bayburt,69
+TR,Karaman,70
+TR,Kırıkkale,71
+TR,Batman,72
+TR,Şırnak,73
+TR,Bartın,74
+TR,Ardahan,75
+TR,Iğdır,76
+TR,Yalova,77
+TR,Karabük,78
+TR,Kilis,79
+TR,Osmaniye,80
+TR,Düzce,81
+SA,Riyadh,01
+SA,Makkah,02
+SA,Madinah,03
+SA,Eastern Province,04
+SA,Asir,05
+SA,Tabuk,06
+SA,Qassim,07
+SA,Ha'il,08
+SA,Jazan,09
+SA,Najran,10
+SA,Al Bahah,11
+SA,Northern Borders,12
+SA,Al Jawf,13
+TH,Bangkok,10
+TH,Samut Prakan,11
+TH,Nonthaburi,12
+TH,Pathum Thani,13
+TH,Phra Nakhon Si Ayutthaya,14
+TH,Ang Thong,15
+TH,Lopburi,16
+TH,Sing Buri,17
+TH,Chai Nat,18
+TH,Saraburi,19
+TH,Chon Buri,20
+TH,Rayong,21
+TH,Chanthaburi,22
+TH,Trat,23
+TH,Chachoengsao,24
+TH,Prachin Buri,25
+TH,Nakhon Nayok,26
+TH,Sa Kaeo,27
+TH,Nakhon Ratchasima,30
+TH,Buri Ram,31
+TH,Surin,32
+TH,Si Sa Ket,33
+TH,Ubon Ratchathani,34
+TH,Yasothon,35
+TH,Chaiyaphum,36
+TH,Amnat Charoen,37
+TH,Nong Bua Lam Phu,39
+TH,Khon Kaen,40
+TH,Udon Thani,41
+TH,Loei,42
+TH,Nong Khai,43
+TH,Maha Sarakham,44
+TH,Roi Et,45
+TH,Kalasin,46
+TH,Sakon Nakhon,47
+TH,Nakhon Phanom,48
+TH,Mukdahan,49
+TH,Chiang Mai,50
+TH,Lamphun,51
+TH,Lampang,52
+TH,Uttaradit,53
+TH,Phrae,54
+TH,Nan,55
+TH,Phayao,56
+TH,Chiang Rai,57
+TH,Mae Hong Son,58
+TH,Nakhon Sawan,60
+TH,Uthai Thani,61
+TH,Kamphaeng Phet,62
+TH,Tak,63
+TH,Sukhothai,64
+TH,Phitsanulok,65
+TH,Phichit,66
+TH,Phetchabun,67
+TH,Ratchaburi,70
+TH,Kanchanaburi,71
+TH,Suphan Buri,72
+TH,Nakhon Pathom,73
+TH,Samut Sakhon,74
+TH,Samut Songkhram,75
+TH,Phetchaburi,76
+TH,Prachuap Khiri Khan,77
+TH,Nakhon Si Thammarat,80
+TH,Krabi,81
+TH,Phang Nga,82
+TH,Phuket,83
+TH,Surat Thani,84
+TH,Ranong,85
+TH,Chumphon,86
+TH,Songkhla,90
+TH,Satun,91
+TH,Trang,92
+TH,Phatthalung,93
+TH,Pattani,94
+TH,Yala,95
+TH,Narathiwat,96
+TH,Bueng Kan,38
+SG,Central Region,CR
+SG,East Region,ER
+SG,North Region,NR
+SG,North-East Region,NER
+SG,West Region,WR
+NL,Drenthe,DR
+NL,Flevoland,FL
+NL,Friesland,FR
+NL,Gelderland,GE
+NL,Groningen,GR
+NL,Limburg,LI
+NL,North Brabant,NB
+NL,North Holland,NH
+NL,Overijssel,OV
+NL,South Holland,ZH
+NL,Utrecht,UT
+NL,Zeeland,ZE
+CH,Aargau,AG
+CH,Appenzell Ausserrhoden,AR
+CH,Appenzell Innerrhoden,AI
+CH,Basel-Landschaft,BL
+CH,Basel-Stadt,BS
+CH,Bern,BE
+CH,Fribourg,FR
+CH,Geneva,GE
+CH,Glarus,GL
+CH,Graubünden,GR
+CH,Jura,JU
+CH,Lucerne,LU
+CH,Neuchâtel,NE
+CH,Nidwalden,NW
+CH,Obwalden,OW
+CH,Schaffhausen,SH
+CH,Schwyz,SZ
+CH,Solothurn,SO
+CH,St. Gallen,SG
+CH,Thurgau,TG
+CH,Ticino,TI
+CH,Uri,UR
+CH,Valais,VS
+CH,Vaud,VD
+CH,Zug,ZG
+CH,Zurich,ZH
+SE,Stockholm,01
+SE,Uppsala,03
+SE,Södermanland,04
+SE,Östergötland,05
+SE,Jönköping,06
+SE,Kronoberg,07
+SE,Kalmar,08
+SE,Gotland,09
+SE,Blekinge,10
+SE,Skåne,12
+SE,Halland,13
+SE,Västra Götaland,14
+SE,Värmland,17
+SE,Örebro,18
+SE,Västmanland,19
+SE,Dalarna,20
+SE,Gävleborg,21
+SE,Västernorrland,22
+SE,Jämtland,23
+SE,Västerbotten,24
+SE,Norrbotten,25
+NO,Agder,42
+NO,Innlandet,34
+NO,Møre og Romsdal,15
+NO,Nordland,18
+NO,Oslo,03
+NO,Rogaland,11
+NO,Troms og Finnmark,54
+NO,Trøndelag,50
+NO,Vestfold og Telemark,38
+NO,Vestland,46
+NO,Viken,30
+EG,Cairo,01
+EG,Alexandria,02
+EG,Luxor,03
+EG,Aswan,04
+ZA,Gauteng,GP
+ZA,Western Cape,WC
+ZA,KwaZulu-Natal,KZN
+ZA,Eastern Cape,EC
+ZA,Free State,FS
+NG,Lagos,LA
+NG,Federal Capital Territory,FC
+NG,Kano,KN
+NG,Oyo,OY
+NG,Anambra,AN
+NG,Kaduna,KD
+KE,Nairobi,47
+KE,Mombasa,01
+KE,Kisumu,30
+ET,Addis Ababa,AA
+ET,Amhara,AM
+GH,Greater Accra,AA
+GH,Ashanti,AH
+TZ,Dar es Salaam,02
+TZ,Dodoma,03
+TZ,Mwanza,25
+TZ,Arusha,08
+UG,Central,C
+UG,Eastern,E
+ZW,Harare,06
+ZW,Bulawayo,07
+ZM,Lusaka,01
+ZM,Copperbelt,02
+MW,Central,LL
+MW,Southern,BT
+MY,Penang,02
+MY,Johor,07
+MY,Sarawak,10
+MY,Melaka,13
+MY,Kuala Lumpur,14
+MY,Labuan,15
+PH,Central Visayas,07
+PH,Davao Region,11
+PH,National Capital Region,NCR
+VN,Da Nang,DN
+VN,Hanoi,HN
+VN,Ho Chi Minh City,SG
+MZ,Maputo,04
+MZ,Sofala,06
+RU,Moscow,77
+RU,Saint Petersburg,78
+RU,Sverdlovsk,66
+RU,Novosibirsk,54
+RU,Tatarstan,61
+RU,Chelyabinsk,74
+RU,Samara,63
+RU,Perm,59
+RU,Bashkortostan,02
+RU,Volgograd,38
+RU,Khabarovsk,86
+RU,Primorsky,25
+UA,Kyiv,30
+UA,Kharkiv,65
+UA,Odessa,51
+UA,Dnipropetrovsk,12
+UA,Donetsk,14
+UA,Lviv,23
+PL,Mazowieckie,14
+PL,Małopolskie,12
+PL,Dolnośląskie,22
+PL,Pomorskie,30
+PL,Łódzkie,16
+PL,Zachodniopomorskie,32
+CZ,Prague,PR
+CZ,South Moravian,JM
+CZ,Moravian-Silesian,US
+CZ,Plzen,PL
+SK,Bratislava,BA
+SK,Košice,KE
+HU,Budapest,BU
+HU,Hajdú-Bihar,HE
+HU,Csongrád,SZ
+RO,Bucharest,B
+RO,Cluj,CJ
+RO,Timiș,TM
+RO,Iași,IS
+BG,Sofia,22
+BG,Plovdiv,02
+BG,Varna,26
+RS,Vojvodina,VO
+RS,Vojvodina,AP
+HR,Zagreb,21
+HR,Split-Dalmatia,17
+HR,Primorje-Gorski Kotar,18
+SI,Ljubljana,61
+SI,Maribor,85
+BA,Federation of Bosnia and Herzegovina,BIH
+BA,Republika Srpska,SRP
+MK,Skopje,AD
+AL,Tirana,11
+AL,Durrës,12
+ME,Podgorica,20
+XK,Pristina,PZ
+MD,Chișinău,C
+BY,Minsk,HM
+BY,Brest,BR
+LT,Vilnius,VL
+LT,Kaunas,KU
+LV,Riga,RIX
+LV,Daugavpils,DGV
+EE,Harju,37
+EE,Tartu,51
+FI,Uusimaa,01
+FI,Pirkanmaa,04
+FI,Southwest Finland,11
+FI,Northern Ostrobothnia,14
+DK,Capital Region,84
+DK,Central Denmark,82
+DK,Southern Denmark,83
+DK,North Denmark,85
+IS,Capital Region,1
+IS,Northeast,4
+TR,Istanbul,34
+TR,Ankara,06
+TR,Izmir,35
+TR,Antalya,07
+TR,Adana,01
+TR,Bursa,16
+IL,Tel Aviv,TA
+IL,Jerusalem,JM
+IL,Haifa,HA
+JO,Amman,AM
+JO,Aqaba,AQ
+LB,Beirut,BA
+LB,North,NB
+SY,Damascus,DI
+SY,Aleppo,HL
+IQ,Baghdad,18
+IQ,Basra,07
+IQ,Erbil,36
+IR,Tehran,23
+IR,Isfahan,04
+IR,Razavi Khorasan,08
+IR,Fars,07
+IR,East Azerbaijan,15
+AF,Kabul,KAB
+AF,Herat,HER
+AF,Kandahar,KAN
+PK,Punjab,PB
+PK,Sindh,SD
+PK,Khyber Pakhtunkhwa,KP
+BD,Dhaka,BD
+LK,Western,01
+LK,Central,03
+LK,Southern,82
+NP,Bagmati,BA
+NP,Gandaki,GA
+BT,Thimphu,GA
+MN,Ulaanbaatar,1
+KZ,Almaty,05
+KZ,Nur-Sultan,71
+KZ,Shymkent,75
+KZ,Aktobe,19
+KG,Chuy,GB
+KG,Osh,OS
+UZ,Tashkent,TK
+UZ,Samarqand,SA
+UZ,Bukhara,BU
+TJ,Dushanbe,GB
+TM,Aşgabat,S
+KH,Phnom Penh,12
+KH,Siem Reap,18
+KH,Battambang,07
+LA,Vientiane,VT
+LA,Luang Prabang,LS
+LA,Champasak,CH
+MM,Yangon,11
+MM,Mandalay,04
+MM,Naypyidaw,07
+BN,Brunei-Muara,BM
+NZ,Auckland,AUK
+NZ,Wellington,WGN
+NZ,Canterbury,CAN
+NZ,Otago,OTA
+NZ,Waikato,TKI
+FJ,Central,C
+FJ,Western,W
+WS,Upolu,UP
+TO,Tongatapu,TO
+VU,Shefa,SHE
+PG,National Capital District,NCD
+PG,Western Province,WPD
+SB,Central,CE
+NC,South,S
+PF,Windward Islands,WI
+CK,Cook Islands,CK
+PW,Koror,002
+FM,Pohnpei,PNI
+MH,Majuro,07
+KI,Gilbert Islands,G
+TV,Funafuti,FUN
+NR,Yaren,14
+NU,Niue,NU
+AR,Buenos Aires,C
+AR,Córdoba,B
+AR,Santa Fe,S
+AR,Mendoza,M
+AR,Tucumán,T
 BR,Rio de Janeiro,RJ
 BR,Minas Gerais,MG
+BR,Rio Grande do Sul,RS
+BR,Paraná,PR
+BR,Goiás,GO
+BR,Pernambuco,PE
+BR,Ceará,CE
+BR,Pará,PA
+BR,Amazonas,AM
+BR,Mato Grosso,MT
+BR,Espírito Santo,ES
+BR,Santa Catarina,SC
+BR,Paraíba,PB
+BR,Piauí,PI
+BR,Rio Grande do Norte,RN
+BR,Sergipe,SE
+BR,Acre,AC
+BR,Amapá,AP
+BR,Rondônia,RO
+BR,Roraima,RR
+BR,Tocantins,TO
+CL,Santiago Metropolitan,RM
+CL,Valparaíso,VS
+CL,Bío Bío,BIO
+CL,Antofagasta,ANT
+CL,Tarapacá,TAR
+CL,Atacama,ATA
+CL,Coquimbo,COQ
+CL,Maule,MAU
+CL,Araucanía,ARAU
+CL,Los Lagos,LLA
+CL,Aysén,AYS
+CL,Magallanes,MAG
+PE,Lima,15
+PE,Arequipa,04
+PE,La Libertad,14
+PE,Lambayeque,03
+PE,Junín,13
+PE,Loreto,16
+CO,Bogotá,11
+CO,Antioquia,68
+CO,Valle del Cauca,76
+CO,Atlántico,08
+CO,Bolívar,13
+CO,Norte de Santander,54
+VE,Distrito Capital,DC
+VE,Zulia,ZU
+VE,Carabobo,CA
+VE,Anzoátegui,AN
+VE,Bolívar,BO
+UY,Montevideo,MO
+UY,Canelones,CA
+UY,Paysandú,PA
+PY,Asunción,ASU
+PY,Alto Paraná,17
+BO,La Paz,LP
+BO,Santa Cruz,SC
+BO,Cochabamba,CB
+EC,Pichincha,P
+EC,Guayas,G
+EC,Azuay,A
+GY,Demerara-Mahaica,10
+SR,Paramaribo,PM
+GF,French Guiana,973
+JM,Kingston,14
+JM,Montego Bay,02
+CU,Havana,03
+CU,Santiago de Cuba,09
+CU,Camagüey,16
+DO,Santo Domingo,01
+DO,Santiago,32
+HT,Ouest,OU
+HT,Nord,NO
+TT,Port of Spain,04
+TT,San Fernando,07
+BB,Saint Michael,03
+LC,Castries,03
+GD,Saint George,03
+VC,Saint George,04
+DM,Saint George,02
+AG,Saint John,17
+KN,Saint George Basseterre,04
+MS,Montserrat,03
+VG,Tortola,VG
+VI,Saint Thomas,STT
+VI,Saint John,STJ
+VI,Saint Croix,STX
+AI,Anguilla,AI
+BM,Hamilton,19
+BS,New Providence,NP
+BS,Grand Bahama,FP
+TC,Grand Turk,TC
+KY,Grand Cayman,19
+BZ,Belize,BZ
+BZ,Cayo,CY
+GT,Guatemala,01
+GT,Quetzaltenango,22
+SV,San Salvador,SS
+SV,Santa Ana,AH
+HN,Francisco Morazán,FM
+HN,Cortés,CR
+NI,Managua,MN
+NI,León,LE
+CR,San José,SJ
+CR,Cartago,A
+PA,Panamá,8
+PA,Colón,3
+MA,Rabat-Salé-Kénitra,06
+MA,Casablanca-Settat,12
+MA,Marrakech-Safi,40
+MA,Fès-Meknès,30
+MA,Tanger-Tétouan-Al Hoceima,53
+DZ,Algiers,16
+DZ,Oran,31
+DZ,Constantine,06
+TN,Tunis,11
+TN,Sfax,31
+TN,Sousse,51
+LY,Tripoli,BA
+LY,Benghazi,BN
+SD,Khartoum,KH
+SD,Red Sea,23
+SS,Central Equatoria,EE
+ET,Oromia,OR
+ET,Southern Nations,SO
+ER,Maekel,MA
+DJ,Djibouti,DJ
+SO,Banaadir,BN
+SO,Woqooyi Galbeed,WQ
+RW,Kigali,01
+BI,Bujumbura Mairie,BM
+AO,Luanda,LUA
+AO,Benguela,BGO
+CD,Kinshasa,KN
+CD,Haut-Katanga,KA
+CG,Brazzaville,BZV
+CG,Kouilou,KL
+CF,Bangui,BGF
+TD,Logone Occidental,LC
+CM,Centre,CE
+CM,Littoral,LT
+GQ,Bioko Norte,LI
+GA,Estuaire,ES
+ST,São Tomé,ST
+CV,Santiago,ST
+CV,São Vicente,SV
+SN,Dakar,DK
+SN,Kaolack,KL
+GM,Banjul,03
+GW,Bissau,BS
+GN,Conakry,C
+SL,Western Area,W
+LR,Montserrado,MO
+CI,Abidjan,AB
+CI,Yamoussoukro,YM
+BF,Kadiogo,13
+BF,Houet,01
+ML,Bamako Capital District,BK0
+NE,Niamey,8
+MR,Nouakchott,NKC

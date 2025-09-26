@@ -59,6 +59,8 @@ pub enum RegisteredSeeder {
     Country,
     Province,
     City,
+    District,
+    Village,
     Database,
     User,
     RolePermission,
@@ -72,6 +74,8 @@ impl RegisteredSeeder {
             country_seeder::Countryseeder,
             province_seeder::Provinceseeder,
             city_seeder::Cityseeder,
+            district_seeder::Districtseeder,
+            village_seeder::Villageseeder,
             database_seeder::DatabaseSeeder,
             user_seeder::UserSeeder,
             role_permission_seeder::RolePermissionSeeder,
@@ -90,6 +94,14 @@ impl RegisteredSeeder {
             }
             RegisteredSeeder::City => {
                 let seeder = Cityseeder;
+                seeder.run(pool)
+            }
+            RegisteredSeeder::District => {
+                let seeder = Districtseeder;
+                seeder.run(pool)
+            }
+            RegisteredSeeder::Village => {
+                let seeder = Villageseeder;
                 seeder.run(pool)
             }
             RegisteredSeeder::Database => {
@@ -121,6 +133,8 @@ impl RegisteredSeeder {
             RegisteredSeeder::Country => "CountrySeeder",
             RegisteredSeeder::Province => "ProvinceSeeder",
             RegisteredSeeder::City => "CitySeeder",
+            RegisteredSeeder::District => "DistrictSeeder",
+            RegisteredSeeder::Village => "VillageSeeder",
             RegisteredSeeder::User => "UserSeeder",
             RegisteredSeeder::RolePermission => "RolePermissionSeeder",
             RegisteredSeeder::Organization => "OrganizationSeeder",
@@ -134,6 +148,8 @@ impl RegisteredSeeder {
             RegisteredSeeder::Country => Some("Seed countries table from CSV data"),
             RegisteredSeeder::Province => Some("Seed provinces table from CSV data, requires countries"),
             RegisteredSeeder::City => Some("Seed cities table from CSV data with coordinates, requires provinces"),
+            RegisteredSeeder::District => Some("Seed districts table from CSV data, requires cities"),
+            RegisteredSeeder::Village => Some("Seed villages table from CSV data with coordinates, requires districts"),
             RegisteredSeeder::User => Some("Seed default users"),
             RegisteredSeeder::RolePermission => Some("Seed sys_roles and permissions for RBAC"),
             RegisteredSeeder::Organization => Some("Seed organization data"),
@@ -158,6 +174,8 @@ impl SeederRegistry {
         registry.register_seeder("CountrySeeder", RegisteredSeeder::Country);
         registry.register_seeder("ProvinceSeeder", RegisteredSeeder::Province);
         registry.register_seeder("CitySeeder", RegisteredSeeder::City);
+        registry.register_seeder("DistrictSeeder", RegisteredSeeder::District);
+        registry.register_seeder("VillageSeeder", RegisteredSeeder::Village);
         registry.register_seeder("UserSeeder", RegisteredSeeder::User);
         registry.register_seeder("RolePermissionSeeder", RegisteredSeeder::RolePermission);
         registry.register_seeder("OrganizationSeeder", RegisteredSeeder::Organization);
