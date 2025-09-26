@@ -5,6 +5,7 @@ This document demonstrates how to use both JWT and Session-based authentication 
 ## 🔐 Authentication Methods Supported
 
 The system now supports **dual authentication methods**:
+
 1. **JWT Bearer Token Authentication** (stateless)
 2. **Session-based Authentication** (stateful)
 
@@ -28,6 +29,7 @@ The server will be available at `http://localhost:3000`
 ### JWT Authentication (Stateless)
 
 #### Register with JWT
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
@@ -39,6 +41,7 @@ curl -X POST http://localhost:3000/api/auth/register \
 ```
 
 Response:
+
 ```json
 {
   "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
@@ -54,6 +57,7 @@ Response:
 ```
 
 #### Login with JWT
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
@@ -64,6 +68,7 @@ curl -X POST http://localhost:3000/api/auth/login \
 ```
 
 #### Access Protected Route with JWT
+
 ```bash
 curl -X GET http://localhost:3000/api/users \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
@@ -72,6 +77,7 @@ curl -X GET http://localhost:3000/api/users \
 ### Session Authentication (Stateful)
 
 #### Register with Session
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/session/register \
   -H "Content-Type: application/json" \
@@ -84,6 +90,7 @@ curl -X POST http://localhost:3000/api/auth/session/register \
 ```
 
 Response:
+
 ```json
 {
   "message": "Registration successful",
@@ -97,6 +104,7 @@ Response:
 ```
 
 #### Login with Session
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/session/login \
   -H "Content-Type: application/json" \
@@ -108,18 +116,21 @@ curl -X POST http://localhost:3000/api/auth/session/login \
 ```
 
 #### Get Current User (Session)
+
 ```bash
 curl -X GET http://localhost:3000/api/auth/session/user \
   -b cookies.txt
 ```
 
 #### Access Protected Route with Session
+
 ```bash
 curl -X GET http://localhost:3000/api/users \
   -b cookies.txt
 ```
 
 #### Logout (Session)
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/session/logout \
   -b cookies.txt
@@ -130,6 +141,7 @@ curl -X POST http://localhost:3000/api/auth/session/logout \
 ### Route Protection Levels
 
 1. **Public Routes** (no authentication required):
+
    - `POST /api/auth/register`
    - `POST /api/auth/login`
    - `POST /api/auth/session/register`
@@ -181,6 +193,7 @@ JWT_SECRET=your-jwt-secret-key
 ## 📊 Testing Both Methods
 
 ### Test JWT Authentication
+
 ```bash
 # Register and get JWT
 JWT_RESPONSE=$(curl -s -X POST http://localhost:3000/api/auth/register \
@@ -195,6 +208,7 @@ curl -X GET http://localhost:3000/api/users \
 ```
 
 ### Test Session Authentication
+
 ```bash
 # Register and get session cookie
 curl -X POST http://localhost:3000/api/auth/session/register \
@@ -224,6 +238,7 @@ curl -X GET http://localhost:3000/api/users \
 ## 🚨 Error Handling
 
 ### Authentication Errors
+
 ```json
 {
   "error": "Unauthorized",
@@ -232,6 +247,7 @@ curl -X GET http://localhost:3000/api/users \
 ```
 
 ### Already Authenticated (Guest Routes)
+
 ```json
 {
   "error": "Forbidden",
@@ -257,6 +273,7 @@ RUST_LOG=debug cargo run
 ```
 
 This will show:
+
 - Session creation/retrieval
 - JWT validation attempts
 - Authentication success/failure
