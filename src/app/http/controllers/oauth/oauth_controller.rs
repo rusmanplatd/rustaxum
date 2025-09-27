@@ -10,7 +10,7 @@ use ulid::Ulid;
 use chrono::{Duration, Utc};
 use std::collections::HashMap;
 
-use crate::app::services::oauth::{TokenService, ClientService, ScopeService}; // DPoPService - TODO: Re-enable when ready
+use crate::app::services::oauth::{TokenService, ClientService, ScopeService, DPoPService};
 use crate::app::services::auth_service::AuthService;
 use crate::app::models::oauth::{CreateAuthCode};
 use crate::app::utils::token_utils::TokenUtils;
@@ -312,7 +312,7 @@ pub async fn token(State(pool): State<DbPool>, headers: HeaderMap, Form(params):
     }.into_response()
 }
 
-async fn handle_authorization_code_grant(pool: &DbPool, _headers: HeaderMap, params: TokenRequest) -> impl IntoResponse + use<> {
+async fn handle_authorization_code_grant(pool: &DbPool, headers: HeaderMap, params: TokenRequest) -> impl IntoResponse + use<> {
     let code = match params.code {
         Some(code) => code,
         None => {
@@ -346,9 +346,24 @@ async fn handle_authorization_code_grant(pool: &DbPool, _headers: HeaderMap, par
         }
     };
 
-    // RFC 9449: DPoP (Demonstrating Proof of Possession) support - TODO: Re-enable when DPoP service is ready
-    // let dpop_proof = headers.get("dpop").and_then(|h| h.to_str().ok());
-    let jwk_thumbprint: Option<String> = None;
+    // RFC 9449: DPoP (Demonstrating Proof of Possession) support
+    let (jwk_thumbprint, dpop_proof) = if let Some(dpop_header) = headers.get("dpop").and_then(|h| h.to_str().ok()) {
+        match DPoPService::validate_dpop_proof(
+            dpop_header,
+            "POST",
+            "/oauth/token",
+            None, // No access token hash during token exchange
+            None, // No nonce expected
+        ) {
+            Ok(thumbprint) => (Some(thumbprint), Some(dpop_header.to_string())),
+            Err(e) => {
+                tracing::warn!("DPoP validation failed: {}", e);
+                (None, None)
+            }
+        }
+    } else {
+        (None, None)
+    };
 
     match TokenService::exchange_auth_code_for_tokens_with_dpop(
         pool,
@@ -410,7 +425,7 @@ async fn handle_refresh_token_grant(pool: &DbPool, _headers: HeaderMap, params: 
     }
 }
 
-async fn handle_client_credentials_grant(pool: &DbPool, _headers: HeaderMap, params: TokenRequest) -> impl IntoResponse + use<> {
+async fn handle_client_credentials_grant(pool: &DbPool, headers: HeaderMap, params: TokenRequest) -> impl IntoResponse + use<> {
     let client_id = match Ulid::from_string(&params.client_id) {
         Ok(id) => id,
         Err(_) => {
@@ -473,15 +488,17 @@ async fn handle_client_credentials_grant(pool: &DbPool, _headers: HeaderMap, par
         name: None,
         scopes: ScopeService::get_scope_names(&scopes),
         expires_at: Some(Utc::now() + Duration::seconds(3600)), // 1 hour
-        jwk_thumbprint: None, // TODO: Add DPoP support for client credentials flow
+        jwk_thumbprint: None, // Will be populated with DPoP if enabled
     };
 
-    // TODO: Extract user_id from auth context when available
-    let granted_by = None; // Replace with actual user extraction
+    // Extract user ID from authentication context for audit trail
+    let user_id = crate::app::utils::token_utils::TokenUtils::extract_user_id_from_headers(&headers);
+    let user_id_str = user_id.as_ref().map(|id| id.to_string());
+    let granted_by = user_id_str.as_deref();
 
     match TokenService::create_access_token(pool, create_token, Some(3600), granted_by).await {
         Ok(access_token) => {
-            match TokenService::generate_jwt_token(&access_token, &client_id.to_string()) {
+            match TokenService::generate_jwt_token(pool, &access_token, &client_id.to_string()) {
                 Ok(jwt_token) => {
                     let token_response = crate::app::services::oauth::TokenResponse {
                         access_token: jwt_token,
@@ -581,7 +598,7 @@ pub async fn introspect(State(pool): State<DbPool>, Json(params): Json<Introspec
         scope: Some(access_token.get_scopes().join(" ")),
         client_id: Some(access_token.client_id.to_string()),
         username: access_token.user_id.map(|id| id.to_string()),
-        exp: Some(token_claims.exp as i64),
+        exp: token_claims.exp.map(|e| e as i64),
         iat: Some(token_claims.iat as i64),
         sub: Some(token_claims.sub.to_string()),
         aud: Some(token_claims.aud.to_string()),
@@ -794,8 +811,8 @@ async fn handle_password_grant(pool: &DbPool, params: TokenRequest) -> impl Into
         jwk_thumbprint: None, // Password flow doesn't use DPoP
     };
 
-    // TODO: Extract user_id from auth context when available
-    let granted_by = None; // Replace with actual user extraction
+    // For password grant, no admin user grants the token - user authenticates directly
+    let granted_by = None;
 
     match TokenService::create_access_token(pool, create_token, Some(3600), granted_by).await {
         Ok(access_token) => {
@@ -809,7 +826,7 @@ async fn handle_password_grant(pool: &DbPool, params: TokenRequest) -> impl Into
                 Err(_) => None,
             };
 
-            match TokenService::generate_jwt_token(&access_token, &client_id.to_string()) {
+            match TokenService::generate_jwt_token(pool, &access_token, &client_id.to_string()) {
                 Ok(jwt_token) => {
                     let token_response = crate::app::services::oauth::TokenResponse {
                         access_token: jwt_token,

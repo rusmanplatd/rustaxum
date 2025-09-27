@@ -10,9 +10,9 @@ CREATE TABLE sys_roles (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ,
-    created_by CHAR(26) NOT NULL REFERENCES sys_users(id),
-    updated_by CHAR(26) NOT NULL REFERENCES sys_users(id),
-    deleted_by CHAR(26) REFERENCES sys_users(id),
+    created_by_id CHAR(26) NOT NULL REFERENCES sys_users(id),
+    updated_by_id CHAR(26) NOT NULL REFERENCES sys_users(id),
+    deleted_by_id CHAR(26) REFERENCES sys_users(id),
     UNIQUE(organization_id, name, guard_name, scope_type, scope_id)
 );
 
@@ -22,6 +22,6 @@ CREATE INDEX idx_sys_roles_name ON sys_roles (name);
 CREATE INDEX idx_sys_roles_guard_name ON sys_roles (guard_name);
 CREATE INDEX idx_sys_roles_scope ON sys_roles (scope_type, scope_id);
 CREATE INDEX idx_sys_roles_created_at ON sys_roles (created_at);
-CREATE INDEX idx_sys_roles_created_by ON sys_roles (created_by);
-CREATE INDEX idx_sys_roles_updated_by ON sys_roles (updated_by);
-CREATE INDEX idx_sys_roles_deleted_by ON sys_roles (deleted_by);
+CREATE INDEX idx_sys_roles_created_by_id ON sys_roles (created_by_id);
+CREATE INDEX idx_sys_roles_updated_by_id ON sys_roles (updated_by_id);
+CREATE INDEX idx_sys_roles_deleted_by_id ON sys_roles (deleted_by_id);

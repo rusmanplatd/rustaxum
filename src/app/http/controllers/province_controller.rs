@@ -31,12 +31,12 @@ struct MessageResponse {
     params(
         ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
         ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
-        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, code, country_id, created_at, updated_at (prefix with '-' for descending)"),
-        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: country, cities"),
-        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, code, country_id (e.g., filter[name]=Ontario, filter[code]=ON)"),
-        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, code, country_id, created_at, updated_at"),
-        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
-        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
+        ("sort" = Option<String>, Query, description = "Multi-column sorting. Available fields: id, name, code, country_id, created_at, updated_at. Syntax: 'field1,-field2,field3:desc'. Example: 'name,-created_at,country_id:asc'"),
+        ("include" = Option<String>, Query, description = "Eager load relationships. Available: country, cities, cities.districts, createdBy, updatedBy, deletedBy, createdBy.organizations.position.level, updatedBy.organizations.position.level, deletedBy.organizations.position.level. Supports nested relationships. Example: 'country,cities.districts,createdBy.organizations.position.level'"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Advanced filtering with comprehensive operators. Available filters: name, code, country_id, created_at, updated_at. Operators: eq, ne, gt, gte, lt, lte, like, ilike, contains, starts_with, ends_with, in, not_in, is_null, is_not_null, between. Examples: filter[name][contains]=ontario, filter[country_id][in]=CA,US, filter[created_at][gte]=2023-01-01"),
+        ("fields" = Option<String>, Query, description = "Field selection for optimized responses. Available: id, name, code, country_id, created_at, updated_at. Example: fields[provinces]=id,name,code"),
+        ("cursor" = Option<String>, Query, description = "Cursor for high-performance pagination. Base64-encoded JSON cursor from previous response"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination strategy: 'offset' (traditional) or 'cursor' (high-performance, default)"),
     ),
     responses(
         (status = 200, description = "List of provinces", body = Vec<crate::app::models::province::ProvinceResponse>),

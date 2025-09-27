@@ -16,7 +16,7 @@ The system now supports **dual authentication methods**:
 cargo build
 
 # Start with Docker Compose (recommended)
-docker-compose up -d
+docker compose up -d
 
 # Or start directly
 cargo run

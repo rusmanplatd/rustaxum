@@ -592,8 +592,25 @@ impl NotificationFacade {
         notifiable: &N,
         notification_type: &str,
     ) -> bool {
-        // TODO: In a production implementation, this would check against captured notifications
-        let notification_service = crate::app::services::notification_service::NotificationService::new().await;
+        use crate::database::connection::get_connection;
+        use crate::schema::notifications;
+        use diesel::prelude::*;
+        use chrono::{Utc, Duration};
+
+        let pool = match get_connection().await {
+            Ok(pool) => pool,
+            Err(e) => {
+                tracing::error!("Database connection failed in notification assertion: {}", e);
+                return false;
+            }
+        };
+        let mut conn = match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => {
+                tracing::error!("Failed to get connection from pool: {}", e);
+                return false;
+            }
+        };
 
         // Extract notifiable type and ID from the key
         let key = notifiable.get_key();
@@ -602,22 +619,59 @@ impl NotificationFacade {
             let notifiable_type = parts[0];
             let notifiable_id = parts[1];
 
-            if let Ok(notifications) = notification_service
-                .get_notifications(notifiable_type, notifiable_id, Some(10), None)
-                .await
-            {
-                return notifications.iter().any(|n| n.notification_type == notification_type);
-            }
+            // Check for notifications sent in the last 5 minutes (test window)
+            let test_window_start = Utc::now() - Duration::minutes(5);
+
+            let notification_exists = notifications::table
+                .filter(notifications::notifiable_type.eq(notifiable_type))
+                .filter(notifications::notifiable_id.eq(notifiable_id))
+                .filter(notifications::type_.eq(notification_type))
+                .filter(notifications::created_at.ge(test_window_start.naive_utc()))
+                .select(notifications::id)
+                .limit(1)
+                .load::<String>(&mut conn)
+                .map(|results| !results.is_empty())
+                .unwrap_or(false);
+
+            return notification_exists;
         }
         false
     }
 
     /// Assert that no notifications were sent
     pub async fn assert_nothing_sent() -> bool {
-        // TODO: In a production implementation, this would check that no notifications
-        // were captured during the test
-        tracing::info!("Checking that no notifications were sent during test");
-        true
+        use crate::database::connection::get_connection;
+        use crate::schema::notifications;
+        use diesel::prelude::*;
+        use chrono::{Utc, Duration};
+
+        let pool = match get_connection().await {
+            Ok(pool) => pool,
+            Err(e) => {
+                tracing::error!("Database connection failed in notification assertion: {}", e);
+                return false;
+            }
+        };
+        let mut conn = match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => {
+                tracing::error!("Failed to get connection from pool: {}", e);
+                return false;
+            }
+        };
+
+        // Check for notifications sent in the last 5 minutes (test window)
+        let test_window_start = Utc::now() - Duration::minutes(5);
+
+        let notification_count: i64 = notifications::table
+            .filter(notifications::created_at.ge(test_window_start.naive_utc()))
+            .count()
+            .get_result(&mut conn)
+            .unwrap_or(1); // Default to 1 if query fails, indicating notifications were found
+
+        let no_notifications_sent = notification_count == 0;
+        tracing::info!("Checking that no notifications were sent during test: {} notifications found", notification_count);
+        no_notifications_sent
     }
 }
 

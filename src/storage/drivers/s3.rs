@@ -591,9 +591,34 @@ impl Filesystem for S3Filesystem {
         Ok(())
     }
 
-    async fn get_visibility(&self, _path: &str) -> Result<String> {
-        // TODO: This would require additional S3 API calls to get ACL
-        Ok(self.visibility.clone())
+    async fn get_visibility(&self, path: &str) -> Result<String> {
+        // Get object ACL to determine visibility
+        let request = self.client
+            .get_object_acl()
+            .bucket(&self.bucket)
+            .key(path);
+
+        match request.send().await {
+            Ok(response) => {
+                // Check if object is publicly readable
+                if let Some(grants) = response.grants {
+                    for grant in grants {
+                        if let (Some(grantee), Some(permission)) = (&grant.grantee, &grant.permission) {
+                            if grantee.r#type.as_ref() == "Group"
+                                && grantee.uri.as_deref() == Some("http://acs.amazonaws.com/groups/global/AllUsers")
+                                && permission.as_str() == "READ" {
+                                return Ok("public".to_string());
+                            }
+                        }
+                    }
+                }
+                Ok("private".to_string())
+            }
+            Err(e) => {
+                tracing::warn!("Failed to get object ACL for {}: {}. Using default visibility", path, e);
+                Ok(self.visibility.clone())
+            }
+        }
     }
 
     fn name(&self) -> &str {
@@ -602,5 +627,9 @@ impl Filesystem for S3Filesystem {
 
     fn is_local(&self) -> bool {
         false
+    }
+
+    fn is_cloud(&self) -> bool {
+        true
     }
 }

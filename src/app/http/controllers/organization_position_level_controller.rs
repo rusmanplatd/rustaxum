@@ -1,6 +1,6 @@
 use axum::{
     extract::{State, Path, Query},
-    http::StatusCode,
+    http::{StatusCode, HeaderMap},
     response::{IntoResponse, Json as ResponseJson},
 };
 use serde::Serialize;
@@ -29,10 +29,14 @@ struct MessageResponse {
     summary = "List all organization position levels",
     description = "Get all organization position levels with optional filtering, sorting, and pagination",
     params(
-        ("page" = Option<u32>, Query, description = "Page number for pagination"),
-        ("limit" = Option<u32>, Query, description = "Number of items per page (max 100)"),
-        ("sort" = Option<String>, Query, description = "Sort field"),
-        ("direction" = Option<String>, Query, description = "Sort direction (asc/desc)"),
+        ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
+        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, code, level, organization_id, is_active, created_at, updated_at (prefix with '-' for descending)"),
+        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: positions, createdBy, updatedBy, deletedBy, createdBy.organizations.position.level, updatedBy.organizations.position.level, deletedBy.organizations.position.level"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, code, level, organization_id, is_active (e.g., filter[name]=Manager, filter[is_active]=true)"),
+        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, code, level, organization_id, is_active, created_at, updated_at"),
+        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
     ),
     responses(
         (status = 200, description = "List of organization position levels", body = Vec<crate::app::models::organization_position_level::OrganizationPositionLevelResponse>),
@@ -56,6 +60,7 @@ pub async fn index(
     }
 }
 
+
 #[utoipa::path(
     get,
     path = "/api/organization-position-levels/{id}",
@@ -72,7 +77,7 @@ pub async fn index(
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>, headers: HeaderMap) -> impl IntoResponse {
     let organization_position_level_id = match Ulid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
@@ -83,10 +88,12 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         }
     };
 
-    // TODO: Extract user_id from auth context when available
-    let user_id = None; // Replace with actual user extraction
+    // Extract user ID from authentication context
+    let user_id = crate::app::utils::token_utils::TokenUtils::extract_user_id_from_headers(&headers);
+    let user_id_str = user_id.as_ref().map(|id| id.to_string());
+    let user_id_ref = user_id_str.as_deref();
 
-    match OrganizationPositionLevelService::find_by_id(&pool, &organization_position_level_id.to_string(), user_id).await {
+    match OrganizationPositionLevelService::find_by_id(&pool, &organization_position_level_id.to_string(), user_id_ref).await {
         Ok(Some(organization_position_level)) => (StatusCode::OK, ResponseJson(organization_position_level.to_response())).into_response(),
         Ok(None) => {
             let error = ErrorResponse {
@@ -103,6 +110,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
     }
 }
 
+
 #[utoipa::path(
     post,
     path = "/api/organization-position-levels",
@@ -116,7 +124,7 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn store(State(pool): State<DbPool>, request: CreateOrganizationPositionLevelRequest) -> impl IntoResponse {
+pub async fn store(State(pool): State<DbPool>, headers: HeaderMap, request: CreateOrganizationPositionLevelRequest) -> impl IntoResponse {
     let payload = CreateOrganizationPositionLevel {
         organization_id: request.organization_id,
         code: request.code,
@@ -125,10 +133,12 @@ pub async fn store(State(pool): State<DbPool>, request: CreateOrganizationPositi
         level: request.level,
     };
 
-    // TODO: Extract user_id from auth context when available
-    let created_by = None; // Replace with actual user extraction
+    // Extract user ID from authentication context
+    let user_id = crate::app::utils::token_utils::TokenUtils::extract_user_id_from_headers(&headers);
+    let user_id_str = user_id.as_ref().map(|id| id.to_string());
+    let user_id_ref = user_id_str.as_deref();
 
-    match OrganizationPositionLevelService::create(&pool, payload, created_by).await {
+    match OrganizationPositionLevelService::create(&pool, payload, user_id_ref).await {
         Ok(organization_position_level) => (StatusCode::CREATED, ResponseJson(organization_position_level.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -138,6 +148,7 @@ pub async fn store(State(pool): State<DbPool>, request: CreateOrganizationPositi
         }
     }
 }
+
 
 #[utoipa::path(
     put,
@@ -159,6 +170,7 @@ pub async fn store(State(pool): State<DbPool>, request: CreateOrganizationPositi
 pub async fn update(
     State(pool): State<DbPool>,
     Path(id): Path<String>,
+    headers: HeaderMap,
     request: UpdateOrganizationPositionLevelRequest,
 ) -> impl IntoResponse {
     let payload = UpdateOrganizationPositionLevel {
@@ -170,10 +182,12 @@ pub async fn update(
         is_active: request.is_active,
     };
 
-    // TODO: Extract user_id from auth context when available
-    let updated_by = None; // Replace with actual user extraction
+    // Extract user ID from authentication context
+    let user_id = crate::app::utils::token_utils::TokenUtils::extract_user_id_from_headers(&headers);
+    let user_id_str = user_id.as_ref().map(|id| id.to_string());
+    let user_id_ref = user_id_str.as_deref();
 
-    match OrganizationPositionLevelService::update(&pool, id, payload, updated_by).await {
+    match OrganizationPositionLevelService::update(&pool, id, payload, user_id_ref).await {
         Ok(organization_position_level) => (StatusCode::OK, ResponseJson(organization_position_level.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -183,6 +197,7 @@ pub async fn update(
         }
     }
 }
+
 
 #[utoipa::path(
     delete,
@@ -200,7 +215,7 @@ pub async fn update(
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>, headers: HeaderMap) -> impl IntoResponse {
     let organization_position_level_id = match Ulid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
@@ -211,10 +226,12 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     };
 
-    // TODO: Extract user_id from auth context when available
-    let deleted_by = None; // Replace with actual user extraction
+    // Extract user ID from authentication context
+    let user_id = crate::app::utils::token_utils::TokenUtils::extract_user_id_from_headers(&headers);
+    let user_id_str = user_id.as_ref().map(|id| id.to_string());
+    let user_id_ref = user_id_str.as_deref();
 
-    match OrganizationPositionLevelService::delete(&pool, organization_position_level_id.to_string(), deleted_by).await {
+    match OrganizationPositionLevelService::delete(&pool, organization_position_level_id.to_string(), user_id_ref).await {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Job level deleted successfully".to_string(),
@@ -229,6 +246,7 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         }
     }
 }
+
 
 /// Activate a organization position level
 ///
@@ -252,12 +270,14 @@ pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>, headers: HeaderMap) -> impl IntoResponse {
     // Get current organization position level and update its active status
-    // TODO: Extract user_id from auth context when available
-    let user_id = None; // Replace with actual user extraction
+    // Extract user ID from authentication context
+    let user_id = crate::app::utils::token_utils::TokenUtils::extract_user_id_from_headers(&headers);
+    let user_id_str = user_id.as_ref().map(|id| id.to_string());
+    let user_id_ref = user_id_str.as_deref();
 
-    match OrganizationPositionLevelService::find_by_id(&pool, &id, user_id).await {
+    match OrganizationPositionLevelService::find_by_id(&pool, &id, user_id_ref).await {
         Ok(Some(_organization_position_level)) => {
             let payload = UpdateOrganizationPositionLevel {
                 organization_id: None,
@@ -268,10 +288,7 @@ pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> imp
                 is_active: Some(true),
             };
 
-            // TODO: Extract user_id from auth context when available
-            let updated_by = None; // Replace with actual user extraction
-
-            match OrganizationPositionLevelService::update(&pool, id, payload, updated_by).await {
+            match OrganizationPositionLevelService::update(&pool, id, payload, user_id_ref).await {
                 Ok(updated_organization_position_level) => (StatusCode::OK, ResponseJson(updated_organization_position_level.to_response())).into_response(),
                 Err(e) => {
                     let error = ErrorResponse {
@@ -295,6 +312,7 @@ pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> imp
         }
     }
 }
+
 
 #[utoipa::path(
     post,
@@ -312,12 +330,14 @@ pub async fn activate(State(pool): State<DbPool>, Path(id): Path<String>) -> imp
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn deactivate(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn deactivate(State(pool): State<DbPool>, Path(id): Path<String>, headers: HeaderMap) -> impl IntoResponse {
     // Get current organization position level and update its active status
-    // TODO: Extract user_id from auth context when available
-    let user_id = None; // Replace with actual user extraction
+    // Extract user ID from authentication context
+    let user_id = crate::app::utils::token_utils::TokenUtils::extract_user_id_from_headers(&headers);
+    let user_id_str = user_id.as_ref().map(|id| id.to_string());
+    let user_id_ref = user_id_str.as_deref();
 
-    match OrganizationPositionLevelService::find_by_id(&pool, &id, user_id).await {
+    match OrganizationPositionLevelService::find_by_id(&pool, &id, user_id_ref).await {
         Ok(Some(_organization_position_level)) => {
             let payload = UpdateOrganizationPositionLevel {
                 organization_id: None,
@@ -328,10 +348,7 @@ pub async fn deactivate(State(pool): State<DbPool>, Path(id): Path<String>) -> i
                 is_active: Some(false),
             };
 
-            // TODO: Extract user_id from auth context when available
-            let updated_by = None; // Replace with actual user extraction
-
-            match OrganizationPositionLevelService::update(&pool, id, payload, updated_by).await {
+            match OrganizationPositionLevelService::update(&pool, id, payload, user_id_ref).await {
                 Ok(updated_organization_position_level) => (StatusCode::OK, ResponseJson(updated_organization_position_level.to_response())).into_response(),
                 Err(e) => {
                     let error = ErrorResponse {
@@ -355,3 +372,4 @@ pub async fn deactivate(State(pool): State<DbPool>, Path(id): Path<String>) -> i
         }
     }
 }
+

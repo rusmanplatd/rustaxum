@@ -3,6 +3,7 @@ use diesel::prelude::*;
 use crate::schema::devices;
 use super::DieselUlid;
 use chrono::{DateTime, Utc};
+use crate::app::models::{HasModelType, activity_log::HasId};
 
 fn default_interval() -> diesel::pg::data_types::PgInterval {
     diesel::pg::data_types::PgInterval::from_days(7)
@@ -183,5 +184,17 @@ impl NewDevice {
     pub fn with_trust_level(mut self, trust_level: TrustLevel) -> Self {
         self.trust_level = Some(trust_level.into());
         self
+    }
+}
+
+impl HasModelType for Device {
+    fn model_type() -> &'static str {
+        "Device"
+    }
+}
+
+impl HasId for Device {
+    fn id(&self) -> String {
+        self.id.to_string()
     }
 }

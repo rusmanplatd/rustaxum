@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::SortDirection;
 use super::DieselUlid;
-use crate::app::models::activity_log::HasId;
+use crate::app::models::{HasModelType, activity_log::HasId};
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable, AsChangeset)]
 #[diesel(table_name = crate::schema::oauth_ciba_requests)]
@@ -335,6 +335,12 @@ impl crate::app::query_builder::Queryable for OAuthCibaRequest {
             "client",
             "user",
         ]
+    }
+}
+
+impl HasModelType for OAuthCibaRequest {
+    fn model_type() -> &'static str {
+        "OAuthCibaRequest"
     }
 }
 

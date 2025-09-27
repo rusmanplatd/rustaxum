@@ -45,7 +45,7 @@ pub async fn create_backchannel_auth_request(
     axum::extract::Form(form): axum::extract::Form<CIBAAuthFormRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Extract and authenticate client
-    let client_id = match extract_client_credentials(&headers, &form) {
+    let client_id = match extract_client_credentials(&headers, &form).await {
         Ok(id) => id,
         Err(err) => {
             return Err((
@@ -162,7 +162,7 @@ pub async fn exchange_ciba_for_tokens(
     }
 
     // Extract and authenticate client
-    let client_id = match extract_client_credentials_from_form(&headers, &form) {
+    let client_id = match extract_client_credentials_from_form(&headers, &form).await {
         Ok(id) => id,
         Err(err) => {
             return Err((
@@ -299,7 +299,7 @@ pub async fn cleanup_expired_requests(
 // Helper functions
 
 /// Extract client credentials from various sources
-fn extract_client_credentials(
+async fn extract_client_credentials(
     headers: &HeaderMap,
     form: &CIBAAuthFormRequest,
 ) -> Result<String, String> {
@@ -310,9 +310,32 @@ fn extract_client_credentials(
 
     // Try form parameters
     if let Some(client_id) = &form.client_id {
-        if let Some(_secret) = &form.client_secret {
-            // TODO: In production, validate the client secret
-            return Ok(client_id.clone());
+        if let Some(secret) = &form.client_secret {
+            // Validate client credentials using ClientAuthService
+            use crate::app::services::oauth::ClientAuthService;
+            use crate::database::connection::get_connection;
+
+            match get_connection().await {
+                Ok(pool) => {
+                    use axum::http::HeaderMap;
+                    use crate::app::services::oauth::client_auth_service::ClientSecretPostParams;
+
+                    let empty_headers = HeaderMap::new();
+                    let post_params = ClientSecretPostParams {
+                        client_id: client_id.clone(),
+                        client_secret: Some(secret.clone()),
+                        client_assertion_type: None,
+                        client_assertion: None,
+                    };
+
+                    if let Ok(_) = ClientAuthService::authenticate_client(pool, &empty_headers, Some(&post_params)).await {
+                        return Ok(client_id.clone());
+                    } else {
+                        return Err("Invalid client credentials".to_string());
+                    }
+                },
+                Err(_) => return Err("Database connection failed".to_string())
+            }
         }
         // Public client (no secret required)
         return Ok(client_id.clone());
@@ -322,7 +345,7 @@ fn extract_client_credentials(
 }
 
 /// Extract client credentials from CIBA token form
-fn extract_client_credentials_from_form(
+async fn extract_client_credentials_from_form(
     headers: &HeaderMap,
     form: &CIBATokenFormRequest,
 ) -> Result<String, String> {
@@ -333,9 +356,32 @@ fn extract_client_credentials_from_form(
 
     // Try form parameters
     if let Some(client_id) = &form.client_id {
-        if let Some(_secret) = &form.client_secret {
-            // TODO: In production, validate the client secret
-            return Ok(client_id.clone());
+        if let Some(secret) = &form.client_secret {
+            // Validate client credentials using ClientAuthService
+            use crate::app::services::oauth::ClientAuthService;
+            use crate::database::connection::get_connection;
+
+            match get_connection().await {
+                Ok(pool) => {
+                    use axum::http::HeaderMap;
+                    use crate::app::services::oauth::client_auth_service::ClientSecretPostParams;
+
+                    let empty_headers = HeaderMap::new();
+                    let post_params = ClientSecretPostParams {
+                        client_id: client_id.clone(),
+                        client_secret: Some(secret.clone()),
+                        client_assertion_type: None,
+                        client_assertion: None,
+                    };
+
+                    if let Ok(_) = ClientAuthService::authenticate_client(pool, &empty_headers, Some(&post_params)).await {
+                        return Ok(client_id.clone());
+                    } else {
+                        return Err("Invalid client credentials".to_string());
+                    }
+                },
+                Err(_) => return Err("Database connection failed".to_string())
+            }
         }
         // Public client (no secret required)
         return Ok(client_id.clone());

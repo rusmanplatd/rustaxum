@@ -53,11 +53,11 @@ pub struct UserOrganization {
     /// Soft delete timestamp
     pub deleted_at: Option<DateTime<Utc>>,
     /// User who created this relationship
-    pub created_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
     /// User who last updated this relationship
-    pub updated_by: Option<DieselUlid>,
+    pub updated_by_id: Option<DieselUlid>,
     /// User who deleted this relationship
-    pub deleted_by: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 /// Create user organization payload for service layer
@@ -83,9 +83,9 @@ pub struct NewUserOrganization {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by: Option<DieselUlid>,
-    pub updated_by: Option<DieselUlid>,
-    pub deleted_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
+    pub updated_by_id: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 /// Update user organization payload for service layer
@@ -111,9 +111,9 @@ pub struct UserOrganizationResponse {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by: Option<DieselUlid>,
-    pub updated_by: Option<DieselUlid>,
-    pub deleted_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
+    pub updated_by_id: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 impl NewUserOrganization {
@@ -130,9 +130,9 @@ impl NewUserOrganization {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by: None,
-            updated_by: None,
-            deleted_by: None,
+            created_by_id: None,
+            updated_by_id: None,
+            deleted_by_id: None,
         }
     }
 }
@@ -151,9 +151,9 @@ impl UserOrganization {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by: None,
-            updated_by: None,
-            deleted_by: None,
+            created_by_id: None,
+            updated_by_id: None,
+            deleted_by_id: None,
         }
     }
 
@@ -169,9 +169,9 @@ impl UserOrganization {
             created_at: self.created_at,
             updated_at: self.updated_at,
             deleted_at: self.deleted_at,
-            created_by: self.created_by,
-            updated_by: self.updated_by,
-            deleted_by: self.deleted_by,
+            created_by_id: self.created_by_id,
+            updated_by_id: self.updated_by_id,
+            deleted_by_id: self.deleted_by_id,
         }
     }
 
@@ -518,6 +518,18 @@ impl crate::app::query_builder::Queryable for UserOrganization {
             "user",
             "organization",
             "position",
+            "createdBy",
+            "updatedBy",
+            "deletedBy",
+            "createdBy.organizations",
+            "updatedBy.organizations",
+            "deletedBy.organizations",
+            "createdBy.organizations.position",
+            "updatedBy.organizations.position",
+            "deletedBy.organizations.position",
+            "createdBy.organizations.position.level",
+            "updatedBy.organizations.position.level",
+            "deletedBy.organizations.position.level",
         ]
     }
 }

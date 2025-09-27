@@ -291,13 +291,44 @@ impl MailContent {
         match self {
             MailContent::Text(text) => text.clone(),
             MailContent::Html(html) => {
-                // (TODO:  use proper HTML parser in production)
-                html.clone()
+                // Convert HTML to plain text using html-escape and regex
+                Self::html_to_text(html)
             },
             MailContent::Markdown { markdown, .. } => markdown.clone(),
             MailContent::Multipart { text, .. } => text.clone(),
             MailContent::Template { .. } => "Template content".to_string(),
         }
+    }
+
+    /// Convert HTML to plain text by removing tags and decoding entities
+    fn html_to_text(html: &str) -> String {
+        use regex::Regex;
+        use html_escape::decode_html_entities;
+
+        // Remove HTML tags
+        let tag_regex = Regex::new(r"<[^>]*>").unwrap();
+        let no_tags = tag_regex.replace_all(html, "");
+
+        // Replace common HTML entities with line breaks
+        let br_regex = Regex::new(r"(?i)<br\s*/?>").unwrap();
+        let with_breaks = br_regex.replace_all(&no_tags, "\n");
+
+        // Replace paragraph and div tags with double line breaks
+        let block_regex = Regex::new(r"(?i)</?(?:p|div|h[1-6])\s*/?>").unwrap();
+        let with_paragraphs = block_regex.replace_all(&with_breaks, "\n\n");
+
+        // Decode HTML entities
+        let decoded = decode_html_entities(&with_paragraphs);
+
+        // Clean up extra whitespace
+        let whitespace_regex = Regex::new(r"\s+").unwrap();
+        let cleaned = whitespace_regex.replace_all(&decoded, " ");
+
+        // Remove leading/trailing whitespace and normalize line breaks
+        let line_break_regex = Regex::new(r"\n\s*\n").unwrap();
+        let normalized = line_break_regex.replace_all(&cleaned, "\n\n");
+
+        normalized.trim().to_string()
     }
 }
 

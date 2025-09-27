@@ -169,10 +169,23 @@ impl EncryptedBackupKey {
     }
 
     pub fn verify(&mut self) -> bool {
-        // TODO: verify the backup hash
-        self.is_verified = true;
-        self.updated_at = Utc::now();
-        true
+        use sha2::{Sha256, Digest};
+
+        // Verify backup hash against encrypted backup data
+        let mut hasher = Sha256::new();
+        hasher.update(&self.encrypted_backup_data);
+        hasher.update(&self.created_at.timestamp().to_string());
+        hasher.update(self.user_id.to_string().as_bytes());
+        let computed_hash = format!("{:x}", hasher.finalize());
+
+        if computed_hash == self.backup_hash {
+            self.is_verified = true;
+            self.updated_at = Utc::now();
+            true
+        } else {
+            tracing::error!("Backup hash verification failed for user {}", self.user_id);
+            false
+        }
     }
 
     pub fn verify_hash(&self, expected_hash: &str) -> bool {

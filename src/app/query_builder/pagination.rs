@@ -1,8 +1,49 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Validation, Algorithm};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+/// JWT claims for secure cursor data
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CursorClaims {
+    /// Cursor data
+    pub cursor: CursorData,
+    /// Issued at timestamp
+    pub iat: u64,
+    /// Expiration timestamp (issued + 1 hour)
+    pub exp: u64,
+    /// JWT issuer
+    pub iss: String,
+}
+
+impl CursorClaims {
+    /// Create new cursor claims with 1 hour expiration
+    pub fn new(cursor: CursorData) -> Self {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        Self {
+            cursor,
+            iat: now,
+            exp: now + 3600, // 1 hour expiration
+            iss: "rustaxum-pagination".to_string(),
+        }
+    }
+
+    /// Check if the cursor claims are expired
+    pub fn is_expired(&self) -> bool {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        now >= self.exp
+    }
+}
 
 /// Cursor data structure for cursor-based pagination
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct CursorData {
     /// Timestamp for ordering consistency
     pub timestamp: i64,
@@ -108,6 +149,11 @@ pub struct Pagination {
 }
 
 impl Pagination {
+    /// Get JWT secret for cursor signing (from environment or default)
+    fn get_jwt_secret() -> String {
+        std::env::var("JWT_SECRET").unwrap_or_else(|_| "default_cursor_secret_change_in_production".to_string())
+    }
+
     /// Create new pagination with default cursor type
     pub fn new(page: u32, per_page: u32) -> Self {
         Self {
@@ -297,14 +343,74 @@ impl Pagination {
     }
 
     /// Get the SQL WHERE clause for cursor-based pagination
+    /// Supports custom sort fields for more flexible cursor pagination
     pub fn cursor_where_clause(&self) -> Option<(String, Vec<i64>)> {
+        self.cursor_where_clause_with_sort("created_at", "id")
+    }
+
+    /// Get the SQL WHERE clause for cursor-based pagination with custom sort fields
+    pub fn cursor_where_clause_with_sort(&self, sort_field: &str, id_field: &str) -> Option<(String, Vec<i64>)> {
         if let Some(ref cursor_str) = self.cursor {
             if let Some(cursor_data) = self.decode_cursor(cursor_str) {
-                // For cursor pagination, we use the timestamp to maintain consistent ordering
+                // Support flexible sort fields for cursor pagination
                 return Some((
-                    "created_at > $1 OR (created_at = $1 AND id > $2)".to_string(),
+                    format!("{} > $1 OR ({} = $1 AND {} > $2)", sort_field, sort_field, id_field),
                     vec![cursor_data.timestamp, cursor_data.position as i64],
                 ));
+            }
+        }
+        None
+    }
+
+    /// Get WHERE clause for multi-column cursor pagination with proper tuple comparison
+    pub fn multi_column_cursor_where_clause(&self, sort_columns: &[(&str, bool)]) -> Option<(String, Vec<String>)> {
+        if let Some(ref cursor_str) = self.cursor {
+            if let Some(cursor_data) = self.decode_cursor(cursor_str) {
+                if sort_columns.is_empty() {
+                    return None;
+                }
+
+                // For multi-column sorting, we need to build a proper tuple comparison
+                // that ensures correct lexicographic ordering across all columns
+                let mut conditions = Vec::new();
+                let mut values = Vec::new();
+
+                // Build progressive conditions for each column combination
+                for i in 0..sort_columns.len() {
+                    let mut equality_conditions = Vec::new();
+
+                    // Add equality conditions for all previous columns
+                    for j in 0..i {
+                        let (column, _) = sort_columns[j];
+                        equality_conditions.push(format!("{} = ${}", column, values.len() + 1));
+                        // Use cursor timestamp as a fallback value for previous columns
+                        values.push(cursor_data.timestamp.to_string());
+                    }
+
+                    // Add the comparison condition for the current column
+                    let (current_column, is_desc) = sort_columns[i];
+                    let operator = if is_desc { "<" } else { ">" };
+                    let final_condition = format!("{} {} ${}", current_column, operator, values.len() + 1);
+
+                    // Use position for the final column comparison
+                    if i == sort_columns.len() - 1 {
+                        values.push(cursor_data.position.to_string());
+                    } else {
+                        values.push(cursor_data.timestamp.to_string());
+                    }
+
+                    // Combine equality conditions with final comparison
+                    if equality_conditions.is_empty() {
+                        conditions.push(final_condition);
+                    } else {
+                        conditions.push(format!("({} AND {})",
+                            equality_conditions.join(" AND "),
+                            final_condition));
+                    }
+                }
+
+                let where_clause = format!("({})", conditions.join(" OR "));
+                return Some((where_clause, values));
             }
         }
         None
@@ -328,39 +434,69 @@ impl Pagination {
         self.encode_cursor(&cursor_data)
     }
 
-    /// Decode a cursor string into CursorData
+    /// Decode a JWT cursor string into CursorData
     pub fn decode_cursor(&self, cursor: &str) -> Option<CursorData> {
-        use base64::{Engine as _, engine::general_purpose};
+        let secret = Self::get_jwt_secret();
+        let mut validation = Validation::new(Algorithm::HS256);
+        validation.set_issuer(&["rustaxum-pagination"]);
 
-        // Remove any URL-safe padding characters and decode
-        let cleaned_cursor = cursor.replace('-', "+").replace('_', "/");
-        let decoded = general_purpose::STANDARD.decode(cleaned_cursor).ok()?;
-        let cursor_str = String::from_utf8(decoded).ok()?;
-
-        // Parse JSON cursor data
-        serde_json::from_str(&cursor_str).ok()
+        match decode::<CursorClaims>(cursor, &DecodingKey::from_secret(secret.as_ref()), &validation) {
+            Ok(token_data) => {
+                let claims = token_data.claims;
+                // Check if the cursor is expired
+                if claims.is_expired() {
+                    return None;
+                }
+                Some(claims.cursor)
+            }
+            Err(_) => None,
+        }
     }
 
-    /// Encode cursor data into a base64 string
+    /// Encode cursor data into a JWT token
     fn encode_cursor(&self, cursor_data: &CursorData) -> Option<String> {
-        use base64::{Engine as _, engine::general_purpose};
+        let claims = CursorClaims::new(cursor_data.clone());
+        let header = Header::new(Algorithm::HS256);
+        let secret = Self::get_jwt_secret();
 
-        let json = serde_json::to_string(cursor_data).ok()?;
-        let encoded = general_purpose::STANDARD.encode(json.as_bytes());
-
-        // Make it URL-safe
-        let url_safe = encoded.replace('+', "-").replace('/', "_").trim_end_matches('=').to_string();
-        Some(url_safe)
+        match encode(&header, &claims, &EncodingKey::from_secret(secret.as_ref())) {
+            Ok(token) => Some(token),
+            Err(_) => None,
+        }
     }
 
-    /// Check if a cursor is valid
+    /// Check if a JWT cursor is valid and not expired
     pub fn is_valid_cursor(&self, cursor: &str) -> bool {
         self.decode_cursor(cursor).is_some()
     }
 
-    /// Get cursor metadata for debugging
-    pub fn cursor_info(&self, cursor: &str) -> Option<CursorData> {
-        self.decode_cursor(cursor)
+    /// Validate JWT cursor signature and expiration
+    pub fn validate_cursor_jwt(&self, cursor: &str) -> Result<CursorClaims, String> {
+        let secret = Self::get_jwt_secret();
+        let mut validation = Validation::new(Algorithm::HS256);
+        validation.set_issuer(&["rustaxum-pagination"]);
+
+        match decode::<CursorClaims>(cursor, &DecodingKey::from_secret(secret.as_ref()), &validation) {
+            Ok(token_data) => {
+                let claims = token_data.claims;
+                if claims.is_expired() {
+                    return Err("Cursor has expired".to_string());
+                }
+                Ok(claims)
+            }
+            Err(e) => Err(format!("Invalid cursor JWT: {}", e)),
+        }
+    }
+
+    /// Get cursor metadata for debugging (includes JWT claims)
+    pub fn cursor_info(&self, cursor: &str) -> Option<CursorClaims> {
+        let secret = Self::get_jwt_secret();
+        let mut validation = Validation::new(Algorithm::HS256);
+        validation.set_issuer(&["rustaxum-pagination"]);
+
+        decode::<CursorClaims>(cursor, &DecodingKey::from_secret(secret.as_ref()), &validation)
+            .map(|token_data| token_data.claims)
+            .ok()
     }
 }
 
@@ -634,15 +770,15 @@ mod tests {
     }
 
     #[test]
-    fn test_cursor_encode_decode() {
+    fn test_jwt_cursor_encode_decode() {
         let pagination = Pagination::cursor(20, None);
         let cursor_data = CursorData::now(5, 20);
 
-        // Test encoding
+        // Test JWT encoding
         let encoded = pagination.encode_cursor(&cursor_data);
         assert!(encoded.is_some());
 
-        // Test decoding
+        // Test JWT decoding
         if let Some(encoded_cursor) = encoded {
             let decoded = pagination.decode_cursor(&encoded_cursor);
             assert!(decoded.is_some());
@@ -650,16 +786,87 @@ mod tests {
             let decoded_data = decoded.unwrap();
             assert_eq!(decoded_data.position, cursor_data.position);
             assert_eq!(decoded_data.per_page, cursor_data.per_page);
+
+            // Test JWT validation
+            let validation_result = pagination.validate_cursor_jwt(&encoded_cursor);
+            assert!(validation_result.is_ok());
+
+            let claims = validation_result.unwrap();
+            assert_eq!(claims.iss, "rustaxum-pagination");
+            assert!(claims.exp > claims.iat);
         }
     }
 
     #[test]
-    fn test_cursor_validation() {
+    fn test_jwt_cursor_validation() {
         let pagination = Pagination::cursor(20, None);
         let cursor_data = CursorData::now(5, 20);
         let encoded = pagination.encode_cursor(&cursor_data).unwrap();
 
+        // Valid JWT cursor should pass validation
         assert!(pagination.is_valid_cursor(&encoded));
+
+        // Invalid/tampered cursor should fail validation
         assert!(!pagination.is_valid_cursor("invalid_cursor"));
+        assert!(!pagination.is_valid_cursor("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjdXJzb3IiOnsidGltZXN0YW1wIjoxNjQwOTk1MjAwMDAwLCJwb3NpdGlvbiI6MTAsInBlcl9wYWdlIjoyMH0sImlhdCI6MTY0MDk5NTIwMCwiZXhwIjoxNjQwOTk4ODAwLCJpc3MiOiJydXN0YXh1bS1wYWdpbmF0aW9uIn0.TAMPERED_SIGNATURE"));
+    }
+
+    #[test]
+    fn test_jwt_cursor_expiration() {
+        let pagination = Pagination::cursor(20, None);
+
+        // Create an expired cursor (set timestamp to past)
+        let old_timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() - 7200; // 2 hours ago
+
+        let expired_claims = CursorClaims {
+            cursor: CursorData::new(1640995200000, 10, 20),
+            iat: old_timestamp,
+            exp: old_timestamp + 3600, // Expired 1 hour ago
+            iss: "rustaxum-pagination".to_string(),
+        };
+
+        // Manually create JWT for expired cursor
+        let header = Header::new(Algorithm::HS256);
+        let secret = Pagination::get_jwt_secret();
+        let expired_jwt = encode(&header, &expired_claims, &EncodingKey::from_secret(secret.as_ref())).unwrap();
+
+        // Expired cursor should fail validation
+        assert!(!pagination.is_valid_cursor(&expired_jwt));
+        assert!(pagination.validate_cursor_jwt(&expired_jwt).is_err());
+    }
+
+    #[test]
+    fn test_multi_column_cursor_where_clause_jwt() {
+        let cursor_data = CursorData::new(1640995200000, 10, 20); // 2022-01-01 timestamp
+        let pagination = Pagination::cursor(20, None);
+        let encoded_cursor = pagination.encode_cursor(&cursor_data).unwrap();
+
+        let pagination_with_cursor = Pagination::cursor(20, Some(encoded_cursor));
+
+        // Test single column
+        let sort_columns = vec![("created_at", false)];
+        let result = pagination_with_cursor.multi_column_cursor_where_clause(&sort_columns);
+        assert!(result.is_some());
+        let (where_clause, values) = result.unwrap();
+        assert!(where_clause.contains("created_at >"));
+        assert_eq!(values.len(), 1);
+
+        // Test multiple columns
+        let sort_columns = vec![("created_at", false), ("id", true)];
+        let result = pagination_with_cursor.multi_column_cursor_where_clause(&sort_columns);
+        assert!(result.is_some());
+        let (where_clause, values) = result.unwrap();
+        assert!(where_clause.contains("created_at >"));
+        assert!(where_clause.contains("id <"));
+        assert!(where_clause.contains(" OR "));
+        assert_eq!(values.len(), 2);
+
+        // Test empty columns
+        let sort_columns = vec![];
+        let result = pagination_with_cursor.multi_column_cursor_where_clause(&sort_columns);
+        assert!(result.is_none());
     }
 }

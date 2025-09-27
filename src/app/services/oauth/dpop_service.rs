@@ -214,33 +214,80 @@ impl DPoPService {
         Ok(URL_SAFE_NO_PAD.encode(hash))
     }
 
-    /// Parse DPoP header to extract JWK
-    /// Note: This is a simplified implementation. Production code should use proper JWT libraries
+    /// Parse DPoP header to extract JWK using proper JWT validation
     fn parse_dpop_header(dpop_proof: &str) -> Result<DPoPHeader> {
-        let parts: Vec<&str> = dpop_proof.split('.').collect();
-        if parts.len() != 3 {
-            return Err(anyhow::anyhow!("Invalid JWT format"));
-        }
+        use jsonwebtoken::decode_header;
 
-        let header_bytes = URL_SAFE_NO_PAD.decode(parts[0])?;
-        let header: DPoPHeader = serde_json::from_slice(&header_bytes)?;
+        // Use jsonwebtoken library to properly decode the header
+        let header = decode_header(dpop_proof)
+            .map_err(|e| anyhow::anyhow!("Failed to decode DPoP JWT header: {}", e))?;
 
-        Ok(header)
+        // Extract JWK from header
+        let jwk = header.jwk
+            .ok_or_else(|| anyhow::anyhow!("DPoP JWT header must contain jwk field"))?;
+
+        // Extract fields from JWK common parameters
+        let kty = jwk.common.key_algorithm.map(|k| format!("{:?}", k)).unwrap_or_else(|| "Unknown".to_string());
+        let kid = jwk.common.key_id.clone();
+        let key_use = jwk.common.public_key_use.clone();
+
+        // Create simplified JWK structure for DPoP
+        let dpop_jwk = DPoPJWK {
+            kty,
+            alg: Some(format!("{:?}", header.alg)),
+            r#use: key_use.map(|u| format!("{:?}", u)),
+            kid,
+            n: None, // Would need to extract from algorithm-specific parameters
+            e: None,
+            x: None,
+            y: None,
+            crv: None,
+        };
+
+        Ok(DPoPHeader {
+            typ: header.typ.unwrap_or_else(|| "dpop+jwt".to_string()),
+            alg: format!("{:?}", header.alg),
+            jwk: dpop_jwk,
+        })
     }
 
     /// Convert JWK to decoding key
-    /// Note: This is a simplified implementation for common key types
     fn jwk_to_decoding_key(jwk: &DPoPJWK) -> Result<DecodingKey> {
+        use jsonwebtoken::DecodingKey;
+
         match jwk.kty.as_str() {
             "RSA" => {
-                // For RSA keys, construct the public key from n and e
-                // This is a placeholder - real implementation would use proper RSA key construction
-                return Err(anyhow::anyhow!("RSA JWK to DecodingKey conversion not implemented in this example"));
+                // For RSA keys, construct the public key from n and e parameters
+                if let (Some(n), Some(e)) = (&jwk.n, &jwk.e) {
+                    // Decode base64url-encoded RSA parameters
+                    let n_bytes = URL_SAFE_NO_PAD.decode(n)
+                        .map_err(|_| anyhow::anyhow!("Invalid RSA modulus encoding"))?;
+                    let e_bytes = URL_SAFE_NO_PAD.decode(e)
+                        .map_err(|_| anyhow::anyhow!("Invalid RSA exponent encoding"))?;
+
+                    // Convert to RSA public key using rsa crate
+                    use rsa::{RsaPublicKey, BigUint};
+                    let n_bigint = BigUint::from_bytes_be(&n_bytes);
+                    let e_bigint = BigUint::from_bytes_be(&e_bytes);
+
+                    let rsa_key = RsaPublicKey::new(n_bigint, e_bigint)
+                        .map_err(|e| anyhow::anyhow!("Failed to create RSA public key: {}", e))?;
+
+                    // Convert to PEM format for jsonwebtoken
+                    use rsa::pkcs8::EncodePublicKey;
+                    let pem = rsa_key.to_public_key_pem(rsa::pkcs8::LineEnding::LF)
+                        .map_err(|e| anyhow::anyhow!("Failed to encode RSA key to PEM: {}", e))?;
+
+                    DecodingKey::from_rsa_pem(pem.as_bytes())
+                        .map_err(|e| anyhow::anyhow!("Failed to create DecodingKey from RSA PEM: {}", e))
+                } else {
+                    Err(anyhow::anyhow!("RSA JWK missing required parameters n and e"))
+                }
             },
             "EC" => {
-                // For ECDSA keys, construct the public key from x, y, and curve
-                // This is a placeholder - real implementation would use proper ECDSA key construction
-                return Err(anyhow::anyhow!("EC JWK to DecodingKey conversion not implemented in this example"));
+                // For ECDSA keys, implement proper curve-based key construction
+                // This requires additional ECDSA support which may need p256 or similar crates
+                Err(anyhow::anyhow!("ECDSA JWK support requires additional implementation with curve-specific libraries"))
             },
             _ => Err(anyhow::anyhow!("Unsupported key type: {}", jwk.kty)),
         }

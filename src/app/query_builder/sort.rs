@@ -25,6 +25,16 @@ impl SortDirection {
     }
 }
 
+impl std::fmt::Display for SortDirection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let direction = match self {
+            SortDirection::Asc => "asc",
+            SortDirection::Desc => "desc",
+        };
+        write!(f, "{}", direction)
+    }
+}
+
 /// Sort specification for a field
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sort {
@@ -51,7 +61,7 @@ impl Sort {
     }
 
     /// Parse sort string into Sort instances
-    /// Format: "field1,-field2,field3" where - prefix indicates descending
+    /// Format: "field1,-field2,field3:desc,field4:asc" where - prefix or :desc indicates descending
     pub fn from_string(sort_string: &str) -> Vec<Sort> {
         sort_string
             .split(',')
@@ -60,6 +70,18 @@ impl Sort {
             .map(|s| {
                 if s.starts_with('-') {
                     Sort::desc(&s[1..])
+                } else if s.contains(':') {
+                    let parts: Vec<&str> = s.split(':').collect();
+                    if parts.len() == 2 {
+                        let field = parts[0].trim();
+                        let direction = match parts[1].trim().to_lowercase().as_str() {
+                            "desc" | "descending" | "down" => SortDirection::Desc,
+                            _ => SortDirection::Asc,
+                        };
+                        Sort::new(field.to_string(), direction)
+                    } else {
+                        Sort::asc(s)
+                    }
                 } else {
                     Sort::asc(s)
                 }
@@ -82,6 +104,21 @@ impl Sort {
             .map(|s| s.to_string())
             .collect::<Vec<_>>()
             .join(",")
+    }
+
+    /// Convert to tuple format for use with Sortable trait methods
+    pub fn to_tuple(&self) -> (String, SortDirection) {
+        (self.field.clone(), self.direction)
+    }
+
+    /// Convert vector of sorts to tuple format
+    pub fn vec_to_tuples(sorts: &[Sort]) -> Vec<(String, SortDirection)> {
+        sorts.iter().map(|s| s.to_tuple()).collect()
+    }
+
+    /// Create sorts from tuple format
+    pub fn from_tuples(tuples: &[(String, SortDirection)]) -> Vec<Sort> {
+        tuples.iter().map(|(field, direction)| Sort::new(field.clone(), *direction)).collect()
     }
 }
 

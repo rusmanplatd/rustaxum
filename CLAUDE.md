@@ -26,19 +26,19 @@ cargo run --release
 ### Docker Development (Recommended)
 ```bash
 # Start all services (app, PostgreSQL, Redis, Adminer)
-docker-compose up -d
+docker compose up -d
 
 # View application logs
-docker-compose logs -f app
+docker compose logs -f app
 
 # Rebuild and restart after code changes
-docker-compose up --build -d
+docker compose up --build -d
 
 # Stop all services
-docker-compose down
+docker compose down
 
 # Remove everything including volumes
-docker-compose down -v
+docker compose down -v
 ```
 
 ### Artisan CLI (Laravel-like Commands)
@@ -231,7 +231,7 @@ When running with Docker Compose:
 
 - Application: <http://localhost:3000>
 - Database Admin (Adminer): <http://localhost:8080>
-- Email Testing (Mailpit): <http://localhost:8025>
+- Email Testing (Mailpit): <http://localhost:8425>
 - PostgreSQL: localhost:5434
 - Redis: localhost:6379
 
@@ -426,7 +426,7 @@ This framework includes a comprehensive OAuth 2.1 authorization server implement
 1. **Database connection errors**: Check PostgreSQL is running on port 5434
 
    ```bash
-   docker-compose up -d postgres
+   docker compose up -d postgres
    ```
 
 2. **JWT validation errors**: Ensure JWT secret is properly configured
@@ -443,12 +443,12 @@ This framework includes a comprehensive OAuth 2.1 authorization server implement
    ```bash
    cargo build  # Check for compilation errors
    cargo run --bin artisan -- migrate  # Apply any schema changes
-   docker-compose up --build -d  # Rebuild and restart services
+   docker compose up --build -d  # Rebuild and restart services
    ```
 
 2. **Testing OAuth flows**:
    - Use Postman or curl for API testing
-   - Check application logs: `docker-compose logs -f app`
+   - Check application logs: `docker compose logs -f app`
    - Verify database state: Access Adminer at <http://localhost:8080>
 
 3. **Common development commands**:
@@ -471,3 +471,10 @@ Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+
+### Code Quality Standards
+- Provide complete, production-ready implementations without placeholders or temporary solutions
+- Avoid "TODO", "FIXME", "for now", "in production", or similar placeholder comments
+- Implement full functionality immediately rather than suggesting incremental improvements
+- Use proper error handling, type safety, and follow established patterns consistently
+- Code must compile and function correctly without requiring additional implementation steps

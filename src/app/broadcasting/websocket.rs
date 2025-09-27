@@ -14,6 +14,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 use tracing::{info, warn, error};
+use crate::database::connection::get_connection;
 
 /// WebSocket connection manager for broadcasting
 #[derive(Debug, Clone)]
@@ -372,15 +373,44 @@ async fn validate_websocket_token(token: &str, channel: &str) -> Result<WebSocke
         return Err(anyhow::anyhow!("Token has expired"));
     }
 
-    // TODO: Replace with proper user lookup once available in UserService
+    // Lookup user with roles and permissions
+    let pool = get_connection().await?;
     let user_id = claims.sub.clone();
-    let roles: Vec<String> = Vec::new();
-    let permissions: Vec<String> = Vec::new();
+
+    // Get user data with roles and permissions using UserService
+    let user_data = crate::app::services::user_service::UserService::find_by_id_with_organizations_and_user_roles(
+        &pool,
+        user_id.clone()
+    ).map_err(|e| anyhow::anyhow!("Failed to lookup user: {}", e))?;
+
+    let (user_resource, user_orgs) = match user_data {
+        Some((user, orgs)) => (user, orgs),
+        None => return Err(anyhow::anyhow!("User not found: {}", user_id)),
+    };
+
+    // Extract user-level roles
+    let roles: Vec<String> = user_resource.roles.iter()
+        .map(|role| role.name.clone())
+        .collect();
+
+    // Extract user-level and organization-level permissions
+    let mut permissions: Vec<String> = user_resource.permissions.iter()
+        .map(|perm| perm.name.clone())
+        .collect();
+
+    // Add organization-level permissions
+    for org in &user_orgs {
+        for perm in &org.permissions {
+            if !permissions.contains(&perm.name) {
+                permissions.push(perm.name.clone());
+            }
+        }
+    }
 
     // Check channel-specific permissions
     let user_info = WebSocketUserInfo {
         user_id: user_id,
-        email: "unknown@example.com".to_string(), // TODO: Get from user lookup
+        email: user_resource.email.clone(),
         roles: roles,
         permissions: permissions,
     };
@@ -469,14 +499,72 @@ async fn handle_unauthorized_socket(socket: WebSocket) {
 
 /// Check if user has access to a specific team
 async fn user_has_team_access(user_id: &str, team_id: &str) -> bool {
-    // TODO: Implement team access check with Diesel when needed
-    tracing::debug!("Would check team access for user {} to team {}", user_id, team_id);
-    false
+    match get_connection().await {
+        Ok(pool) => {
+            match crate::app::services::user_service::UserService::find_by_id_with_organizations_and_user_roles(
+                &pool,
+                user_id.to_string()
+            ) {
+                Ok(Some((_, user_orgs))) => {
+                    // Check if user belongs to any organization that has this team
+                    for org in user_orgs {
+                        if let Some(ref organization) = org.organization {
+                            if organization.name.to_lowercase().contains("team") &&
+                               organization.id == team_id {
+                                return true;
+                            }
+                        }
+                    }
+                    false
+                },
+                Ok(None) => {
+                    tracing::warn!("User {} not found during team access check", user_id);
+                    false
+                },
+                Err(e) => {
+                    tracing::error!("Failed to check team access for user {}: {}", user_id, e);
+                    false
+                }
+            }
+        },
+        Err(e) => {
+            tracing::error!("Failed to get database connection: {}", e);
+            false
+        }
+    }
 }
 
 /// Check if user has access to a specific organization
 async fn user_has_org_access(user_id: &str, org_id: &str) -> bool {
-    // TODO: Implement organization access check with Diesel when needed
-    tracing::debug!("Would check organization access for user {} to org {}", user_id, org_id);
-    false
+    match get_connection().await {
+        Ok(pool) => {
+            match crate::app::services::user_service::UserService::find_by_id_with_organizations_and_user_roles(
+                &pool,
+                user_id.to_string()
+            ) {
+                Ok(Some((_, user_orgs))) => {
+                    // Check if user belongs to the specified organization
+                    user_orgs.iter().any(|org| {
+                        if let Some(ref organization) = org.organization {
+                            organization.id == org_id
+                        } else {
+                            false
+                        }
+                    })
+                },
+                Ok(None) => {
+                    tracing::warn!("User {} not found during organization access check", user_id);
+                    false
+                },
+                Err(e) => {
+                    tracing::error!("Failed to check organization access for user {}: {}", user_id, e);
+                    false
+                }
+            }
+        },
+        Err(e) => {
+            tracing::error!("Failed to get database connection: {}", e);
+            false
+        }
+    }
 }

@@ -26,6 +26,12 @@ pub enum FilterOperator {
     NotLike,
     /// NOT ILIKE
     NotIlike,
+    /// Contains text (case-insensitive LIKE %value%)
+    Contains,
+    /// Starts with text (case-insensitive LIKE value%)
+    StartsWith,
+    /// Ends with text (case-insensitive LIKE %value)
+    EndsWith,
     /// IN (value1, value2, ...)
     In,
     /// NOT IN (value1, value2, ...)
@@ -54,6 +60,40 @@ pub enum FilterOperator {
     Raw,
 }
 
+impl std::fmt::Display for FilterOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let op_str = match self {
+            FilterOperator::Eq => "eq",
+            FilterOperator::Ne => "ne",
+            FilterOperator::Gt => "gt",
+            FilterOperator::Gte => "gte",
+            FilterOperator::Lt => "lt",
+            FilterOperator::Lte => "lte",
+            FilterOperator::Like => "like",
+            FilterOperator::Ilike => "ilike",
+            FilterOperator::NotLike => "not_like",
+            FilterOperator::NotIlike => "not_ilike",
+            FilterOperator::Contains => "contains",
+            FilterOperator::StartsWith => "starts_with",
+            FilterOperator::EndsWith => "ends_with",
+            FilterOperator::In => "in",
+            FilterOperator::NotIn => "not_in",
+            FilterOperator::IsNull => "is_null",
+            FilterOperator::IsNotNull => "is_not_null",
+            FilterOperator::Between => "between",
+            FilterOperator::NotBetween => "not_between",
+            FilterOperator::JsonContains => "json_contains",
+            FilterOperator::JsonContainedBy => "json_contained_by",
+            FilterOperator::JsonHasKey => "json_has_key",
+            FilterOperator::JsonHasAnyKey => "json_has_any_key",
+            FilterOperator::JsonHasAllKeys => "json_has_all_keys",
+            FilterOperator::FullText => "full_text",
+            FilterOperator::Raw => "raw",
+        };
+        write!(f, "{}", op_str)
+    }
+}
+
 impl FilterOperator {
     /// Get SQL operator string
     pub fn to_sql(&self) -> &'static str {
@@ -68,6 +108,9 @@ impl FilterOperator {
             FilterOperator::Ilike => "ILIKE",
             FilterOperator::NotLike => "NOT LIKE",
             FilterOperator::NotIlike => "NOT ILIKE",
+            FilterOperator::Contains => "ILIKE",
+            FilterOperator::StartsWith => "ILIKE",
+            FilterOperator::EndsWith => "ILIKE",
             FilterOperator::In => "IN",
             FilterOperator::NotIn => "NOT IN",
             FilterOperator::IsNull => "IS NULL",
@@ -97,6 +140,9 @@ impl FilterOperator {
             "ilike" => Some(FilterOperator::Ilike),
             "not_like" | "notlike" => Some(FilterOperator::NotLike),
             "not_ilike" | "notilike" => Some(FilterOperator::NotIlike),
+            "contains" => Some(FilterOperator::Contains),
+            "starts_with" | "startswith" => Some(FilterOperator::StartsWith),
+            "ends_with" | "endswith" => Some(FilterOperator::EndsWith),
             "in" => Some(FilterOperator::In),
             "not_in" | "notin" => Some(FilterOperator::NotIn),
             "is_null" | "isnull" | "null" => Some(FilterOperator::IsNull),
@@ -123,6 +169,8 @@ pub enum FilterValue {
     Single(Value),
     /// Multiple values (for IN, NOT IN operations)
     Multiple(Vec<Value>),
+    /// Array values (alias for Multiple, for backward compatibility)
+    Array(Vec<Value>),
     /// Range values (for BETWEEN operations)
     Range(Value, Value),
 }
@@ -164,6 +212,23 @@ impl FilterValue {
         match self {
             FilterValue::Range(start, end) => Some((start, end)),
             _ => None,
+        }
+    }
+
+    /// Get array values (supports both Multiple and Array variants)
+    pub fn as_array(&self) -> Option<&Vec<Value>> {
+        match self {
+            FilterValue::Multiple(values) | FilterValue::Array(values) => Some(values),
+            _ => None,
+        }
+    }
+
+    /// Convert to JSON Value
+    pub fn to_json(&self) -> Value {
+        match self {
+            FilterValue::Single(value) => value.clone(),
+            FilterValue::Multiple(values) | FilterValue::Array(values) => Value::Array(values.clone()),
+            FilterValue::Range(start, end) => Value::Array(vec![start.clone(), end.clone()]),
         }
     }
 }
@@ -260,6 +325,21 @@ impl Filter {
     /// Create a BETWEEN filter
     pub fn between(field: impl Into<String>, start: impl Into<Value>, end: impl Into<Value>) -> Self {
         Self::new(field, FilterOperator::Between, FilterValue::range(start, end))
+    }
+
+    /// Create a contains filter (ILIKE %pattern%)
+    pub fn contains(field: impl Into<String>, pattern: impl Into<Value>) -> Self {
+        Self::new(field, FilterOperator::Contains, FilterValue::single(pattern))
+    }
+
+    /// Create a starts with filter (ILIKE pattern%)
+    pub fn starts_with(field: impl Into<String>, pattern: impl Into<Value>) -> Self {
+        Self::new(field, FilterOperator::StartsWith, FilterValue::single(pattern))
+    }
+
+    /// Create an ends with filter (ILIKE %pattern)
+    pub fn ends_with(field: impl Into<String>, pattern: impl Into<Value>) -> Self {
+        Self::new(field, FilterOperator::EndsWith, FilterValue::single(pattern))
     }
 
     /// Create a JSON field filter (for JSONB columns)
@@ -448,6 +528,22 @@ mod tests {
         assert_eq!(filter.field, "status");
         assert_eq!(filter.operator, FilterOperator::In);
         assert!(filter.value.as_multiple().is_some());
+
+        // Test new filter creation methods
+        let filter = Filter::contains("description", "rust");
+        assert_eq!(filter.field, "description");
+        assert_eq!(filter.operator, FilterOperator::Contains);
+        assert_eq!(filter.value.as_single(), Some(&json!("rust")));
+
+        let filter = Filter::starts_with("email", "john");
+        assert_eq!(filter.field, "email");
+        assert_eq!(filter.operator, FilterOperator::StartsWith);
+        assert_eq!(filter.value.as_single(), Some(&json!("john")));
+
+        let filter = Filter::ends_with("filename", ".pdf");
+        assert_eq!(filter.field, "filename");
+        assert_eq!(filter.operator, FilterOperator::EndsWith);
+        assert_eq!(filter.value.as_single(), Some(&json!(".pdf")));
     }
 
     #[test]
@@ -469,5 +565,65 @@ mod tests {
         let age_filter = filters.iter().find(|f| f.field == "age").unwrap();
         assert_eq!(age_filter.operator, FilterOperator::Gte);
         assert_eq!(age_filter.value.as_single(), Some(&json!(18)));
+    }
+
+    #[test]
+    fn test_new_text_search_operators() {
+        let mut params = HashMap::new();
+        params.insert("name[contains]".to_string(), json!("john"));
+        params.insert("email[starts_with]".to_string(), json!("test"));
+        params.insert("filename[ends_with]".to_string(), json!(".pdf"));
+
+        let filters = Filter::from_params(&params);
+        assert_eq!(filters.len(), 3);
+
+        // Find the contains filter
+        let contains_filter = filters.iter().find(|f| f.field == "name").unwrap();
+        assert_eq!(contains_filter.operator, FilterOperator::Contains);
+        assert_eq!(contains_filter.value.as_single(), Some(&json!("john")));
+
+        // Find the starts_with filter
+        let starts_filter = filters.iter().find(|f| f.field == "email").unwrap();
+        assert_eq!(starts_filter.operator, FilterOperator::StartsWith);
+        assert_eq!(starts_filter.value.as_single(), Some(&json!("test")));
+
+        // Find the ends_with filter
+        let ends_filter = filters.iter().find(|f| f.field == "filename").unwrap();
+        assert_eq!(ends_filter.operator, FilterOperator::EndsWith);
+        assert_eq!(ends_filter.value.as_single(), Some(&json!(".pdf")));
+    }
+
+    #[test]
+    fn test_filter_value_array_variants() {
+        // Test Array and Multiple variants
+        let values = vec![json!("value1"), json!("value2")];
+        let filter_value_multiple = FilterValue::Multiple(values.clone());
+        let filter_value_array = FilterValue::Array(values.clone());
+
+        assert!(filter_value_multiple.as_multiple().is_some());
+        assert!(filter_value_array.as_array().is_some());
+        assert_eq!(filter_value_multiple.as_array(), Some(&values));
+        assert_eq!(filter_value_array.as_array(), Some(&values));
+    }
+
+    #[test]
+    fn test_filter_value_to_json() {
+        let single_value = FilterValue::Single(json!("test"));
+        assert_eq!(single_value.to_json(), json!("test"));
+
+        let multiple_value = FilterValue::Multiple(vec![json!("a"), json!("b")]);
+        assert_eq!(multiple_value.to_json(), json!(["a", "b"]));
+
+        let range_value = FilterValue::Range(json!(1), json!(10));
+        assert_eq!(range_value.to_json(), json!([1, 10]));
+    }
+
+    #[test]
+    fn test_filter_operator_display() {
+        assert_eq!(FilterOperator::Contains.to_string(), "contains");
+        assert_eq!(FilterOperator::StartsWith.to_string(), "starts_with");
+        assert_eq!(FilterOperator::EndsWith.to_string(), "ends_with");
+        assert_eq!(FilterOperator::Eq.to_string(), "eq");
+        assert_eq!(FilterOperator::Between.to_string(), "between");
     }
 }

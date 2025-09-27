@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State, Query},
-    http::StatusCode,
+    http::{StatusCode, HeaderMap},
     response::Json,
 };
 use serde_json::{json, Value};
@@ -38,7 +38,7 @@ use crate::database::DbPool;
         ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
         ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
         ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, level_id, organization_id, status, created_at, updated_at (prefix with '-' for descending)"),
-        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: level, organization"),
+        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: level, organization, users, createdBy, updatedBy, deletedBy, createdBy.organizations.position.level, updatedBy.organizations.position.level, deletedBy.organizations.position.level"),
         ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, level_id, organization_id, status (e.g., filter[name]=Manager, filter[status]=active)"),
         ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, level_id, organization_id, status, created_at, updated_at"),
         ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
@@ -80,6 +80,7 @@ pub async fn index(
 pub async fn show(
     State(pool): State<DbPool>,
     Path(id): Path<String>,
+    headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers)?;
@@ -88,10 +89,12 @@ pub async fn show(
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    // TODO: Extract user_id from auth context when available
-    let user_id = None; // Replace with actual user extraction
+    // Extract user ID from authentication context
+    let user_id = crate::app::utils::token_utils::TokenUtils::extract_user_id_from_headers(&headers);
+    let user_id_str = user_id.as_ref().map(|id| id.to_string());
+    let user_id_ref = user_id_str.as_deref();
 
-    match OrganizationPositionService::show(&pool, &id, user_id).await {
+    match OrganizationPositionService::show(&pool, &id, user_id_ref).await {
         Ok(organization_position) => Ok(Json(json!(organization_position))),
         Err(e) => {
             tracing::error!("Failed to fetch organization position {}: {}", id, e);
@@ -126,6 +129,7 @@ pub async fn show(
 )]
 pub async fn store(
     State(pool): State<DbPool>,
+    headers: HeaderMap,
     request: CreateOrganizationPositionRequest,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
@@ -134,10 +138,12 @@ pub async fn store(
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    // TODO: Extract user_id from auth context when available
-    let created_by = None; // Replace with actual user extraction
+    // Extract user ID from authentication context
+    let user_id = crate::app::utils::token_utils::TokenUtils::extract_user_id_from_headers(&headers);
+    let user_id_str = user_id.as_ref().map(|id| id.to_string());
+    let user_id_ref = user_id_str.as_deref();
 
-    match OrganizationPositionService::create(&pool, &request, created_by).await {
+    match OrganizationPositionService::create(&pool, &request, user_id_ref).await {
         Ok(organization_position) => Ok(Json(json!(organization_position))),
         Err(e) => {
             tracing::error!("Failed to create organization position: {}", e);
@@ -193,6 +199,7 @@ pub async fn store(
 pub async fn update(
     State(pool): State<DbPool>,
     Path(id): Path<String>,
+    headers: HeaderMap,
     request: UpdateOrganizationPositionRequest,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
@@ -202,10 +209,12 @@ pub async fn update(
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    // TODO: Extract user_id from auth context when available
-    let updated_by = None; // Replace with actual user extraction
+    // Extract user ID from authentication context
+    let user_id = crate::app::utils::token_utils::TokenUtils::extract_user_id_from_headers(&headers);
+    let user_id_str = user_id.as_ref().map(|id| id.to_string());
+    let user_id_ref = user_id_str.as_deref();
 
-    match OrganizationPositionService::update(&pool, &id, &request, updated_by).await {
+    match OrganizationPositionService::update(&pool, &id, &request, user_id_ref).await {
         Ok(organization_position) => Ok(Json(json!(organization_position))),
         Err(e) => {
             tracing::error!("Failed to update organization position {}: {}", id, e);
@@ -265,6 +274,7 @@ pub async fn update(
 pub async fn destroy(
     State(pool): State<DbPool>,
     Path(id): Path<String>,
+    headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers)?;
@@ -273,10 +283,12 @@ pub async fn destroy(
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    // TODO: Extract user_id from auth context when available
-    let deleted_by = None; // Replace with actual user extraction
+    // Extract user ID from authentication context
+    let user_id = crate::app::utils::token_utils::TokenUtils::extract_user_id_from_headers(&headers);
+    let user_id_str = user_id.as_ref().map(|id| id.to_string());
+    let user_id_ref = user_id_str.as_deref();
 
-    match OrganizationPositionService::delete(&pool, &id, deleted_by).await {
+    match OrganizationPositionService::delete(&pool, &id, user_id_ref).await {
         Ok(_) => Ok(Json(json!({"message": "Organization position deleted successfully"}))),
         Err(e) => {
             tracing::error!("Failed to delete organization position {}: {}", id, e);
@@ -319,6 +331,7 @@ pub async fn destroy(
 pub async fn activate(
     State(pool): State<DbPool>,
     Path(id): Path<String>,
+    headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers)?;
@@ -327,10 +340,12 @@ pub async fn activate(
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    // TODO: Extract user_id from auth context when available
-    let activated_by = None; // Replace with actual user extraction
+    // Extract user ID from authentication context
+    let user_id = crate::app::utils::token_utils::TokenUtils::extract_user_id_from_headers(&headers);
+    let user_id_str = user_id.as_ref().map(|id| id.to_string());
+    let user_id_ref = user_id_str.as_deref();
 
-    match OrganizationPositionService::activate(&pool, &id, activated_by).await {
+    match OrganizationPositionService::activate(&pool, &id, user_id_ref).await {
         Ok(organization_position) => Ok(Json(json!(organization_position))),
         Err(e) => {
             tracing::error!("Failed to activate organization position {}: {}", id, e);
@@ -368,6 +383,7 @@ pub async fn activate(
 pub async fn deactivate(
     State(pool): State<DbPool>,
     Path(id): Path<String>,
+    headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Authorization check - uncomment when auth middleware is ready
     // let user = auth::get_user(&state, &headers)?;
@@ -376,10 +392,12 @@ pub async fn deactivate(
     //     return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Insufficient permissions"}))));
     // }
 
-    // TODO: Extract user_id from auth context when available
-    let deactivated_by = None; // Replace with actual user extraction
+    // Extract user ID from authentication context
+    let user_id = crate::app::utils::token_utils::TokenUtils::extract_user_id_from_headers(&headers);
+    let user_id_str = user_id.as_ref().map(|id| id.to_string());
+    let user_id_ref = user_id_str.as_deref();
 
-    match OrganizationPositionService::deactivate(&pool, &id, deactivated_by).await {
+    match OrganizationPositionService::deactivate(&pool, &id, user_id_ref).await {
         Ok(organization_position) => Ok(Json(json!(organization_position))),
         Err(e) => {
             tracing::error!("Failed to deactivate organization position {}: {}", id, e);

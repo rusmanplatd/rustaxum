@@ -104,8 +104,8 @@ services:
   mailpit:
     image: axllent/mailpit:v1.10
     ports:
-      - "1025:1025"  # SMTP port
-      - "8025:8025"  # Web UI port
+      - "1425:1025"  # SMTP port
+      - "8425:8025"  # Web UI port
     environment:
       - MP_SMTP_AUTH_ACCEPT_ANY=1
       - MP_SMTP_AUTH_ALLOW_INSECURE=1

@@ -46,18 +46,18 @@ tests/                     # Test files
 1. **Start the application with Docker Compose**:
 
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 2. **The application will be available at**:
    - API: `http://localhost:3000`
    - Database Admin (Adminer): `http://localhost:8080`
-   - Email Testing (Mailpit): `http://localhost:8025`
+   - Email Testing (Mailpit): `http://localhost:8425`
 
 3. **Stop the application**:
 
    ```bash
-   docker-compose down
+   docker compose down
    ```
 
 ### Option 2: Local Development
@@ -108,7 +108,7 @@ See `.env.example` for all available configuration options.
 
 ### With Docker
 
-The PostgreSQL database is automatically set up when using `docker-compose up`.
+The PostgreSQL database is automatically set up when using `docker compose up`.
 
 ### Local Development
 
@@ -118,7 +118,7 @@ The PostgreSQL database is automatically set up when using `docker-compose up`.
 
 ## Docker Services
 
-The `docker-compose.yaml` includes:
+The `docker compose.yaml` includes:
 
 - **app**: The main Rust application
 - **db**: PostgreSQL 16 database
@@ -130,19 +130,19 @@ The `docker-compose.yaml` includes:
 
 ```bash
 # Start all services
-docker-compose up -d
+docker compose up -d
 
 # View logs
-docker-compose logs -f app
+docker compose logs -f app
 
 # Stop all services
-docker-compose down
+docker compose down
 
 # Rebuild and start
-docker-compose up --build -d
+docker compose up --build -d
 
 # Remove everything including volumes
-docker-compose down -v
+docker compose down -v
 ```
 
 ## Development

@@ -61,11 +61,11 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by -> Nullable<Bpchar>,
+        created_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        updated_by -> Nullable<Bpchar>,
+        updated_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
+        deleted_by_id -> Nullable<Bpchar>,
     }
 }
 
@@ -167,11 +167,11 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by -> Nullable<Bpchar>,
+        created_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        updated_by -> Nullable<Bpchar>,
+        updated_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
+        deleted_by_id -> Nullable<Bpchar>,
     }
 }
 
@@ -413,11 +413,11 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by -> Nullable<Bpchar>,
+        created_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        updated_by -> Nullable<Bpchar>,
+        updated_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
+        deleted_by_id -> Nullable<Bpchar>,
     }
 }
 
@@ -826,6 +826,28 @@ diesel::table! {
 }
 
 diesel::table! {
+    oauth_client_certificates (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        client_id -> Bpchar,
+        #[max_length = 500]
+        subject_dn -> Varchar,
+        #[max_length = 64]
+        thumbprint_sha256 -> Varchar,
+        #[max_length = 500]
+        issuer_dn -> Varchar,
+        #[max_length = 100]
+        serial_number -> Varchar,
+        valid_from -> Timestamptz,
+        valid_to -> Timestamptz,
+        is_active -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     oauth_clients (id) {
         #[max_length = 26]
         id -> Bpchar,
@@ -844,11 +866,26 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by -> Nullable<Bpchar>,
+        created_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        updated_by -> Nullable<Bpchar>,
+        updated_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
+        deleted_by_id -> Nullable<Bpchar>,
+        public_key_pem -> Nullable<Text>,
+        metadata -> Jsonb,
+        #[max_length = 2048]
+        jwks_uri -> Nullable<Varchar>,
+        #[max_length = 50]
+        token_endpoint_auth_method -> Varchar,
+        response_types -> Array<Nullable<Text>>,
+        grant_types -> Array<Nullable<Text>>,
+        #[max_length = 1000]
+        scope -> Varchar,
+        audience -> Nullable<Array<Nullable<Text>>>,
+        require_auth_time -> Bool,
+        default_max_age -> Nullable<Int4>,
+        require_pushed_authorization_requests -> Bool,
+        certificate_bound_access_tokens -> Bool,
     }
 }
 
@@ -945,11 +982,11 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by -> Nullable<Bpchar>,
+        created_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        updated_by -> Nullable<Bpchar>,
+        updated_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
+        deleted_by_id -> Nullable<Bpchar>,
     }
 }
 
@@ -974,11 +1011,11 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by -> Nullable<Bpchar>,
+        created_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        updated_by -> Nullable<Bpchar>,
+        updated_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
+        deleted_by_id -> Nullable<Bpchar>,
     }
 }
 
@@ -1013,11 +1050,11 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by -> Nullable<Bpchar>,
+        created_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        updated_by -> Nullable<Bpchar>,
+        updated_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
+        deleted_by_id -> Nullable<Bpchar>,
     }
 }
 
@@ -1108,11 +1145,11 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by -> Nullable<Bpchar>,
+        created_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        updated_by -> Nullable<Bpchar>,
+        updated_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
+        deleted_by_id -> Nullable<Bpchar>,
     }
 }
 
@@ -1128,6 +1165,9 @@ diesel::table! {
         user_agent -> Nullable<Text>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        failed_attempts -> Int4,
+        last_error -> Nullable<Text>,
+        last_failed_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -1323,11 +1363,11 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by -> Bpchar,
+        created_by_id -> Bpchar,
         #[max_length = 26]
-        updated_by -> Bpchar,
+        updated_by_id -> Bpchar,
         #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
+        deleted_by_id -> Nullable<Bpchar>,
     }
 }
 
@@ -1349,11 +1389,11 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by -> Bpchar,
+        created_by_id -> Bpchar,
         #[max_length = 26]
-        updated_by -> Bpchar,
+        updated_by_id -> Bpchar,
         #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
+        deleted_by_id -> Nullable<Bpchar>,
     }
 }
 
@@ -1373,11 +1413,11 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         #[max_length = 26]
-        created_by -> Bpchar,
+        created_by_id -> Bpchar,
         #[max_length = 26]
-        updated_by -> Bpchar,
+        updated_by_id -> Bpchar,
         #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
+        deleted_by_id -> Nullable<Bpchar>,
     }
 }
 
@@ -1398,11 +1438,11 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by -> Bpchar,
+        created_by_id -> Bpchar,
         #[max_length = 26]
-        updated_by -> Bpchar,
+        updated_by_id -> Bpchar,
         #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
+        deleted_by_id -> Nullable<Bpchar>,
     }
 }
 
@@ -1435,17 +1475,34 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by -> Nullable<Bpchar>,
+        created_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        updated_by -> Nullable<Bpchar>,
+        updated_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
+        deleted_by_id -> Nullable<Bpchar>,
+        email_notifications -> Nullable<Bool>,
+        database_notifications -> Nullable<Bool>,
+        broadcast_notifications -> Nullable<Bool>,
+        web_push_notifications -> Nullable<Bool>,
+        sms_notifications -> Nullable<Bool>,
+        slack_notifications -> Nullable<Bool>,
+        marketing_emails -> Nullable<Bool>,
+        security_alerts -> Nullable<Bool>,
+        order_updates -> Nullable<Bool>,
+        newsletter -> Nullable<Bool>,
+        promotional_emails -> Nullable<Bool>,
+        account_notifications -> Nullable<Bool>,
         identity_public_key -> Nullable<Text>,
         identity_key_created_at -> Nullable<Timestamptz>,
         mfa_enabled -> Bool,
         mfa_secret -> Nullable<Text>,
         mfa_backup_codes -> Nullable<Jsonb>,
         mfa_required -> Bool,
+        push_notifications -> Bool,
+        system_updates -> Bool,
+        mention_notifications -> Bool,
+        comment_notifications -> Bool,
+        follow_notifications -> Bool,
     }
 }
 
@@ -1484,11 +1541,11 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by -> Nullable<Bpchar>,
+        created_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        updated_by -> Nullable<Bpchar>,
+        updated_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
+        deleted_by_id -> Nullable<Bpchar>,
     }
 }
 
@@ -1506,11 +1563,11 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by -> Nullable<Bpchar>,
+        created_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        updated_by -> Nullable<Bpchar>,
+        updated_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        deleted_by -> Nullable<Bpchar>,
+        deleted_by_id -> Nullable<Bpchar>,
     }
 }
 
@@ -1563,6 +1620,7 @@ diesel::joinable!(oauth_ciba_auth_codes -> oauth_clients (client_id));
 diesel::joinable!(oauth_ciba_auth_codes -> sys_users (user_id));
 diesel::joinable!(oauth_ciba_requests -> oauth_clients (client_id));
 diesel::joinable!(oauth_ciba_requests -> sys_users (user_id));
+diesel::joinable!(oauth_client_certificates -> oauth_clients (client_id));
 diesel::joinable!(oauth_clients -> organizations (organization_id));
 diesel::joinable!(oauth_device_codes -> oauth_clients (client_id));
 diesel::joinable!(oauth_device_codes -> sys_users (user_id));
@@ -1649,6 +1707,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     oauth_auth_codes,
     oauth_ciba_auth_codes,
     oauth_ciba_requests,
+    oauth_client_certificates,
     oauth_clients,
     oauth_device_codes,
     oauth_personal_access_clients,

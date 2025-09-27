@@ -3,6 +3,7 @@ use diesel::prelude::*;
 use crate::schema::conversations;
 use super::DieselUlid;
 use chrono::{DateTime, Utc};
+use crate::app::models::{HasModelType, activity_log::HasId};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, AsChangeset)]
 #[diesel(table_name = conversations)]
@@ -123,5 +124,17 @@ impl NewConversation {
     pub fn with_max_participants(mut self, max_participants: Option<i32>) -> Self {
         self.max_participants = max_participants;
         self
+    }
+}
+
+impl HasModelType for Conversation {
+    fn model_type() -> &'static str {
+        "Conversation"
+    }
+}
+
+impl HasId for Conversation {
+    fn id(&self) -> String {
+        self.id.to_string()
     }
 }

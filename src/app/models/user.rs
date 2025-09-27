@@ -72,11 +72,11 @@ pub struct User {
     /// Soft delete timestamp
     pub deleted_at: Option<DateTime<Utc>>,
     /// User who created this record
-    pub created_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
     /// User who last updated this record
-    pub updated_by: Option<DieselUlid>,
+    pub updated_by_id: Option<DieselUlid>,
     /// User who deleted this record
-    pub deleted_by: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
     /// Identity public key for encryption
     pub identity_public_key: Option<String>,
     /// Identity key creation timestamp
@@ -89,6 +89,30 @@ pub struct User {
     pub mfa_backup_codes: Option<serde_json::Value>,
     /// MFA required flag
     pub mfa_required: bool,
+    /// Email notifications preference
+    pub email_notifications: Option<bool>,
+    /// Database notifications preference
+    pub database_notifications: Option<bool>,
+    /// Broadcast notifications preference
+    pub broadcast_notifications: Option<bool>,
+    /// Web push notifications preference
+    pub web_push_notifications: Option<bool>,
+    /// SMS notifications preference
+    pub sms_notifications: Option<bool>,
+    /// Slack notifications preference
+    pub slack_notifications: Option<bool>,
+    /// Marketing emails preference
+    pub marketing_emails: Option<bool>,
+    /// Security alerts preference
+    pub security_alerts: Option<bool>,
+    /// Order updates preference
+    pub order_updates: Option<bool>,
+    /// Newsletter preference
+    pub newsletter: Option<bool>,
+    /// Promotional emails preference
+    pub promotional_emails: Option<bool>,
+    /// Account notifications preference
+    pub account_notifications: Option<bool>,
 }
 
 /// Create user payload for service layer
@@ -119,7 +143,19 @@ pub struct NewUser {
     pub failed_login_attempts: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub created_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
+    pub email_notifications: Option<bool>,
+    pub database_notifications: Option<bool>,
+    pub broadcast_notifications: Option<bool>,
+    pub web_push_notifications: Option<bool>,
+    pub sms_notifications: Option<bool>,
+    pub slack_notifications: Option<bool>,
+    pub marketing_emails: Option<bool>,
+    pub security_alerts: Option<bool>,
+    pub order_updates: Option<bool>,
+    pub newsletter: Option<bool>,
+    pub promotional_emails: Option<bool>,
+    pub account_notifications: Option<bool>,
 }
 
 /// Login request payload
@@ -206,15 +242,27 @@ impl User {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by: None,
-            updated_by: None,
-            deleted_by: None,
+            created_by_id: None,
+            updated_by_id: None,
+            deleted_by_id: None,
             identity_public_key: None,
             identity_key_created_at: None,
             mfa_enabled: false,
             mfa_secret: None,
             mfa_backup_codes: None,
             mfa_required: false,
+            email_notifications: Some(true),
+            database_notifications: Some(true),
+            broadcast_notifications: Some(true),
+            web_push_notifications: Some(true),
+            sms_notifications: Some(false),
+            slack_notifications: Some(false),
+            marketing_emails: Some(true),
+            security_alerts: Some(true),
+            order_updates: Some(true),
+            newsletter: Some(false),
+            promotional_emails: Some(false),
+            account_notifications: Some(true),
         }
     }
 
@@ -260,12 +308,12 @@ impl User {
 
     pub fn delete(&mut self, deleted_by: Option<DieselUlid>) {
         self.deleted_at = Some(Utc::now());
-        self.deleted_by = deleted_by;
+        self.deleted_by_id = deleted_by;
     }
 
     pub fn restore(&mut self) {
         self.deleted_at = None;
-        self.deleted_by = None;
+        self.deleted_by_id = None;
     }
 
     pub fn to_new_user(name: String, email: String, password: String, created_by: Option<DieselUlid>) -> NewUser {
@@ -280,7 +328,19 @@ impl User {
             failed_login_attempts: 0,
             created_at: now,
             updated_at: now,
-            created_by,
+            created_by_id: created_by,
+            email_notifications: Some(true),
+            database_notifications: Some(true),
+            broadcast_notifications: Some(true),
+            web_push_notifications: Some(true),
+            sms_notifications: Some(false),
+            slack_notifications: Some(false),
+            marketing_emails: Some(true),
+            security_alerts: Some(true),
+            order_updates: Some(true),
+            newsletter: Some(false),
+            promotional_emails: Some(false),
+            account_notifications: Some(true),
         }
     }
 }
@@ -356,8 +416,153 @@ impl crate::app::query_builder::Queryable for User {
         vec![
             "roles",
             "permissions",
-            "organization",
+            "roles.permissions",
+            "permissions.roles",
+            "roles.organization",
+            "permissions.organization",
+            "authorizationContext",
+            "scopedRoles",
+            "scopedPermissions",
+            "organizations",
+            "organizations.position",
+            "organizations.position.level",
+            "createdBy",
+            "updatedBy",
+            "deletedBy",
+            "createdBy.organizations",
+            "updatedBy.organizations",
+            "deletedBy.organizations",
+            "createdBy.organizations.position",
+            "updatedBy.organizations.position",
+            "deletedBy.organizations.position",
+            "createdBy.organizations.position.level",
+            "updatedBy.organizations.position.level",
+            "deletedBy.organizations.position.level",
         ]
+    }
+}
+
+// Implement the enhanced filtering trait
+impl crate::app::query_builder::Filterable for User {
+    fn apply_basic_filter(column: &str, operator: &str, value: &serde_json::Value) -> String {
+        match operator {
+            "=" => format!("{} = {}", column, Self::format_filter_value(value)),
+            "!=" => format!("{} != {}", column, Self::format_filter_value(value)),
+            _ => format!("{} {} {}", column, operator, Self::format_filter_value(value))
+        }
+    }
+}
+
+// Implement the enhanced sorting trait
+impl crate::app::query_builder::Sortable for User {
+    fn apply_basic_sort(column: &str, direction: &str) -> String {
+        format!("{} {}", column, direction)
+    }
+}
+
+// Implement the relationship inclusion trait
+impl crate::app::query_builder::Includable for User {
+    fn load_relationships(ids: &[String], includes: &[String], _conn: &mut diesel::pg::PgConnection) -> anyhow::Result<()> {
+
+        for include in includes {
+            match include.as_str() {
+                "roles" => {
+                    crate::app::query_builder::RolePermissionLoader::load_model_roles("sys_users", ids, _conn)?;
+                },
+                "permissions" => {
+                    crate::app::query_builder::RolePermissionLoader::load_model_permissions("sys_users", ids, _conn)?;
+                },
+                "roles.permissions" => {
+                    crate::app::query_builder::RolePermissionLoader::load_model_roles_with_permissions("sys_users", ids, _conn)?;
+                },
+                "permissions.roles" => {
+                    crate::app::query_builder::RolePermissionLoader::load_model_permissions_with_roles("sys_users", ids, _conn)?;
+                },
+                "roles.organization" => {
+                    crate::app::query_builder::RolePermissionLoader::load_roles_with_organization("sys_users", ids, _conn)?;
+                },
+                "permissions.organization" => {
+                    crate::app::query_builder::RolePermissionLoader::load_permissions_with_organization("sys_users", ids, _conn)?;
+                },
+                "authorizationContext" => {
+                    crate::app::query_builder::RolePermissionLoader::load_complete_authorization_context("sys_users", ids, _conn)?;
+                },
+                "scopedRoles" => {
+                    crate::app::query_builder::RolePermissionLoader::load_scoped_roles("sys_users", ids, _conn)?;
+                },
+                "scopedPermissions" => {
+                    crate::app::query_builder::RolePermissionLoader::load_scoped_permissions("sys_users", ids, _conn)?;
+                },
+                "organizations" => {
+                    tracing::debug!("Loading organizations for users: {:?}", ids);
+                },
+                "organizations.position" => {
+                    tracing::debug!("Loading organizations.position for users: {:?}", ids);
+                },
+                "organizations.position.level" => {
+                    tracing::debug!("Loading organizations.position.level for users: {:?}", ids);
+                },
+                _ => {
+                    tracing::warn!("Unknown relationship: {}", include);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn get_foreign_key(relationship: &str) -> Option<String> {
+        match relationship {
+            "roles" => Some("user_id".to_string()),
+            "permissions" => Some("user_id".to_string()),
+            "organizations" => Some("user_organizations.user_id".to_string()), // Load from pivot table
+            _ => None
+        }
+    }
+
+    fn build_join_clause(relationship: &str, main_table: &str) -> Option<String> {
+        match relationship {
+            "organizations" => {
+                // Many-to-many relationship through user_organizations pivot table
+                Some(format!(
+                    "LEFT JOIN user_organizations ON {}.id = user_organizations.user_id LEFT JOIN organizations ON user_organizations.organization_id = organizations.id",
+                    main_table
+                ))
+            },
+            "organizations.position" => {
+                // Include organization positions through user_organizations
+                Some(format!(
+                    "LEFT JOIN user_organizations ON {}.id = user_organizations.user_id LEFT JOIN organizations ON user_organizations.organization_id = organizations.id LEFT JOIN organization_positions ON user_organizations.organization_position_id = organization_positions.id",
+                    main_table
+                ))
+            },
+            "organizations.position.level" => {
+                // Include organization positions and their levels
+                Some(format!(
+                    "LEFT JOIN user_organizations ON {}.id = user_organizations.user_id LEFT JOIN organizations ON user_organizations.organization_id = organizations.id LEFT JOIN organization_positions ON user_organizations.organization_position_id = organization_positions.id LEFT JOIN organization_position_levels ON organization_positions.organization_position_level_id = organization_position_levels.id",
+                    main_table
+                ))
+            },
+            "roles" => {
+                // Many-to-many relationship through sys_model_has_roles pivot table
+                Some(format!(
+                    "LEFT JOIN sys_model_has_roles ON {}.id = sys_model_has_roles.model_id AND sys_model_has_roles.model_type = 'User' LEFT JOIN sys_roles ON sys_model_has_roles.role_id = sys_roles.id",
+                    main_table
+                ))
+            },
+            "permissions" => {
+                // Many-to-many relationship through sys_model_has_permissions pivot table
+                Some(format!(
+                    "LEFT JOIN sys_model_has_permissions ON {}.id = sys_model_has_permissions.model_id AND sys_model_has_permissions.model_type = 'User' LEFT JOIN sys_permissions ON sys_model_has_permissions.permission_id = sys_permissions.id",
+                    main_table
+                ))
+            },
+            _ => None
+        }
+    }
+
+    fn should_eager_load(relationship: &str) -> bool {
+        // Organizations and roles are commonly accessed together
+        matches!(relationship, "organizations" | "roles")
     }
 }
 

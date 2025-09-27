@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Device Authorization Failed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+        .error { color: red; }
+        .container { max-width: 500px; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="error">Device Authorization Failed</h1>
+        <p>The device code <strong>{{user_code}}</strong> could not be verified.</p>
+        <p>Error: {{error_message}}</p>
+        <p>Please check the code and try again.</p>
+    </div>
+</body>
+</html>

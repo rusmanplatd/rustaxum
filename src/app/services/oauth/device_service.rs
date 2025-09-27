@@ -142,7 +142,7 @@ impl DeviceService {
         Self::revoke_device_code(pool, device_auth.id.to_string())?;
 
         // Generate JWT
-        let jwt_token = TokenService::generate_jwt_token(&access_token, &client_id)?;
+        let jwt_token = TokenService::generate_jwt_token(pool, &access_token, &client_id)?;
 
         // Log successful token exchange
         let service = DeviceService;

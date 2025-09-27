@@ -3,6 +3,7 @@ use diesel::prelude::*;
 use crate::schema::conversation_participants;
 use super::DieselUlid;
 use chrono::{DateTime, Utc};
+use crate::app::models::{HasModelType, activity_log::HasId};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, AsChangeset)]
 #[diesel(table_name = conversation_participants)]
@@ -112,5 +113,17 @@ impl NewConversationParticipant {
 
     pub fn admin(conversation_id: DieselUlid, user_id: DieselUlid) -> Self {
         Self::new(conversation_id, user_id, ParticipantRole::Admin)
+    }
+}
+
+impl HasModelType for ConversationParticipant {
+    fn model_type() -> &'static str {
+        "ConversationParticipant"
+    }
+}
+
+impl HasId for ConversationParticipant {
+    fn id(&self) -> String {
+        self.id.to_string()
     }
 }

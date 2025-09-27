@@ -150,6 +150,82 @@ impl Include {
         self.contains_path_parts(&path_parts, 0)
     }
 
+    /// Load relationship data using the Includable trait
+    pub fn load_with_includable<T>(
+        &self,
+        ids: &[String],
+        conn: &mut diesel::pg::PgConnection,
+    ) -> anyhow::Result<std::collections::HashMap<String, serde_json::Value>>
+    where
+        T: crate::app::query_builder::Includable,
+    {
+        use std::collections::HashMap;
+
+        let mut relationship_data = HashMap::new();
+
+        // Load the main relationship
+        let main_data = T::load_relationship(ids, &self.relation, conn)?;
+        relationship_data.insert(self.relation.clone(), main_data);
+
+        // Load nested relationships recursively
+        for nested in &self.nested {
+            let nested_data = nested.load_with_includable::<T>(ids, conn)?;
+            for (key, value) in nested_data {
+                let nested_key = format!("{}.{}", self.relation, key);
+                relationship_data.insert(nested_key, value);
+            }
+        }
+
+        Ok(relationship_data)
+    }
+
+    /// Build SQL JOIN clauses for this include
+    pub fn build_join_clauses<T>(&self, main_table: &str) -> Vec<String>
+    where
+        T: crate::app::query_builder::Includable,
+    {
+        let mut joins = Vec::new();
+
+        // Build JOIN for the main relationship
+        if let Some(join_clause) = T::build_join_clause(&self.relation, main_table) {
+            joins.push(join_clause);
+        }
+
+        // Build JOINs for nested relationships
+        for nested in &self.nested {
+            let nested_joins = nested.build_join_clauses::<T>(&self.relation);
+            joins.extend(nested_joins);
+        }
+
+        joins
+    }
+
+    /// Get all unique relationship names (no nesting)
+    pub fn get_unique_relations(&self) -> Vec<String> {
+        let mut relations = vec![self.relation.clone()];
+
+        for nested in &self.nested {
+            relations.extend(nested.get_unique_relations());
+        }
+
+        relations.sort();
+        relations.dedup();
+        relations
+    }
+
+    /// Get all unique relationship names for multiple includes
+    pub fn get_all_unique_relations(includes: &[Include]) -> Vec<String> {
+        let mut all_relations = Vec::new();
+
+        for include in includes {
+            all_relations.extend(include.get_unique_relations());
+        }
+
+        all_relations.sort();
+        all_relations.dedup();
+        all_relations
+    }
+
     fn contains_path_parts(&self, parts: &[&str], index: usize) -> bool {
         if index >= parts.len() {
             return true;

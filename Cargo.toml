@@ -70,6 +70,8 @@ rand = { version = "0.8", features = ["std_rng"] }
 reqwest = { version = "0.12", features = ["json"] }
 pkcs8 = { version = "0.10", features = ["pem"] }
 rsa = "0.9"
+x509-parser = "0.18"
+der-parser = "10.0"
 urlencoding = "2.1"
 csv = "1.3"
 # OpenAPI documentation dependencies

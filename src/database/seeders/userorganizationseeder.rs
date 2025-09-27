@@ -58,9 +58,9 @@ impl Seeder for UserOrganizationSeeder {
                 created_at: now,
                 updated_at: now,
                 deleted_at: None,
-                created_by: None,
-                updated_by: None,
-                deleted_by: None,
+                created_by_id: None,
+                updated_by_id: None,
+                deleted_by_id: None,
             };
 
             user_org_relationships.push(user_org);
@@ -83,9 +83,9 @@ impl Seeder for UserOrganizationSeeder {
                 created_at: now,
                 updated_at: now,
                 deleted_at: None,
-                created_by: None,
-                updated_by: None,
-                deleted_by: None,
+                created_by_id: None,
+                updated_by_id: None,
+                deleted_by_id: None,
             };
 
             user_org_relationships.push(user_org);

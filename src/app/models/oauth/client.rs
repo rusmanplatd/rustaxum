@@ -21,9 +21,21 @@ pub struct Client {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by: Option<DieselUlid>,
-    pub updated_by: Option<DieselUlid>,
-    pub deleted_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
+    pub updated_by_id: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
+    pub public_key_pem: Option<String>,
+    pub metadata: serde_json::Value,
+    pub jwks_uri: Option<String>,
+    pub token_endpoint_auth_method: String,
+    pub response_types: Vec<Option<String>>,
+    pub grant_types: Vec<Option<String>>,
+    pub scope: String,
+    pub audience: Option<Vec<Option<String>>>,
+    pub require_auth_time: bool,
+    pub default_max_age: Option<i32>,
+    pub require_pushed_authorization_requests: bool,
+    pub certificate_bound_access_tokens: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -85,9 +97,21 @@ impl Client {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by: None,
-            updated_by: None,
-            deleted_by: None,
+            created_by_id: None,
+            updated_by_id: None,
+            deleted_by_id: None,
+            public_key_pem: None,
+            metadata: serde_json::json!({}),
+            jwks_uri: None,
+            token_endpoint_auth_method: "client_secret_basic".to_string(),
+            response_types: vec![Some("code".to_string())],
+            grant_types: vec![Some("authorization_code".to_string()), Some("refresh_token".to_string())],
+            scope: "openid".to_string(),
+            audience: None,
+            require_auth_time: false,
+            default_max_age: None,
+            require_pushed_authorization_requests: false,
+            certificate_bound_access_tokens: false,
         }
     }
 
@@ -155,9 +179,9 @@ impl crate::app::query_builder::Queryable for Client {
             "created_at",
             "updated_at",
             "deleted_at",
-            "created_by",
-            "updated_by",
-            "deleted_by",
+            "created_by_id",
+            "updated_by_id",
+            "deleted_by_id",
         ]
     }
 
@@ -183,9 +207,9 @@ impl crate::app::query_builder::Queryable for Client {
             "created_at",
             "updated_at",
             "deleted_at",
-            "created_by",
-            "updated_by",
-            "deleted_by",
+            "created_by_id",
+            "updated_by_id",
+            "deleted_by_id",
         ]
     }
 

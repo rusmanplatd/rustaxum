@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::SortDirection;
 use super::DieselUlid;
+use crate::app::models::{HasModelType, activity_log::HasId};
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable, QueryableByName)]
 #[diesel(table_name = crate::schema::sys_model_has_roles)]
@@ -28,11 +29,11 @@ pub struct SysModelHasRole {
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub deleted_at: Option<DateTime<Utc>>,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub created_by: DieselUlid,
+    pub created_by_id: DieselUlid,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub updated_by: DieselUlid,
+    pub updated_by_id: DieselUlid,
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub deleted_by: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -57,9 +58,9 @@ pub struct NewSysModelHasRole {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by: DieselUlid,
-    pub updated_by: DieselUlid,
-    pub deleted_by: Option<DieselUlid>,
+    pub created_by_id: DieselUlid,
+    pub updated_by_id: DieselUlid,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -127,11 +128,32 @@ impl crate::app::query_builder::Queryable for SysModelHasRole {
     fn default_sort() -> Option<(&'static str, SortDirection)> {
         Some(("created_at", SortDirection::Desc))
     }
+
+    fn allowed_includes() -> Vec<&'static str> {
+        vec![
+            "role",
+            "model",
+            "createdBy",
+            "updatedBy",
+            "deletedBy",
+            "createdBy.organizations",
+            "updatedBy.organizations",
+            "deletedBy.organizations",
+            "createdBy.organizations.position",
+            "updatedBy.organizations.position",
+            "deletedBy.organizations.position",
+            "createdBy.organizations.position.level",
+            "updatedBy.organizations.position.level",
+            "deletedBy.organizations.position.level",
+        ]
+    }
 }
 
 impl NewSysModelHasRole {
-    pub fn new(model_type: String, model_id: DieselUlid, role_id: DieselUlid, scope_type: Option<String>, scope_id: Option<DieselUlid>) -> Self {
+    pub fn new(model_type: String, model_id: DieselUlid, role_id: DieselUlid, scope_type: Option<String>, scope_id: Option<DieselUlid>, user_id: Option<DieselUlid>) -> Self {
         let now = Utc::now();
+        let created_by = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM000000000000000").unwrap_or_else(|_| DieselUlid::new()));
+
         Self {
             id: DieselUlid::new(),
             model_type,
@@ -142,16 +164,18 @@ impl NewSysModelHasRole {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by: DieselUlid::new(), // TODO: Should be passed as parameter
-            updated_by: DieselUlid::new(), // TODO: Should be passed as parameter
-            deleted_by: None,
+            created_by_id: created_by,
+            updated_by_id: created_by,
+            deleted_by_id: None,
         }
     }
 }
 
 impl SysModelHasRole {
-    pub fn new(model_type: String, model_id: DieselUlid, role_id: DieselUlid, scope_type: Option<String>, scope_id: Option<DieselUlid>) -> Self {
+    pub fn new(model_type: String, model_id: DieselUlid, role_id: DieselUlid, scope_type: Option<String>, scope_id: Option<DieselUlid>, user_id: Option<DieselUlid>) -> Self {
         let now = Utc::now();
+        let created_by = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM000000000000000").unwrap_or_else(|_| DieselUlid::new()));
+
         Self {
             id: DieselUlid::new(),
             model_type,
@@ -162,10 +186,25 @@ impl SysModelHasRole {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by: DieselUlid::new(), // TODO: Should be passed as parameter
-            updated_by: DieselUlid::new(), // TODO: Should be passed as parameter
-            deleted_by: None,
+            created_by_id: created_by,
+            updated_by_id: created_by,
+            deleted_by_id: None,
         }
+    }
+
+    pub fn update_with_user(&mut self, user_id: Option<DieselUlid>) {
+        self.updated_at = Utc::now();
+        self.updated_by_id = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM000000000000000").unwrap_or_else(|_| DieselUlid::new()));
+    }
+
+    pub fn soft_delete(&mut self, user_id: Option<DieselUlid>) {
+        let now = Utc::now();
+        let deleted_by = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM000000000000000").unwrap_or_else(|_| DieselUlid::new()));
+
+        self.deleted_at = Some(now);
+        self.updated_at = now;
+        self.deleted_by_id = Some(deleted_by);
+        self.updated_by_id = deleted_by;
     }
 
     pub fn to_response(&self) -> SysModelHasRoleResponse {
@@ -179,6 +218,18 @@ impl SysModelHasRole {
             created_at: self.created_at,
             updated_at: self.updated_at,
         }
+    }
+}
+
+impl HasModelType for SysModelHasRole {
+    fn model_type() -> &'static str {
+        "SysModelHasRole"
+    }
+}
+
+impl HasId for SysModelHasRole {
+    fn id(&self) -> String {
+        self.id.to_string()
     }
 }
 

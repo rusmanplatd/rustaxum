@@ -86,9 +86,9 @@ impl Seeder for UserSeeder {
                     sys_users::created_at.eq(now),
                     sys_users::updated_at.eq(now),
                     sys_users::deleted_at.eq::<Option<chrono::DateTime<Utc>>>(None),
-                    sys_users::created_by.eq::<Option<String>>(None),
-                    sys_users::updated_by.eq::<Option<String>>(None),
-                    sys_users::deleted_by.eq::<Option<String>>(None),
+                    sys_users::created_by_id.eq::<Option<String>>(None),
+                    sys_users::updated_by_id.eq::<Option<String>>(None),
+                    sys_users::deleted_by_id.eq::<Option<String>>(None),
                 ))
                 .on_conflict(sys_users::email)
                 .do_nothing()

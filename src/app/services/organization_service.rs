@@ -16,7 +16,12 @@ impl OrganizationService {
     pub async fn create(pool: &DbPool, data: CreateOrganization, created_by: Option<&str>) -> Result<Organization> {
         let mut conn = pool.get()?;
 
-        let new_org = NewOrganization::new(data.clone(), None); // TODO: Convert created_by string to DieselUlid if needed
+        // Convert created_by string to DieselUlid if provided
+        let created_by_ulid = created_by.and_then(|id_str| {
+            crate::app::models::DieselUlid::from_string(id_str).ok()
+        });
+
+        let new_org = NewOrganization::new(data.clone(), created_by_ulid);
 
         let result = diesel::insert_into(organizations::table)
             .values(&new_org)

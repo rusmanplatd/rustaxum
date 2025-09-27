@@ -9,9 +9,9 @@ CREATE TABLE sys_permissions (
     scope_id CHAR(26), -- ID of the resource this permission assignment is scoped to
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    created_by CHAR(26) NOT NULL REFERENCES sys_users(id),
-    updated_by CHAR(26) NOT NULL REFERENCES sys_users(id),
-    deleted_by CHAR(26) REFERENCES sys_users(id),
+    created_by_id CHAR(26) NOT NULL REFERENCES sys_users(id),
+    updated_by_id CHAR(26) NOT NULL REFERENCES sys_users(id),
+    deleted_by_id CHAR(26) REFERENCES sys_users(id),
     UNIQUE(resource, action, guard_name, scope_type, scope_id)
 );
 

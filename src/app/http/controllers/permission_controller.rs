@@ -82,20 +82,22 @@ impl From<Permission> for PermissionData {
     get,
     path = "/api/permissions",
     tag = "Permissions",
-    summary = "List all permissions",
-    description = "Get all permissions with optional filtering, sorting, and pagination",
+    summary = "List all permissions with advanced resource and action filtering",
+    description = "Retrieve permissions with Laravel-style advanced querying, resource-action filtering, multi-column sorting, and role relationship loading. Critical for fine-grained access control and security auditing.",
     params(
         ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
-        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
-        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, description, created_at, updated_at (prefix with '-' for descending)"),
-        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: roles"),
-        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, description (e.g., filter[name]=create_user, filter[description]=Create)"),
-        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, description, created_at, updated_at"),
-        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
-        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
+        ("per_page" = Option<u32>, Query, description = "Items per page (default: 15, max: 100). Use 100 for admin audits, 25-50 for permission management interfaces"),
+        ("sort" = Option<String>, Query, description = "Multi-column sorting with action/resource grouping support. Available fields: id, guard_name, resource, action, created_at, updated_at. Syntax: 'field1,-field2,field3:desc'. Examples: 'resource,action', 'guard_name,resource:asc,action', '-created_at,action'"),
+        ("include" = Option<String>, Query, description = "Eager load relationships with comprehensive audit user support and security context. Available: roles, organization, createdBy, updatedBy, deletedBy, createdBy.organizations, updatedBy.organizations, deletedBy.organizations, createdBy.organizations.position, updatedBy.organizations.position, deletedBy.organizations.position, createdBy.organizations.position.level, updatedBy.organizations.position.level, deletedBy.organizations.position.level. Supports deep nested loading for complete permission analysis and audit tracking. Examples: 'roles,createdBy.organizations.position.level', 'organization,updatedBy.organizations'"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Advanced filtering with 15+ operators for permission management. Available filters: id, guard_name, resource, action, created_at, updated_at. Operators: eq, ne, gt, gte, lt, lte, like, ilike, contains, starts_with, ends_with, in, not_in, is_null, is_not_null, between. Examples: filter[action][contains]=create, filter[resource][eq]=users, filter[guard_name][in]=api,web, filter[action][starts_with]=manage"),
+        ("fields" = Option<String>, Query, description = "Field selection for optimized permission queries. Available: id, guard_name, resource, action, created_at, updated_at. Supports relationship field selection. Examples: fields[permissions]=id,resource,action, fields[roles]=id,name"),
+        ("cursor" = Option<String>, Query, description = "Cursor for high-performance pagination with permission indexing"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination strategy: 'offset' (traditional) or 'cursor' (high-performance for large permission datasets, recommended default)"),
     ),
     responses(
-        (status = 200, description = "List of permissions", body = Vec<crate::app::models::permission::PermissionResponse>),
+        (status = 200, description = "List of permissions with security metadata", body = Vec<crate::app::models::permission::PermissionResponse>),
+        (status = 400, description = "Invalid query parameters", body = crate::app::docs::ErrorResponse),
+        (status = 401, description = "Unauthorized access", body = crate::app::docs::ErrorResponse),
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]

@@ -94,4 +94,4 @@ pub mod model_types {
     pub const ORGANIZATION: &str = "Organization";
     pub const USER_ORGANIZATION: &str = "User_Organization";
 }
-// pub mod mfamethod;
+pub mod mfamethod;

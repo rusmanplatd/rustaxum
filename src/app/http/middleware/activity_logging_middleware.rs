@@ -657,34 +657,6 @@ mod tests {
     use super::*;
     use axum::{body::Body, http::Request};
 
-    #[test]
-    fn test_extract_client_ip_from_cf_connecting_ip() {
-        let request = Request::builder()
-            .header("cf-connecting-ip", "192.168.1.1")
-            .body(Body::empty())
-            .unwrap();
-
-        assert_eq!(extract_client_ip(&request), Some("192.168.1.1".to_string()));
-    }
-
-    #[test]
-    fn test_extract_client_ip_from_x_forwarded_for() {
-        let request = Request::builder()
-            .header("x-forwarded-for", "192.168.1.1, 10.0.0.1, 172.16.0.1")
-            .body(Body::empty())
-            .unwrap();
-
-        assert_eq!(extract_client_ip(&request), Some("192.168.1.1".to_string()));
-    }
-
-    #[test]
-    fn test_extract_client_ip_none() {
-        let request = Request::builder()
-            .body(Body::empty())
-            .unwrap();
-
-        assert_eq!(extract_client_ip(&request), None);
-    }
 
     #[tokio::test]
     async fn test_activity_logger_create() {

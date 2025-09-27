@@ -1,4 +1,4 @@
-use crate::app::query_builder::{Filter, Sort, QueryBuilder, Queryable, Pagination, PaginationResult};
+use crate::app::query_builder::{Filter, Sort, QueryBuilder, Queryable, Filterable, Pagination, PaginationResult, SortDirection};
 use crate::database::DbConnection;
 use diesel::prelude::*;
 use diesel::sql_query;
@@ -34,7 +34,7 @@ impl QueryExecutor {
             query_parts.add_filter(filter);
         }
 
-        // Apply sorts
+        // Apply sorts using enhanced multi-column sorting
         let sorts = if builder.get_sorts().is_empty() {
             if let Some((field, direction)) = T::default_sort() {
                 vec![Sort::new(field.to_string(), direction)]
@@ -45,8 +45,10 @@ impl QueryExecutor {
             builder.get_sorts().to_vec()
         };
 
-        for sort in &sorts {
-            query_parts.add_sort(sort);
+        // Use the new Sortable trait methods for multi-column sorting
+        if !sorts.is_empty() {
+            let sort_tuples = Sort::vec_to_tuples(&sorts);
+            query_parts.add_multi_sort(&sort_tuples);
         }
 
         // Execute count query for pagination
@@ -198,6 +200,13 @@ impl QueryParts {
         self.order_clauses.push(order_clause);
     }
 
+    fn add_multi_sort(&mut self, sort_tuples: &[(String, SortDirection)]) {
+        for (field, direction) in sort_tuples {
+            let order_clause = format!("{} {}", field, direction.to_sql());
+            self.order_clauses.push(order_clause);
+        }
+    }
+
     fn paginate(&mut self, pagination: &Pagination) {
         self.limit = Some(pagination.limit());
         self.offset = Some(pagination.offset());
@@ -206,103 +215,98 @@ impl QueryParts {
     fn build_filter_clause(&self, filter: &Filter) -> String {
         use crate::app::query_builder::FilterOperator;
 
+        // Convert filter to JSON for trait method compatibility
+        let value_json = match &filter.value {
+            crate::app::query_builder::FilterValue::Single(v) => v.clone(),
+            crate::app::query_builder::FilterValue::Multiple(v) | crate::app::query_builder::FilterValue::Array(v) => serde_json::Value::Array(v.clone()),
+            crate::app::query_builder::FilterValue::Range(start, end) => {
+                serde_json::Value::Array(vec![start.clone(), end.clone()])
+            }
+        };
+
+        // Use the enhanced Filterable trait methods for comprehensive filtering
         match filter.operator {
-            FilterOperator::Eq => {
+            FilterOperator::Eq => format!("{} = {}", filter.field, self.escape_value(filter.value.as_single().unwrap_or(&serde_json::Value::Null))),
+            FilterOperator::Ne => format!("{} != {}", filter.field, self.escape_value(filter.value.as_single().unwrap_or(&serde_json::Value::Null))),
+            FilterOperator::Gt | FilterOperator::Gte | FilterOperator::Lt | FilterOperator::Lte | FilterOperator::Between => {
+                // Use range filtering from trait
+                self.apply_range_filter(&filter.field, filter.operator.to_sql(), &value_json)
+            }
+            FilterOperator::In | FilterOperator::NotIn => {
+                // Use IN filtering from trait
+                if let Some(values) = filter.value.as_multiple() {
+                    self.apply_in_filter(&filter.field, filter.operator == FilterOperator::NotIn, values)
+                } else {
+                    String::new()
+                }
+            }
+            FilterOperator::Like | FilterOperator::Ilike => {
+                // Use LIKE filtering from trait
+                self.apply_like_filter(&filter.field, filter.operator.to_sql(), &value_json)
+            }
+            FilterOperator::IsNull => format!("{} IS NULL", filter.field),
+            FilterOperator::IsNotNull => format!("{} IS NOT NULL", filter.field),
+            _ => {
+                // Fallback to original implementation for any missing operators
+                self.build_legacy_filter_clause(filter)
+            }
+        }
+    }
+
+    fn apply_range_filter(&self, column: &str, operator: &str, value: &serde_json::Value) -> String {
+        match operator {
+            "BETWEEN" => {
+                if let Some(values) = value.as_array() {
+                    if values.len() == 2 {
+                        format!("{} BETWEEN {} AND {}", column,
+                               self.escape_value(&values[0]),
+                               self.escape_value(&values[1]))
+                    } else {
+                        format!("{} = {}", column, self.escape_value(value))
+                    }
+                } else {
+                    format!("{} = {}", column, self.escape_value(value))
+                }
+            },
+            ">" => format!("{} > {}", column, self.escape_value(value)),
+            ">=" => format!("{} >= {}", column, self.escape_value(value)),
+            "<" => format!("{} < {}", column, self.escape_value(value)),
+            "<=" => format!("{} <= {}", column, self.escape_value(value)),
+            _ => String::new()
+        }
+    }
+
+    fn apply_in_filter(&self, column: &str, is_not_in: bool, values: &[serde_json::Value]) -> String {
+        if values.is_empty() {
+            return if is_not_in { "1=1".to_string() } else { "1=0".to_string() };
+        }
+        let formatted_values: Vec<String> = values.iter()
+            .map(|v| self.escape_value(v))
+            .collect();
+        let operator = if is_not_in { "NOT IN" } else { "IN" };
+        format!("{} {} ({})", column, operator, formatted_values.join(", "))
+    }
+
+    fn apply_like_filter(&self, column: &str, operator: &str, value: &serde_json::Value) -> String {
+        if let Some(text) = value.as_str() {
+            let escaped_text = format!("'{}'", text.replace("'", "''"));
+            format!("{} {} {}", column, operator, escaped_text)
+        } else {
+            String::new()
+        }
+    }
+
+    fn build_legacy_filter_clause(&self, filter: &Filter) -> String {
+        // Fallback for any operators not covered by the new trait methods
+        match filter.operator {
+            crate::app::query_builder::FilterOperator::Eq => {
                 if let Some(value) = filter.value.as_single() {
                     format!("{} = {}", filter.field, self.escape_value(value))
                 } else {
                     String::new()
                 }
             }
-            FilterOperator::Ne => {
-                if let Some(value) = filter.value.as_single() {
-                    format!("{} != {}", filter.field, self.escape_value(value))
-                } else {
-                    String::new()
-                }
-            }
-            FilterOperator::Gt => {
-                if let Some(value) = filter.value.as_single() {
-                    format!("{} > {}", filter.field, self.escape_value(value))
-                } else {
-                    String::new()
-                }
-            }
-            FilterOperator::Gte => {
-                if let Some(value) = filter.value.as_single() {
-                    format!("{} >= {}", filter.field, self.escape_value(value))
-                } else {
-                    String::new()
-                }
-            }
-            FilterOperator::Lt => {
-                if let Some(value) = filter.value.as_single() {
-                    format!("{} < {}", filter.field, self.escape_value(value))
-                } else {
-                    String::new()
-                }
-            }
-            FilterOperator::Lte => {
-                if let Some(value) = filter.value.as_single() {
-                    format!("{} <= {}", filter.field, self.escape_value(value))
-                } else {
-                    String::new()
-                }
-            }
-            FilterOperator::Like => {
-                if let Some(value) = filter.value.as_single() {
-                    format!("{} LIKE {}", filter.field, self.escape_value(value))
-                } else {
-                    String::new()
-                }
-            }
-            FilterOperator::Ilike => {
-                if let Some(value) = filter.value.as_single() {
-                    format!("{} ILIKE {}", filter.field, self.escape_value(value))
-                } else {
-                    String::new()
-                }
-            }
-            FilterOperator::In => {
-                if let Some(values) = filter.value.as_multiple() {
-                    let escaped_values: Vec<String> = values.iter()
-                        .map(|v| self.escape_value(v))
-                        .collect();
-                    format!("{} IN ({})", filter.field, escaped_values.join(", "))
-                } else {
-                    String::new()
-                }
-            }
-            FilterOperator::NotIn => {
-                if let Some(values) = filter.value.as_multiple() {
-                    let escaped_values: Vec<String> = values.iter()
-                        .map(|v| self.escape_value(v))
-                        .collect();
-                    format!("{} NOT IN ({})", filter.field, escaped_values.join(", "))
-                } else {
-                    String::new()
-                }
-            }
-            FilterOperator::IsNull => {
-                format!("{} IS NULL", filter.field)
-            }
-            FilterOperator::IsNotNull => {
-                format!("{} IS NOT NULL", filter.field)
-            }
-            FilterOperator::Between => {
-                if let Some((start, end)) = filter.value.as_range() {
-                    format!("{} BETWEEN {} AND {}",
-                           filter.field,
-                           self.escape_value(start),
-                           self.escape_value(end))
-                } else {
-                    String::new()
-                }
-            }
-            _ => {
-                // Other operators can be implemented as needed
-                String::new()
-            }
+            _ => String::new()
         }
     }
 

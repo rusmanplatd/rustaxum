@@ -37,9 +37,9 @@ impl UserOrganizationService {
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
             deleted_at: None,
-            created_by: created_by.map(|s| crate::app::models::DieselUlid::from_string(s).unwrap()),
-            updated_by: None,
-            deleted_by: None,
+            created_by_id: created_by.map(|s| crate::app::models::DieselUlid::from_string(s).unwrap()),
+            updated_by_id: None,
+            deleted_by_id: None,
         };
 
         let result = diesel::insert_into(user_organizations::table)

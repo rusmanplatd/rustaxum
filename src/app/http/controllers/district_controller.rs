@@ -25,20 +25,21 @@ struct MessageResponse {
     get,
     path = "/api/districts",
     tag = "Districts",
-    summary = "List all districts",
-    description = "Get all districts with optional filtering, sorting, and pagination",
+    summary = "List all districts with comprehensive filtering and hierarchical relationships",
+    description = "Retrieve districts with Laravel-style advanced querying, multi-column sorting, nested city/province relationships, and optimized pagination. Perfect for urban planning and administrative boundary management.",
     params(
         ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
-        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
-        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, city_id, name, code, created_at, updated_at (prefix with '-' for descending)"),
-        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: city, villages"),
-        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: city_id, name, code (e.g., filter[name]=Downtown, filter[city_id]=01ARZ3...)"),
-        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, city_id, name, code, created_at, updated_at"),
-        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
-        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
+        ("per_page" = Option<u32>, Query, description = "Items per page (default: 15, max: 100). Recommended: 25-50 for administrative dashboards"),
+        ("sort" = Option<String>, Query, description = "Multi-column sorting with administrative hierarchy support. Available fields: id, city_id, name, code, created_at, updated_at. Syntax: 'field1,-field2,field3:desc'. Examples: 'name', 'city_id,name:asc', '-created_at,name'"),
+        ("include" = Option<String>, Query, description = "Eager load relationships with JOIN optimization. Available: city, city.province, city.province.country, villages, createdBy, updatedBy, deletedBy, createdBy.organizations.position.level, updatedBy.organizations.position.level, deletedBy.organizations.position.level. Supports deep nesting for administrative hierarchies. Examples: 'city.province', 'villages', 'city.province.country,createdBy.organizations.position.level'"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Advanced filtering with 15+ operators for administrative data. Available filters: id, city_id, name, code, created_at, updated_at. Operators: eq, ne, gt, gte, lt, lte, like, ilike, contains, starts_with, ends_with, in, not_in, is_null, is_not_null, between. Examples: filter[name][contains]=downtown, filter[city_id][in]=id1,id2, filter[code][starts_with]=DT"),
+        ("fields" = Option<String>, Query, description = "Field selection for optimized administrative queries. Available: id, city_id, name, code, created_at, updated_at. Supports relationship field selection. Examples: fields[districts]=id,name,code, fields[cities]=id,name"),
+        ("cursor" = Option<String>, Query, description = "Cursor for high-performance pagination with administrative data indexing"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination strategy: 'offset' (traditional) or 'cursor' (high-performance for large administrative datasets, recommended default)"),
     ),
     responses(
-        (status = 200, description = "List of districts", body = Vec<crate::app::models::district::DistrictResponse>),
+        (status = 200, description = "List of districts with administrative metadata", body = Vec<crate::app::models::district::DistrictResponse>),
+        (status = 400, description = "Invalid query parameters", body = crate::app::docs::ErrorResponse),
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]

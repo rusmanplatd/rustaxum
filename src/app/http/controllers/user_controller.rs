@@ -19,12 +19,12 @@ use crate::app::http::middleware::activity_logging_middleware::activity_logger_f
     params(
         ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
         ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
-        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, email, status, created_at, updated_at (prefix with '-' for descending)"),
-        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: organizations, roles"),
-        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, email, status (e.g., filter[name]=John, filter[status]=active)"),
-        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, email, status, created_at, updated_at"),
-        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
-        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
+        ("sort" = Option<String>, Query, description = "Multi-column sorting. Available fields: id, name, email, status, created_at, updated_at. Syntax: 'field1,-field2,field3:desc'. Example: 'name,-created_at,status:asc'"),
+        ("include" = Option<String>, Query, description = "Eager load relationships. Available: organizations, roles, organizations.position, organizations.position.level, roles.permissions, createdBy, updatedBy, deletedBy, createdBy.organizations.position.level, updatedBy.organizations.position.level, deletedBy.organizations.position.level. Example: 'organizations.position,roles,createdBy.organizations.position.level'"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Advanced filtering with 15+ operators. Available filters: name, email, status, created_at, updated_at, email_verified_at. Operators: eq, ne, gt, gte, lt, lte, like, ilike, contains, starts_with, ends_with, in, not_in, is_null, is_not_null, between. Examples: filter[name][contains]=john, filter[status][in]=active,verified, filter[email_verified_at][is_not_null]=true"),
+        ("fields" = Option<String>, Query, description = "Field selection for performance optimization. Available: id, name, email, status, created_at, updated_at, email_verified_at. Example: fields[users]=id,name,email"),
+        ("cursor" = Option<String>, Query, description = "Cursor for high-performance pagination. Base64-encoded JSON cursor from previous response"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination strategy: 'offset' (traditional) or 'cursor' (high-performance, default)"),
     ),
     responses(
         (status = 200, description = "List of users", body = Vec<crate::app::models::user::UserResponse>),

@@ -164,6 +164,41 @@ impl ActivityLogService {
             Ok(pool)
         }
     }
+
+    /// Static method for convenient activity logging
+    pub async fn log_activity(
+        log_name: &str,
+        description: &str,
+        properties: Value,
+        causer_id: Option<&str>,
+    ) -> Result<()> {
+        
+        use crate::database::connection::get_connection;
+
+        let pool = get_connection().await?;
+        let mut conn = pool.get()?;
+        let activity_id = DieselUlid::new();
+
+        let new_activity = NewActivityLog {
+            id: activity_id,
+            log_name: Some(log_name.to_string()),
+            description: description.to_string(),
+            subject_type: None,
+            subject_id: None,
+            causer_type: causer_id.map(|_| "User".to_string()),
+            causer_id: causer_id.map(|id| id.to_string()),
+            properties: Some(properties),
+            correlation_id: None,
+            event: Some("log".to_string()),
+            batch_uuid: None,
+        };
+
+        diesel::insert_into(activity_log::table)
+            .values(&new_activity)
+            .execute(&mut conn)?;
+
+        Ok(())
+    }
 }
 
 impl Default for ActivityLogService {

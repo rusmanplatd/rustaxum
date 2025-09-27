@@ -29,7 +29,7 @@ The web authentication system provides a complete Laravel-like experience with:
 
 ```bash
 # Using Docker Compose (recommended)
-docker-compose up -d
+docker compose up -d
 
 # Or directly with Cargo
 cargo run
@@ -352,13 +352,13 @@ The web authentication system provides Laravel-equivalent features:
 
 ```bash
 # Check session storage
-docker-compose exec postgres psql -U rustaxum -d rustaxum -c "SELECT * FROM sessions LIMIT 5;"
+docker compose exec postgres psql -U rustaxum -d rustaxum -c "SELECT * FROM sessions LIMIT 5;"
 
 # View recent activity logs
-docker-compose exec postgres psql -U rustaxum -d rustaxum -c "SELECT * FROM activity_log WHERE log_name = 'authentication' ORDER BY created_at DESC LIMIT 10;"
+docker compose exec postgres psql -U rustaxum -d rustaxum -c "SELECT * FROM activity_log WHERE log_name = 'authentication' ORDER BY created_at DESC LIMIT 10;"
 
 # Check application logs
-docker-compose logs -f app | grep -i auth
+docker compose logs -f app | grep -i auth
 ```
 
 The web authentication system provides a complete, production-ready authentication solution with modern UI/UX, comprehensive security features, and Laravel-like developer experience.

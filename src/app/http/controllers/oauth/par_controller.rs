@@ -94,7 +94,7 @@ pub async fn create_authorization_url(
 
     let state = params.get("state");
 
-    // Create authorization URL (in production, get from config)
+    // Create authorization URL (TODO: get from config)
     let authorization_endpoint = "https://auth.example.com/oauth/authorize";
     let authorization_url = PARService::create_authorization_url(
         authorization_endpoint,
@@ -189,7 +189,7 @@ fn extract_client_id(headers: &HeaderMap, form_client_id: &str) -> Result<String
     Ok(form_client_id.to_string())
 }
 
-/// Authenticate client (simplified implementation)
+/// Authenticate client (TODO: improve with proper error handling and logging)
 async fn authenticate_client(
     pool: &DbPool,
     client_id: &str,
@@ -208,8 +208,20 @@ async fn authenticate_client(
 
     // For confidential clients, validate client secret
     if let Some(_secret) = &client.secret {
-        // TODO: In production, validate the client secret from Authorization header
-        if !headers.contains_key("authorization") {
+        // Validate client secret from Authorization header using ClientAuthService
+        use crate::app::services::oauth::ClientAuthService;
+
+        if let Some(auth_header) = headers.get("authorization") {
+            if let Ok(auth_str) = auth_header.to_str() {
+                // Parse Basic authentication or JWT client assertion
+                match ClientAuthService::authenticate_client_from_header(pool, &client.id.to_string(), auth_str).await {
+                    Ok(_) => {}, // Authentication successful
+                    Err(_) => return Err("Invalid client credentials".to_string()),
+                }
+            } else {
+                return Err("Invalid authorization header format".to_string());
+            }
+        } else {
             return Err("Client authentication required".to_string());
         }
     }

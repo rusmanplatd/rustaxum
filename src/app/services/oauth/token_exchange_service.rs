@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc, Duration};
 use crate::database::DbPool;
 use crate::app::models::oauth::{CreateAccessToken, AccessToken};
 use crate::app::services::oauth::{TokenService, ClientService};
+use crate::app::services::oauth::token_service::RFC9068Claims;
 use ulid::Ulid;
 
 /// RFC 8693: OAuth 2.0 Token Exchange
@@ -196,21 +197,100 @@ impl TokenExchangeService {
         })
     }
 
-    /// Parse ID token (JWT) and extract context
+    /// Parse ID token (JWT) and extract context with full validation
     async fn parse_id_token(token: &str) -> Result<TokenContext> {
-        // TODO: In production, validate ID token signature and claims
-        let claims = TokenService::decode_jwt_token(token)?;
+        // Validate ID token signature and structure
+        let claims = Self::validate_id_token_signature(token)?;
+
+        // Validate token expiration
+        let now = chrono::Utc::now().timestamp() as usize;
+        if claims.exp < now {
+            return Err(anyhow::anyhow!("ID token has expired"));
+        }
+
+        // Validate not-before if present
+        if let Some(nbf) = claims.nbf {
+            if nbf > now {
+                return Err(anyhow::anyhow!("ID token not yet valid"));
+            }
+        }
+
+        // Validate issuer (required for ID tokens)
+        let expected_issuer = std::env::var("OAUTH_ISSUER")
+            .unwrap_or_else(|_| "https://auth.rustaxum.dev".to_string());
+        if &claims.iss != &expected_issuer {
+            return Err(anyhow::anyhow!("Invalid issuer in ID token: expected {}, got {}", expected_issuer, claims.iss));
+        }
+
+        // Validate required claims for ID tokens
+        if claims.sub.is_none() || claims.sub.as_ref().unwrap().is_empty() {
+            return Err(anyhow::anyhow!("ID token missing subject claim"));
+        }
+
+        if claims.aud.is_empty() {
+            return Err(anyhow::anyhow!("ID token missing audience claim"));
+        }
+
+        // Validate issued at time
+        let max_age = 300; // 5 minutes
+        if (now as i64 - claims.iat as i64) > max_age {
+            return Err(anyhow::anyhow!("ID token too old"));
+        }
 
         Ok(TokenContext {
-            token_id: claims.jti.to_string(),
-            user_id: Some(claims.sub.to_string()),
-            client_id: claims.aud.to_string(),
+            token_id: claims.jti.clone(),
+            user_id: claims.sub.clone(),
+            client_id: claims.aud.first().unwrap_or(&"unknown".to_string()).clone(),
             scopes: vec!["openid".to_string()], // ID tokens imply OpenID scope
-            expires_at: Some(chrono::DateTime::from_timestamp(claims.exp as i64, 0)
-                .ok_or_else(|| anyhow::anyhow!("Invalid expiration time"))?
-                .with_timezone(&Utc)),
+            expires_at: chrono::DateTime::from_timestamp(claims.exp as i64, 0)
+                .map(|dt| dt.with_timezone(&Utc)),
             token_type: TokenType::IdToken,
         })
+    }
+
+    /// Validate ID token signature and decode claims
+    fn validate_id_token_signature(token: &str) -> Result<RFC9068Claims> {
+        use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
+
+        // Parse JWT header to determine algorithm
+        let header = jsonwebtoken::decode_header(token)
+            .map_err(|e| anyhow::anyhow!("Invalid JWT header: {}", e))?;
+
+        // Get secret for verification (production: integrate with JWKS endpoint)
+        let secret = std::env::var("JWT_SECRET")
+            .unwrap_or_else(|_| "your-secret-key".to_string());
+
+        // Create validation settings
+        let mut validation = Validation::new(header.alg);
+        validation.validate_exp = true;
+        validation.validate_nbf = true;
+        validation.leeway = 60; // Allow 60 seconds clock skew
+
+        // Set expected issuer
+        let expected_issuer = std::env::var("OAUTH_ISSUER")
+            .unwrap_or_else(|_| "https://auth.rustaxum.dev".to_string());
+        validation.set_issuer(&[&expected_issuer]);
+
+        // For ID tokens, we don't validate audience here as it varies by client
+        validation.validate_aud = false;
+
+        // Create decoding key based on algorithm
+        let decoding_key = match header.alg {
+            Algorithm::HS256 | Algorithm::HS384 | Algorithm::HS512 => {
+                DecodingKey::from_secret(secret.as_bytes())
+            },
+            Algorithm::RS256 | Algorithm::RS384 | Algorithm::RS512 => {
+                // TODO: load RSA public key from JWKS endpoint
+                DecodingKey::from_secret(secret.as_bytes())
+            },
+            _ => return Err(anyhow::anyhow!("Unsupported JWT algorithm: {:?}", header.alg))
+        };
+
+        // Decode and validate the JWT
+        let token_data = decode::<RFC9068Claims>(token, &decoding_key, &validation)
+            .map_err(|e| anyhow::anyhow!("JWT validation failed: {}", e))?;
+
+        Ok(token_data.claims)
     }
 
     /// Parse generic JWT token and extract context
@@ -222,9 +302,8 @@ impl TokenExchangeService {
             user_id: Some(claims.sub.to_string()),
             client_id: claims.aud.to_string(),
             scopes: claims.scopes,
-            expires_at: Some(chrono::DateTime::from_timestamp(claims.exp as i64, 0)
-                .ok_or_else(|| anyhow::anyhow!("Invalid expiration time"))?
-                .with_timezone(&Utc)),
+            expires_at: claims.exp.map(|exp| chrono::DateTime::from_timestamp(exp as i64, 0)
+                .map(|dt| dt.with_timezone(&Utc))).flatten(),
             token_type: TokenType::Jwt,
         })
     }
@@ -256,7 +335,24 @@ impl TokenExchangeService {
         let client = ClientService::find_by_id(pool, client_id.to_string())?
             .ok_or_else(|| anyhow::anyhow!("Client not found"))?;
 
-        //TODO: In production, check client configuration for allowed exchange scenarios
+        // Check client configuration for allowed exchange scenarios
+        let client_metadata = &client.metadata;
+
+        let allowed_scenarios = client_metadata
+            .get("token_exchange_scenarios")
+            .and_then(|v| v.as_array())
+            .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>())
+            .unwrap_or_else(|| vec!["delegation"]); // Default to delegation only
+
+        let scenario_name = match scenario {
+            ExchangeScenario::Impersonation => "impersonation",
+            ExchangeScenario::Delegation => "delegation",
+            ExchangeScenario::ServiceToService => "service_to_service",
+        };
+
+        if !allowed_scenarios.contains(&scenario_name) {
+            return Err(anyhow::anyhow!("Client not configured for {} token exchange", scenario_name));
+        }
         
         match scenario {
             ExchangeScenario::Impersonation => {
@@ -290,8 +386,28 @@ impl TokenExchangeService {
         client: &crate::app::models::oauth::Client,
         audience: &str,
     ) -> bool {
-        // TODO: In production, this would check a database table of allowed audiences
-        !client.name.is_empty() && !audience.is_empty()
+        // For production: implement proper audience validation
+        // This would check a dedicated table like oauth_client_audiences
+        // or use a metadata field if added to the oauth_clients table
+
+        // Placeholder implementation - allow common OAuth audiences
+        let allowed_audiences = vec![
+            "https://api.example.com",
+            "https://graph.microsoft.com",
+            "https://www.googleapis.com/auth/userinfo.email",
+        ];
+
+        // Check if the target audience is in the allowed list
+        allowed_audiences.contains(&audience)
+            || allowed_audiences.iter().any(|allowed| {
+                // Support wildcard matching for domain-based audiences
+                if allowed.starts_with("*.") {
+                    let domain = &allowed[2..];
+                    audience.ends_with(domain)
+                } else {
+                    false
+                }
+            })
     }
 
     /// Validate and limit requested scopes
@@ -355,7 +471,7 @@ impl TokenExchangeService {
         let access_token = TokenService::create_access_token(pool, create_token, Some(3600), None).await?;
 
         // Create enhanced JWT with exchange context
-        let jwt_token = Self::generate_exchange_jwt(&access_token, client_id, request, scenario)?;
+        let jwt_token = Self::generate_exchange_jwt(pool, &access_token, client_id, request, scenario)?;
 
         Ok(ExchangedToken {
             access_token,
@@ -365,18 +481,61 @@ impl TokenExchangeService {
 
     /// Generate JWT token with token exchange context
     fn generate_exchange_jwt(
+        pool: &DbPool,
         access_token: &AccessToken,
         client_id: &str,
-        _request: &TokenExchangeRequest,
-        _scenario: ExchangeScenario,
+        request: &TokenExchangeRequest,
+        scenario: ExchangeScenario,
     ) -> Result<String> {
-        // TODO: In production, you would add exchange-specific claims to a custom JWT structure
-        let jwt_token = TokenService::generate_jwt_token(access_token, client_id)?;
+        use crate::app::services::oauth::TokenService;
+        use jsonwebtoken::{encode, Header, EncodingKey};
+        use serde_json::Value;
 
-        // TODO: Add token exchange specific claims when custom JWT structure is implemented
-        // This would include scenario, resource, audience, and other exchange context
+        // Get base JWT token
+        let jwt_token = TokenService::generate_jwt_token(pool, access_token, client_id)?;
 
-        Ok(jwt_token)
+        // Decode the existing token to get claims
+        let token_data = TokenService::decode_jwt_token(&jwt_token)?;
+        let mut claims = serde_json::to_value(&token_data)?;
+
+        // Add token exchange specific claims per RFC 8693
+        if let Some(claims_obj) = claims.as_object_mut() {
+            // Add exchange scenario context
+            claims_obj.insert("exchange_scenario".to_string(), Value::String(format!("{:?}", scenario)));
+
+            // Add audience if specified
+            if let Some(ref audience) = request.audience {
+                claims_obj.insert("aud".to_string(), Value::String(audience.clone()));
+            }
+
+            // Add resource if specified
+            if let Some(ref resource) = request.resource {
+                claims_obj.insert("resource".to_string(), Value::String(resource.clone()));
+            }
+
+            // Add requested token type
+            claims_obj.insert("requested_token_type".to_string(),
+                Value::String(request.requested_token_type.clone().unwrap_or_else(|| "urn:ietf:params:oauth:token-type:access_token".to_string())));
+
+            // Add subject token type for audit trail
+            claims_obj.insert("subject_token_type".to_string(), Value::String(request.subject_token_type.clone()));
+
+            // Add may_act claim for delegation scenarios
+            if matches!(scenario, ExchangeScenario::Delegation) {
+                if let Some(ref actor_token_type) = request.actor_token_type {
+                    claims_obj.insert("may_act".to_string(), serde_json::json!({
+                        "actor_token_type": actor_token_type
+                    }));
+                }
+            }
+        }
+
+        // Re-encode the token with exchange-specific claims
+        let header = Header::default();
+        let encoding_key = EncodingKey::from_secret(std::env::var("JWT_SECRET").unwrap_or_else(|_| "default_secret".to_string()).as_ref());
+        let new_token = encode(&header, &claims, &encoding_key)?;
+
+        Ok(new_token)
     }
 }
 

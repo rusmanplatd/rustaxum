@@ -46,17 +46,17 @@ CREATE TABLE {} (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ,
-    created_by CHAR(26) NOT NULL REFERENCES sys_users(id),
-    updated_by CHAR(26) NOT NULL REFERENCES sys_users(id),
-    deleted_by CHAR(26) REFERENCES sys_users(id)
+    created_by_id CHAR(26) NOT NULL REFERENCES sys_users(id),
+    updated_by_id CHAR(26) NOT NULL REFERENCES sys_users(id),
+    deleted_by_id CHAR(26) REFERENCES sys_users(id)
 );
 
 -- Add indexes
 CREATE INDEX idx_{}_name ON {} (name);
 CREATE INDEX idx_{}_created_at ON {} (created_at);
-CREATE INDEX idx_{}_created_by ON sys_users (created_by);
-CREATE INDEX idx_{}_updated_by ON sys_users (updated_by);
-CREATE INDEX idx_{}_deleted_by ON sys_users (deleted_by);
+CREATE INDEX idx_{}_created_by_id ON sys_users (created_by_id);
+CREATE INDEX idx_{}_updated_by_id ON sys_users (updated_by_id);
+CREATE INDEX idx_{}_deleted_by_id ON sys_users (deleted_by_id);
 "#,
             table_name,
             table_name,

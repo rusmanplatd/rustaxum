@@ -78,11 +78,11 @@ pub struct UserWithAuditResource {
     /// Soft delete timestamp
     pub deleted_at: Option<DateTime<Utc>>,
     /// User who created this record
-    pub created_by: Option<String>,
+    pub created_by_id: Option<String>,
     /// User who last updated this record
-    pub updated_by: Option<String>,
+    pub updated_by_id: Option<String>,
     /// User who deleted this record
-    pub deleted_by: Option<String>,
+    pub deleted_by_id: Option<String>,
 }
 
 impl UserResource {
@@ -130,9 +130,9 @@ impl UserWithAuditResource {
             created_at: model.created_at,
             updated_at: model.updated_at,
             deleted_at: model.deleted_at,
-            created_by: model.created_by.map(|id| id.to_string()),
-            updated_by: model.updated_by.map(|id| id.to_string()),
-            deleted_by: model.deleted_by.map(|id| id.to_string()),
+            created_by_id: model.created_by_id.map(|id| id.to_string()),
+            updated_by_id: model.updated_by_id.map(|id| id.to_string()),
+            deleted_by_id: model.deleted_by_id.map(|id| id.to_string()),
         }
     }
 

@@ -30,12 +30,12 @@ struct MessageResponse {
     params(
         ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
         ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
-        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, iso_code, phone_code, created_at, updated_at (prefix with '-' for descending)"),
-        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: provinces"),
-        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, iso_code, phone_code (e.g., filter[name]=USA, filter[iso_code]=US)"),
-        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, iso_code, phone_code, created_at, updated_at"),
-        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
-        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
+        ("sort" = Option<String>, Query, description = "Multi-column sorting. Available fields: id, name, iso_code, phone_code, created_at, updated_at. Syntax: 'field1,-field2,field3:desc' (- prefix or :desc for descending). Example: 'name,-created_at,iso_code:asc'"),
+        ("include" = Option<String>, Query, description = "Eager load relationships with comprehensive audit user support. Available: provinces, createdBy, updatedBy, deletedBy, createdBy.organizations, updatedBy.organizations, deletedBy.organizations, createdBy.organizations.position, updatedBy.organizations.position, deletedBy.organizations.position, createdBy.organizations.position.level, updatedBy.organizations.position.level, deletedBy.organizations.position.level. Supports deep nested relationships. Example: 'provinces,createdBy.organizations.position.level'"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Advanced filtering with operators. Available filters: name, iso_code, phone_code, created_at, updated_at. Operators: eq, ne, gt, gte, lt, lte, like, ilike, contains, starts_with, ends_with, in, not_in, is_null, is_not_null, between. Examples: filter[name][contains]=united, filter[iso_code][in]=US,CA,GB, filter[created_at][gte]=2023-01-01"),
+        ("fields" = Option<String>, Query, description = "Field selection for optimized responses. Available: id, name, iso_code, phone_code, created_at, updated_at. Example: fields[countries]=id,name,iso_code"),
+        ("cursor" = Option<String>, Query, description = "Cursor for high-performance pagination. Base64-encoded JSON cursor from previous response"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination strategy: 'offset' (traditional page/per_page) or 'cursor' (high-performance, default)"),
     ),
     responses(
         (status = 200, description = "List of countries", body = Vec<crate::app::models::country::CountryResponse>),

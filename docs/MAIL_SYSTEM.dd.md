@@ -68,7 +68,7 @@ The mail system is configured through environment variables in your `.env` file:
 | ---------------------- | ---------------------- | ---------------------------------------- |
 | `MAIL_MAILER`          | `smtp`                 | Mail driver to use (`smtp`, `log`)       |
 | `MAIL_HOST`            | `localhost`            | SMTP server hostname                     |
-| `MAIL_PORT`            | `1025`                 | SMTP server port                         |
+| `MAIL_PORT`            | `1425`                 | SMTP server port                         |
 | `MAIL_USERNAME`        | ``                     | SMTP authentication username             |
 | `MAIL_PASSWORD`        | ``                     | SMTP authentication password             |
 | `MAIL_ENCRYPTION`      | `tls`                  | Encryption method (`tls`, `ssl`, `none`) |

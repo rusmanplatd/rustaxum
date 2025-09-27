@@ -15,7 +15,7 @@ impl ServiceActivityLogger for RoleService {}
 impl RoleService {
     pub async fn create(pool: &DbPool, data: CreateRole, created_by: Option<&str>) -> Result<Role> {
         let mut conn = pool.get()?;
-        let role = Role::new(data.name.clone(), data.description.clone(), data.guard_name.clone());
+        let role = Role::new(data.name.clone(), data.description.clone(), data.guard_name.clone(), None);
 
         diesel::insert_into(sys_roles::table)
             .values((

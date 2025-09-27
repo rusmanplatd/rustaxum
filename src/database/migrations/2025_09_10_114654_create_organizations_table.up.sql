@@ -25,9 +25,9 @@ CREATE TABLE organizations (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ,
-    created_by CHAR(26) REFERENCES sys_users(id),
-    updated_by CHAR(26) REFERENCES sys_users(id),
-    deleted_by CHAR(26) REFERENCES sys_users(id),
+    created_by_id CHAR(26) REFERENCES sys_users(id),
+    updated_by_id CHAR(26) REFERENCES sys_users(id),
+    deleted_by_id CHAR(26) REFERENCES sys_users(id),
     UNIQUE (parent_id, code)
 );
 
@@ -38,6 +38,6 @@ CREATE INDEX idx_organizations_parent_id ON organizations (parent_id);
 CREATE INDEX idx_organizations_code ON organizations (code);
 CREATE INDEX idx_organizations_is_active ON organizations (is_active);
 CREATE INDEX idx_organizations_created_at ON organizations (created_at);
-CREATE INDEX idx_organizations_created_by ON organizations (created_by);
-CREATE INDEX idx_organizations_updated_by ON organizations (updated_by);
-CREATE INDEX idx_organizations_deleted_by ON organizations (deleted_by);
+CREATE INDEX idx_organizations_created_by_id ON organizations (created_by_id);
+CREATE INDEX idx_organizations_updated_by_id ON organizations (updated_by_id);
+CREATE INDEX idx_organizations_deleted_by_id ON organizations (deleted_by_id);

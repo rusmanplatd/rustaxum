@@ -4,9 +4,10 @@ use diesel::prelude::*;
 use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use crate::app::query_builder::{SortDirection};
+use crate::app::models::{HasModelType, activity_log::HasId};
 
 /// Database notification model
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, QueryableByName)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable, QueryableByName)]
 #[diesel(table_name = crate::schema::notifications)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Notification {
@@ -85,7 +86,8 @@ pub struct NewNotification {
 }
 
 /// Update notification payload
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, AsChangeset)]
+#[diesel(table_name = crate::schema::notifications)]
 pub struct UpdateNotification {
     pub read_at: Option<DateTime<Utc>>,
 }
@@ -205,6 +207,74 @@ impl crate::app::query_builder::Queryable for Notification {
 
     fn default_sort() -> Option<(&'static str, SortDirection)> {
         Some(("created_at", SortDirection::Desc))
+    }
+}
+
+impl crate::app::query_builder::Filterable for Notification {
+    fn apply_basic_filter(column: &str, operator: &str, value: &serde_json::Value) -> String {
+        match (column, operator) {
+            ("id", op) | ("notifiable_id", op) => {
+                format!("{} {} '{}'", column, op, value.as_str().unwrap_or(""))
+            }
+            ("notification_type", "contains") | ("notifiable_type", "contains") => {
+                format!("LOWER({}) LIKE LOWER('%{}%')", column, value.as_str().unwrap_or("").replace('\'', "''"))
+            }
+            ("notification_type", "starts_with") | ("notifiable_type", "starts_with") => {
+                format!("LOWER({}) LIKE LOWER('{}%')", column, value.as_str().unwrap_or("").replace('\'', "''"))
+            }
+            ("notification_type", "ends_with") | ("notifiable_type", "ends_with") => {
+                format!("LOWER({}) LIKE LOWER('%{}')", column, value.as_str().unwrap_or("").replace('\'', "''"))
+            }
+            ("read_at", "is_null") => {
+                format!("{} IS NULL", column)
+            }
+            ("read_at", "is_not_null") => {
+                format!("{} IS NOT NULL", column)
+            }
+            ("read_at", op) | ("created_at", op) | ("updated_at", op) => {
+                format!("{} {} '{}'", column, op, value.as_str().unwrap_or(""))
+            }
+            ("priority", op) | ("retry_count", op) | ("max_retries", op) => {
+                format!("{} {} {}", column, op, value.as_i64().unwrap_or(0))
+            }
+            _ => format!("{} = '{}'", column, value.as_str().unwrap_or(""))
+        }
+    }
+}
+
+impl crate::app::query_builder::Sortable for Notification {
+    fn apply_basic_sort(column: &str, direction: &str) -> String {
+        match column {
+            "id" | "notification_type" | "notifiable_id" | "notifiable_type" |
+            "read_at" | "created_at" | "updated_at" | "sent_at" | "failed_at" | "scheduled_at" |
+            "priority" | "retry_count" | "max_retries" => {
+                format!("{} {}", column, direction.to_uppercase())
+            }
+            _ => format!("created_at {}", direction.to_uppercase())
+        }
+    }
+}
+
+impl crate::app::query_builder::Includable for Notification {
+    fn load_relationship(_ids: &[String], _relationship: &str, _conn: &mut diesel::pg::PgConnection) -> anyhow::Result<serde_json::Value> {
+        Ok(serde_json::json!({}))
+    }
+
+    fn load_relationships(_ids: &[String], _includes: &[String], _conn: &mut diesel::pg::PgConnection) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
+
+impl HasModelType for Notification {
+    fn model_type() -> &'static str {
+        "Notification"
+    }
+}
+
+impl HasId for Notification {
+    fn id(&self) -> String {
+        self.id.to_string()
     }
 }
 

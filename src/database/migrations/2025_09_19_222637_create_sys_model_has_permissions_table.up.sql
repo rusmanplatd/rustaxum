@@ -9,9 +9,9 @@ CREATE TABLE sys_model_has_permissions (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ,
-    created_by CHAR(26) NOT NULL REFERENCES sys_users(id),
-    updated_by CHAR(26) NOT NULL REFERENCES sys_users(id),
-    deleted_by CHAR(26) REFERENCES sys_users(id),
+    created_by_id CHAR(26) NOT NULL REFERENCES sys_users(id),
+    updated_by_id CHAR(26) NOT NULL REFERENCES sys_users(id),
+    deleted_by_id CHAR(26) REFERENCES sys_users(id),
     FOREIGN KEY (permission_id) REFERENCES sys_permissions(id) ON DELETE CASCADE
 );
 

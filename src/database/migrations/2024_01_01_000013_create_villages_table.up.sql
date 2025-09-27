@@ -9,9 +9,9 @@ CREATE TABLE villages (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ,
-    created_by CHAR(26) REFERENCES sys_users(id),
-    updated_by CHAR(26) REFERENCES sys_users(id),
-    deleted_by CHAR(26) REFERENCES sys_users(id),
+    created_by_id CHAR(26) REFERENCES sys_users(id),
+    updated_by_id CHAR(26) REFERENCES sys_users(id),
+    deleted_by_id CHAR(26) REFERENCES sys_users(id),
     FOREIGN KEY (district_id) REFERENCES districts(id) ON DELETE CASCADE
 );
 
@@ -21,6 +21,6 @@ CREATE INDEX idx_villages_district_id ON villages (district_id);
 CREATE INDEX idx_villages_code ON villages (code);
 CREATE INDEX idx_villages_coordinates ON villages (latitude, longitude);
 CREATE INDEX idx_villages_created_at ON villages (created_at);
-CREATE INDEX idx_villages_created_by ON villages (created_by);
-CREATE INDEX idx_villages_updated_by ON villages (updated_by);
-CREATE INDEX idx_villages_deleted_by ON villages (deleted_by);
+CREATE INDEX idx_villages_created_by_id ON villages (created_by_id);
+CREATE INDEX idx_villages_updated_by_id ON villages (updated_by_id);
+CREATE INDEX idx_villages_deleted_by_id ON villages (deleted_by_id);

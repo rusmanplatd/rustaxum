@@ -51,11 +51,11 @@ pub struct OrganizationPosition {
     /// Soft delete timestamp
     pub deleted_at: Option<DateTime<Utc>>,
     /// User who created this position
-    pub created_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
     /// User who last updated this position
-    pub updated_by: Option<DieselUlid>,
+    pub updated_by_id: Option<DieselUlid>,
     /// User who deleted this position
-    pub deleted_by: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 /// Create organization position payload for service layer
@@ -92,9 +92,9 @@ pub struct NewOrganizationPosition {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by: Option<DieselUlid>,
-    pub updated_by: Option<DieselUlid>,
-    pub deleted_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
+    pub updated_by_id: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 /// Update organization position payload for service layer
@@ -131,9 +131,9 @@ pub struct OrganizationPositionResponse {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by: Option<DieselUlid>,
-    pub updated_by: Option<DieselUlid>,
-    pub deleted_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
+    pub updated_by_id: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 impl NewOrganizationPosition {
@@ -155,9 +155,9 @@ impl NewOrganizationPosition {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by,
-            updated_by: created_by,
-            deleted_by: None,
+            created_by_id: created_by,
+            updated_by_id: created_by,
+            deleted_by_id: None,
         }
     }
 }
@@ -180,9 +180,9 @@ impl OrganizationPosition {
             created_at: self.created_at,
             updated_at: self.updated_at,
             deleted_at: self.deleted_at,
-            created_by: self.created_by,
-            updated_by: self.updated_by,
-            deleted_by: self.deleted_by,
+            created_by_id: self.created_by_id,
+            updated_by_id: self.updated_by_id,
+            deleted_by_id: self.deleted_by_id,
         }
     }
 }
@@ -207,9 +207,9 @@ impl crate::app::query_builder::Queryable for OrganizationPosition {
             "created_at",
             "updated_at",
             "deleted_at",
-            "created_by",
-            "updated_by",
-            "deleted_by",
+            "created_by_id",
+            "updated_by_id",
+            "deleted_by_id",
         ]
     }
 
@@ -228,9 +228,9 @@ impl crate::app::query_builder::Queryable for OrganizationPosition {
             "created_at",
             "updated_at",
             "deleted_at",
-            "created_by",
-            "updated_by",
-            "deleted_by",
+            "created_by_id",
+            "updated_by_id",
+            "deleted_by_id",
         ]
     }
 
@@ -251,9 +251,9 @@ impl crate::app::query_builder::Queryable for OrganizationPosition {
             "created_at",
             "updated_at",
             "deleted_at",
-            "created_by",
-            "updated_by",
-            "deleted_by",
+            "created_by_id",
+            "updated_by_id",
+            "deleted_by_id",
         ]
     }
 
@@ -266,7 +266,102 @@ impl crate::app::query_builder::Queryable for OrganizationPosition {
             "organization",
             "level",
             "users",
+            "createdBy",
+            "updatedBy",
+            "deletedBy",
+            "createdBy.organizations",
+            "updatedBy.organizations",
+            "deletedBy.organizations",
+            "createdBy.organizations.position",
+            "updatedBy.organizations.position",
+            "deletedBy.organizations.position",
+            "createdBy.organizations.position.level",
+            "updatedBy.organizations.position.level",
+            "deletedBy.organizations.position.level",
         ]
+    }
+}
+
+// Implement enhanced query builder traits for OrganizationPosition
+impl crate::app::query_builder::Filterable for OrganizationPosition {
+    fn apply_basic_filter(column: &str, operator: &str, value: &serde_json::Value) -> String {
+        match (column, operator) {
+            ("name", "contains") => {
+                format!("LOWER({}) LIKE LOWER('%{}%')", column, value.as_str().unwrap_or("").replace('\'', "''"))
+            }
+            ("name", "starts_with") => {
+                format!("LOWER({}) LIKE LOWER('{}%')", column, value.as_str().unwrap_or("").replace('\'', "''"))
+            }
+            ("name", "ends_with") => {
+                format!("LOWER({}) LIKE LOWER('%{}')", column, value.as_str().unwrap_or("").replace('\'', "''"))
+            }
+            ("code", "=") => {
+                format!("{} = '{}'", column, value.as_str().unwrap_or("").replace('\'', "''"))
+            }
+            ("is_active", "=") => {
+                format!("{} = {}", column, value.as_bool().unwrap_or(false))
+            }
+            ("min_salary", op) | ("max_salary", op) => {
+                if let Some(num) = value.as_f64() {
+                    format!("{} {} {}", column, op, num)
+                } else {
+                    format!("{} = 0", column)
+                }
+            }
+            ("max_incumbents", op) => {
+                format!("{} {} {}", column, op, value.as_i64().unwrap_or(0))
+            }
+            _ => {
+                match value {
+                    serde_json::Value::String(s) => format!("{} {} '{}'", column, operator, s.replace('\'', "''")),
+                    serde_json::Value::Number(n) => format!("{} {} {}", column, operator, n),
+                    serde_json::Value::Bool(b) => format!("{} {} {}", column, operator, b),
+                    serde_json::Value::Null => format!("{} IS NULL", column),
+                    _ => format!("{} {} '{}'", column, operator, value.to_string().replace('\'', "''"))
+                }
+            }
+        }
+    }
+}
+
+impl crate::app::query_builder::Sortable for OrganizationPosition {
+    fn apply_basic_sort(column: &str, direction: &str) -> String {
+        format!("{} {}", column, direction)
+    }
+}
+
+impl crate::app::query_builder::Includable for OrganizationPosition {
+    fn load_relationships(_ids: &[String], _includes: &[String], _conn: &mut diesel::pg::PgConnection) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    fn load_relationship(_ids: &[String], relationship: &str, _conn: &mut diesel::pg::PgConnection) -> anyhow::Result<serde_json::Value> {
+        match relationship {
+            "organization" => Ok(serde_json::json!({})),
+            "level" => Ok(serde_json::json!({})),
+            "users" => Ok(serde_json::json!([])),
+            _ => Ok(serde_json::json!({}))
+        }
+    }
+
+    fn build_join_clause(relationship: &str, main_table: &str) -> Option<String> {
+        match relationship {
+            "organization" => Some(format!("LEFT JOIN organizations ON {}.organization_id = organizations.id", main_table)),
+            "level" => Some(format!("LEFT JOIN organization_position_levels ON {}.organization_position_level_id = organization_position_levels.id", main_table)),
+            "users" => Some(format!("LEFT JOIN user_organizations ON {}.id = user_organizations.organization_position_id LEFT JOIN sys_users ON user_organizations.user_id = sys_users.id", main_table)),
+            "users.organizations" => Some(format!("LEFT JOIN user_organizations ON {}.id = user_organizations.organization_position_id LEFT JOIN sys_users ON user_organizations.user_id = sys_users.id LEFT JOIN organizations AS user_orgs ON user_organizations.organization_id = user_orgs.id", main_table)),
+            "organization.parent" => Some(format!("LEFT JOIN organizations ON {}.organization_id = organizations.id LEFT JOIN organizations AS parent_orgs ON organizations.parent_id = parent_orgs.id", main_table)),
+            _ => None
+        }
+    }
+
+    fn get_foreign_key(relationship: &str) -> Option<String> {
+        match relationship {
+            "organization" => Some("organization_id".to_string()),
+            "level" => Some("organization_position_level_id".to_string()),
+            "users" => Some("organization_position_id".to_string()),
+            _ => None
+        }
     }
 }
 

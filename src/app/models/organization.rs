@@ -78,11 +78,11 @@ pub struct Organization {
     /// Soft delete timestamp
     pub deleted_at: Option<DateTime<Utc>>,
     /// User who created this organization
-    pub created_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
     /// User who last updated this organization
-    pub updated_by: Option<DieselUlid>,
+    pub updated_by_id: Option<DieselUlid>,
     /// User who deleted this organization
-    pub deleted_by: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 /// Create organization payload for service layer
@@ -140,9 +140,9 @@ pub struct NewOrganization {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by: Option<DieselUlid>,
-    pub updated_by: Option<DieselUlid>,
-    pub deleted_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
+    pub updated_by_id: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 /// Update organization payload for service layer
@@ -199,9 +199,9 @@ pub struct OrganizationResponse {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by: Option<DieselUlid>,
-    pub updated_by: Option<DieselUlid>,
-    pub deleted_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
+    pub updated_by_id: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 impl NewOrganization {
@@ -233,9 +233,9 @@ impl NewOrganization {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by,
-            updated_by: created_by,
-            deleted_by: None,
+            created_by_id: created_by,
+            updated_by_id: created_by,
+            deleted_by_id: None,
         }
     }
 }
@@ -268,9 +268,9 @@ impl Organization {
             created_at: self.created_at,
             updated_at: self.updated_at,
             deleted_at: self.deleted_at,
-            created_by: self.created_by,
-            updated_by: self.updated_by,
-            deleted_by: self.deleted_by,
+            created_by_id: self.created_by_id,
+            updated_by_id: self.updated_by_id,
+            deleted_by_id: self.deleted_by_id,
         }
     }
 }
@@ -318,9 +318,9 @@ impl crate::app::query_builder::Queryable for Organization {
             "created_at",
             "updated_at",
             "deleted_at",
-            "created_by",
-            "updated_by",
-            "deleted_by",
+            "created_by_id",
+            "updated_by_id",
+            "deleted_by_id",
         ]
     }
 
@@ -343,9 +343,9 @@ impl crate::app::query_builder::Queryable for Organization {
             "created_at",
             "updated_at",
             "deleted_at",
-            "created_by",
-            "updated_by",
-            "deleted_by",
+            "created_by_id",
+            "updated_by_id",
+            "deleted_by_id",
         ]
     }
 
@@ -376,9 +376,9 @@ impl crate::app::query_builder::Queryable for Organization {
             "created_at",
             "updated_at",
             "deleted_at",
-            "created_by",
-            "updated_by",
-            "deleted_by",
+            "created_by_id",
+            "updated_by_id",
+            "deleted_by_id",
         ]
     }
 
@@ -388,11 +388,127 @@ impl crate::app::query_builder::Queryable for Organization {
 
     fn allowed_includes() -> Vec<&'static str> {
         vec![
+            "roles",
+            "permissions",
+            "roles.permissions",
+            "permissions.roles",
+            "roles.organization",
+            "permissions.organization",
+            "authorizationContext",
+            "scopedRoles",
+            "scopedPermissions",
             "parent",
             "children",
+            "levels",
             "positions",
             "users",
+            "positions.level",
+            "users.roles",
+            "createdBy",
+            "updatedBy",
+            "deletedBy",
+            "createdBy.organizations",
+            "updatedBy.organizations",
+            "deletedBy.organizations",
+            "createdBy.organizations.position",
+            "updatedBy.organizations.position",
+            "deletedBy.organizations.position",
+            "createdBy.organizations.position.level",
+            "updatedBy.organizations.position.level",
+            "deletedBy.organizations.position.level",
         ]
+    }
+}
+
+// Implement the enhanced filtering trait
+impl crate::app::query_builder::Filterable for Organization {
+    fn apply_basic_filter(column: &str, operator: &str, value: &serde_json::Value) -> String {
+        match operator {
+            "=" => format!("{} = {}", column, Self::format_filter_value(value)),
+            "!=" => format!("{} != {}", column, Self::format_filter_value(value)),
+            _ => format!("{} {} {}", column, operator, Self::format_filter_value(value))
+        }
+    }
+}
+
+// Implement the enhanced sorting trait
+impl crate::app::query_builder::Sortable for Organization {
+    fn apply_basic_sort(column: &str, direction: &str) -> String {
+        format!("{} {}", column, direction)
+    }
+}
+
+// Implement the relationship inclusion trait
+impl crate::app::query_builder::Includable for Organization {
+    fn load_relationships(ids: &[String], includes: &[String], _conn: &mut diesel::pg::PgConnection) -> anyhow::Result<()> {
+        for include in includes {
+            match include.as_str() {
+                "roles" => {
+                    crate::app::query_builder::RolePermissionLoader::load_model_roles("organizations", ids, _conn)?;
+                },
+                "permissions" => {
+                    crate::app::query_builder::RolePermissionLoader::load_model_permissions("organizations", ids, _conn)?;
+                },
+                "roles.permissions" => {
+                    crate::app::query_builder::RolePermissionLoader::load_model_roles_with_permissions("organizations", ids, _conn)?;
+                },
+                "permissions.roles" => {
+                    crate::app::query_builder::RolePermissionLoader::load_model_permissions_with_roles("organizations", ids, _conn)?;
+                },
+                "roles.organization" => {
+                    crate::app::query_builder::RolePermissionLoader::load_roles_with_organization("organizations", ids, _conn)?;
+                },
+                "permissions.organization" => {
+                    crate::app::query_builder::RolePermissionLoader::load_permissions_with_organization("organizations", ids, _conn)?;
+                },
+                "authorizationContext" => {
+                    crate::app::query_builder::RolePermissionLoader::load_complete_authorization_context("organizations", ids, _conn)?;
+                },
+                "scopedRoles" => {
+                    crate::app::query_builder::RolePermissionLoader::load_scoped_roles("organizations", ids, _conn)?;
+                },
+                "scopedPermissions" => {
+                    crate::app::query_builder::RolePermissionLoader::load_scoped_permissions("organizations", ids, _conn)?;
+                },
+                "parent" => {
+                    tracing::debug!("Loading parent organization for organizations: {:?}", ids);
+                },
+                "children" => {
+                    tracing::debug!("Loading child organizations for organizations: {:?}", ids);
+                },
+                "positions" => {
+                    tracing::debug!("Loading positions for organizations: {:?}", ids);
+                },
+                "users" => {
+                    tracing::debug!("Loading users for organizations: {:?}", ids);
+                },
+                "positions.level" => {
+                    tracing::debug!("Loading positions.level for organizations: {:?}", ids);
+                },
+                "users.roles" => {
+                    tracing::debug!("Loading users.roles for organizations: {:?}", ids);
+                },
+                _ => {
+                    tracing::warn!("Unknown relationship: {}", include);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn get_foreign_key(relationship: &str) -> Option<String> {
+        match relationship {
+            "parent" => Some("parent_id".to_string()),
+            "children" => Some("parent_id".to_string()),
+            "positions" => Some("organization_id".to_string()),
+            "users" => Some("organization_id".to_string()),
+            _ => None
+        }
+    }
+
+    fn should_eager_load(relationship: &str) -> bool {
+        // Load positions and users eagerly for organizational hierarchy
+        matches!(relationship, "positions" | "users")
     }
 }
 

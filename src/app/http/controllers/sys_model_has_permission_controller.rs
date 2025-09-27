@@ -20,10 +20,14 @@ use crate::app::docs::{ErrorResponse, MessageResponse};
     summary = "List all model permissions",
     description = "Get all model permission assignments with optional filtering, sorting, and pagination",
     params(
-        ("page" = Option<u32>, Query, description = "Page number for pagination"),
-        ("limit" = Option<u32>, Query, description = "Number of items per page (max 100)"),
-        ("sort" = Option<String>, Query, description = "Sort field"),
-        ("direction" = Option<String>, Query, description = "Sort direction (asc/desc)"),
+        ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
+        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, model_type, model_id, permission_id, scope_type, scope_id, created_at, updated_at (prefix with '-' for descending)"),
+        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: permission, model, createdBy, updatedBy, deletedBy, createdBy.organizations.position.level, updatedBy.organizations.position.level, deletedBy.organizations.position.level"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: model_type, model_id, permission_id, scope_type, scope_id (e.g., filter[model_type]=User, filter[scope_type]=organization)"),
+        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, model_type, model_id, permission_id, scope_type, scope_id, created_at, updated_at"),
+        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
     ),
     responses(
         (status = 200, description = "List of model permissions", body = Vec<SysModelHasPermissionResponse>),

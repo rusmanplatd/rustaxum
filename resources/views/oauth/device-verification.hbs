@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Authorization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .error {
+            color: #d32f2f;
+            background: #ffebee;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #d32f2f;
+        }
+        .success {
+            color: #2e7d32;
+            background: #e8f5e8;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2e7d32;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+        button {
+            background: #1976d2;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background: #1565c0;
+        }
+        .client-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .scope-list {
+            list-style: none;
+            padding: 0;
+        }
+        .scope-list li {
+            background: #e3f2fd;
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 4px;
+            border-left: 3px solid #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Device Authorization</h1>
+        <p>Enter the code displayed on your device to authorize access.</p>
+
+        {{#if error}}
+        <div class="error">❌ {{error}}</div>
+        {{/if}}
+
+        {{#if client_name}}
+        <div class="client-info">
+            <h3>📱 Application: {{client_name}}</h3>
+            {{#if scopes}}
+            {{#unless (isEmpty scopes)}}
+            <p><strong>Permissions requested:</strong></p>
+            <ul class="scope-list">
+                {{#each scopes}}
+                <li>🔑 {{this}}</li>
+                {{/each}}
+            </ul>
+            {{else}}
+            <p><em>No specific permissions requested</em></p>
+            {{/unless}}
+            {{else}}
+            <p><em>No specific permissions requested</em></p>
+            {{/if}}
+        </div>
+        {{/if}}
+
+        <form method="post" action="/oauth/device/verify">
+            <div class="form-group">
+                <label for="user_code">Device Code:</label>
+                <input type="text"
+                       id="user_code"
+                       name="user_code"
+                       placeholder="ABCD-EFGH"
+                       value="{{default user_code ""}}"
+                       pattern="[A-Z0-9]{4}-[A-Z0-9]{4}"
+                       maxlength="9"
+                       required
+                       autofocus>
+                <small style="color: #666; display: block; margin-top: 5px;">
+                    Enter the 8-character code shown on your device (format: ABCD-EFGH)
+                </small>
+            </div>
+            <button type="submit">Authorize Device</button>
+        </form>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
+            <p><strong>Having trouble?</strong></p>
+            <ul>
+                <li>Make sure you entered the code exactly as shown on your device</li>
+                <li>The code is case-insensitive but must include the hyphen</li>
+                <li>Device codes expire after 30 minutes</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Auto-format user code input
+        document.getElementById('user_code').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^A-Z0-9]/g, '').toUpperCase();
+            if (value.length > 4) {
+                value = value.substring(0, 4) + '-' + value.substring(4, 8);
+            }
+            e.target.value = value;
+        });
+    </script>
+</body>
+</html>

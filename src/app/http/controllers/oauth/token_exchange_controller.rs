@@ -225,7 +225,7 @@ fn extract_client_credentials(
     // Try form parameters
     if let Some(client_id) = &form.client_id {
         if let Some(_secret) = &form.client_secret {
-            // In production, validate the client secret
+            // TODO: validate the client secret
             return Ok(client_id.clone());
         }
         // Public client (no secret required)

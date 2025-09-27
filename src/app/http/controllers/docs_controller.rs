@@ -60,7 +60,39 @@ pub async fn docs_info() -> impl IntoResponse {
             "redoc": "/docs/redoc",
             "rapidoc": "/docs/rapidoc"
         },
-        "description": "Access points for API documentation in various formats"
+        "description": "Access points for API documentation in various formats",
+        "query_builder": {
+            "description": "Advanced Laravel-style query builder with comprehensive filtering, sorting, pagination, and relationship inclusion",
+            "documentation": "/docs/API_USAGE_GUIDE.md",
+            "features": [
+                "Complex filtering with 15+ operators",
+                "Multi-column sorting with flexible syntax",
+                "High-performance cursor and offset-based pagination",
+                "Nested relationship inclusion with dot notation",
+                "Field selection for optimized responses",
+                "JSON field querying support",
+                "Security validation and SQL injection protection",
+                "Enterprise-grade performance optimization"
+            ],
+            "real_world_examples": {
+                "geographic_analysis": "filter[continent][eq]=North America&filter[population][gte]=10000000&sort=population:desc&include=provinces.cities",
+                "user_management": "filter[status][eq]=active&filter[email_verified_at][is_not_null]=true&include=organizations.positions,roles.permissions",
+                "organizational_hierarchy": "filter[type][in]=department,division&filter[level][between]=1,3&include=parent,children,users.roles",
+                "geospatial_search": "filter[latitude][between]=40,50&filter[longitude][between]=-80,-70&filter[population][gte]=100000&include=province.country",
+                "performance_optimized": "fields[users]=id,name,email&pagination_type=cursor&per_page=100&sort=-created_at"
+            },
+            "operators": [
+                "eq", "ne", "gt", "gte", "lt", "lte",
+                "like", "ilike", "contains", "starts_with", "ends_with",
+                "in", "not_in", "is_null", "is_not_null", "between"
+            ],
+            "performance_tips": [
+                "Use cursor pagination for datasets > 10,000 records",
+                "Select only required fields to reduce bandwidth by 70-80%",
+                "Limit relationship depth to 3 levels for optimal performance",
+                "Filter early to reduce dataset size before sorting/pagination"
+            ]
+        }
     });
 
     (StatusCode::OK, ResponseJson(info))

@@ -7,7 +7,7 @@ use crate::app::query_builder::{SortDirection};
 
 /// Country model representing a country entity
 /// Contains country information including name, ISO code, and phone code
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
 #[diesel(table_name = crate::schema::countries)]
 pub struct Country {
     /// Unique identifier for the country
@@ -31,11 +31,11 @@ pub struct Country {
     /// Soft delete timestamp
     pub deleted_at: Option<DateTime<Utc>>,
     /// User who created this record
-    pub created_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
     /// User who last updated this record
-    pub updated_by: Option<DieselUlid>,
+    pub updated_by_id: Option<DieselUlid>,
     /// User who deleted this record
-    pub deleted_by: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 /// Create country payload for service layer
@@ -57,9 +57,9 @@ pub struct NewCountry {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by: Option<DieselUlid>,
-    pub updated_by: Option<DieselUlid>,
-    pub deleted_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
+    pub updated_by_id: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 /// Update country payload for service layer
@@ -92,9 +92,9 @@ impl NewCountry {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by: None,
-            updated_by: None,
-            deleted_by: None,
+            created_by_id: None,
+            updated_by_id: None,
+            deleted_by_id: None,
         }
     }
 }
@@ -110,9 +110,9 @@ impl Country {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by: None,
-            updated_by: None,
-            deleted_by: None,
+            created_by_id: None,
+            updated_by_id: None,
+            deleted_by_id: None,
         }
     }
 
@@ -167,8 +167,233 @@ impl crate::app::query_builder::Queryable for Country {
         ]
     }
 
+    fn allowed_includes() -> Vec<&'static str> {
+        vec![
+            "roles",
+            "permissions",
+            "roles.permissions",
+            "permissions.roles",
+            "roles.organization",
+            "permissions.organization",
+            "authorizationContext",
+            "scopedRoles",
+            "scopedPermissions",
+            "provinces",
+            "createdBy",
+            "updatedBy",
+            "deletedBy",
+            "createdBy.organizations",
+            "updatedBy.organizations",
+            "deletedBy.organizations",
+            "createdBy.organizations.position",
+            "updatedBy.organizations.position",
+            "deletedBy.organizations.position",
+            "createdBy.organizations.position.level",
+            "updatedBy.organizations.position.level",
+            "deletedBy.organizations.position.level",
+        ]
+    }
+
     fn default_sort() -> Option<(&'static str, SortDirection)> {
         Some(("name", SortDirection::Asc))
+    }
+}
+
+// Implement the enhanced filtering trait
+impl crate::app::query_builder::Filterable for Country {
+    fn apply_basic_filter(column: &str, operator: &str, value: &serde_json::Value) -> String {
+        match (column, operator) {
+            ("id", op) | ("created_by_id", op) | ("updated_by_id", op) | ("deleted_by_id", op) if op != "is_null" && op != "is_not_null" => {
+                format!("{} {} '{}'", column, op, value.as_str().unwrap_or(""))
+            }
+            ("name", "contains") | ("iso_code", "contains") | ("phone_code", "contains") => {
+                format!("LOWER({}) LIKE LOWER('%{}%')", column, value.as_str().unwrap_or("").replace('\'', "''"))
+            }
+            ("name", "starts_with") | ("iso_code", "starts_with") | ("phone_code", "starts_with") => {
+                format!("LOWER({}) LIKE LOWER('{}%')", column, value.as_str().unwrap_or("").replace('\'', "''"))
+            }
+            ("name", "ends_with") | ("iso_code", "ends_with") | ("phone_code", "ends_with") => {
+                format!("LOWER({}) LIKE LOWER('%{}')", column, value.as_str().unwrap_or("").replace('\'', "''"))
+            }
+            ("name", "like") | ("iso_code", "like") | ("phone_code", "like") => {
+                format!("{} LIKE '{}'", column, value.as_str().unwrap_or("").replace('\'', "''"))
+            }
+            ("name", "ilike") | ("iso_code", "ilike") | ("phone_code", "ilike") => {
+                format!("{} ILIKE '{}'", column, value.as_str().unwrap_or("").replace('\'', "''"))
+            }
+            ("name", "eq") | ("iso_code", "eq") | ("phone_code", "eq") => {
+                format!("{} = '{}'", column, value.as_str().unwrap_or("").replace('\'', "''"))
+            }
+            ("name", "ne") | ("iso_code", "ne") | ("phone_code", "ne") => {
+                format!("{} != '{}'", column, value.as_str().unwrap_or("").replace('\'', "''"))
+            }
+            ("name", "in") | ("iso_code", "in") | ("phone_code", "in") => {
+                let values = value.as_array()
+                    .map(|arr| arr.iter()
+                        .filter_map(|v| v.as_str())
+                        .map(|s| format!("'{}'", s.replace('\'', "''")))
+                        .collect::<Vec<_>>()
+                        .join(","))
+                    .unwrap_or_default();
+                format!("{} IN ({})", column, values)
+            }
+            ("name", "not_in") | ("iso_code", "not_in") | ("phone_code", "not_in") => {
+                let values = value.as_array()
+                    .map(|arr| arr.iter()
+                        .filter_map(|v| v.as_str())
+                        .map(|s| format!("'{}'", s.replace('\'', "''")))
+                        .collect::<Vec<_>>()
+                        .join(","))
+                    .unwrap_or_default();
+                format!("{} NOT IN ({})", column, values)
+            }
+            ("created_at", "gt") | ("updated_at", "gt") | ("deleted_at", "gt") => {
+                format!("{} > '{}'", column, value.as_str().unwrap_or(""))
+            }
+            ("created_at", "gte") | ("updated_at", "gte") | ("deleted_at", "gte") => {
+                format!("{} >= '{}'", column, value.as_str().unwrap_or(""))
+            }
+            ("created_at", "lt") | ("updated_at", "lt") | ("deleted_at", "lt") => {
+                format!("{} < '{}'", column, value.as_str().unwrap_or(""))
+            }
+            ("created_at", "lte") | ("updated_at", "lte") | ("deleted_at", "lte") => {
+                format!("{} <= '{}'", column, value.as_str().unwrap_or(""))
+            }
+            ("created_at", "between") | ("updated_at", "between") | ("deleted_at", "between") => {
+                if let Some(range) = value.as_array() {
+                    if range.len() >= 2 {
+                        format!("{} BETWEEN '{}' AND '{}'",
+                               column,
+                               range[0].as_str().unwrap_or(""),
+                               range[1].as_str().unwrap_or(""))
+                    } else {
+                        format!("{} IS NOT NULL", column)
+                    }
+                } else {
+                    format!("{} IS NOT NULL", column)
+                }
+            }
+            (_, "is_null") => format!("{} IS NULL", column),
+            (_, "is_not_null") => format!("{} IS NOT NULL", column),
+            _ => format!("{} = '{}'", column, value.as_str().unwrap_or("").replace('\'', "''"))
+        }
+    }
+}
+
+// Implement the enhanced sorting trait
+impl crate::app::query_builder::Sortable for Country {
+    fn apply_basic_sort(column: &str, direction: &str) -> String {
+        format!("{} {}", column, direction)
+    }
+}
+
+// Implement the relationship inclusion trait
+impl crate::app::query_builder::Includable for Country {
+    fn load_relationships(ids: &[String], includes: &[String], _conn: &mut diesel::pg::PgConnection) -> anyhow::Result<()> {
+        for include in includes {
+            match include.as_str() {
+                "roles" => {
+                    crate::app::query_builder::RolePermissionLoader::load_model_roles("countries", ids, _conn)?;
+                },
+                "permissions" => {
+                    crate::app::query_builder::RolePermissionLoader::load_model_permissions("countries", ids, _conn)?;
+                },
+                "roles.permissions" => {
+                    crate::app::query_builder::RolePermissionLoader::load_model_roles_with_permissions("countries", ids, _conn)?;
+                },
+                "permissions.roles" => {
+                    crate::app::query_builder::RolePermissionLoader::load_model_permissions_with_roles("countries", ids, _conn)?;
+                },
+                "roles.organization" => {
+                    crate::app::query_builder::RolePermissionLoader::load_roles_with_organization("countries", ids, _conn)?;
+                },
+                "permissions.organization" => {
+                    crate::app::query_builder::RolePermissionLoader::load_permissions_with_organization("countries", ids, _conn)?;
+                },
+                "authorizationContext" => {
+                    crate::app::query_builder::RolePermissionLoader::load_complete_authorization_context("countries", ids, _conn)?;
+                },
+                "scopedRoles" => {
+                    crate::app::query_builder::RolePermissionLoader::load_scoped_roles("countries", ids, _conn)?;
+                },
+                "scopedPermissions" => {
+                    crate::app::query_builder::RolePermissionLoader::load_scoped_permissions("countries", ids, _conn)?;
+                },
+                "provinces" => {
+                    tracing::debug!("Loading provinces for countries: {:?}", ids);
+                },
+                "createdBy" => {
+                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_users("countries", ids, _conn)?;
+                },
+                "updatedBy" => {
+                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_users("countries", ids, _conn)?;
+                },
+                "deletedBy" => {
+                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_users("countries", ids, _conn)?;
+                },
+                "createdBy.organizations" => {
+                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_organizations("countries", ids, _conn)?;
+                },
+                "updatedBy.organizations" => {
+                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_organizations("countries", ids, _conn)?;
+                },
+                "deletedBy.organizations" => {
+                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_organizations("countries", ids, _conn)?;
+                },
+                "createdBy.organizations.position" => {
+                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_positions("countries", ids, _conn)?;
+                },
+                "updatedBy.organizations.position" => {
+                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_positions("countries", ids, _conn)?;
+                },
+                "deletedBy.organizations.position" => {
+                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_positions("countries", ids, _conn)?;
+                },
+                "createdBy.organizations.position.level" => {
+                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_levels("countries", ids, _conn)?;
+                },
+                "updatedBy.organizations.position.level" => {
+                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_levels("countries", ids, _conn)?;
+                },
+                "deletedBy.organizations.position.level" => {
+                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_levels("countries", ids, _conn)?;
+                },
+                _ => {
+                    tracing::warn!("Unknown relationship: {}", include);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn get_foreign_key(relationship: &str) -> Option<String> {
+        match relationship {
+            "provinces" => Some("country_id".to_string()),
+            "createdBy" | "updatedBy" | "deletedBy" => Some("id".to_string()),
+            _ => None
+        }
+    }
+
+    fn build_join_clause(relationship: &str, main_table: &str) -> Option<String> {
+        match relationship {
+            "provinces" => {
+                Some(format!("LEFT JOIN provinces ON {}.id = provinces.country_id", main_table))
+            },
+            "createdBy" => {
+                Some(format!("LEFT JOIN sys_users AS created_by ON {}.created_by_id = created_by.id", main_table))
+            },
+            "updatedBy" => {
+                Some(format!("LEFT JOIN sys_users AS updated_by ON {}.updated_by_id = updated_by.id", main_table))
+            },
+            "deletedBy" => {
+                Some(format!("LEFT JOIN sys_users AS deleted_by ON {}.deleted_by_id = deleted_by.id", main_table))
+            },
+            _ => None
+        }
+    }
+
+    fn should_eager_load(relationship: &str) -> bool {
+        matches!(relationship, "provinces")
     }
 }
 

@@ -42,7 +42,7 @@ impl OrganizationPositionLevelService {
         Ok(result)
     }
 
-    pub async fn find_by_id(pool: &DbPool, id: &str, _user_id: Option<&str>) -> Result<Option<OrganizationPositionLevel>> {
+    pub async fn find_by_id(pool: &DbPool, id: &str, user_id: Option<&str>) -> Result<Option<OrganizationPositionLevel>> {
         let mut conn = pool.get()?;
 
         let result = organization_position_levels::table
@@ -61,7 +61,7 @@ impl OrganizationPositionLevelService {
 
             if let Err(e) = service.log_viewed(
                 level,
-                _user_id
+                user_id
             ).await {
                 eprintln!("Failed to log organization position level view activity: {}", e);
             }

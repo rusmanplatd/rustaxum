@@ -38,12 +38,12 @@ pub struct NearbyQuery {
     params(
         ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
         ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
-        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, province_id, latitude, longitude, created_at, updated_at (prefix with '-' for descending)"),
-        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: province"),
-        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, province_id, latitude, longitude (e.g., filter[name]=Toronto, filter[province_id]=123)"),
-        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, province_id, latitude, longitude, created_at, updated_at"),
-        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
-        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
+        ("sort" = Option<String>, Query, description = "Multi-column sorting with geospatial support. Available fields: id, name, province_id, latitude, longitude, population, created_at, updated_at. Syntax: 'field1,-field2,field3:desc'. Example: 'population:desc,name,-created_at'"),
+        ("include" = Option<String>, Query, description = "Eager load relationships. Available: province, province.country, districts, districts.villages, createdBy, updatedBy, deletedBy, createdBy.organizations.position.level, updatedBy.organizations.position.level, deletedBy.organizations.position.level. Supports nested relationships. Example: 'province.country,districts,createdBy.organizations.position.level'"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Advanced filtering with geospatial operators. Available filters: name, province_id, latitude, longitude, population, created_at, updated_at. Operators: eq, ne, gt, gte, lt, lte, like, ilike, contains, starts_with, ends_with, in, not_in, is_null, is_not_null, between. Geospatial examples: filter[latitude][between]=-90,90, filter[population][gte]=100000, filter[name][starts_with]=New"),
+        ("fields" = Option<String>, Query, description = "Field selection for optimized responses. Available: id, name, province_id, latitude, longitude, population, timezone, created_at, updated_at. Example: fields[cities]=id,name,latitude,longitude"),
+        ("cursor" = Option<String>, Query, description = "Cursor for high-performance pagination with geospatial indexing support"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination strategy: 'offset' (traditional) or 'cursor' (high-performance with spatial indexing, default)"),
     ),
     responses(
         (status = 200, description = "List of cities", body = Vec<crate::app::models::city::CityResponse>),

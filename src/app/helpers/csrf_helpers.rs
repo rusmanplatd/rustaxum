@@ -106,9 +106,9 @@ window.csrfFetch = function(url, options = {{}}) {{
 /// Handlebars helper for CSRF token (optional feature)
 pub mod handlebars_helpers {
     use handlebars::{
-        Context, Handlebars, Helper, HelperResult, JsonRender, Output, RenderContext, RenderError,
+        Context, Handlebars, Helper, HelperResult, Output, RenderContext,
     };
-    use serde_json::Value;
+    
 
     /// Register CSRF helpers with Handlebars
     pub fn register_csrf_helpers(handlebars: &mut Handlebars) {
@@ -120,12 +120,15 @@ pub mod handlebars_helpers {
     fn csrf_field_helper(
         h: &Helper,
         _: &Handlebars,
-        _: &Context,
+        ctx: &Context,
         _: &mut RenderContext,
         out: &mut dyn Output,
     ) -> HelperResult {
-        // TODO extract the token from context
-        let token = "placeholder_token"; // This would come from the template context
+        // Extract CSRF token from template context
+        let token = ctx.data()
+            .get("csrf_token")
+            .and_then(|v| v.as_str())
+            .unwrap_or("missing_csrf_token");
         let csrf_service = super::CSRFService::new();
 
         let html = format!(
@@ -141,12 +144,15 @@ pub mod handlebars_helpers {
     fn csrf_token_helper(
         h: &Helper,
         _: &Handlebars,
-        _: &Context,
+        ctx: &Context,
         _: &mut RenderContext,
         out: &mut dyn Output,
     ) -> HelperResult {
-        // Placeholder - would extract token from context
-        let token = "placeholder_token";
+        // Extract CSRF token from template context
+        let token = ctx.data()
+            .get("csrf_token")
+            .and_then(|v| v.as_str())
+            .unwrap_or("missing_csrf_token");
         out.write(token)?;
         Ok(())
     }
@@ -154,11 +160,15 @@ pub mod handlebars_helpers {
     fn csrf_meta_helper(
         h: &Helper,
         _: &Handlebars,
-        _: &Context,
+        ctx: &Context,
         _: &mut RenderContext,
         out: &mut dyn Output,
     ) -> HelperResult {
-        let token = "placeholder_token";
+        // Extract CSRF token from template context
+        let token = ctx.data()
+            .get("csrf_token")
+            .and_then(|v| v.as_str())
+            .unwrap_or("missing_csrf_token");
         let html = format!(r#"<meta name="csrf-token" content="{}">"#, token);
         out.write(&html)?;
         Ok(())

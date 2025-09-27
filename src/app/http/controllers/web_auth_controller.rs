@@ -296,7 +296,7 @@ impl WebAuthController {
                 tracing::info!("Redirecting to: {}", redirect_url);
 
                 use axum::http::{StatusCode};
-                use axum::response::{Response, Html};
+                use axum::response::Response;
 
                 // Create redirect response with HTML body for better browser compatibility
                 let redirect_body = format!(

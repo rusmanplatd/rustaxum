@@ -11,6 +11,7 @@ pub mod organization_position_level_requests;
 pub mod organization_position_requests;
 pub mod sys_model_has_permission_requests;
 pub mod sys_model_has_role_requests;
+pub mod notification_request;
 
 pub use auth_requests::*;
 pub use user_requests::*;
@@ -25,3 +26,4 @@ pub use organization_position_level_requests::*;
 pub use organization_position_requests::*;
 pub use sys_model_has_permission_requests::*;
 pub use sys_model_has_role_requests::*;
+pub use notification_request::*;

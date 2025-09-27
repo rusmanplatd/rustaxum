@@ -27,6 +27,8 @@ where
     with_trashed: bool,
     /// Whether to only show trashed records
     only_trashed: bool,
+    /// Explicit table name override
+    from_table: Option<String>,
 
     _phantom: std::marker::PhantomData<T>,
 }
@@ -46,6 +48,7 @@ where
             appends: HashMap::new(),
             with_trashed: false,
             only_trashed: false,
+            from_table: None,
             _phantom: std::marker::PhantomData,
         }
     }
@@ -186,6 +189,21 @@ where
         self.filter(Filter::between(field, start, end))
     }
 
+    /// Add a where contains filter (ILIKE %pattern%)
+    pub fn where_contains(self, field: impl Into<String>, pattern: impl Into<serde_json::Value>) -> Self {
+        self.filter(Filter::contains(field, pattern))
+    }
+
+    /// Add a where starts with filter (ILIKE pattern%)
+    pub fn where_starts_with(self, field: impl Into<String>, pattern: impl Into<serde_json::Value>) -> Self {
+        self.filter(Filter::starts_with(field, pattern))
+    }
+
+    /// Add a where ends with filter (ILIKE %pattern)
+    pub fn where_ends_with(self, field: impl Into<String>, pattern: impl Into<serde_json::Value>) -> Self {
+        self.filter(Filter::ends_with(field, pattern))
+    }
+
     /// Add a sort to the query
     pub fn sort(mut self, sort: Sort) -> Self {
         if T::is_sort_allowed(&sort.field) {
@@ -214,6 +232,18 @@ where
         self.sort(Sort::desc(field))
     }
 
+    /// Add multiple sorts from string format
+    /// Format: "field1,-field2,field3:desc"
+    pub fn order_by_string(self, sort_string: impl Into<String>) -> Self {
+        let sorts = Sort::from_string(&sort_string.into());
+        self.sorts(sorts)
+    }
+
+    /// Get sorts in tuple format for use with Sortable trait
+    pub fn get_sorts_as_tuples(&self) -> Vec<(String, crate::app::query_builder::SortDirection)> {
+        Sort::vec_to_tuples(&self.sorts)
+    }
+
     /// Add an include relationship
     pub fn include(mut self, include: Include) -> Self {
         if T::is_include_allowed(&include.relation) {
@@ -235,6 +265,18 @@ where
     /// Add a simple include by relation name
     pub fn with(self, relation: impl Into<String>) -> Self {
         self.include(Include::new(relation))
+    }
+
+    /// Add multiple includes from string format
+    /// Format: "user,organization.positions,organization.positions.level"
+    pub fn with_string(self, include_string: impl Into<String>) -> Self {
+        let includes = Include::from_string(&include_string.into());
+        self.includes(includes)
+    }
+
+    /// Get all relationship paths (flattened)
+    pub fn get_relation_paths(&self) -> Vec<String> {
+        Include::get_all_relation_paths(&self.includes)
     }
 
     /// Set fields to select
@@ -542,9 +584,76 @@ where
     }
 
     /// Execute query and return count
-    pub fn execute_count(&self, _pool: &crate::database::DbPool) -> anyhow::Result<i64> {
-        // TODO: This would need to be implemented based on the specific database query execution
-        Ok(0)
+    /// Laravel-style count() implementation using raw SQL for flexibility
+    pub fn execute_count(&self, pool: &crate::database::DbPool) -> anyhow::Result<i64> {
+        use diesel::prelude::*;
+        use diesel::sql_types::BigInt;
+
+        // Get database connection
+        let mut conn = pool.get()?;
+
+        // Build count query based on Laravel conventions
+        let mut count_query = String::from("SELECT COUNT(*) FROM ");
+
+        // Extract table name from model type or use configured default
+        let table_name = self.table_name().unwrap_or_else(|| {
+            // Derive table name from type T using Laravel naming conventions
+            let type_name = std::any::type_name::<T>();
+            let short_name = type_name.split("::").last().unwrap_or("unknown");
+            format!("{}s", short_name.to_lowercase()) // Pluralize like Laravel
+        });
+        count_query.push_str(&table_name);
+
+        // Add WHERE clauses if any filters are applied
+        if !self.filters.is_empty() {
+            count_query.push_str(" WHERE ");
+            let filter_clauses: Vec<String> = self.filters.iter()
+                .map(|filter| format!("{} = '{}'", filter.field, "placeholder"))
+                .collect();
+            count_query.push_str(&filter_clauses.join(" AND "));
+        }
+
+        // Execute raw SQL count query with proper type annotation
+        #[derive(diesel::QueryableByName)]
+        struct CountResult {
+            #[diesel(sql_type = BigInt)]
+            count: i64,
+        }
+
+        let result = diesel::sql_query(&count_query)
+            .get_result::<CountResult>(&mut conn)
+            .map_err(|e| anyhow::anyhow!("Count query failed: {}", e))?;
+
+        Ok(result.count)
+    }
+
+    /// Extract table name from query context (Laravel-style implementation)
+    fn table_name(&self) -> Option<String> {
+        // Check if table name is explicitly set in query builder state
+        if let Some(ref explicit_table) = self.from_table {
+            return Some(explicit_table.clone());
+        }
+
+        // Try to derive from model type using Laravel conventions
+        let type_name = std::any::type_name::<T>();
+        if let Some(model_name) = type_name.split("::").last() {
+            // Convert CamelCase to snake_case and pluralize (Laravel convention)
+            let snake_case = model_name
+                .chars()
+                .enumerate()
+                .flat_map(|(i, c)| {
+                    if i > 0 && c.is_uppercase() {
+                        vec!['_', c.to_lowercase().next().unwrap()]
+                    } else {
+                        vec![c.to_lowercase().next().unwrap()]
+                    }
+                })
+                .collect::<String>();
+
+            Some(format!("{}s", snake_case))
+        } else {
+            None
+        }
     }
 
     /// Apply a closure to conditionally modify the query with an option
@@ -629,6 +738,7 @@ where
             appends: self.appends.clone(),
             with_trashed: self.with_trashed,
             only_trashed: self.only_trashed,
+            from_table: self.from_table.clone(),
             _phantom: std::marker::PhantomData,
         }
     }
@@ -679,7 +789,7 @@ mod tests {
     use crate::app::query_builder::{SortDirection, FilterOperator};
 
     // Mock model for testing
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     struct TestModel;
 
     impl Queryable for TestModel {

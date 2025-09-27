@@ -4,7 +4,7 @@ use axum::{
     middleware,
 };
 use crate::database::DbPool;
-use crate::app::http::middleware::auth_guard::{auth_guard, guest_guard};
+use crate::app::http::middleware::auth_guard::auth_guard;
 
 use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, district_controller, village_controller, role_controller, permission_controller, docs_controller, user_organization_controller, organization_position_level_controller, organization_position_controller, sys_model_has_permission_controller, sys_model_has_role_controller, activity_log_controller, session_controller};
 use crate::app::http::controllers::web_push_controller::WebPushController;

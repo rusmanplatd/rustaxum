@@ -40,11 +40,11 @@ pub struct OrganizationPositionLevel {
     /// Soft delete timestamp
     pub deleted_at: Option<DateTime<Utc>>,
     /// User who created this position level
-    pub created_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
     /// User who last updated this position level
-    pub updated_by: Option<DieselUlid>,
+    pub updated_by_id: Option<DieselUlid>,
     /// User who deleted this position level
-    pub deleted_by: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 /// Create organization position level payload for service layer
@@ -71,9 +71,9 @@ pub struct NewOrganizationPositionLevel {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by: Option<DieselUlid>,
-    pub updated_by: Option<DieselUlid>,
-    pub deleted_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
+    pub updated_by_id: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 /// Update organization position level payload for service layer
@@ -100,9 +100,9 @@ pub struct OrganizationPositionLevelResponse {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by: Option<DieselUlid>,
-    pub updated_by: Option<DieselUlid>,
-    pub deleted_by: Option<DieselUlid>,
+    pub created_by_id: Option<DieselUlid>,
+    pub updated_by_id: Option<DieselUlid>,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 impl NewOrganizationPositionLevel {
@@ -119,9 +119,9 @@ impl NewOrganizationPositionLevel {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by,
-            updated_by: created_by,
-            deleted_by: None,
+            created_by_id: created_by,
+            updated_by_id: created_by,
+            deleted_by_id: None,
         }
     }
 }
@@ -139,9 +139,9 @@ impl OrganizationPositionLevel {
             created_at: self.created_at,
             updated_at: self.updated_at,
             deleted_at: self.deleted_at,
-            created_by: self.created_by,
-            updated_by: self.updated_by,
-            deleted_by: self.deleted_by,
+            created_by_id: self.created_by_id,
+            updated_by_id: self.updated_by_id,
+            deleted_by_id: self.deleted_by_id,
         }
     }
 }
@@ -163,9 +163,9 @@ impl crate::app::query_builder::Queryable for OrganizationPositionLevel {
             "created_at",
             "updated_at",
             "deleted_at",
-            "created_by",
-            "updated_by",
-            "deleted_by",
+            "created_by_id",
+            "updated_by_id",
+            "deleted_by_id",
         ]
     }
 
@@ -181,9 +181,9 @@ impl crate::app::query_builder::Queryable for OrganizationPositionLevel {
             "created_at",
             "updated_at",
             "deleted_at",
-            "created_by",
-            "updated_by",
-            "deleted_by",
+            "created_by_id",
+            "updated_by_id",
+            "deleted_by_id",
         ]
     }
 
@@ -199,9 +199,9 @@ impl crate::app::query_builder::Queryable for OrganizationPositionLevel {
             "created_at",
             "updated_at",
             "deleted_at",
-            "created_by",
-            "updated_by",
-            "deleted_by",
+            "created_by_id",
+            "updated_by_id",
+            "deleted_by_id",
         ]
     }
 
@@ -212,6 +212,18 @@ impl crate::app::query_builder::Queryable for OrganizationPositionLevel {
     fn allowed_includes() -> Vec<&'static str> {
         vec![
             "positions",
+            "createdBy",
+            "updatedBy",
+            "deletedBy",
+            "createdBy.organizations",
+            "updatedBy.organizations",
+            "deletedBy.organizations",
+            "createdBy.organizations.position",
+            "updatedBy.organizations.position",
+            "deletedBy.organizations.position",
+            "createdBy.organizations.position.level",
+            "updatedBy.organizations.position.level",
+            "deletedBy.organizations.position.level",
         ]
     }
 }

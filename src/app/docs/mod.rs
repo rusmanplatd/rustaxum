@@ -20,6 +20,11 @@ use crate::app::models::organization_position::{OrganizationPosition, CreateOrga
 use crate::app::http::requests::organization_position_level_requests::{CreateOrganizationPositionLevelRequest, UpdateOrganizationPositionLevelRequest, IndexOrganizationPositionLevelRequest};
 use crate::app::http::requests::organization_position_requests::{CreateOrganizationPositionRequest, UpdateOrganizationPositionRequest, IndexOrganizationPositionRequest, OrganizationPositionsByLevelRequest};
 
+// Query Builder response structures
+use crate::app::query_builder::response::{QueryResponse, QueryMeta, DataResponse, QueryErrorResponse, ResponseLinks, Link, CacheStatus};
+use crate::app::query_builder::{Pagination, PaginationResult, PaginationType};
+use crate::app::query_builder::pagination::{PaginationInfo, CursorData};
+
 // Auth controller models
 use crate::app::http::controllers::auth_controller::MfaLoginRequest;
 
@@ -68,7 +73,7 @@ use crate::app::models::organization::{Organization, CreateOrganization, UpdateO
     info(
         title = "RustAxum API",
         version = "1.0.0",
-        description = "A Laravel-inspired Rust web framework built with Axum\n\nThis API follows REST conventions and provides comprehensive CRUD operations for all resources. All endpoints return JSON responses and follow consistent error handling patterns.\n\n## 🚀 Auto-Discovery\n\nThis API documentation is automatically generated using utoipa_auto_discovery, which scans for all endpoints with `#[utoipa::path]` annotations and includes them in the OpenAPI specification.",
+        description = "A Laravel-inspired Rust web framework built with Axum\n\nThis API follows REST conventions and provides comprehensive CRUD operations for all resources. All endpoints return JSON responses and follow consistent error handling patterns.\n\n## 🚀 Auto-Discovery\n\nThis API documentation is automatically generated using utoipa_auto_discovery, which scans for all endpoints with `#[utoipa::path]` annotations and includes them in the OpenAPI specification.\n\n## 🔍 Advanced Query Builder\n\nThis API features a powerful Laravel-style query builder with support for:\n\n### Complex Filtering\n- **Comparison operators**: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`\n- **Pattern matching**: `like`, `ilike`, `contains`, `starts_with`, `ends_with`\n- **List operations**: `in`, `not_in`\n- **Null checks**: `is_null`, `is_not_null`\n- **Range queries**: `between`\n- **JSON operations**: Query JSONB fields and nested data\n\n### Multi-Column Sorting\n- Sort by multiple fields with different directions\n- Support for both `-field` and `field:desc` syntax\n- Automatic validation against allowed sort fields\n\n### Relationship Inclusion\n- Eager load relationships using dot notation\n- Nested relationship support: `organization.positions.level`\n- Relationship-specific field selection and filtering\n\n### Flexible Pagination\n- **Cursor-based**: High performance for large datasets\n- **Offset-based**: Traditional page/per_page pagination\n- Automatic pagination type detection and conversion\n\n### Field Selection\n- Select only needed fields to optimize response size\n- Relationship-specific field selection\n- Automatic validation against allowed fields\n\n### Usage Examples\n```\nGET /api/users?\n  filter[name][contains]=john&\n  filter[status][in]=active,verified&\n  filter[created_at][gte]=2023-01-01&\n  sort=name,-created_at&\n  include=organization.positions&\n  fields[users]=id,name,email&\n  page=1&per_page=20\n```",
         contact(
             name = "API Support",
             email = "support@rustaxum.dev"
@@ -141,13 +146,34 @@ use crate::app::models::organization::{Organization, CreateOrganization, UpdateO
             // Common response types - basic ones only
             ErrorResponse,
             MessageResponse,
-            ValidationErrorResponse
+            ValidationErrorResponse,
+
+            // Query Builder schemas
+            QueryFilterSchema,
+            QuerySortSchema,
+            QueryIncludeSchema,
+            QueryPaginationSchema,
+            FilterOperatorSchema,
+
+            // Query Builder response structures
+            QueryResponse<serde_json::Value>,
+            QueryMeta,
+            DataResponse<serde_json::Value>,
+            QueryErrorResponse,
+            ResponseLinks,
+            Link,
+            CacheStatus,
+            Pagination,
+            PaginationResult<serde_json::Value>,
+            PaginationType,
+            PaginationInfo,
+            CursorData
         )
     ),
     tags(
         (name = "Authentication", description = "User authentication and authorization operations"),
         (name = "Users", description = "User management operations"),
-        (name = "Countries", description = "Country management operations - full CRUD with filtering and pagination"),
+        (name = "Countries", description = "Country management operations - full CRUD with advanced filtering, sorting, pagination, and relationship inclusion\n\n## Query Parameters\n\n### Advanced Filtering (15+ operators)\n- `filter[field][operator]=value` - Apply filters using various operators\n- **Comparison**: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`\n- **Text search**: `like`, `ilike`, `contains`, `starts_with`, `ends_with`\n- **List operations**: `in`, `not_in`\n- **Null checks**: `is_null`, `is_not_null`\n- **Range queries**: `between`\n\n**Examples:**\n```\n# Exact match\nGET /api/countries?filter[name][eq]=Canada\n\n# Text search (case-insensitive)\nGET /api/countries?filter[name][contains]=united\n\n# Multiple filters with different operators\nGET /api/countries?filter[name][starts_with]=A&filter[iso_code][in]=US,CA,GB&filter[created_at][gte]=2023-01-01\n\n# Range queries\nGET /api/countries?filter[population][between]=1000000,50000000\n```\n\n### Multi-Column Sorting\n- `sort=field1,-field2,field3:desc` - Flexible syntax support\n- Use `-` prefix or `:desc` suffix for descending order\n\n**Examples:**\n```\n# Single field\nGET /api/countries?sort=name\n\n# Multiple fields with mixed syntax\nGET /api/countries?sort=region:asc,-population,name\n\n# Complex sorting\nGET /api/countries?sort=continent:asc,region:asc,-population,name:asc\n```\n\n### High-Performance Pagination\n- **Cursor-based** (default): `cursor=...&per_page=20` - Best for large datasets\n- **Offset-based**: `page=1&per_page=15` - Traditional pagination\n- `pagination_type=cursor|offset` - Force pagination type\n\n**Examples:**\n```\n# Cursor pagination (recommended)\nGET /api/countries?per_page=20&cursor=eyJpZCI6MTAwfQ==\n\n# Offset pagination\nGET /api/countries?page=2&per_page=25&pagination_type=offset\n```\n\n### Field Selection & Performance\n- `fields[countries]=id,name,iso_code` - Select specific fields\n- Reduces bandwidth and improves response time\n- Supports relationship field selection\n\n**Examples:**\n```\n# Optimize for minimal payload\nGET /api/countries?fields[countries]=id,name,iso_code\n\n# Select fields for multiple resources\nGET /api/countries?fields[countries]=id,name&fields[provinces]=id,name&include=provinces\n```\n\n### Relationship Inclusion\n- `include=provinces,provinces.cities` - Eager load relationships\n- Supports nested relationships with dot notation\n- Prevents N+1 query problems\n\n**Examples:**\n```\n# Include direct relationships\nGET /api/countries?include=provinces\n\n# Include nested relationships\nGET /api/countries?include=provinces.cities,provinces.cities.districts\n\n# Combined with field selection\nGET /api/countries?include=provinces&fields[countries]=id,name&fields[provinces]=id,name,population\n```\n\n### Complete Examples\n```\n# Advanced filtering with relationships\nGET /api/countries?\n  filter[name][contains]=united&\n  filter[population][gte]=10000000&\n  filter[continent][eq]=North America&\n  sort=population:desc,name:asc&\n  include=provinces.cities&\n  fields[countries]=id,name,population,continent&\n  per_page=10\n\n# Search with cursor pagination\nGET /api/countries?\n  filter[name][starts_with]=A&\n  sort=-created_at&\n  cursor=eyJjcmVhdGVkX2F0IjoxNjc4ODg2NDAwfQ==&\n  per_page=20\n```"),
         (name = "Provinces", description = "Province management operations - linked to countries"),
         (name = "Cities", description = "City management operations - linked to provinces"),
         (name = "User Organizations", description = "User-Organization relationship management with hierarchical access control, RBAC/ABAC authorization, and transfer operations"),
@@ -242,4 +268,112 @@ impl ApiDoc {
     pub fn openapi_yaml() -> String {
         serde_yaml::to_string(&Self::openapi()).unwrap()
     }
+}
+
+// Query Builder Documentation Schemas
+
+/// Query filter parameter schema for API documentation
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct QueryFilterSchema {
+    /// Field name to filter on
+    #[schema(example = "name")]
+    pub field: String,
+
+    /// Filter operator (see FilterOperatorSchema for valid values)
+    #[schema(example = "eq")]
+    pub operator: String,
+
+    /// Filter value (can be single value, array, or range)
+    #[schema(example = "John")]
+    pub value: serde_json::Value,
+
+    /// Whether to combine with AND (true) or OR (false)
+    #[schema(example = true)]
+    pub and: bool,
+}
+
+/// Supported filter operators
+#[derive(Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum FilterOperatorSchema {
+    /// Equals (=)
+    Eq,
+    /// Not equals (!=)
+    Ne,
+    /// Greater than (>)
+    Gt,
+    /// Greater than or equal (>=)
+    Gte,
+    /// Less than (<)
+    Lt,
+    /// Less than or equal (<=)
+    Lte,
+    /// LIKE pattern matching
+    Like,
+    /// ILIKE case-insensitive pattern matching
+    Ilike,
+    /// IN (value1, value2, ...)
+    In,
+    /// NOT IN (value1, value2, ...)
+    NotIn,
+    /// IS NULL
+    IsNull,
+    /// IS NOT NULL
+    IsNotNull,
+    /// BETWEEN value1 AND value2
+    Between,
+    /// Contains pattern (ILIKE %pattern%)
+    Contains,
+    /// Starts with pattern (LIKE pattern%)
+    StartsWith,
+    /// Ends with pattern (LIKE %pattern)
+    EndsWith,
+}
+
+/// Query sort parameter schema for API documentation
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct QuerySortSchema {
+    /// Field name to sort by
+    #[schema(example = "created_at")]
+    pub field: String,
+
+    /// Sort direction
+    #[schema(example = "desc")]
+    pub direction: String, // "asc" or "desc"
+}
+
+/// Query include parameter schema for API documentation
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct QueryIncludeSchema {
+    /// Relationship name to include
+    #[schema(example = "organization")]
+    pub relation: String,
+
+    /// Nested includes for the relationship
+    #[schema(example = "organization.positions")]
+    pub nested: Option<Vec<String>>,
+
+    /// Fields to select from the included relationship
+    #[schema(example = "id,name,type")]
+    pub fields: Option<Vec<String>>,
+}
+
+/// Query pagination parameter schema for API documentation
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct QueryPaginationSchema {
+    /// Page number (1-based) for offset pagination
+    #[schema(example = 1)]
+    pub page: Option<u32>,
+
+    /// Number of items per page
+    #[schema(example = 15, minimum = 1, maximum = 100)]
+    pub per_page: Option<u32>,
+
+    /// Cursor for cursor-based pagination
+    #[schema(example = "eyJpZCI6MTAwfQ==")]
+    pub cursor: Option<String>,
+
+    /// Pagination type preference
+    #[schema(example = "cursor")]
+    pub pagination_type: Option<String>, // "cursor" or "offset"
 }

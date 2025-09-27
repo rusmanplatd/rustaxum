@@ -1,5 +1,5 @@
 use crate::database::DbPool;
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use crate::database::seeder::Seeder;
 use crate::app::models::district::{District, NewDistrict};
 use csv::Reader;
@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use serde::Deserialize;
 use ulid::Ulid;
 use diesel::prelude::*;
-use crate::schema::{districts, cities};
+use crate::schema::districts;
 
 #[derive(Debug, Deserialize)]
 struct DistrictRecord {

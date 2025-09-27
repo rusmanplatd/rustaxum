@@ -2,7 +2,7 @@ use anyhow::Result;
 use ulid::Ulid;
 use chrono::Utc;
 use crate::database::{seeder::Seeder, DbPool};
-use crate::app::models::{HasModelType, user::User};
+use crate::app::models::HasModelType;
 use diesel::prelude::*;
 use diesel::insert_into;
 use crate::schema::{sys_permissions, sys_roles, sys_model_has_permissions, sys_model_has_roles, sys_users};
@@ -19,9 +19,9 @@ struct NewPermission {
     scope_id: Option<String>,
     created_at: chrono::DateTime<Utc>,
     updated_at: chrono::DateTime<Utc>,
-    created_by: String,
-    updated_by: String,
-    deleted_by: Option<String>,
+    created_by_id: String,
+    updated_by_id: String,
+    deleted_by_id: Option<String>,
 }
 
 #[derive(Insertable)]
@@ -37,9 +37,9 @@ struct NewRole {
     created_at: chrono::DateTime<Utc>,
     updated_at: chrono::DateTime<Utc>,
     deleted_at: Option<chrono::DateTime<Utc>>,
-    created_by: String,
-    updated_by: String,
-    deleted_by: Option<String>,
+    created_by_id: String,
+    updated_by_id: String,
+    deleted_by_id: Option<String>,
 }
 
 #[derive(Insertable)]
@@ -53,9 +53,9 @@ struct NewModelHasPermission {
     scope_id: Option<String>,
     created_at: chrono::DateTime<Utc>,
     updated_at: chrono::DateTime<Utc>,
-    created_by: String,
-    updated_by: String,
-    deleted_by: Option<String>,
+    created_by_id: String,
+    updated_by_id: String,
+    deleted_by_id: Option<String>,
 }
 
 #[derive(Insertable)]
@@ -69,9 +69,9 @@ struct NewModelHasRole {
     scope_id: Option<String>,
     created_at: chrono::DateTime<Utc>,
     updated_at: chrono::DateTime<Utc>,
-    created_by: String,
-    updated_by: String,
-    deleted_by: Option<String>,
+    created_by_id: String,
+    updated_by_id: String,
+    deleted_by_id: Option<String>,
 }
 
 pub struct RolePermissionSeeder;
@@ -445,9 +445,9 @@ impl Seeder for RolePermissionSeeder {
                 scope_id: None,
                 created_at: now,
                 updated_at: now,
-                created_by: system_user_id.clone(),
-                updated_by: system_user_id.clone(),
-                deleted_by: None,
+                created_by_id: system_user_id.clone(),
+                updated_by_id: system_user_id.clone(),
+                deleted_by_id: None,
             })
             .collect();
 
@@ -473,9 +473,9 @@ impl Seeder for RolePermissionSeeder {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by: system_user_id.clone(),
-            updated_by: system_user_id.clone(),
-            deleted_by: None,
+            created_by_id: system_user_id.clone(),
+            updated_by_id: system_user_id.clone(),
+            deleted_by_id: None,
         };
 
         insert_into(sys_roles::table)
@@ -496,9 +496,9 @@ impl Seeder for RolePermissionSeeder {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by: system_user_id.clone(),
-            updated_by: system_user_id.clone(),
-            deleted_by: None,
+            created_by_id: system_user_id.clone(),
+            updated_by_id: system_user_id.clone(),
+            deleted_by_id: None,
         };
 
         insert_into(sys_roles::table)
@@ -519,9 +519,9 @@ impl Seeder for RolePermissionSeeder {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by: system_user_id.clone(),
-            updated_by: system_user_id.clone(),
-            deleted_by: None,
+            created_by_id: system_user_id.clone(),
+            updated_by_id: system_user_id.clone(),
+            deleted_by_id: None,
         };
 
         insert_into(sys_roles::table)
@@ -665,9 +665,9 @@ impl Seeder for RolePermissionSeeder {
                 created_at: now,
                 updated_at: now,
                 deleted_at: None,
-                created_by: system_user_id.clone(),
-                updated_by: system_user_id.clone(),
-                deleted_by: None,
+                created_by_id: system_user_id.clone(),
+                updated_by_id: system_user_id.clone(),
+                deleted_by_id: None,
             };
 
             insert_into(sys_roles::table)
@@ -694,9 +694,9 @@ impl Seeder for RolePermissionSeeder {
                 scope_id: None,
                 created_at: now,
                 updated_at: now,
-                created_by: system_user_id.clone(),
-                updated_by: system_user_id.clone(),
-                deleted_by: None,
+                created_by_id: system_user_id.clone(),
+                updated_by_id: system_user_id.clone(),
+                deleted_by_id: None,
             })
             .collect();
 
@@ -726,9 +726,9 @@ impl Seeder for RolePermissionSeeder {
                 scope_id: None,
                 created_at: now,
                 updated_at: now,
-                created_by: system_user_id.clone(),
-                updated_by: system_user_id.clone(),
-                deleted_by: None,
+                created_by_id: system_user_id.clone(),
+                updated_by_id: system_user_id.clone(),
+                deleted_by_id: None,
             })
             .collect();
 
@@ -774,9 +774,9 @@ impl Seeder for RolePermissionSeeder {
                     scope_id: None,
                     created_at: now,
                     updated_at: now,
-                    created_by: system_user_id.clone(),
-                    updated_by: system_user_id.clone(),
-                    deleted_by: None,
+                    created_by_id: system_user_id.clone(),
+                    updated_by_id: system_user_id.clone(),
+                    deleted_by_id: None,
                 };
 
                 insert_into(sys_model_has_permissions::table)
@@ -1101,7 +1101,7 @@ fn assign_permissions_to_role(
         .filter(sys_users::email.eq("system@seeder.internal"))
         .select(sys_users::id)
         .first(conn)?;
-    use diesel::prelude::*;
+    
     use crate::schema::{sys_roles, sys_permissions, sys_model_has_permissions};
 
     // Get role ID
@@ -1134,9 +1134,9 @@ fn assign_permissions_to_role(
                     scope_id: None,
                     created_at: now,
                     updated_at: now,
-                    created_by: system_user_id.clone(),
-                    updated_by: system_user_id.clone(),
-                    deleted_by: None,
+                    created_by_id: system_user_id.clone(),
+                    updated_by_id: system_user_id.clone(),
+                    deleted_by_id: None,
                 };
 
                 insert_into(sys_model_has_permissions::table)
@@ -1236,7 +1236,7 @@ fn assign_user_role(
         .filter(sys_users::email.eq("system@seeder.internal"))
         .select(sys_users::id)
         .first(conn)?;
-    use diesel::prelude::*;
+    
     use crate::schema::sys_model_has_roles;
     use crate::app::models::{HasModelType, user::User};
 
@@ -1249,9 +1249,9 @@ fn assign_user_role(
         scope_id: None,
         created_at: now,
         updated_at: now,
-        created_by: system_user_id.clone(),
-        updated_by: system_user_id.clone(),
-        deleted_by: None,
+        created_by_id: system_user_id.clone(),
+        updated_by_id: system_user_id.clone(),
+        deleted_by_id: None,
     };
 
     insert_into(sys_model_has_roles::table)

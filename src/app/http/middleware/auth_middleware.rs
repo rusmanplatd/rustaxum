@@ -18,6 +18,7 @@ pub struct Claims {
     pub sub: String,
     pub exp: usize,
     pub iat: usize,
+    pub jti: String,
 }
 
 pub async fn auth_middleware(
@@ -129,7 +130,13 @@ pub async fn is_valid_token(_pool: &DbPool, token: &str) -> Option<String> {
     hasher.update(token.as_bytes());
     let _token_hash = format!("{:x}", hasher.finalize());
 
-    // TODO: Check token blacklist in database
+    // Check token blacklist in database
+    let token_id = decoded.claims.jti;
+    if is_token_revoked(_pool, &token_id).await.unwrap_or(false) {
+        tracing::warn!("Attempted use of revoked token: {}", token_id);
+        return None;
+    }
+
     Some(decoded.claims.sub)
 }
 
@@ -200,4 +207,20 @@ pub fn extract_bearer_token(headers: &HeaderMap) -> Result<String, StatusCode> {
     } else {
         Err(StatusCode::UNAUTHORIZED)
     }
+}
+
+/// Check if token is revoked using OAuth token introspection
+async fn is_token_revoked(pool: &DbPool, token_id: &str) -> Result<bool, anyhow::Error> {
+    use diesel::prelude::*;
+
+    // Query the access tokens table to check if token is revoked
+    let mut conn = pool.get()?;
+
+    let is_revoked: bool = crate::schema::oauth_access_tokens::table
+        .filter(crate::schema::oauth_access_tokens::id.eq(token_id))
+        .select(crate::schema::oauth_access_tokens::revoked)
+        .first(&mut conn)
+        .unwrap_or(true); // Default to revoked if not found
+
+    Ok(is_revoked)
 }

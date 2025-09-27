@@ -21,9 +21,9 @@ impl MailConfig {
             host: env::var("MAIL_HOST")
                 .unwrap_or_else(|_| "localhost".to_string()),
             port: env::var("MAIL_PORT")
-                .unwrap_or_else(|_| "1025".to_string())
+                .unwrap_or_else(|_| "1425".to_string())
                 .parse()
-                .unwrap_or(1025),
+                .unwrap_or(1425),
             username: env::var("MAIL_USERNAME")
                 .unwrap_or_else(|_| "".to_string()),
             password: env::var("MAIL_PASSWORD")

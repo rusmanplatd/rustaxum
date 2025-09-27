@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State, Query},
-    http::StatusCode,
+    http::{StatusCode, HeaderMap},
     response::{IntoResponse, Json},
 };
 use crate::database::DbPool;
@@ -23,10 +23,14 @@ use crate::app::query_builder::{QueryParams, QueryBuilderService};
     summary = "List all user organization relationships",
     description = "Get all user organization relationships with optional filtering, sorting, and pagination",
     params(
-        ("page" = Option<u32>, Query, description = "Page number for pagination"),
-        ("limit" = Option<u32>, Query, description = "Number of items per page (max 100)"),
-        ("sort" = Option<String>, Query, description = "Sort field"),
-        ("direction" = Option<String>, Query, description = "Sort direction (asc/desc)"),
+        ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
+        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, user_id, organization_id, position_id, is_active, started_at, ended_at, created_at, updated_at (prefix with '-' for descending)"),
+        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: user, organization, position, createdBy, updatedBy, deletedBy, createdBy.organizations.position.level, updatedBy.organizations.position.level, deletedBy.organizations.position.level"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: user_id, organization_id, position_id, is_active, started_at, ended_at (e.g., filter[is_active]=true, filter[user_id]=01ARZ3NDEK)"),
+        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, user_id, organization_id, position_id, is_active, started_at, ended_at, created_at, updated_at"),
+        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
     ),
     responses(
         (status = 200, description = "List of user organization relationships", body = Vec<crate::app::models::user_organization::UserOrganizationResponse>),
@@ -115,6 +119,7 @@ pub async fn show(
 )]
 pub async fn store(
     State(pool): State<DbPool>,
+    headers: HeaderMap,
     request: CreateUserOrganizationRequest,
 ) -> impl IntoResponse {
     // Authentication is handled by middleware
@@ -127,10 +132,12 @@ pub async fn store(
         started_at: request.started_at,
     };
 
-    // TODO: Extract user_id from auth context when available
-    let created_by = None; // Replace with actual user extraction
+    // Extract user ID from authentication context
+    let user_id = crate::app::utils::token_utils::TokenUtils::extract_user_id_from_headers(&headers);
+    let user_id_str = user_id.as_ref().map(|id| id.to_string());
+    let user_id_ref = user_id_str.as_deref();
 
-    match UserOrganizationService::create(&pool, create_data, created_by).await
+    match UserOrganizationService::create(&pool, create_data, user_id_ref).await
         {
         Ok(user_org) => {
             (StatusCode::CREATED, Json(serde_json::json!(user_org.to_response()))).into_response()

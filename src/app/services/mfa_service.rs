@@ -3,11 +3,9 @@ use serde::{Deserialize, Serialize};
 use totp_rs::{Algorithm, Secret, TOTP};
 use qrcode::QrCode;
 use base64::{Engine as _, engine::general_purpose};
-use image::{ImageFormat, DynamicImage};
 use rand::{Rng, thread_rng};
 use sha2::{Sha256, Digest};
-use chrono::{DateTime, Utc, Duration};
-use ulid::Ulid;
+use chrono::{DateTime, Utc};
 use crate::database::DbPool;
 use crate::app::services::user_service::UserService;
 
@@ -85,7 +83,7 @@ impl MfaService {
         let backup_codes = Self::generate_backup_codes();
         let hashed_backup_codes = Self::hash_backup_codes(&backup_codes)?;
 
-        // TODO: Store MFA method in database (this would use the MFA model once schema is ready)
+        // Store MFA method in user's sys_users table with secure backup codes
         let mut conn = pool.get()?;
 
         use diesel::prelude::*;
@@ -327,16 +325,71 @@ impl MfaService {
     }
 
     /// Check rate limiting for MFA attempts
-    async fn check_rate_limit(pool: &DbPool, user_id: &str, method_type: &str) -> Result<()> {
-        // This would use the MFA attempts table once schema is ready
-        // For now, implement a simple in-memory rate limiting
+    async fn check_rate_limit(pool: &DbPool, user_id_param: &str, method_type: &str) -> Result<()> {
+        use crate::schema::mfa_attempts::dsl::*;
+        use diesel::prelude::*;
 
-        // In a real implementation, you would:
-        // 1. Query mfa_attempts table for recent attempts
-        // 2. Check if attempts exceed the limit
-        // 3. Return error if rate limited
+        let mut conn = pool.get().map_err(|e| anyhow::anyhow!("Database connection error: {}", e))?;
 
-        // Placeholder implementation
+        // Rate limiting configuration (Laravel-style constants)
+        const MAX_ATTEMPTS_PER_MINUTE: i64 = 5;
+        const MAX_ATTEMPTS_PER_HOUR: i64 = 20;
+        const LOCKOUT_MINUTES: i64 = 15;
+
+        let now = chrono::Utc::now();
+        let one_minute_ago = now - chrono::Duration::minutes(1);
+        let one_hour_ago = now - chrono::Duration::hours(1);
+        let lockout_time = now - chrono::Duration::minutes(LOCKOUT_MINUTES);
+
+        let user_id_ulid = crate::app::models::DieselUlid::from_string(user_id_param)?;
+
+        // Check for recent failed attempts within lockout period
+        let recent_failed_attempts = mfa_attempts
+            .filter(crate::schema::mfa_attempts::user_id.eq(&user_id_ulid))
+            .filter(crate::schema::mfa_attempts::method_type.eq(method_type))
+            .filter(crate::schema::mfa_attempts::success.eq(false))
+            .filter(crate::schema::mfa_attempts::attempted_at.gt(lockout_time))
+            .count()
+            .get_result::<i64>(&mut conn)
+            .map_err(|e| anyhow::anyhow!("Failed to query MFA attempts: {}", e))?;
+
+        if recent_failed_attempts >= 3 {
+            return Err(anyhow::anyhow!(
+                "Account temporarily locked due to multiple failed MFA attempts. Try again in {} minutes.",
+                LOCKOUT_MINUTES
+            ));
+        }
+
+        // Check attempts per minute
+        let attempts_last_minute = mfa_attempts
+            .filter(crate::schema::mfa_attempts::user_id.eq(&user_id_ulid))
+            .filter(crate::schema::mfa_attempts::method_type.eq(method_type))
+            .filter(crate::schema::mfa_attempts::attempted_at.gt(one_minute_ago))
+            .count()
+            .get_result::<i64>(&mut conn)
+            .map_err(|e| anyhow::anyhow!("Failed to query MFA attempts: {}", e))?;
+
+        if attempts_last_minute >= MAX_ATTEMPTS_PER_MINUTE {
+            return Err(anyhow::anyhow!(
+                "Too many MFA attempts. Please wait a minute before trying again."
+            ));
+        }
+
+        // Check attempts per hour
+        let attempts_last_hour = mfa_attempts
+            .filter(crate::schema::mfa_attempts::user_id.eq(&user_id_ulid))
+            .filter(crate::schema::mfa_attempts::method_type.eq(method_type))
+            .filter(crate::schema::mfa_attempts::attempted_at.gt(one_hour_ago))
+            .count()
+            .get_result::<i64>(&mut conn)
+            .map_err(|e| anyhow::anyhow!("Failed to query MFA attempts: {}", e))?;
+
+        if attempts_last_hour >= MAX_ATTEMPTS_PER_HOUR {
+            return Err(anyhow::anyhow!(
+                "Maximum hourly MFA attempts exceeded. Please try again later."
+            ));
+        }
+
         Ok(())
     }
 
@@ -349,16 +402,34 @@ impl MfaService {
         ip_address: Option<String>,
         user_agent: Option<String>,
     ) -> Result<()> {
-        // This would insert into mfa_attempts table once schema is ready
-        // For now, we'll just log to tracing
+        use crate::schema::mfa_attempts;
+        use diesel::prelude::*;
+
+        let mut conn = pool.get().map_err(|e| anyhow::anyhow!("Database connection error: {}", e))?;
+
+        let new_attempt = crate::app::models::mfamethod::NewMfaAttempt {
+            id: crate::app::models::DieselUlid::new(),
+            user_id: crate::app::models::DieselUlid::from_string(user_id)?,
+            method_type: method_type.to_string(),
+            ip_address: ip_address.clone(),
+            user_agent: user_agent.clone(),
+            success,
+            attempted_at: chrono::Utc::now(),
+            created_at: chrono::Utc::now(),
+        };
+
+        diesel::insert_into(mfa_attempts::table)
+            .values(&new_attempt)
+            .execute(&mut conn)
+            .map_err(|e| anyhow::anyhow!("Failed to log MFA attempt: {}", e))?;
 
         tracing::info!(
             user_id = user_id,
             method_type = method_type,
             success = success,
-            ip_address = ip_address,
-            user_agent = user_agent,
-            "MFA attempt logged"
+            ip_address = ?ip_address,
+            user_agent = ?user_agent,
+            "MFA attempt logged successfully"
         );
 
         Ok(())

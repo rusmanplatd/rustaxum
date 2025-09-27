@@ -2,11 +2,13 @@ use anyhow::Result;
 use axum::http::HeaderMap;
 use base64::Engine;
 use chrono::Utc;
+use jsonwebtoken::DecodingKey;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use crate::database::DbPool;
 use crate::app::services::oauth::{ClientService, MTLSService};
 use crate::app::models::oauth::Client;
+use p256::elliptic_curve::sec1::FromEncodedPoint;
 
 /// Production-ready client authentication service
 /// Supports multiple authentication methods as per OAuth 2.1 security best practices
@@ -308,15 +310,14 @@ impl ClientAuthService {
         result == 0
     }
 
-    /// Decode JWT client assertion
+    /// Decode JWT client assertion (basic parsing without verification)
     fn decode_client_assertion_jwt(jwt: &str) -> Result<ClientAssertionClaims> {
-        // In production, use a proper JWT library with signature verification
         let parts: Vec<&str> = jwt.split('.').collect();
         if parts.len() != 3 {
             return Err(anyhow::anyhow!("Invalid JWT format"));
         }
 
-        // Decode payload (this is simplified - use proper JWT validation)
+        // Decode payload without verification (verification happens later)
         let payload_decoded = base64::engine::general_purpose::URL_SAFE_NO_PAD
             .decode(parts[1])
             .map_err(|_| anyhow::anyhow!("Invalid JWT payload"))?;
@@ -325,6 +326,37 @@ impl ClientAuthService {
             .map_err(|_| anyhow::anyhow!("Invalid JWT claims"))?;
 
         Ok(claims)
+    }
+
+    /// Extract public key from JWT header and verify signature
+    fn extract_and_verify_jwt_with_public_key(jwt: &str) -> Result<ClientAssertionClaims> {
+        use jsonwebtoken::Validation;
+
+        // Parse JWT header
+        let header = jsonwebtoken::decode_header(jwt)
+            .map_err(|e| anyhow::anyhow!("Invalid JWT header: {}", e))?;
+
+        // Extract public key from JWK in header (if present)
+        if let Some(jwk) = header.jwk {
+            let validation = Validation::new(header.alg);
+
+            // Extract key type from JWK
+            let key_type = jwk.common.key_algorithm.map(|k| format!("{:?}", k)).unwrap_or_else(|| "Unknown".to_string());
+
+            match key_type.as_str() {
+                "RSA" => {
+                    return Err(anyhow::anyhow!("RSA JWK verification requires additional implementation"));
+                },
+                "EC" => {
+                    return Err(anyhow::anyhow!("EC JWK verification requires additional implementation"));
+                },
+                _ => {
+                    return Err(anyhow::anyhow!("Unsupported key type: {}", key_type));
+                }
+            }
+        } else {
+            return Err(anyhow::anyhow!("No public key found in JWT header"));
+        }
     }
 
     /// Validate JWT client assertion claims and signature
@@ -355,7 +387,7 @@ impl ClientAuthService {
             }
         }
 
-        // In production: verify JWT signature using client's registered key or secret
+        // Verify JWT signature
         Self::verify_jwt_signature(client, jwt, claims)?;
 
         Ok(())
@@ -395,16 +427,44 @@ impl ClientAuthService {
         validation.validate_nbf = true;
         validation.leeway = 60; // Allow 60 seconds clock skew
 
-        // Get appropriate key for verification
-        let decoding_key = if let Some(client_secret) = &client.secret {
-            // HMAC verification with client secret
-            DecodingKey::from_secret(client_secret.as_bytes())
-        } else {
-            // For RSA/ECDSA verification, we need public keys stored in the client record
-            // TODO: Add public_key_pem field to oauth_clients table for asymmetric JWT support
-            return Err(anyhow::anyhow!(
-                "JWT client assertion requires client_secret for HMAC verification. Asymmetric keys not yet supported - add public_key_pem field to oauth_clients table."
-            ));
+        // Get appropriate key for verification based on algorithm
+        let decoding_key = match header.alg {
+            Algorithm::HS256 | Algorithm::HS384 | Algorithm::HS512 => {
+                // HMAC verification with client secret
+                let client_secret = client.secret.as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("Client secret required for HMAC JWT verification"))?;
+                DecodingKey::from_secret(client_secret.as_bytes())
+            },
+            Algorithm::RS256 | Algorithm::RS384 | Algorithm::RS512 |
+            Algorithm::ES256 | Algorithm::ES384 |
+            Algorithm::PS256 | Algorithm::PS384 | Algorithm::PS512 => {
+                // Asymmetric verification - extract public key from JWT header or use stored key
+                match Self::extract_public_key_from_jwt_header(&jwt) {
+                    Ok(key) => key,
+                    Err(_) => {
+                        // Fallback: try to load from client's public_key_pem field if available
+                        if let Some(pem) = Self::get_client_public_key_pem(client) {
+                            match header.alg {
+                                Algorithm::RS256 | Algorithm::RS384 | Algorithm::RS512 |
+                                Algorithm::PS256 | Algorithm::PS384 | Algorithm::PS512 => {
+                                    DecodingKey::from_rsa_pem(pem.as_bytes())
+                                        .map_err(|e| anyhow::anyhow!("Invalid RSA PEM: {}", e))?
+                                },
+                                Algorithm::ES256 | Algorithm::ES384 => {
+                                    DecodingKey::from_ec_pem(pem.as_bytes())
+                                        .map_err(|e| anyhow::anyhow!("Invalid EC PEM: {}", e))?
+                                },
+                                _ => return Err(anyhow::anyhow!("Unsupported algorithm for stored PEM key"))
+                            }
+                        } else {
+                            return Err(anyhow::anyhow!(
+                                "JWT client assertion requires either client_secret (HMAC) or jwk in JWT header (asymmetric). Consider adding public_key_pem field to oauth_clients table."
+                            ));
+                        }
+                    }
+                }
+            },
+            _ => return Err(anyhow::anyhow!("Unsupported JWT algorithm: {:?}", header.alg))
         };
 
         // Verify the JWT signature and claims
@@ -413,6 +473,146 @@ impl ClientAuthService {
 
         tracing::debug!("JWT signature verification successful for client {}", client.id);
         Ok(())
+    }
+
+    /// Extract public key from JWT header's jwk field for asymmetric verification
+    fn extract_public_key_from_jwt_header(jwt: &str) -> Result<DecodingKey> {
+        use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+
+        // Parse JWT header
+        let parts: Vec<&str> = jwt.split('.').collect();
+        if parts.len() != 3 {
+            return Err(anyhow::anyhow!("Invalid JWT format"));
+        }
+
+        let header_bytes = URL_SAFE_NO_PAD.decode(parts[0])
+            .map_err(|_| anyhow::anyhow!("Invalid JWT header encoding"))?;
+
+        let header: serde_json::Value = serde_json::from_slice(&header_bytes)
+            .map_err(|_| anyhow::anyhow!("Invalid JWT header JSON"))?;
+
+        // Extract algorithm
+        let alg = header.get("alg")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow::anyhow!("Missing algorithm in JWT header"))?;
+
+        // Extract JWK if present
+        if let Some(jwk) = header.get("jwk") {
+            return Self::jwk_to_decoding_key(jwk, alg);
+        }
+
+        // If no JWK in header, check for kid (key ID) and look up in JWKS
+        if let Some(kid) = header.get("kid").and_then(|v| v.as_str()) {
+            // Production: implement JWKS endpoint lookup with caching
+            tracing::info!("JWKS lookup requested for key ID: {}", kid);
+
+            // This would be implemented as:
+            // 1. Check cache for JWKS by issuer
+            // 2. Fetch from /.well-known/jwks.json if not cached
+            // 3. Find key by kid
+            // 4. Convert to DecodingKey
+            // 5. Cache the result with TTL
+
+            return Err(anyhow::anyhow!(
+                "JWKS endpoint lookup not yet implemented for key ID '{}'. TODO: use jwk in JWT header or register public_key_pem in oauth_clients table",
+                kid
+            ));
+        }
+
+        Err(anyhow::anyhow!("No public key found in JWT header"))
+    }
+
+    /// Convert JWK to DecodingKey for JWT verification
+    fn jwk_to_decoding_key(jwk: &serde_json::Value, alg: &str) -> Result<DecodingKey> {
+        let kty = jwk.get("kty")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow::anyhow!("Missing key type in JWK"))?;
+
+        match (kty, alg) {
+            ("RSA", "RS256") | ("RSA", "RS384") | ("RSA", "RS512") => {
+                // Extract RSA public key parameters
+                let n = jwk.get("n")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| anyhow::anyhow!("Missing RSA modulus in JWK"))?;
+                let e = jwk.get("e")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| anyhow::anyhow!("Missing RSA exponent in JWK"))?;
+
+                // Construct RSA public key from modulus and exponent
+                use base64::engine::{general_purpose::URL_SAFE_NO_PAD, Engine};
+
+                let n_bytes = URL_SAFE_NO_PAD.decode(n)
+                    .map_err(|_| anyhow::anyhow!("Invalid base64 in RSA modulus"))?;
+                let e_bytes = URL_SAFE_NO_PAD.decode(e)
+                    .map_err(|_| anyhow::anyhow!("Invalid base64 in RSA exponent"))?;
+
+                // Construct RSA public key from modulus and exponent
+                use rsa::{RsaPublicKey, BigUint};
+                use rsa::pkcs8::EncodePublicKey;
+
+                let n_big = BigUint::from_bytes_be(&n_bytes);
+                let e_big = BigUint::from_bytes_be(&e_bytes);
+
+                let rsa_key = RsaPublicKey::new(n_big, e_big)
+                    .map_err(|e| anyhow::anyhow!("Failed to construct RSA public key: {}", e))?;
+
+                // Convert to PEM format and then to DecodingKey
+                let pem = rsa_key.to_public_key_pem(rsa::pkcs8::LineEnding::LF)
+                    .map_err(|e| anyhow::anyhow!("Failed to encode RSA key to PEM: {}", e))?;
+
+                DecodingKey::from_rsa_pem(pem.as_bytes())
+                    .map_err(|e| anyhow::anyhow!("Failed to create DecodingKey from RSA PEM: {}", e))
+            },
+            ("EC", "ES256") | ("EC", "ES384") => {
+                // Extract ECDSA public key parameters
+                let crv = jwk.get("crv")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| anyhow::anyhow!("Missing curve in EC JWK"))?;
+                let x = jwk.get("x")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| anyhow::anyhow!("Missing x coordinate in EC JWK"))?;
+                let y = jwk.get("y")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| anyhow::anyhow!("Missing y coordinate in EC JWK"))?;
+
+                // Construct ECDSA public key from curve parameters
+                use base64::engine::{general_purpose::URL_SAFE_NO_PAD, Engine};
+
+                let x_bytes = URL_SAFE_NO_PAD.decode(x)
+                    .map_err(|_| anyhow::anyhow!("Invalid base64 in EC x coordinate"))?;
+                let y_bytes = URL_SAFE_NO_PAD.decode(y)
+                    .map_err(|_| anyhow::anyhow!("Invalid base64 in EC y coordinate"))?;
+
+                // Construct ECDSA public key from curve parameters
+                match crv {
+                    "P-256" => {
+                        use p256::{EncodedPoint, PublicKey};
+                        use p256::pkcs8::EncodePublicKey;
+
+                        // Construct uncompressed point (0x04 + x + y)
+                        let mut point_bytes = vec![0x04];
+                        point_bytes.extend_from_slice(&x_bytes);
+                        point_bytes.extend_from_slice(&y_bytes);
+
+                        let encoded_point = EncodedPoint::from_bytes(&point_bytes)
+                            .map_err(|e| anyhow::anyhow!("Invalid EC point: {}", e))?;
+
+                        let public_key = PublicKey::from_encoded_point(&encoded_point)
+                            .into_option()
+                            .ok_or_else(|| anyhow::anyhow!("Failed to construct P-256 public key"))?;
+
+                        // Convert to PEM format
+                        let pem = public_key.to_public_key_pem(p256::pkcs8::LineEnding::LF)
+                            .map_err(|e| anyhow::anyhow!("Failed to encode EC key to PEM: {}", e))?;
+
+                        DecodingKey::from_ec_pem(pem.as_bytes())
+                            .map_err(|e| anyhow::anyhow!("Failed to create DecodingKey from EC PEM: {}", e))
+                    },
+                    _ => Err(anyhow::anyhow!("Unsupported EC curve: {}", crv))
+                }
+            },
+            _ => Err(anyhow::anyhow!("Unsupported key type/algorithm combination: {}/{}", kty, alg))
+        }
     }
 
     /// Generate secure client secret
@@ -427,25 +627,118 @@ impl ClientAuthService {
             .collect()
     }
 
-    /// Hash client secret for storage (use argon2 in production)
+    /// Hash client secret for storage using Argon2 (production-ready)
     pub fn hash_client_secret(secret: &str) -> Result<String> {
-        // In production, use argon2 or similar strong hashing
-        let mut hasher = Sha256::new();
-        hasher.update(secret.as_bytes());
-        let hash = hasher.finalize();
-        Ok(format!("sha256:{}", hex::encode(hash)))
+        use argon2::{
+            password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
+            Argon2
+        };
+
+        // Use Argon2 for secure password hashing (OWASP recommended)
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
+
+        match argon2.hash_password(secret.as_bytes(), &salt) {
+            Ok(hash) => Ok(hash.to_string()),
+            Err(e) => {
+                tracing::error!("Failed to hash client secret: {}", e);
+                Err(anyhow::anyhow!("Secret hashing failed: {}", e))
+            }
+        }
     }
 
-    /// Verify hashed client secret
+    /// Verify hashed client secret using Argon2 (production-ready)
     pub fn verify_hashed_secret(hashed: &str, provided: &str) -> Result<bool> {
-        if let Some(hash_part) = hashed.strip_prefix("sha256:") {
+        use argon2::{
+            password_hash::{PasswordHash, PasswordVerifier},
+            Argon2
+        };
+
+        // Try Argon2 hash first (modern format)
+        if hashed.starts_with("$argon2") {
+            let parsed_hash = PasswordHash::new(hashed)
+                .map_err(|e| anyhow::anyhow!("Invalid Argon2 hash format: {}", e))?;
+
+            let argon2 = Argon2::default();
+            Ok(argon2.verify_password(provided.as_bytes(), &parsed_hash).is_ok())
+        } else if let Some(hash_part) = hashed.strip_prefix("sha256:") {
+            // Legacy SHA256 support for backward compatibility
             let mut hasher = Sha256::new();
             hasher.update(provided.as_bytes());
             let computed_hash = hex::encode(hasher.finalize());
             Ok(Self::constant_time_compare(hash_part.as_bytes(), computed_hash.as_bytes()))
         } else {
             // Fallback for plain text secrets (not recommended)
+            tracing::warn!("Plain text client secret verification - migrate to hashed secrets");
             Ok(Self::constant_time_compare(hashed.as_bytes(), provided.as_bytes()))
+        }
+    }
+
+    /// Get client public key PEM if stored in client record
+    fn get_client_public_key_pem(client: &Client) -> Option<String> {
+        // TODO: This would access a public_key_pem field in the oauth_clients table
+        None
+    }
+
+    /// Extract algorithm from JWT header
+    pub fn get_algorithm_from_jwt(jwt: &str) -> Result<String> {
+        let parts: Vec<&str> = jwt.split('.').collect();
+        if parts.len() != 3 {
+            return Err(anyhow::anyhow!("Invalid JWT format"));
+        }
+
+        let header_decoded = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(parts[0])
+            .map_err(|_| anyhow::anyhow!("Invalid JWT header"))?;
+
+        let header: serde_json::Value = serde_json::from_slice(&header_decoded)
+            .map_err(|_| anyhow::anyhow!("Invalid JWT header JSON"))?;
+
+        header.get("alg")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .ok_or_else(|| anyhow::anyhow!("Missing algorithm in JWT header"))
+    }
+
+    /// TODO: header-based authentication for basic authorization
+    pub async fn authenticate_client_from_header(
+        pool: &DbPool,
+        client_id: &str,
+        auth_header: &str,
+    ) -> Result<()> {
+        if let Some(basic_auth) = auth_header.strip_prefix("Basic ") {
+            use base64::engine::{general_purpose::STANDARD, Engine};
+
+            let decoded = STANDARD.decode(basic_auth)
+                .map_err(|_| anyhow::anyhow!("Invalid base64 in Basic auth"))?;
+
+            let credentials = String::from_utf8(decoded)
+                .map_err(|_| anyhow::anyhow!("Invalid UTF-8 in Basic auth"))?;
+
+            let parts: Vec<&str> = credentials.splitn(2, ':').collect();
+            if parts.len() != 2 {
+                return Err(anyhow::anyhow!("Invalid Basic auth format"));
+            }
+
+            let (provided_client_id, provided_secret) = (parts[0], parts[1]);
+            if provided_client_id != client_id {
+                return Err(anyhow::anyhow!("Client ID mismatch"));
+            }
+
+            // Get client from database
+            let client = ClientService::find_by_id(pool, client_id.to_string())?
+                .ok_or_else(|| anyhow::anyhow!("Client not found"))?;
+
+            // Verify client secret
+            if let Some(stored_secret) = &client.secret {
+                if Self::verify_hashed_secret(stored_secret, provided_secret)? {
+                    return Ok(());
+                }
+            }
+
+            Err(anyhow::anyhow!("Invalid client credentials"))
+        } else {
+            Err(anyhow::anyhow!("Only Basic authentication supported"))
         }
     }
 }
@@ -464,10 +757,24 @@ pub struct ClientAssertionClaims {
 impl ClientAssertionClaims {
     /// Check if this is a private key JWT (vs client secret JWT)
     pub fn is_private_key_jwt(&self) -> bool {
-        // In production, this would check the JWT header algorithm
-        // RS256, RS384, RS512, ES256, ES384, ES512, PS256, PS384, PS512
-        // indicate private key JWT, while HS* algorithms indicate client secret JWT
-        true // Simplified for demo
+        // This is a simplified check - in practice, you'd pass the original JWT
+        // Default to false for safety (requires client secret)
+        false
+    }
+
+    /// Check if JWT uses private key algorithm based on original JWT string
+    pub fn check_private_key_jwt_from_token(jwt: &str) -> Result<bool> {
+        let algorithm = ClientAuthService::get_algorithm_from_jwt(jwt)?;
+        Ok(matches!(algorithm.as_str(),
+            "RS256" | "RS384" | "RS512" |
+            "ES256" | "ES384" | "ES512" |
+            "PS256" | "PS384" | "PS512"
+        ))
+    }
+
+    /// Extract algorithm from JWT for validation
+    pub fn get_jwt_algorithm(jwt: &str) -> Result<String> {
+        ClientAuthService::get_algorithm_from_jwt(jwt)
     }
 }
 

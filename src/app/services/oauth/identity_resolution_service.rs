@@ -339,7 +339,7 @@ impl IdentityResolutionService {
         };
 
         // User codes are typically short-lived and tied to device authorization
-        // In production, this would check a device_codes table
+        // TODO: this would check a device_codes table
         match Self::find_user_by_device_code(pool, user_code).await? {
             Some((user, confidence)) => {
                 result.resolved = true;
@@ -406,8 +406,7 @@ impl IdentityResolutionService {
         id_token: &str,
         expected_audience: &str,
     ) -> Result<IdTokenClaims> {
-        // In production, use proper JWT validation with signature verification
-        // This is a simplified implementation
+        // TODO: use proper JWT validation with signature verification
 
         let parts: Vec<&str> = id_token.split('.').collect();
         if parts.len() != 3 {
@@ -517,10 +516,10 @@ impl IdentityResolutionService {
         format!("***{}", visible)
     }
 
-    // Database lookup methods (simplified implementations)
+    // Database lookup methods
 
     async fn find_user_by_subject(pool: &DbPool, subject: &str) -> Result<Option<User>> {
-        // In production, lookup by OAuth subject identifier
+        // TODO: lookup by OAuth subject identifier
         Self::find_user_by_id(pool, subject).await
     }
 
@@ -581,12 +580,12 @@ impl IdentityResolutionService {
     }
 
     async fn find_user_by_handle(_pool: &DbPool, _handle: &str) -> Result<Option<User>> {
-        // In production, implement handle lookup logic
+        // TODO: implement handle lookup logic
         Ok(None)
     }
 
     async fn find_user_by_device_code(_pool: &DbPool, _user_code: &str) -> Result<Option<(User, f32)>> {
-        // In production, lookup in device authorization table
+        // TODO: lookup in device authorization table
         Ok(None)
     }
 

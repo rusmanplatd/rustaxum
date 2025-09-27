@@ -15,9 +15,9 @@ CREATE TABLE organization_positions (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ,
-    created_by CHAR(26) REFERENCES sys_users(id),
-    updated_by CHAR(26) REFERENCES sys_users(id),
-    deleted_by CHAR(26) REFERENCES sys_users(id),
+    created_by_id CHAR(26) REFERENCES sys_users(id),
+    updated_by_id CHAR(26) REFERENCES sys_users(id),
+    deleted_by_id CHAR(26) REFERENCES sys_users(id),
     UNIQUE (organization_id, organization_position_level_id, code)
 );
 
@@ -28,6 +28,6 @@ CREATE INDEX idx_organization_positions_name ON organization_positions (name);
 CREATE INDEX idx_organization_positions_code ON organization_positions (code);
 CREATE INDEX idx_organization_positions_is_active ON organization_positions (is_active);
 CREATE INDEX idx_organization_positions_created_at ON organization_positions (created_at);
-CREATE INDEX idx_organization_positions_created_by ON organization_positions (created_by);
-CREATE INDEX idx_organization_positions_updated_by ON organization_positions (updated_by);
-CREATE INDEX idx_organization_positions_deleted_by ON organization_positions (deleted_by);
+CREATE INDEX idx_organization_positions_created_by_id ON organization_positions (created_by_id);
+CREATE INDEX idx_organization_positions_updated_by_id ON organization_positions (updated_by_id);
+CREATE INDEX idx_organization_positions_deleted_by_id ON organization_positions (deleted_by_id);

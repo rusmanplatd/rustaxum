@@ -179,12 +179,29 @@ impl Channel for SmsChannel {
             }
         };
 
-        // TODO: Get the SMS message content from notification
-        let database_message = notification.to_database(notifiable)?;
-        let message_text = database_message.data
-            .get("message")
-            .and_then(|v| v.as_str())
-            .unwrap_or("You have a new notification");
+        // Extract SMS message content from notification with fallbacks
+        let message_text = if let Ok(sms_msg) = notification.to_sms(notifiable) {
+            sms_msg.content
+        } else if let Ok(database_message) = notification.to_database(notifiable) {
+            database_message.data
+                .get("message")
+                .and_then(|v| v.as_str())
+                .unwrap_or_else(|| {
+                    // Generate contextual message based on notification type
+                    match notification.notification_type().as_ref() {
+                        "welcome" => "Welcome! Your account has been created successfully.",
+                        "password_reset" => "Your password reset request has been processed.",
+                        "security_alert" => "Security alert: Please review your account activity.",
+                        "order_confirmation" => "Your order has been confirmed and is being processed.",
+                        "payment_received" => "Payment received. Thank you for your purchase.",
+                        "system_maintenance" => "System maintenance scheduled. Check your email for details.",
+                        _ => "You have a new notification. Please check your account."
+                    }
+                })
+                .to_string()
+        } else {
+            "You have a new notification. Please check your account.".to_string()
+        };
 
         // Create SMS message
         let sms_message = SmsMessage {

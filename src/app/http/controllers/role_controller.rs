@@ -80,20 +80,22 @@ impl From<Role> for RoleData {
     get,
     path = "/api/roles",
     tag = "Roles",
-    summary = "List all roles",
-    description = "Get all roles with optional filtering, sorting, and pagination",
+    summary = "List all roles with advanced permission filtering and multi-tenant support",
+    description = "Retrieve roles with Laravel-style advanced querying, permission-based filtering, multi-column sorting, and organizational scoping. Essential for RBAC (Role-Based Access Control) and security management.",
     params(
         ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
-        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
-        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, name, description, created_at, updated_at (prefix with '-' for descending)"),
-        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: permissions"),
-        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: name, description (e.g., filter[name]=admin, filter[description]=Administrator)"),
-        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, name, description, created_at, updated_at"),
-        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
-        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
+        ("per_page" = Option<u32>, Query, description = "Items per page (default: 15, max: 100). Use 50-100 for admin dashboards, 10-25 for user interfaces"),
+        ("sort" = Option<String>, Query, description = "Multi-column sorting with permission hierarchy support. Available fields: id, name, description, guard_name, created_at, updated_at. Syntax: 'field1,-field2,field3:desc'. Examples: 'name', 'guard_name,name:asc', '-created_at,name'"),
+        ("include" = Option<String>, Query, description = "Eager load relationships with comprehensive audit user support and security context. Available: permissions, users, organization, createdBy, updatedBy, deletedBy, createdBy.organizations, updatedBy.organizations, deletedBy.organizations, createdBy.organizations.position, updatedBy.organizations.position, deletedBy.organizations.position, createdBy.organizations.position.level, updatedBy.organizations.position.level, deletedBy.organizations.position.level. Supports deep nested loading for complete RBAC and audit analysis. Examples: 'permissions,createdBy.organizations.position.level', 'users.organizations,organization'"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Advanced filtering with 15+ operators for role management. Available filters: id, name, description, guard_name, created_at, updated_at. Operators: eq, ne, gt, gte, lt, lte, like, ilike, contains, starts_with, ends_with, in, not_in, is_null, is_not_null, between. Examples: filter[name][contains]=admin, filter[guard_name][eq]=api, filter[name][starts_with]=Super"),
+        ("fields" = Option<String>, Query, description = "Field selection for optimized RBAC queries. Available: id, name, description, guard_name, created_at, updated_at. Supports relationship field selection. Examples: fields[roles]=id,name,guard_name, fields[permissions]=id,action,resource"),
+        ("cursor" = Option<String>, Query, description = "Cursor for high-performance pagination with role hierarchy indexing"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination strategy: 'offset' (traditional) or 'cursor' (high-performance for large role datasets, recommended default)"),
     ),
     responses(
-        (status = 200, description = "List of roles", body = Vec<crate::app::models::role::RoleResponse>),
+        (status = 200, description = "List of roles with RBAC metadata", body = Vec<crate::app::models::role::RoleResponse>),
+        (status = 400, description = "Invalid query parameters", body = crate::app::docs::ErrorResponse),
+        (status = 401, description = "Unauthorized access", body = crate::app::docs::ErrorResponse),
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]

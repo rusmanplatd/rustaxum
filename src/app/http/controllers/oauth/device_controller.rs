@@ -12,6 +12,8 @@ use crate::app::services::oauth::{DeviceService, ClientService};
 use crate::app::models::oauth::{CreateDeviceCode, DeviceAuthorizationResponse, DeviceCodeVerification};
 use crate::app::utils::token_utils::TokenUtils;
 use crate::app::services::auth_service::AuthService;
+use crate::app::services::template_service::TemplateService;
+use serde_json::json;
 
 #[derive(Serialize, ToSchema)]
 struct ErrorResponse {
@@ -210,180 +212,21 @@ pub async fn device_verification_page(
         error,
     };
 
-    // Render HTML page (simplified - in real app you'd use a template engine)
-    let html_content = format!(
-        r#"<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device Authorization</title>
-    <style>
-        body {{
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }}
-        .container {{
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }}
-        .error {{
-            color: #d32f2f;
-            background: #ffebee;
-            padding: 12px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            border-left: 4px solid #d32f2f;
-        }}
-        .success {{
-            color: #2e7d32;
-            background: #e8f5e8;
-            padding: 12px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            border-left: 4px solid #2e7d32;
-        }}
-        .form-group {{
-            margin-bottom: 20px;
-        }}
-        label {{
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }}
-        input[type="text"] {{
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-align: center;
-        }}
-        button {{
-            background: #1976d2;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-        }}
-        button:hover {{
-            background: #1565c0;
-        }}
-        .client-info {{
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-        }}
-        .scope-list {{
-            list-style: none;
-            padding: 0;
-        }}
-        .scope-list li {{
-            background: #e3f2fd;
-            padding: 8px 12px;
-            margin: 4px 0;
-            border-radius: 4px;
-            border-left: 3px solid #1976d2;
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🔐 Device Authorization</h1>
-        <p>Enter the code displayed on your device to authorize access.</p>
+    let template_service = TemplateService::global();
+    let context = json!({
+        "user_code": page_data.user_code,
+        "client_name": page_data.client_name,
+        "scopes": page_data.scopes,
+        "error": page_data.error
+    });
 
-        {}
-
-        {}
-
-        <form method="post" action="/oauth/device/verify">
-            <div class="form-group">
-                <label for="user_code">Device Code:</label>
-                <input type="text"
-                       id="user_code"
-                       name="user_code"
-                       placeholder="ABCD-EFGH"
-                       value="{}"
-                       pattern="[A-Z0-9]{{4}}-[A-Z0-9]{{4}}"
-                       maxlength="9"
-                       required
-                       autofocus>
-                <small style="color: #666; display: block; margin-top: 5px;">
-                    Enter the 8-character code shown on your device (format: ABCD-EFGH)
-                </small>
-            </div>
-            <button type="submit">Authorize Device</button>
-        </form>
-
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
-            <p><strong>Having trouble?</strong></p>
-            <ul>
-                <li>Make sure you entered the code exactly as shown on your device</li>
-                <li>The code is case-insensitive but must include the hyphen</li>
-                <li>Device codes expire after 30 minutes</li>
-            </ul>
-        </div>
-    </div>
-
-    <script>
-        // Auto-format user code input
-        document.getElementById('user_code').addEventListener('input', function(e) {{
-            let value = e.target.value.replace(/[^A-Z0-9]/g, '').toUpperCase();
-            if (value.length > 4) {{
-                value = value.substring(0, 4) + '-' + value.substring(4, 8);
-            }}
-            e.target.value = value;
-        }});
-    </script>
-</body>
-</html>"#,
-        // Error message
-        if let Some(error) = page_data.error {
-            format!(r#"<div class="error">❌ {}</div>"#, html_escape(&error))
-        } else {
-            String::new()
-        },
-
-        // Client info
-        if let Some(client_name) = page_data.client_name {
-            format!(
-                r#"<div class="client_info">
-                    <h3>📱 Application: {}</h3>
-                    {}
-                </div>"#,
-                html_escape(&client_name),
-                if !page_data.scopes.is_empty() {
-                    format!(
-                        "<p><strong>Permissions requested:</strong></p><ul class=\"scope-list\">{}</ul>",
-                        page_data.scopes.iter()
-                            .map(|scope| format!("<li>🔑 {}</li>", html_escape(scope)))
-                            .collect::<Vec<_>>()
-                            .join("")
-                    )
-                } else {
-                    "<p><em>No specific permissions requested</em></p>".to_string()
-                }
-            )
-        } else {
-            String::new()
-        },
-
-        // Pre-filled user code
-        page_data.user_code.as_deref().unwrap_or("")
-    );
-
-    Html(html_content)
+    match template_service.render("oauth/device-verification", &context).await {
+        Ok(html) => Html(html),
+        Err(e) => {
+            tracing::error!("Template rendering error: {}", e);
+            Html("<h1>Template Error</h1><p>Unable to render device verification page</p>".to_string())
+        }
+    }
 }
 
 /// Device Verification (POST)
@@ -423,55 +266,34 @@ pub async fn device_verify(
     // Process the device verification
     match DeviceService::verify_device_code(&pool, &verification.user_code, &user_id).await {
         Ok(_) => {
-            // Return success HTML page
-            Html(format!(
-                r#"<!DOCTYPE html>
-<html>
-<head>
-    <title>Device Authorization Success</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; }}
-        .success {{ color: green; }}
-        .container {{ max-width: 500px; margin: 0 auto; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1 class="success">Device Authorization Successful</h1>
-        <p>Your device with code <strong>{}</strong> has been successfully authorized.</p>
-        <p>You may now return to your device and continue using the application.</p>
-    </div>
-</body>
-</html>"#,
-                verification.user_code
-            )).into_response()
+            let template_service = TemplateService::global();
+            let context = json!({
+                "user_code": verification.user_code
+            });
+
+            match template_service.render("oauth/device-success", &context).await {
+                Ok(html) => Html(html).into_response(),
+                Err(e) => {
+                    tracing::error!("Template rendering error: {}", e);
+                    Html("<h1>Template Error</h1><p>Unable to render success page</p>".to_string()).into_response()
+                }
+            }
         },
         Err(e) => {
             tracing::warn!("Device verification failed: {}", e);
-            (StatusCode::BAD_REQUEST, Html(format!(
-                r#"<!DOCTYPE html>
-<html>
-<head>
-    <title>Device Authorization Failed</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; }}
-        .error {{ color: red; }}
-        .container {{ max-width: 500px; margin: 0 auto; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1 class="error">Device Authorization Failed</h1>
-        <p>The device code <strong>{}</strong> could not be verified.</p>
-        <p>Error: {}</p>
-        <p>Please check the code and try again.</p>
-    </div>
-</body>
-</html>"#,
-                verification.user_code, e
-            ))).into_response()
+            let template_service = TemplateService::global();
+            let context = json!({
+                "user_code": verification.user_code,
+                "error_message": e.to_string()
+            });
+
+            match template_service.render("oauth/device-error", &context).await {
+                Ok(html) => (StatusCode::BAD_REQUEST, Html(html)).into_response(),
+                Err(template_error) => {
+                    tracing::error!("Template rendering error: {}", template_error);
+                    (StatusCode::BAD_REQUEST, Html("<h1>Template Error</h1><p>Unable to render error page</p>".to_string())).into_response()
+                }
+            }
         }
     }
 }
@@ -565,11 +387,3 @@ async fn get_user_from_token(_pool: &DbPool, auth_header: Option<&str>) -> anyho
     Ok(user_id.to_string())
 }
 
-fn html_escape(input: &str) -> String {
-    input
-        .replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&#x27;")
-}

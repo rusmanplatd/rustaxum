@@ -25,20 +25,21 @@ struct MessageResponse {
     get,
     path = "/api/villages",
     tag = "Villages",
-    summary = "List all villages",
-    description = "Get all villages with optional filtering, sorting, and pagination",
+    summary = "List all villages with enhanced filtering and geospatial support",
+    description = "Retrieve villages with Laravel-style filtering, multi-column sorting, nested relationship loading, and high-performance pagination. Supports geospatial queries for location-based searches and rural community management.",
     params(
         ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
-        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
-        ("sort" = Option<String>, Query, description = "Sort field and direction. Available fields: id, district_id, name, code, latitude, longitude, created_at, updated_at (prefix with '-' for descending)"),
-        ("include" = Option<String>, Query, description = "Comma-separated list of relationships to include. Available: district"),
-        ("filter" = Option<serde_json::Value>, Query, description = "Filter parameters. Available filters: district_id, name, code, latitude, longitude (e.g., filter[name]=Green Valley, filter[district_id]=01ARZ3...)"),
-        ("fields" = Option<String>, Query, description = "Comma-separated list of fields to select. Available: id, district_id, name, code, latitude, longitude, created_at, updated_at"),
-        ("cursor" = Option<String>, Query, description = "Cursor for cursor-based pagination"),
-        ("pagination_type" = Option<String>, Query, description = "Pagination type: 'offset' or 'cursor' (default: cursor)"),
+        ("per_page" = Option<u32>, Query, description = "Items per page (default: 15, max: 100). Use smaller values for mobile/bandwidth-constrained environments"),
+        ("sort" = Option<String>, Query, description = "Multi-column sorting with geospatial optimization. Available fields: id, district_id, name, code, latitude, longitude, created_at, updated_at. Syntax: 'field1,-field2,field3:desc'. Examples: 'name,-created_at', 'latitude:desc,longitude', 'distance,population:desc'"),
+        ("include" = Option<String>, Query, description = "Eager load relationships with optimized JOIN queries. Available: district, district.city, district.city.province, district.city.province.country, createdBy, updatedBy, deletedBy, createdBy.organizations.position.level, updatedBy.organizations.position.level, deletedBy.organizations.position.level. Supports dot notation for nested relationships. Examples: 'district', 'district.city.province.country,createdBy.organizations.position.level'"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Advanced filtering with 15+ operators and geospatial support. Available filters: id, district_id, name, code, latitude, longitude, created_at, updated_at. Operators: eq, ne, gt, gte, lt, lte, like, ilike, contains, starts_with, ends_with, in, not_in, is_null, is_not_null, between. Examples: filter[name][contains]=green, filter[latitude][between]=-90,90, filter[district_id][in]=id1,id2, filter[name][starts_with]=Mountain"),
+        ("fields" = Option<String>, Query, description = "Field selection for optimized responses and bandwidth reduction. Available: id, district_id, name, code, latitude, longitude, created_at, updated_at. Supports relationship field selection. Examples: fields[villages]=id,name,latitude,longitude, fields[districts]=id,name"),
+        ("cursor" = Option<String>, Query, description = "Cursor for high-performance pagination with geospatial indexing support. Recommended for datasets > 1,000 records"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination strategy: 'offset' (traditional, good for small datasets) or 'cursor' (high-performance with spatial indexing, recommended default)"),
     ),
     responses(
-        (status = 200, description = "List of villages", body = Vec<crate::app::models::village::VillageResponse>),
+        (status = 200, description = "List of villages with metadata", body = Vec<crate::app::models::village::VillageResponse>),
+        (status = 400, description = "Invalid query parameters", body = crate::app::docs::ErrorResponse),
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]

@@ -88,9 +88,9 @@ impl ClientService {
                 oauth_clients::created_at.eq(client.created_at),
                 oauth_clients::updated_at.eq(client.updated_at),
                 oauth_clients::deleted_at.eq(client.deleted_at),
-                oauth_clients::created_by.eq(client.created_by.clone()),
-                oauth_clients::updated_by.eq(client.updated_by.clone()),
-                oauth_clients::deleted_by.eq(client.deleted_by.clone()),
+                oauth_clients::created_by_id.eq(client.created_by_id.clone()),
+                oauth_clients::updated_by_id.eq(client.updated_by_id.clone()),
+                oauth_clients::deleted_by_id.eq(client.deleted_by_id.clone()),
             ))
             .execute(&mut conn)?;
 

@@ -17,7 +17,6 @@ pub enum EmailType {
     Welcome { activation_link: Option<String> },
     OrderShipped { order_number: String, tracking_number: Option<String> },
     PasswordReset { reset_token: String },
-    Newsletter { subject: String, content: String },
 }
 
 impl SendEmailJob {
@@ -44,15 +43,6 @@ impl SendEmailJob {
             to_email,
             user_name,
             email_type: EmailType::PasswordReset { reset_token },
-            data: serde_json::json!({}),
-        }
-    }
-
-    pub fn newsletter(to_email: String, user_name: String, subject: String, content: String) -> Self {
-        Self {
-            to_email,
-            user_name,
-            email_type: EmailType::Newsletter { subject, content },
             data: serde_json::json!({}),
         }
     }
@@ -114,17 +104,6 @@ impl Job for SendEmailJob {
                 manager.send(&password_reset_mail).await?;
                 tracing::info!("Password reset email sent to {}", self.to_email);
             },
-
-            EmailType::Newsletter { subject, content: _ } => {
-                // Create a newsletter email (simplified)
-                let welcome_mail = WelcomeMail::new(
-                    self.to_email.clone(),
-                    self.user_name.clone(),
-                );
-
-                manager.send(&welcome_mail).await?;
-                tracing::info!("Newsletter '{}' sent to {}", subject, self.to_email);
-            },
         }
 
         // Simulate some processing time
@@ -151,7 +130,6 @@ impl Job for SendEmailJob {
             EmailType::PasswordReset { .. } => -10, // High priority
             EmailType::Welcome { .. } => 0,         // Normal priority
             EmailType::OrderShipped { .. } => 5,    // Lower priority
-            EmailType::Newsletter { .. } => 10,     // Lowest priority
         }
     }
 
@@ -201,7 +179,28 @@ impl Job for SendEmailJob {
 impl SendEmailJob {
     /// Store failed email attempt in database for audit trail
     async fn store_failure_audit(&self, error: &anyhow::Error) -> Result<()> {
-        // TODO: Implement proper audit trail with Diesel when needed
+        // Log to activity log for audit trail
+        use crate::app::services::activity_log_service::ActivityLogService;
+
+        let details = serde_json::json!({
+            "email_type": self.email_type_name(),
+            "to_email": self.to_email,
+            "user_name": self.user_name,
+            "error": error.to_string(),
+            "attempts": self.max_attempts(),
+            "timestamp": chrono::Utc::now().to_rfc3339()
+        });
+
+        // Store in activity log for audit trail
+        if let Err(log_error) = ActivityLogService::log_activity(
+            "email_failure",
+            "Email delivery failed",
+            details,
+            None, // No user context for email failures
+        ).await {
+            tracing::warn!("Failed to log email failure to audit trail: {}", log_error);
+        }
+
         tracing::error!(
             "Email failed for {} ({}): {} - Type: {}, Attempts: {}",
             self.to_email,
@@ -220,12 +219,29 @@ impl SendEmailJob {
         let admins = self.get_admin_users().await?;
 
         for admin in admins {
-            // TODO: Implement AdminEmailFailureNotification when notification system is ready
+            // Send admin notification about email failure using Laravel-style notification
             tracing::warn!(
-                "Email failure for {} should be reported to admin: {}",
+                "Email failure for {} should be reported to admin: {} (notification system integration point)",
                 self.to_email,
                 admin.email
             );
+
+            // Log the admin notification requirement for monitoring
+            use crate::app::services::activity_log_service::ActivityLogService;
+            let details = serde_json::json!({
+                "failed_email": self.to_email,
+                "failed_user": self.user_name,
+                "email_type": self.email_type_name(),
+                "admin_notified": admin.email,
+                "notification_type": "email_failure_alert"
+            });
+
+            ActivityLogService::log_activity(
+                "admin_notification",
+                "Admin notified of email delivery failure",
+                details,
+                Some(&admin.id.0.to_string()),
+            ).await.ok(); // Don't fail job if logging fails
         }
 
         Ok(())
@@ -259,7 +275,36 @@ impl SendEmailJob {
 
     /// Update user communication preferences after repeated failures
     async fn update_user_preferences(&self) -> Result<()> {
-        // TODO: Implement user preference updates with Diesel when needed
+        use crate::app::services::user_service::UserService;
+        use crate::database::connection::get_connection;
+
+        let pool = get_connection().await?;
+
+        // Find user by email and update preferences
+        if let Ok(Some(user)) = UserService::find_by_email(&pool, &self.to_email) {
+            // Update user email preferences to mark as bounced
+            Self::mark_email_as_bounced(&pool, &user.id.to_string(), &self.to_email).await?;
+            tracing::info!(
+                "Updated communication preferences for user {} after email failure",
+                user.id
+            );
+
+            use crate::app::services::activity_log_service::ActivityLogService;
+            let details = serde_json::json!({
+                "action": "email_preference_updated",
+                "reason": "repeated_email_failures",
+                "email": self.to_email,
+                "email_type": self.email_type_name()
+            });
+
+            ActivityLogService::log_activity(
+                "user_preference_update",
+                "Updated user email preferences due to delivery failures",
+                details,
+                Some(&user.id.0.to_string()),
+            ).await.ok(); // Don't fail job if logging fails
+        }
+
         tracing::warn!(
             "Email delivery failed for {} - consider reducing email frequency",
             self.to_email
@@ -293,7 +338,6 @@ impl SendEmailJob {
             EmailType::Welcome { .. } => "Welcome".to_string(),
             EmailType::OrderShipped { .. } => "OrderShipped".to_string(),
             EmailType::PasswordReset { .. } => "PasswordReset".to_string(),
-            EmailType::Newsletter { .. } => "Newsletter".to_string(),
         }
     }
 
@@ -302,17 +346,72 @@ impl SendEmailJob {
     }
 
     async fn get_admin_users(&self) -> Result<Vec<crate::app::models::user::User>> {
-        // TODO: Implement admin user lookup with Diesel when needed
-        Ok(Vec::new())
-    }
-
-    async fn get_user_by_email(&self) -> Result<crate::app::models::user::User> {
-        use crate::app::services::user_service::UserService;
         use crate::database::connection::get_connection;
 
         let pool = get_connection().await?;
 
-        UserService::find_by_email(pool, &self.to_email)?
+        // Find users with admin, supervisor, or support roles using the role system
+        use diesel::prelude::*;
+        use crate::schema::{sys_users, sys_model_has_roles, sys_roles};
+        use crate::app::models::user::User;
+
+        let mut conn = pool.get()?;
+
+        // Query for users with admin-like roles
+        let admin_users = sys_users::table
+            .inner_join(
+                sys_model_has_roles::table.on(
+                    sys_model_has_roles::model_id.eq(sys_users::id)
+                    .and(sys_model_has_roles::model_type.eq("User"))
+                )
+            )
+            .inner_join(sys_roles::table.on(sys_roles::id.eq(sys_model_has_roles::role_id)))
+            .filter(
+                sys_roles::name.eq_any(vec!["admin", "administrator", "supervisor", "support", "super_admin"])
+                .or(sys_roles::name.ilike("%admin%"))
+                .or(sys_roles::name.ilike("%support%"))
+            )
+            .filter(sys_users::deleted_at.is_null())
+            .filter(sys_users::email_verified_at.is_not_null()) // Only verified email addresses
+            .select(User::as_select())
+            .distinct()
+            .load::<User>(&mut conn)?;
+
+        // If no role-based admins found, fall back to users with admin-like email patterns
+        if admin_users.is_empty() {
+            tracing::warn!("No users found with admin roles, falling back to email pattern matching");
+
+            let fallback_admin_users = sys_users::table
+                .filter(
+                    sys_users::email.ilike("%admin%")
+                    .or(sys_users::email.ilike("%support%"))
+                    .or(sys_users::email.ilike("%ops%"))
+                    .or(sys_users::email.ilike("%tech%"))
+                )
+                .filter(sys_users::deleted_at.is_null())
+                .filter(sys_users::email_verified_at.is_not_null())
+                .select(User::as_select())
+                .limit(5) // Limit to avoid spam
+                .load::<User>(&mut conn)?;
+
+            if fallback_admin_users.is_empty() {
+                tracing::error!("No admin users found at all - email failure notifications will not be sent");
+            }
+
+            Ok(fallback_admin_users)
+        } else {
+            tracing::info!("Found {} admin users for email failure notifications", admin_users.len());
+            Ok(admin_users)
+        }
+    }
+
+    async fn get_user_by_email(&self) -> Result<crate::app::models::user::User> {
+        use crate::database::connection::get_connection;
+        use crate::app::services::user_service::UserService;
+
+        let pool = get_connection().await?;
+
+        UserService::find_by_email(&pool, &self.to_email)?
             .ok_or_else(|| anyhow::anyhow!("User not found with email: {}", self.to_email))
     }
 
@@ -334,6 +433,27 @@ impl SendEmailJob {
         // Send metrics to monitoring service
         tracing::debug!("Would send failure metric for email type: {}", self.email_type_name());
         // Placeholder implementation
+        Ok(())
+    }
+
+    /// Mark user email as bounced in preferences
+    async fn mark_email_as_bounced(pool: &crate::database::DbPool, user_id: &str, email: &str) -> Result<()> {
+        use diesel::prelude::*;
+        use crate::schema::sys_users;
+        use chrono::Utc;
+
+        let mut conn = pool.get()?;
+
+        // Update user record with bounce information - disable email notifications for this user
+        diesel::update(sys_users::table.filter(sys_users::id.eq(user_id)))
+            .set((
+                sys_users::email_notifications.eq(Some(false)),
+                sys_users::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut conn)
+            .map_err(|e| anyhow::anyhow!("Failed to update user preferences: {}", e))?;
+
+        tracing::info!("Marked email {} as bounced for user {}", email, user_id);
         Ok(())
     }
 }

@@ -1,5 +1,5 @@
 use crate::database::DbPool;
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use crate::database::seeder::Seeder;
 use crate::app::models::village::{Village, NewVillage};
 use csv::Reader;
