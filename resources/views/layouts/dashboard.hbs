@@ -468,6 +468,10 @@
                     <i class="fas fa-user"></i>
                     My Profile
                 </a>
+                <a href="/mfa" class="nav-link {{#if (eq current_route 'mfa')}}active{{/if}}">
+                    <i class="fas fa-mobile-alt"></i>
+                    MFA Settings
+                </a>
                 <a href="/dashboard/security" class="nav-link {{#if (eq current_route 'security')}}active{{/if}}">
                     <i class="fas fa-shield-alt"></i>
                     Security
@@ -527,6 +531,9 @@
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="/dashboard/profile">
                                 <i class="fas fa-user me-2"></i>My Profile
+                            </a></li>
+                            <li><a class="dropdown-item" href="/mfa">
+                                <i class="fas fa-mobile-alt me-2"></i>MFA Settings
                             </a></li>
                             <li><a class="dropdown-item" href="/dashboard/security">
                                 <i class="fas fa-shield-alt me-2"></i>Security

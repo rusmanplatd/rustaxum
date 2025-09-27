@@ -4,7 +4,8 @@ use crate::app::http::controllers::home_controller::HomeController;
 use crate::app::http::controllers::csrf_controller::CSRFController;
 use crate::app::http::controllers::web_auth_controller::WebAuthController;
 use crate::app::http::controllers::template_demo_controller::TemplateDemoController;
-use crate::app::http::middleware::auth_guard::auth_guard;
+use crate::app::http::controllers::mfa_controller;
+use crate::app::http::middleware::auth_guard::{auth_guard, mfa_guard};
 
 pub fn routes() -> Router<DbPool> {
     tracing::debug!("Creating web routes...");
@@ -27,7 +28,18 @@ pub fn routes() -> Router<DbPool> {
         .route("/auth/change-password", get(WebAuthController::show_change_password))
         .route("/auth/change-password", post(WebAuthController::change_password))
         .route("/dashboard", get(WebAuthController::dashboard))
+        // Non-setup MFA management routes require full auth
+        .route("/mfa/disable", post(mfa_controller::disable_mfa))
+        .route("/mfa/backup-codes", post(mfa_controller::regenerate_backup_codes))
+        .route("/mfa/methods", get(mfa_controller::get_mfa_methods))
         .route_layer(middleware::from_fn(auth_guard));
+
+    // MFA setup and verification routes use relaxed MFA guard
+    let mfa_routes = Router::new()
+        .route("/mfa", get(mfa_controller::show_setup_page))
+        .route("/mfa/setup", post(mfa_controller::setup_mfa))
+        .route("/mfa/verify", post(mfa_controller::verify_mfa))
+        .route_layer(middleware::from_fn(mfa_guard));
 
     // Public routes
     let public_routes = Router::new()
@@ -50,6 +62,7 @@ pub fn routes() -> Router<DbPool> {
     let router = Router::new()
         .merge(auth_routes)
         .merge(protected_auth_routes)
+        .merge(mfa_routes)
         .merge(public_routes);
 
     tracing::info!("Web routes created successfully with complete authentication system");

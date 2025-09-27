@@ -182,11 +182,15 @@ impl SessionStore {
         }
 
         if !self.config.expire_on_close {
-            let expires_secs = chrono::Utc::now()
-                .checked_add_signed(chrono::Duration::minutes(self.config.lifetime as i64))
-                .unwrap()
-                .timestamp();
-            cookie_parts.push(format!("Expires={}", expires_secs));
+            // Use both Max-Age and a properly formatted Expires date for compatibility
+            let expiry = chrono::Utc::now()
+                .checked_add_signed(chrono::Duration::seconds(self.config.lifetime_in_seconds() as i64))
+                .unwrap_or_else(|| chrono::Utc::now());
+
+            // RFC 1123 format, e.g. "Wed, 21 Oct 2015 07:28:00 GMT"
+            let expires_str = expiry.format("%a, %d %b %Y %H:%M:%S GMT").to_string();
+            cookie_parts.push(format!("Max-Age={}", self.config.lifetime_in_seconds()));
+            cookie_parts.push(format!("Expires={}", expires_str));
         }
 
         cookie_parts.join("; ")

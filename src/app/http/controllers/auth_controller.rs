@@ -12,7 +12,14 @@ use crate::app::models::user::{
     CreateUser, LoginRequest, ForgotPasswordRequest,
     ResetPasswordRequest, ChangePasswordRequest, RefreshTokenRequest
 };
-use crate::app::services::auth_service::AuthService;
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+pub struct MfaLoginRequest {
+    pub user_id: String,
+    pub mfa_code: String,
+}
+use crate::app::services::auth_service::{AuthService, LoginResponse};
 use crate::app::utils::token_utils::TokenUtils;
 
 #[derive(Serialize)]
@@ -34,7 +41,12 @@ pub async fn register(State(pool): State<DbPool>, Json(payload): Json<CreateUser
 
 pub async fn login(State(pool): State<DbPool>, Json(payload): Json<LoginRequest>) -> impl IntoResponse {
     match AuthService::login(&pool, payload).await {
-        Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
+        Ok(LoginResponse::Success(auth_response)) => {
+            (StatusCode::OK, ResponseJson(auth_response)).into_response()
+        },
+        Ok(LoginResponse::MfaRequired(mfa_response)) => {
+            (StatusCode::OK, ResponseJson(mfa_response)).into_response()
+        },
         Err(e) => {
             let error = ErrorResponse {
                 error: e.to_string(),
@@ -128,7 +140,7 @@ pub async fn login_session(
     Json(payload): Json<LoginRequest>
 ) -> impl IntoResponse {
     match AuthService::login(&pool, payload).await {
-        Ok(response) => {
+        Ok(LoginResponse::Success(response)) => {
             // Store user ID in session instead of returning JWT
             session.put("user_id", Value::String(response.user.id.to_string())).await;
             session.put("authenticated", Value::Bool(true)).await;
@@ -140,6 +152,21 @@ pub async fn login_session(
                 "session_id": session.get_session_id().await
             });
             (StatusCode::OK, ResponseJson(session_response)).into_response()
+        }
+        Ok(LoginResponse::MfaRequired(mfa_response)) => {
+            // Store MFA state in session
+            session.put("mfa_user_id", Value::String(mfa_response.user_id.clone())).await;
+            session.put("mfa_required", Value::Bool(true)).await;
+            session.regenerate().await.ok();
+
+            let mfa_session_response = json!({
+                "requires_mfa": true,
+                "message": mfa_response.message,
+                "user_id": mfa_response.user_id,
+                "mfa_methods": mfa_response.mfa_methods,
+                "session_id": session.get_session_id().await
+            });
+            (StatusCode::OK, ResponseJson(mfa_session_response)).into_response()
         }
         Err(e) => {
             let error = ErrorResponse {
@@ -223,5 +250,20 @@ pub async fn user_session(
             error: "Not authenticated".to_string(),
         };
         (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response()
+    }
+}
+
+pub async fn complete_mfa_login(
+    State(pool): State<DbPool>,
+    Json(payload): Json<MfaLoginRequest>
+) -> impl IntoResponse {
+    match AuthService::complete_mfa_login(&pool, payload.user_id, &payload.mfa_code).await {
+        Ok(response) => (StatusCode::OK, ResponseJson(response)).into_response(),
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::UNAUTHORIZED, ResponseJson(error)).into_response()
+        }
     }
 }

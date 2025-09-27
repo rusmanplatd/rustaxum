@@ -12,6 +12,7 @@ use crate::app::models::user::{CreateUser, LoginRequest, ForgotPasswordRequest, 
 use crate::app::utils::token_utils::TokenUtils;
 use crate::app::services::user_service::UserService;
 use crate::app::services::email_service::EmailService;
+use crate::app::services::mfa_service::MfaService;
 use crate::app::traits::ServiceActivityLogger;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,6 +30,23 @@ pub struct AuthResponse {
     pub user: UserResponse,
     pub expires_at: DateTime<Utc>,
     pub refresh_expires_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct MfaRequiredResponse {
+    pub message: String,
+    pub requires_mfa: bool,
+    pub user_id: String,
+    pub mfa_methods: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "type")]
+pub enum LoginResponse {
+    #[serde(rename = "success")]
+    Success(AuthResponse),
+    #[serde(rename = "mfa_required")]
+    MfaRequired(MfaRequiredResponse),
 }
 
 #[derive(Debug, Serialize)]
@@ -160,7 +178,7 @@ impl AuthService {
         })
     }
 
-    pub async fn login(pool: &DbPool, data: LoginRequest) -> Result<AuthResponse> {
+    pub async fn login(pool: &DbPool, data: LoginRequest) -> Result<LoginResponse> {
         // Find user by email
         let mut user = UserService::find_by_email(pool, &data.email)?
             .ok_or_else(|| anyhow::anyhow!("Invalid credentials"))?;
@@ -209,7 +227,22 @@ impl AuthService {
             UserService::reset_failed_attempts(pool, user.id.clone())?;
         }
 
-        // Generate tokens
+        // Check if MFA is enabled for this user
+        if MfaService::is_mfa_enabled(pool, user.id.to_string())? {
+            let mfa_methods = MfaService::get_mfa_methods(pool, user.id.to_string())?;
+            let method_types: Vec<String> = mfa_methods.iter()
+                .map(|m| m.method_type.clone())
+                .collect();
+
+            return Ok(LoginResponse::MfaRequired(MfaRequiredResponse {
+                message: "Multi-factor authentication required".to_string(),
+                requires_mfa: true,
+                user_id: user.id.to_string(),
+                mfa_methods: method_types,
+            }));
+        }
+
+        // Generate tokens (only if MFA is not required)
         let access_token = Self::generate_access_token(&user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
         let refresh_token = Self::generate_refresh_token();
         let expires_at = Utc::now() + Duration::seconds(86400);
@@ -237,6 +270,57 @@ impl AuthService {
             Some(properties)
         ).await {
             eprintln!("Failed to log successful login activity: {}", e);
+        }
+
+        Ok(LoginResponse::Success(AuthResponse {
+            access_token,
+            refresh_token,
+            user: user.to_response(),
+            expires_at,
+            refresh_expires_at,
+        }))
+    }
+
+    /// Complete MFA login after MFA code verification
+    pub async fn complete_mfa_login(pool: &DbPool, user_id: String, mfa_code: &str) -> Result<AuthResponse> {
+        // Verify MFA code
+        if !MfaService::verify_mfa_code(pool, user_id.clone(), mfa_code).await? {
+            bail!("Invalid MFA code");
+        }
+
+        // Get user
+        let mut user = UserService::find_by_id(pool, user_id.clone())?
+            .ok_or_else(|| anyhow::anyhow!("User not found"))?;
+
+        // Generate tokens
+        let access_token = Self::generate_access_token(&user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
+        let refresh_token = Self::generate_refresh_token();
+        let expires_at = Utc::now() + Duration::seconds(86400);
+        let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
+
+        // Store refresh token
+        UserService::update_refresh_token(pool, user.id.clone(), Some(refresh_token.clone()), Some(refresh_expires_at))?;
+
+        // Update last login
+        UserService::update_last_login(pool, user.id.clone())?;
+        user.last_login_at = Some(Utc::now());
+
+        // Log successful MFA login
+        let service = AuthService;
+        let properties = json!({
+            "user_id": user.id.to_string(),
+            "email": user.email.clone(),
+            "last_login": user.last_login_at,
+            "login_method": "mfa"
+        });
+
+        if let Err(e) = service.log_authentication(
+            "mfa_login",
+            Some(&user.id.to_string()),
+            true,
+            Some(properties)
+        ).await {
+            eprintln!("Failed to log successful MFA login activity: {}", e);
         }
 
         Ok(AuthResponse {

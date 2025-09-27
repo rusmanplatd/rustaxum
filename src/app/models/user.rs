@@ -77,6 +77,18 @@ pub struct User {
     pub updated_by: Option<DieselUlid>,
     /// User who deleted this record
     pub deleted_by: Option<DieselUlid>,
+    /// Identity public key for encryption
+    pub identity_public_key: Option<String>,
+    /// Identity key creation timestamp
+    pub identity_key_created_at: Option<DateTime<Utc>>,
+    /// MFA enabled flag
+    pub mfa_enabled: bool,
+    /// MFA secret for TOTP
+    pub mfa_secret: Option<String>,
+    /// MFA backup codes (hashed)
+    pub mfa_backup_codes: Option<serde_json::Value>,
+    /// MFA required flag
+    pub mfa_required: bool,
 }
 
 /// Create user payload for service layer
@@ -197,6 +209,12 @@ impl User {
             created_by: None,
             updated_by: None,
             deleted_by: None,
+            identity_public_key: None,
+            identity_key_created_at: None,
+            mfa_enabled: false,
+            mfa_secret: None,
+            mfa_backup_codes: None,
+            mfa_required: false,
         }
     }
 

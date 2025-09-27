@@ -78,3 +78,4 @@ pub async fn validate_json_async(data: serde_json::Value, rules: ValidationRules
 pub async fn validate_json_with_db(data: serde_json::Value, rules: ValidationRules, db: DbPool) -> Result<(), ValidationErrors> {
     make_validator(data, rules).with_db(db).validate().await
 }
+

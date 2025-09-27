@@ -6,7 +6,7 @@ use serde::{Deserialize};
 use serde_json::{json, Value};
 use crate::database::DbPool;
 use crate::app::services::session::SessionStore;
-use crate::app::services::auth_service::AuthService;
+use crate::app::services::auth_service::{AuthService, LoginResponse};
 use crate::app::services::user_service::UserService;
 use crate::app::http::responses::template_response::TemplateResponse;
 use crate::app::models::user::{LoginRequest, CreateUser, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest};
@@ -269,7 +269,7 @@ impl WebAuthController {
         tracing::info!("Attempting login for email: {}", form.email);
 
         match AuthService::login(&pool, login_request).await {
-            Ok(response) => {
+            Ok(LoginResponse::Success(response)) => {
                 tracing::info!("Login successful for user: {}", response.user.name);
 
                 // Store user authentication in session
@@ -322,6 +322,19 @@ impl WebAuthController {
                     .body(axum::body::Body::from(redirect_body))
                     .unwrap()
                     .into_response()
+            }
+            Ok(LoginResponse::MfaRequired(mfa_response)) => {
+                tracing::info!("MFA required for user: {}", mfa_response.user_id);
+
+                // Store user ID in session for MFA completion
+                session.put("mfa_user_id", Value::String(mfa_response.user_id.clone())).await;
+                session.put("mfa_required", Value::Bool(true)).await;
+
+                // Regenerate session ID for security
+                session.regenerate().await.ok();
+
+                // Redirect to MFA page
+                Redirect::to("/mfa").into_response()
             }
             Err(e) => {
                 session.flash("error", Value::String(e.to_string())).await;

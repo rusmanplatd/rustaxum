@@ -22,3 +22,4 @@ pub mod activity_log_service;
 pub mod template_service;
 pub mod session;
 pub mod csrf_service;
+pub mod mfa_service;

@@ -655,6 +655,42 @@ diesel::table! {
 }
 
 diesel::table! {
+    mfa_attempts (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Bpchar,
+        #[max_length = 50]
+        method_type -> Varchar,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        success -> Bool,
+        attempted_at -> Timestamptz,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    mfa_methods (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Bpchar,
+        #[max_length = 50]
+        method_type -> Varchar,
+        secret -> Nullable<Text>,
+        is_enabled -> Bool,
+        is_verified -> Bool,
+        backup_codes -> Nullable<Jsonb>,
+        recovery_codes_used_count -> Int4,
+        last_used_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     migrations (id) {
         id -> Int4,
         #[max_length = 255]
@@ -729,6 +765,67 @@ diesel::table! {
 }
 
 diesel::table! {
+    oauth_ciba_auth_codes (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        ciba_request_id -> Bpchar,
+        #[max_length = 255]
+        code -> Varchar,
+        #[max_length = 26]
+        client_id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Bpchar,
+        scopes -> Nullable<Text>,
+        #[max_length = 2048]
+        redirect_uri -> Nullable<Varchar>,
+        #[max_length = 255]
+        code_challenge -> Nullable<Varchar>,
+        #[max_length = 10]
+        code_challenge_method -> Nullable<Varchar>,
+        expires_at -> Timestamptz,
+        revoked -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    oauth_ciba_requests (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 255]
+        auth_req_id -> Varchar,
+        #[max_length = 26]
+        client_id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Nullable<Bpchar>,
+        #[max_length = 255]
+        scope -> Nullable<Varchar>,
+        #[max_length = 255]
+        binding_message -> Nullable<Varchar>,
+        #[max_length = 255]
+        user_code -> Nullable<Varchar>,
+        #[max_length = 255]
+        login_hint -> Nullable<Varchar>,
+        login_hint_token -> Nullable<Text>,
+        id_token_hint -> Nullable<Text>,
+        requested_expiry -> Nullable<Int4>,
+        #[max_length = 50]
+        status -> Varchar,
+        #[max_length = 255]
+        notification_endpoint -> Nullable<Varchar>,
+        notification_token -> Nullable<Text>,
+        expires_at -> Timestamptz,
+        interval_seconds -> Int4,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        authorized_at -> Nullable<Timestamptz>,
+        denied_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     oauth_clients (id) {
         #[max_length = 26]
         id -> Bpchar,
@@ -793,6 +890,22 @@ diesel::table! {
 }
 
 diesel::table! {
+    oauth_pushed_requests (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 255]
+        request_uri -> Varchar,
+        #[max_length = 26]
+        client_id -> Bpchar,
+        request_data -> Text,
+        expires_at -> Timestamptz,
+        used -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     oauth_refresh_tokens (id) {
         #[max_length = 26]
         id -> Bpchar,
@@ -812,71 +925,6 @@ diesel::table! {
         name -> Varchar,
         description -> Nullable<Text>,
         is_default -> Bool,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    oauth_pushed_requests (id) {
-        #[max_length = 26]
-        id -> Bpchar,
-        request_uri -> Varchar,
-        #[max_length = 26]
-        client_id -> Bpchar,
-        request_data -> Text,
-        expires_at -> Timestamptz,
-        used -> Bool,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    oauth_ciba_requests (id) {
-        #[max_length = 26]
-        id -> Bpchar,
-        auth_req_id -> Varchar,
-        #[max_length = 26]
-        client_id -> Bpchar,
-        #[max_length = 26]
-        user_id -> Nullable<Bpchar>,
-        scope -> Nullable<Varchar>,
-        binding_message -> Nullable<Varchar>,
-        user_code -> Nullable<Varchar>,
-        login_hint -> Nullable<Varchar>,
-        login_hint_token -> Nullable<Text>,
-        id_token_hint -> Nullable<Text>,
-        requested_expiry -> Nullable<Int4>,
-        status -> Varchar,
-        notification_endpoint -> Nullable<Varchar>,
-        notification_token -> Nullable<Text>,
-        expires_at -> Timestamptz,
-        interval_seconds -> Int4,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-        authorized_at -> Nullable<Timestamptz>,
-        denied_at -> Nullable<Timestamptz>,
-    }
-}
-
-diesel::table! {
-    oauth_ciba_auth_codes (id) {
-        #[max_length = 26]
-        id -> Bpchar,
-        #[max_length = 26]
-        ciba_request_id -> Bpchar,
-        code -> Varchar,
-        #[max_length = 26]
-        client_id -> Bpchar,
-        #[max_length = 26]
-        user_id -> Bpchar,
-        scopes -> Nullable<Text>,
-        redirect_uri -> Nullable<Varchar>,
-        code_challenge -> Nullable<Varchar>,
-        code_challenge_method -> Nullable<Varchar>,
-        expires_at -> Timestamptz,
-        revoked -> Bool,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
@@ -1192,6 +1240,20 @@ diesel::table! {
 }
 
 diesel::table! {
+    sessions (id) {
+        #[max_length = 40]
+        id -> Varchar,
+        #[max_length = 26]
+        user_id -> Nullable<Bpchar>,
+        #[max_length = 45]
+        ip_address -> Nullable<Varchar>,
+        user_agent -> Nullable<Text>,
+        payload -> Text,
+        last_activity -> Int4,
+    }
+}
+
+diesel::table! {
     signal_sessions (id) {
         #[max_length = 26]
         id -> Bpchar,
@@ -1361,6 +1423,10 @@ diesel::table! {
         deleted_by -> Nullable<Bpchar>,
         identity_public_key -> Nullable<Text>,
         identity_key_created_at -> Nullable<Timestamptz>,
+        mfa_enabled -> Bool,
+        mfa_secret -> Nullable<Text>,
+        mfa_backup_codes -> Nullable<Jsonb>,
+        mfa_required -> Bool,
     }
 }
 
@@ -1429,20 +1495,6 @@ diesel::table! {
     }
 }
 
-diesel::table! {
-    sessions (id) {
-        #[max_length = 40]
-        id -> Varchar,
-        #[max_length = 26]
-        user_id -> Nullable<Bpchar>,
-        #[max_length = 45]
-        ip_address -> Nullable<Varchar>,
-        user_agent -> Nullable<Text>,
-        payload -> Text,
-        last_activity -> Int4,
-    }
-}
-
 diesel::joinable!(cities -> provinces (province_id));
 diesel::joinable!(conversation_algorithm_negotiations -> conversations (conversation_id));
 diesel::joinable!(conversation_device_settings -> conversations (conversation_id));
@@ -1481,21 +1533,23 @@ diesel::joinable!(message_reactions -> sys_users (user_id));
 diesel::joinable!(messages -> conversations (conversation_id));
 diesel::joinable!(messages -> devices (sender_device_id));
 diesel::joinable!(messages -> sys_users (sender_user_id));
+diesel::joinable!(mfa_attempts -> sys_users (user_id));
+diesel::joinable!(mfa_methods -> sys_users (user_id));
 diesel::joinable!(oauth_access_tokens -> oauth_clients (client_id));
 diesel::joinable!(oauth_access_tokens -> sys_users (user_id));
 diesel::joinable!(oauth_auth_codes -> oauth_clients (client_id));
 diesel::joinable!(oauth_auth_codes -> sys_users (user_id));
+diesel::joinable!(oauth_ciba_auth_codes -> oauth_ciba_requests (ciba_request_id));
+diesel::joinable!(oauth_ciba_auth_codes -> oauth_clients (client_id));
+diesel::joinable!(oauth_ciba_auth_codes -> sys_users (user_id));
+diesel::joinable!(oauth_ciba_requests -> oauth_clients (client_id));
+diesel::joinable!(oauth_ciba_requests -> sys_users (user_id));
 diesel::joinable!(oauth_clients -> organizations (organization_id));
 diesel::joinable!(oauth_device_codes -> oauth_clients (client_id));
 diesel::joinable!(oauth_device_codes -> sys_users (user_id));
 diesel::joinable!(oauth_personal_access_clients -> oauth_clients (client_id));
-diesel::joinable!(oauth_refresh_tokens -> oauth_access_tokens (access_token_id));
 diesel::joinable!(oauth_pushed_requests -> oauth_clients (client_id));
-diesel::joinable!(oauth_ciba_requests -> oauth_clients (client_id));
-diesel::joinable!(oauth_ciba_requests -> sys_users (user_id));
-diesel::joinable!(oauth_ciba_auth_codes -> oauth_ciba_requests (ciba_request_id));
-diesel::joinable!(oauth_ciba_auth_codes -> oauth_clients (client_id));
-diesel::joinable!(oauth_ciba_auth_codes -> sys_users (user_id));
+diesel::joinable!(oauth_refresh_tokens -> oauth_access_tokens (access_token_id));
 diesel::joinable!(organization_position_levels -> organizations (organization_id));
 diesel::joinable!(organization_positions -> organization_position_levels (organization_position_level_id));
 diesel::joinable!(organization_positions -> organizations (organization_id));
@@ -1517,11 +1571,11 @@ diesel::joinable!(scheduled_messages -> sys_users (sender_user_id));
 diesel::joinable!(security_incidents -> conversations (conversation_id));
 diesel::joinable!(security_incidents -> devices (device_id));
 diesel::joinable!(security_incidents -> sys_users (user_id));
-diesel::joinable!(sessions -> sys_users (user_id));
 diesel::joinable!(sender_key_sessions -> conversations (conversation_id));
 diesel::joinable!(sender_key_sessions -> devices (sender_device_id));
 diesel::joinable!(session_recovery_log -> devices (requesting_device_id));
 diesel::joinable!(session_recovery_log -> signal_sessions (session_id));
+diesel::joinable!(sessions -> sys_users (user_id));
 diesel::joinable!(signal_sessions -> conversations (conversation_id));
 diesel::joinable!(skipped_message_keys -> devices (sender_device_id));
 diesel::joinable!(skipped_message_keys -> signal_sessions (session_id));
@@ -1568,18 +1622,20 @@ diesel::allow_tables_to_appear_in_same_query!(
     message_mentions,
     message_reactions,
     messages,
+    mfa_attempts,
+    mfa_methods,
     migrations,
     notifications,
     oauth_access_tokens,
     oauth_auth_codes,
+    oauth_ciba_auth_codes,
+    oauth_ciba_requests,
     oauth_clients,
     oauth_device_codes,
     oauth_personal_access_clients,
+    oauth_pushed_requests,
     oauth_refresh_tokens,
     oauth_scopes,
-    oauth_pushed_requests,
-    oauth_ciba_requests,
-    oauth_ciba_auth_codes,
     organization_position_levels,
     organization_positions,
     organizations,

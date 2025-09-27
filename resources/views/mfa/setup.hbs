@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Two-Factor Authentication</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .step {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        #qr-code {
+            text-align: center;
+            margin: 20px 0;
+        }
+        #backup-codes {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .backup-code {
+            font-family: monospace;
+            font-size: 14px;
+            padding: 5px;
+            margin: 2px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            display: inline-block;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            margin: 8px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        .alert {
+            padding: 12px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .alert-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .loading {
+            padding: 12px;
+            border-radius: 4px;
+            margin: 15px 0;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            text-align: center;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Setup Two-Factor Authentication</h1>
+            <p>Add an extra layer of security to your account</p>
+        </div>
+
+        <div id="alert-container"></div>
+
+        <!-- Step 1: Setup MFA -->
+        <div id="step-1" class="step">
+            <h3>Step 1: Generate QR Code</h3>
+            <p>Click the button below to generate your TOTP secret and QR code:</p>
+            <button onclick="setupMFA()">Setup MFA</button>
+        </div>
+
+        <!-- Step 2: QR Code Display -->
+        <div id="step-2" class="step hidden">
+            <h3>Step 2: Scan QR Code</h3>
+            <p>Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.):</p>
+            <div id="qr-code"></div>
+            <p><strong>Manual Entry Secret:</strong> <span id="manual-secret"></span></p>
+
+            <div id="backup-codes">
+                <h4>🔑 Backup Recovery Codes</h4>
+                <p><strong>Important:</strong> Save these backup codes in a safe place. Each code can only be used once.</p>
+                <div id="backup-codes-list"></div>
+            </div>
+        </div>
+
+        <!-- Step 3: Verify -->
+        <div id="step-3" class="step hidden">
+            <h3>Step 3: Verify Setup</h3>
+            <p>Enter the 6-digit code from your authenticator app to complete setup:</p>
+            <input type="text" id="verification-code" placeholder="Enter 6-digit code" maxlength="6"
+                   onkeypress="if(event.key==='Enter') verifyMFA()">
+            <button id="verify-button" onclick="verifyMFA()">Verify & Enable MFA</button>
+        </div>
+
+        <!-- MFA Management (for users with MFA enabled) -->
+        <div id="mfa-management" class="step hidden">
+            <h3>MFA Management</h3>
+            <p>Your account has MFA enabled.</p>
+            <button onclick="regenerateBackupCodes()">Regenerate Backup Codes</button>
+            <button class="btn-secondary" onclick="disableMFA()">Disable MFA</button>
+        </div>
+    </div>
+
+    <script>
+        let mfaSecret = '';
+
+        async function setupMFA() {
+            try {
+                showLoading('Setting up MFA...');
+
+                const response = await fetch('/mfa/setup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ method_type: 'totp' })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    mfaSecret = data.secret;
+                    document.getElementById('manual-secret').textContent = data.secret;
+                    document.getElementById('qr-code').innerHTML = `<img src="${data.qr_code_url}" alt="QR Code">`;
+
+                    // Display backup codes
+                    const backupCodesList = document.getElementById('backup-codes-list');
+                    backupCodesList.innerHTML = data.backup_codes.map(code =>
+                        `<span class="backup-code">${code}</span>`
+                    ).join('');
+
+                    document.getElementById('step-1').classList.add('hidden');
+                    document.getElementById('step-2').classList.remove('hidden');
+                    document.getElementById('step-3').classList.remove('hidden');
+
+                    showAlert('QR code generated successfully!', 'success');
+                } else {
+                    showAlert(data.error || 'Failed to setup MFA', 'error');
+                }
+            } catch (error) {
+                showAlert('Network error: ' + error.message, 'error');
+            }
+        }
+
+        async function verifyMFA() {
+            const code = document.getElementById('verification-code').value;
+            const verifyButton = document.getElementById('verify-button');
+
+            if (!code || code.length !== 6) {
+                showAlert('Please enter a 6-digit code', 'error');
+                return;
+            }
+
+            try {
+                // Disable button to prevent double-clicking
+                verifyButton.disabled = true;
+                verifyButton.textContent = 'Verifying...';
+                showLoading('Verifying code...');
+
+                const response = await fetch('/mfa/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code: code })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.verified) {
+                    showAlert('MFA enabled successfully! Your account is now secured with two-factor authentication.', 'success');
+
+                    // Hide setup steps, show management
+                    document.getElementById('step-2').classList.add('hidden');
+                    document.getElementById('step-3').classList.add('hidden');
+                    document.getElementById('mfa-management').classList.remove('hidden');
+                } else {
+                    // Re-enable button for retry
+                    verifyButton.disabled = false;
+                    verifyButton.textContent = 'Verify & Enable MFA';
+
+                    // Show the message from the server response
+                    const errorMessage = data.message || data.error || 'Invalid verification code';
+                    showAlert(errorMessage, 'error');
+                    // Clear the verification code input to allow retry
+                    document.getElementById('verification-code').value = '';
+                    document.getElementById('verification-code').focus();
+                }
+            } catch (error) {
+                // Re-enable button for retry
+                verifyButton.disabled = false;
+                verifyButton.textContent = 'Verify & Enable MFA';
+
+                showAlert('Network error: ' + error.message, 'error');
+                // Clear the verification code input to allow retry
+                document.getElementById('verification-code').value = '';
+                document.getElementById('verification-code').focus();
+            }
+        }
+
+        async function regenerateBackupCodes() {
+            const password = prompt('Enter your current password to regenerate backup codes:');
+            if (!password) return;
+
+            try {
+                showLoading('Regenerating backup codes...');
+
+                const response = await fetch('/mfa/backup-codes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ current_password: password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('New backup codes:\\n' + data.backup_codes.join('\\n'));
+                    showAlert('Backup codes regenerated successfully', 'success');
+                } else {
+                    showAlert(data.error || 'Failed to regenerate backup codes', 'error');
+                }
+            } catch (error) {
+                showAlert('Network error: ' + error.message, 'error');
+            }
+        }
+
+        async function disableMFA() {
+            if (!confirm('Are you sure you want to disable MFA? This will make your account less secure.')) {
+                return;
+            }
+
+            const password = prompt('Enter your current password to disable MFA:');
+            if (!password) return;
+
+            try {
+                showLoading('Disabling MFA...');
+
+                const response = await fetch('/mfa/disable', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ current_password: password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('MFA disabled successfully', 'success');
+
+                    // Reset to initial state
+                    document.getElementById('mfa-management').classList.add('hidden');
+                    document.getElementById('step-1').classList.remove('hidden');
+                } else {
+                    showAlert(data.error || 'Failed to disable MFA', 'error');
+                }
+            } catch (error) {
+                showAlert('Network error: ' + error.message, 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alert-container');
+            // Clear any loading state and show the alert
+            alertContainer.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        function showLoading(message) {
+            const alertContainer = document.getElementById('alert-container');
+            alertContainer.innerHTML = `<div class="loading">${message}</div>`;
+        }
+
+        function getAuthToken() {
+            // This would get the JWT token from localStorage or cookie
+            // For demo purposes, return a placeholder
+            return localStorage.getItem('auth_token') || 'demo-token';
+        }
+
+        // Initialize page based on MFA status
+        window.onload = async function() {
+            try {
+                const response = await fetch('/mfa/methods');
+
+                const data = await response.json();
+
+                if (response.ok && data.methods && data.methods.length > 0) {
+                    const totpMethod = data.methods.find(m => m.method_type === 'totp');
+                    if (totpMethod && totpMethod.is_enabled) {
+                        document.getElementById('step-1').classList.add('hidden');
+                        document.getElementById('mfa-management').classList.remove('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to check MFA status:', error);
+            }
+        };
+    </script>
+</body>
+</html>

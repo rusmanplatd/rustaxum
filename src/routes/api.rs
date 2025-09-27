@@ -17,6 +17,7 @@ pub fn routes() -> Router<DbPool> {
         // JWT-based authentication
         .route("/api/auth/register", post(auth_controller::register))
         .route("/api/auth/login", post(auth_controller::login))
+        .route("/api/auth/mfa-login", post(auth_controller::complete_mfa_login))
         .route("/api/auth/forgot-password", post(auth_controller::forgot_password))
         .route("/api/auth/reset-password", post(auth_controller::reset_password))
         .route("/api/auth/refresh-token", post(auth_controller::refresh_token))
