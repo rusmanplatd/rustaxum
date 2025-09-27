@@ -88,7 +88,7 @@ pub async fn create_app() -> anyhow::Result<Router> {
                 .layer(middleware::from_fn(app::http::middleware::correlation_middleware::correlation_middleware))
                 .layer(middleware::from_fn(app::http::middleware::activity_logging_middleware::activity_logging_middleware))
                 .layer(TraceLayer::new_for_http())
-                .layer(CorsLayer::permissive()),
+                .layer(CorsLayer::permissive())
         );
 
     tracing::info!("Application router created with all routes and middleware");

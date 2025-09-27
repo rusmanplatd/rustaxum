@@ -266,8 +266,12 @@ impl WebAuthController {
             password: form.password,
         };
 
+        tracing::info!("Attempting login for email: {}", form.email);
+
         match AuthService::login(&pool, login_request).await {
             Ok(response) => {
+                tracing::info!("Login successful for user: {}", response.user.name);
+
                 // Store user authentication in session
                 session.put("user_id", Value::String(response.user.id.to_string())).await;
                 session.put("authenticated", Value::Bool(true)).await;
@@ -287,9 +291,37 @@ impl WebAuthController {
                 session.forget("errors").await;
                 session.forget("error").await;
 
-                // Redirect to intended destination or dashboard
+                // Create proper redirect response with body
                 let redirect_url = form.redirect.unwrap_or_else(|| "/dashboard".to_string());
-                Redirect::to(&redirect_url).into_response()
+                tracing::info!("Redirecting to: {}", redirect_url);
+
+                use axum::http::{StatusCode, HeaderValue};
+                use axum::response::{Response, Html};
+
+                // Create redirect response with HTML body for better browser compatibility
+                let redirect_body = format!(
+                    r#"<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Redirecting...</title>
+    <meta http-equiv="refresh" content="0; url={}">
+</head>
+<body>
+    <p>Redirecting to <a href="{}">{}</a>...</p>
+    <script>window.location.href = '{}';</script>
+</body>
+</html>"#,
+                    redirect_url, redirect_url, redirect_url, redirect_url
+                );
+
+                Response::builder()
+                    .status(StatusCode::SEE_OTHER)
+                    .header("Location", &redirect_url)
+                    .header("Content-Type", "text/html; charset=utf-8")
+                    .body(axum::body::Body::from(redirect_body))
+                    .unwrap()
+                    .into_response()
             }
             Err(e) => {
                 session.flash("error", Value::String(e.to_string())).await;

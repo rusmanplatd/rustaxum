@@ -1,10 +1,11 @@
 use axum::{
-    extract::Request,
+    extract::{Request, ConnectInfo},
     http::{HeaderMap, HeaderName, HeaderValue},
     middleware::Next,
     response::Response,
 };
 use std::collections::HashMap;
+use std::net::SocketAddr;
 use std::str::FromStr;
 use uuid::Uuid;
 
@@ -75,8 +76,12 @@ pub async fn correlation_middleware(
 ) -> Response {
     let correlation_id = extract_or_generate_correlation_id(&request);
 
+    // Extract socket address from extensions (if available)
+    let socket_addr = request.extensions().get::<ConnectInfo<SocketAddr>>()
+        .map(|connect_info| connect_info.0);
+
     // Extract comprehensive request data
-    let request_data = extract_request_data(&request);
+    let request_data = extract_request_data(&request, socket_addr);
 
     // Add correlation context with request data to request extensions
     request.extensions_mut().insert(CorrelationContext::with_id_and_request_data(
@@ -129,7 +134,7 @@ fn extract_or_generate_correlation_id(request: &Request) -> DieselUlid {
 }
 
 /// Extract comprehensive request data for logging
-fn extract_request_data(request: &Request) -> RequestData {
+fn extract_request_data(request: &Request, socket_addr: Option<SocketAddr>) -> RequestData {
     let method = request.method().to_string();
     let uri = request.uri().to_string();
     let path = request.uri().path().to_string();
@@ -155,8 +160,9 @@ fn extract_request_data(request: &Request) -> RequestData {
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
 
-    // Extract client IP
-    let remote_ip = extract_client_ip_from_headers(request.headers());
+    // Extract client IP (check headers first, then fallback to socket address)
+    let remote_ip = extract_client_ip_from_headers(request.headers())
+        .or_else(|| socket_addr.map(|addr| addr.ip().to_string()));
 
     RequestData {
         method,

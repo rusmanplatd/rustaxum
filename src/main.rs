@@ -42,7 +42,10 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!("🎯 Application startup completed successfully");
     tracing::debug!("Starting Axum HTTP server...");
-    axum::serve(listener, app).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    ).await?;
 
     tracing::info!("Application shutdown completed");
     Ok(())

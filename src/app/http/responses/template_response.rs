@@ -110,53 +110,100 @@ impl TemplateResponse {
 
 impl IntoResponse for TemplateResponse {
     fn into_response(self) -> Response {
-        // Use production async template rendering by default
-        let status = self.status;
-        let future = Box::pin(async move {
-            match self.render_async().await {
-                Ok(html) => (status, Html(html)).into_response(),
+        // Create a future that will render the template
+        let future = async move {
+            let template_service = TemplateService::global();
+            let config = match Config::load() {
+                Ok(config) => config,
                 Err(e) => {
-                    tracing::error!("Template rendering error: {}", e);
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Html(format!(
-                            "<h1>Template Error</h1><p>Failed to render template: {}</p>",
-                            e
-                        )),
-                    ).into_response()
+                    tracing::error!("Failed to load config for template rendering: {}", e);
+                    return (
+                        self.status,
+                        Html("<h1>Configuration Error</h1><p>Failed to load application configuration</p>".to_string()),
+                    ).into_response();
+                }
+            };
+
+            // Prepare template data
+            let mut template_data = self.data.clone();
+            if let Some(obj) = template_data.as_object_mut() {
+                obj.insert("app_name".to_string(), json!(config.app.name));
+                obj.insert("app_url".to_string(), json!(config.app.url));
+                obj.insert("year".to_string(), json!(Utc::now().year()));
+            }
+
+            match &self.layout {
+                Some(layout_name) => {
+                    // Render the page content first
+                    match template_service.render(&self.template, &template_data).await {
+                        Ok(content) => {
+                            // Add content to template data for layout
+                            if let Some(obj) = template_data.as_object_mut() {
+                                obj.insert("content".to_string(), json!(content));
+                            }
+
+                            // Render with layout
+                            match template_service.render(layout_name, &template_data).await {
+                                Ok(html) => (self.status, Html(html)).into_response(),
+                                Err(e) => {
+                                    tracing::error!("Layout rendering error: {}", e);
+                                    (
+                                        StatusCode::INTERNAL_SERVER_ERROR,
+                                        Html(format!(
+                                            "<h1>Template Error</h1><p>Failed to render layout '{}': {}</p>",
+                                            layout_name, e
+                                        )),
+                                    ).into_response()
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            tracing::error!("Template rendering error: {}", e);
+                            (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                Html(format!(
+                                    "<h1>Template Error</h1><p>Failed to render template '{}': {}</p>",
+                                    self.template, e
+                                )),
+                            ).into_response()
+                        }
+                    }
+                }
+                None => {
+                    // Render without layout
+                    match template_service.render(&self.template, &template_data).await {
+                        Ok(html) => (self.status, Html(html)).into_response(),
+                        Err(e) => {
+                            tracing::error!("Template rendering error: {}", e);
+                            (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                Html(format!(
+                                    "<h1>Template Error</h1><p>Failed to render template '{}': {}</p>",
+                                    self.template, e
+                                )),
+                            ).into_response()
+                        }
+                    }
                 }
             }
+        };
+
+        // Use a blocking thread to execute the async code
+        let result = std::thread::spawn(move || {
+            let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+            rt.block_on(future)
         });
 
-        // Since we need to return Response synchronously but template rendering is async,
-        // we'll use a streaming response that awaits the template rendering
-        let (tx, rx) = tokio::sync::oneshot::channel();
-
-        tokio::spawn(async move {
-            let response = future.await;
-            let _ = tx.send(response);
-        });
-
-        // Create a response that streams the result when ready
-        let body = axum::body::Body::from_stream(async_stream::stream! {
-            match rx.await {
-                Ok(response) => {
-                    let (_, body) = response.into_parts();
-                    let bytes = axum::body::to_bytes(body, usize::MAX).await.unwrap_or_default();
-                    yield Ok::<_, std::convert::Infallible>(bytes);
-                }
-                Err(_) => {
-                    let error_html = b"<h1>Template Error</h1><p>Failed to render template</p>";
-                    yield Ok::<_, std::convert::Infallible>(error_html.as_slice().into());
-                }
+        match result.join() {
+            Ok(response) => response,
+            Err(_) => {
+                tracing::error!("Template rendering thread panicked");
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Html("<h1>Template Error</h1><p>Template rendering failed</p>".to_string()),
+                ).into_response()
             }
-        });
-
-        axum::response::Response::builder()
-            .status(status)
-            .header("content-type", "text/html; charset=utf-8")
-            .body(body)
-            .unwrap()
+        }
     }
 }
 

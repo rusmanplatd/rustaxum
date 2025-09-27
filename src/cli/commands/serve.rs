@@ -30,7 +30,10 @@ pub async fn handle_serve_command(host: String, port: u16) -> Result<()> {
     tracing::info!("Development server started successfully on http://{}", server_addr);
 
     tracing::debug!("Starting Axum server...");
-    axum::serve(listener, app).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    ).await?;
     tracing::info!("Server shutdown completed");
 
     Ok(())
