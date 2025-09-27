@@ -10,7 +10,6 @@ use super::DieselUlid;
 pub struct Permission {
     pub id: DieselUlid,
     pub organization_id: Option<DieselUlid>,
-    pub name: String,
     pub guard_name: String,
     pub resource: Option<String>,
     pub action: String,
@@ -18,11 +17,13 @@ pub struct Permission {
     pub scope_id: Option<DieselUlid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub created_by: DieselUlid,
+    pub updated_by: DieselUlid,
+    pub deleted_by: Option<DieselUlid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreatePermission {
-    pub name: String,
     pub guard_name: Option<String>,
     pub resource: Option<String>,
     pub action: String,
@@ -30,7 +31,6 @@ pub struct CreatePermission {
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdatePermission {
-    pub name: Option<String>,
     pub guard_name: Option<String>,
     pub resource: Option<String>,
     pub action: Option<String>,
@@ -39,7 +39,6 @@ pub struct UpdatePermission {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct PermissionResponse {
     pub id: DieselUlid,
-    pub name: String,
     pub guard_name: String,
     pub resource: Option<String>,
     pub action: String,
@@ -48,12 +47,11 @@ pub struct PermissionResponse {
 }
 
 impl Permission {
-    pub fn new(name: String, guard_name: Option<String>, resource: Option<String>, action: String) -> Self {
+    pub fn new(guard_name: Option<String>, resource: Option<String>, action: String) -> Self {
         let now = Utc::now();
         Self {
             id: DieselUlid::new(),
             organization_id: None,
-            name,
             guard_name: guard_name.unwrap_or_else(|| "api".to_string()),
             resource,
             action,
@@ -61,13 +59,15 @@ impl Permission {
             scope_id: None,
             created_at: now,
             updated_at: now,
+            created_by: DieselUlid::new(), // TODO: Should be passed as parameter
+            updated_by: DieselUlid::new(), // TODO: Should be passed as parameter
+            deleted_by: None,
         }
     }
 
     pub fn to_response(&self) -> PermissionResponse {
         PermissionResponse {
             id: self.id,
-            name: self.name.clone(),
             guard_name: self.guard_name.clone(),
             resource: self.resource.clone(),
             action: self.action.clone(),
@@ -85,7 +85,6 @@ impl crate::app::query_builder::Queryable for Permission {
     fn allowed_filters() -> Vec<&'static str> {
         vec![
             "id",
-            "name",
             "guard_name",
             "resource",
             "action",
@@ -97,7 +96,6 @@ impl crate::app::query_builder::Queryable for Permission {
     fn allowed_sorts() -> Vec<&'static str> {
         vec![
             "id",
-            "name",
             "guard_name",
             "resource",
             "action",
@@ -109,7 +107,6 @@ impl crate::app::query_builder::Queryable for Permission {
     fn allowed_fields() -> Vec<&'static str> {
         vec![
             "id",
-            "name",
             "guard_name",
             "resource",
             "action",
@@ -119,7 +116,7 @@ impl crate::app::query_builder::Queryable for Permission {
     }
 
     fn default_sort() -> Option<(&'static str, SortDirection)> {
-        Some(("name", SortDirection::Asc))
+        Some(("action", SortDirection::Asc))
     }
 }
 

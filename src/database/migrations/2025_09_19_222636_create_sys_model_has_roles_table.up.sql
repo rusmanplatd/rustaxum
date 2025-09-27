@@ -8,6 +8,10 @@ CREATE TABLE sys_model_has_roles (
     scope_id CHAR(26), -- ID of the resource this permission assignment is scoped to
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ,
+    created_by CHAR(26) NOT NULL REFERENCES sys_users(id),
+    updated_by CHAR(26) NOT NULL REFERENCES sys_users(id),
+    deleted_by CHAR(26) REFERENCES sys_users(id),
     FOREIGN KEY (role_id) REFERENCES sys_roles(id) ON DELETE CASCADE
 );
 

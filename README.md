@@ -177,9 +177,6 @@ curl -X 'POST' \
   "email": "admin@example.com",
   "password": "password"
 }' | jq
-
-# /me
-
 ```
 
 ```bash
@@ -187,5 +184,5 @@ curl -X 'POST' \
 curl -X 'GET' \
   'http://localhost:3000/api/me' \
   -H 'accept: */*' \
-  -H 'Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMUs2MjQ4S0JTTkZKR1I3OVMwWTNRWFlUUyIsImV4cCI6MTc1OTA1NDIwMiwiaWF0IjoxNzU4OTY3ODAyLCJqdGkiOiIwMUs2NUFEQTgxREMwQjFHUVlXMjVWTUtUWCJ9.da4BxZK6Jm2-bz50bZs6tDkdz5G3K0cKhktd9HyQnKo' | jq
+  -H 'Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMUs2NVdSRkVFRTZDMFhXNlk3OUdLMjk4MyIsImV4cCI6MTc1OTA3MzU3MSwiaWF0IjoxNzU4OTg3MTcxLCJqdGkiOiIwMUs2NVdXRFJBMEM3MktBN01KM0NNM0NXWCJ9.7i8ck35bZPuu6VhqnCFSK8q5VyyIxaQWxA8shFg9tJA' | jq
 ```

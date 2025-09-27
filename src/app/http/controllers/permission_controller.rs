@@ -17,7 +17,6 @@ use crate::app::query_builder::{QueryParams, QueryBuilderService};
 
 #[derive(Deserialize)]
 pub struct CreatePermissionRequest {
-    pub name: String,
     pub guard_name: Option<String>,
     pub resource: Option<String>,
     pub action: String,
@@ -25,7 +24,6 @@ pub struct CreatePermissionRequest {
 
 #[derive(Deserialize)]
 pub struct UpdatePermissionRequest {
-    pub name: Option<String>,
     pub guard_name: Option<String>,
     pub resource: Option<String>,
     pub action: Option<String>,
@@ -53,7 +51,6 @@ pub struct PermissionListResponse {
 #[derive(Serialize)]
 pub struct PermissionData {
     pub id: String,
-    pub name: String,
     pub guard_name: String,
     pub resource: Option<String>,
     pub action: String,
@@ -72,7 +69,6 @@ impl From<Permission> for PermissionData {
     fn from(permission: Permission) -> Self {
         Self {
             id: permission.id.to_string(),
-            name: permission.name,
             guard_name: permission.guard_name,
             resource: permission.resource,
             action: permission.action,
@@ -125,7 +121,6 @@ pub async fn store(
     Json(payload): Json<CreatePermissionRequest>
 ) -> impl IntoResponse {
     let create_permission = CreatePermission {
-        name: payload.name,
         guard_name: payload.guard_name,
         resource: payload.resource,
         action: payload.action,
@@ -189,7 +184,6 @@ pub async fn update(
     };
 
     let update_permission = UpdatePermission {
-        name: payload.name,
         guard_name: payload.guard_name,
         resource: payload.resource,
         action: payload.action,

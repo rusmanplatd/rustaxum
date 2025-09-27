@@ -1,0 +1,200 @@
+    Blocking waiting for file lock on build directory
+warning: unused import: `Html`
+   --> src/app/http/controllers/web_auth_controller.rs:299:48
+    |
+299 |                 use axum::response::{Response, Html};
+    |                                                ^^^^
+    |
+    = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `DynamicImage` and `ImageFormat`
+ --> src/app/services/mfa_service.rs:6:13
+  |
+6 | use image::{ImageFormat, DynamicImage};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^
+
+warning: unused import: `Duration`
+ --> src/app/services/mfa_service.rs:9:29
+  |
+9 | use chrono::{DateTime, Utc, Duration};
+  |                             ^^^^^^^^
+
+warning: unused import: `ulid::Ulid`
+  --> src/app/services/mfa_service.rs:10:5
+   |
+10 | use ulid::Ulid;
+   |     ^^^^^^^^^^
+
+warning: unused imports: `JsonRender` and `RenderError`
+   --> src/app/helpers/csrf_helpers.rs:109:52
+    |
+109 |         Context, Handlebars, Helper, HelperResult, JsonRender, Output, RenderContext, RenderError,
+    |                                                    ^^^^^^^^^^                         ^^^^^^^^^^^
+
+warning: unused import: `serde_json::Value`
+   --> src/app/helpers/csrf_helpers.rs:111:9
+    |
+111 |     use serde_json::Value;
+    |         ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `guest_guard`
+ --> src/routes/api.rs:7:60
+  |
+7 | use crate::app::http::middleware::auth_guard::{auth_guard, guest_guard};
+  |                                                            ^^^^^^^^^^^
+
+warning: unused import: `anyhow`
+ --> src/database/seeders/district_seeder.rs:2:22
+  |
+2 | use anyhow::{Result, anyhow};
+  |                      ^^^^^^
+
+warning: unused import: `cities`
+  --> src/database/seeders/district_seeder.rs:11:32
+   |
+11 | use crate::schema::{districts, cities};
+   |                                ^^^^^^
+
+warning: unused import: `anyhow`
+ --> src/database/seeders/village_seeder.rs:2:22
+  |
+2 | use anyhow::{Result, anyhow};
+  |                      ^^^^^^
+
+warning: unused variable: `totp`
+  --> src/app/services/mfa_service.rs:56:13
+   |
+56 |         let totp = TOTP::new(
+   |             ^^^^ help: if this is intentional, prefix it with an underscore: `_totp`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `pool`
+   --> src/app/services/mfa_service.rs:330:31
+    |
+330 |     async fn check_rate_limit(pool: &DbPool, user_id: &str, method_type: &str) -> Result<()> {
+    |                               ^^^^ help: if this is intentional, prefix it with an underscore: `_pool`
+
+warning: unused variable: `user_id`
+   --> src/app/services/mfa_service.rs:330:46
+    |
+330 |     async fn check_rate_limit(pool: &DbPool, user_id: &str, method_type: &str) -> Result<()> {
+    |                                              ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_user_id`
+
+warning: unused variable: `method_type`
+   --> src/app/services/mfa_service.rs:330:61
+    |
+330 |     async fn check_rate_limit(pool: &DbPool, user_id: &str, method_type: &str) -> Result<()> {
+    |                                                             ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_method_type`
+
+warning: unused variable: `pool`
+   --> src/app/services/mfa_service.rs:345:9
+    |
+345 |         pool: &DbPool,
+    |         ^^^^ help: if this is intentional, prefix it with an underscore: `_pool`
+
+warning: unused variable: `h`
+   --> src/app/helpers/csrf_helpers.rs:121:9
+    |
+121 |         h: &Helper,
+    |         ^ help: if this is intentional, prefix it with an underscore: `_h`
+
+warning: unused variable: `h`
+   --> src/app/helpers/csrf_helpers.rs:142:9
+    |
+142 |         h: &Helper,
+    |         ^ help: if this is intentional, prefix it with an underscore: `_h`
+
+warning: unused variable: `h`
+   --> src/app/helpers/csrf_helpers.rs:155:9
+    |
+155 |         h: &Helper,
+    |         ^ help: if this is intentional, prefix it with an underscore: `_h`
+
+warning: type `DeviceTokenRequest` is more private than the item `device_token`
+   --> src/app/http/controllers/oauth/device_controller.rs:111:1
+    |
+111 | / pub async fn device_token(
+112 | |     State(pool): State<DbPool>,
+113 | |     Form(request): Form<DeviceTokenRequest>,
+114 | | ) -> impl IntoResponse {
+    | |______________________^ function `device_token` is reachable at visibility `pub`
+    |
+note: but type `DeviceTokenRequest` is only usable at visibility `pub(self)`
+   --> src/app/http/controllers/oauth/device_controller.rs:23:1
+    |
+ 23 | struct DeviceTokenRequest {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: `#[warn(private_interfaces)]` on by default
+
+warning: function `handle_password_grant` is never used
+   --> src/app/http/controllers/oauth/oauth_controller.rs:658:10
+    |
+658 | async fn handle_password_grant(pool: &DbPool, params: TokenRequest) -> impl IntoResponse + use<> {
+    |          ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: function `get_user_from_token` is never used
+   --> src/app/http/controllers/oauth/device_controller.rs:560:10
+    |
+560 | async fn get_user_from_token(_pool: &DbPool, auth_header: Option<&str>) -> anyhow::Result<String> {
+    |          ^^^^^^^^^^^^^^^^^^^
+
+warning: method `render` is never used
+  --> src/app/http/responses/template_response.rs:42:14
+   |
+17 | impl TemplateResponse {
+   | --------------------- method in this implementation
+...
+42 |     async fn render(&self) -> Result<String> {
+   |              ^^^^^^
+
+warning: field `access_token` is never read
+   --> src/app/services/oauth/token_exchange_service.rs:385:5
+    |
+384 | struct ExchangedToken {
+    |        -------------- field in this struct
+385 |     access_token: AccessToken,
+    |     ^^^^^^^^^^^^
+    |
+    = note: `ExchangedToken` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: constant `MAX_MFA_ATTEMPTS_PER_HOUR` is never used
+  --> src/app/services/mfa_service.rs:19:7
+   |
+19 | const MAX_MFA_ATTEMPTS_PER_HOUR: i32 = 10;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `rustaxum` (lib) generated 24 warnings (run `cargo fix --lib -p rustaxum` to apply 10 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 17.64s
+     Running `target/debug/artisan serve --port 3001`
+🚀 Starting development server...
+📡 Server will run on: http://127.0.0.1:3001
+[2m2025-09-27T14:09:55.676037Z[0m [32m INFO[0m [2mrustaxum::cli::commands::serve[0m[2m:[0m Serve command initiated - Host: 127.0.0.1, Port: 3001
+[2m2025-09-27T14:09:55.676105Z[0m [34mDEBUG[0m [2mrustaxum::cli::commands::serve[0m[2m:[0m Creating application instance...
+[2m2025-09-27T14:09:55.676151Z[0m [34mDEBUG[0m [2mrustaxum[0m[2m:[0m Starting application creation process
+[2m2025-09-27T14:09:55.676186Z[0m [34mDEBUG[0m [2mrustaxum[0m[2m:[0m Loading configuration...
+[2m2025-09-27T14:09:55.677084Z[0m [32m INFO[0m [2mrustaxum[0m[2m:[0m Configuration loaded successfully
+[2m2025-09-27T14:09:55.677110Z[0m [34mDEBUG[0m [2mrustaxum[0m[2m:[0m Creating database connection pool...
+[2m2025-09-27T14:09:55.697311Z[0m [32m INFO[0m [2mrustaxum[0m[2m:[0m Database pool created successfully
+[2m2025-09-27T14:09:55.697396Z[0m [34mDEBUG[0m [2mrustaxum[0m[2m:[0m Database migrations skipped (already applied)
+[2m2025-09-27T14:09:55.697411Z[0m [34mDEBUG[0m [2mrustaxum[0m[2m:[0m Initializing broadcasting system...
+[2m2025-09-27T14:09:55.698145Z[0m [32m INFO[0m [2mrustaxum[0m[2m:[0m Log broadcast driver registered
+[2m2025-09-27T14:09:55.698199Z[0m [34mDEBUG[0m [2mrustaxum[0m[2m:[0m Building router with routes...
+[2m2025-09-27T14:09:55.698425Z[0m [34mDEBUG[0m [2mrustaxum::routes::api[0m[2m:[0m Creating API routes...
+[2m2025-09-27T14:09:55.702380Z[0m [32m INFO[0m [2mrustaxum::routes::api[0m[2m:[0m API routes created successfully with authentication middleware applied
+[2m2025-09-27T14:09:55.703864Z[0m [34mDEBUG[0m [2mrustaxum::routes::web[0m[2m:[0m Creating web routes...
+[2m2025-09-27T14:09:55.704642Z[0m [32m INFO[0m [2mrustaxum::routes::web[0m[2m:[0m Web routes created successfully with complete authentication system
+[2m2025-09-27T14:09:55.704916Z[0m [34mDEBUG[0m [2mrustaxum::routes::oauth[0m[2m:[0m Creating OAuth2/Passport routes...
+[2m2025-09-27T14:09:55.705772Z[0m [32m INFO[0m [2mrustaxum::routes::oauth[0m[2m:[0m OAuth2/Passport routes created successfully with 56 endpoints
+[2m2025-09-27T14:09:55.710185Z[0m [32m INFO[0m [2mrustaxum[0m[2m:[0m Application router created with all routes and middleware
+[2m2025-09-27T14:09:55.710228Z[0m [34mDEBUG[0m [2mrustaxum[0m[2m:[0m Application creation completed successfully
+[2m2025-09-27T14:09:55.710263Z[0m [32m INFO[0m [2mrustaxum::cli::commands::serve[0m[2m:[0m Application created successfully
+[2m2025-09-27T14:09:55.710275Z[0m [34mDEBUG[0m [2mrustaxum::cli::commands::serve[0m[2m:[0m Binding to address: 127.0.0.1:3001
+Error: Address already in use (os error 98)
+FO[0m [2mrustaxum::cli::commands::serve[0m[2m:[0m TCP listener bound successfully to 127.0.0.1:3001
+✅ Server running on http://127.0.0.1:3001
+Press Ctrl+C to stop the server
+[2m2025-09-27T14:09:55.647373Z[0m [32m INFO[0m [2mrustaxum::cli::commands::serve[0m[2m:[0m Development server started successfully on http://127.0.0.1:3001
+[2m2025-09-27T14:09:55.647387Z[0m [34mDEBUG[0m [2mrustaxum::cli::commands::serve[0m[2m:[0m Starting Axum server...

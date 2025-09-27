@@ -253,7 +253,7 @@ async fn check_user_permissions(
 
     let user_permission_names: HashSet<String> = user_permissions
         .into_iter()
-        .map(|permission| permission.name)
+        .map(|permission| format!("{}.{}", permission.resource.unwrap_or_default(), permission.action))
         .collect();
 
     let required_permission_set: HashSet<String> = required_permissions.iter().cloned().collect();

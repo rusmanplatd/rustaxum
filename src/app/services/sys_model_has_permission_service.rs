@@ -212,7 +212,7 @@ impl SysModelHasPermissionService {
 
         let result = query
             .select(sys_permissions::all_columns)
-            .order(sys_permissions::name.asc())
+            .order(sys_permissions::action.asc())
             .load::<Permission>(&mut conn)?;
 
         Ok(result)

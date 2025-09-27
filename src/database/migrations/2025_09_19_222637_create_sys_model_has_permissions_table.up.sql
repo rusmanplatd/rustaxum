@@ -8,6 +8,10 @@ CREATE TABLE sys_model_has_permissions (
     scope_id CHAR(26),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ,
+    created_by CHAR(26) NOT NULL REFERENCES sys_users(id),
+    updated_by CHAR(26) NOT NULL REFERENCES sys_users(id),
+    deleted_by CHAR(26) REFERENCES sys_users(id),
     FOREIGN KEY (permission_id) REFERENCES sys_permissions(id) ON DELETE CASCADE
 );
 

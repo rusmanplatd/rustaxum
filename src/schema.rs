@@ -1321,6 +1321,13 @@ diesel::table! {
         scope_id -> Nullable<Bpchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by -> Bpchar,
+        #[max_length = 26]
+        updated_by -> Bpchar,
+        #[max_length = 26]
+        deleted_by -> Nullable<Bpchar>,
     }
 }
 
@@ -1340,6 +1347,13 @@ diesel::table! {
         scope_id -> Nullable<Bpchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by -> Bpchar,
+        #[max_length = 26]
+        updated_by -> Bpchar,
+        #[max_length = 26]
+        deleted_by -> Nullable<Bpchar>,
     }
 }
 
@@ -1349,7 +1363,6 @@ diesel::table! {
         id -> Bpchar,
         #[max_length = 26]
         organization_id -> Nullable<Bpchar>,
-        name -> Varchar,
         guard_name -> Varchar,
         resource -> Nullable<Varchar>,
         action -> Varchar,
@@ -1359,6 +1372,12 @@ diesel::table! {
         scope_id -> Nullable<Bpchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        #[max_length = 26]
+        created_by -> Bpchar,
+        #[max_length = 26]
+        updated_by -> Bpchar,
+        #[max_length = 26]
+        deleted_by -> Nullable<Bpchar>,
     }
 }
 
@@ -1379,9 +1398,9 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by -> Nullable<Bpchar>,
+        created_by -> Bpchar,
         #[max_length = 26]
-        updated_by -> Nullable<Bpchar>,
+        updated_by -> Bpchar,
         #[max_length = 26]
         deleted_by -> Nullable<Bpchar>,
     }

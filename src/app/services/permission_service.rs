@@ -15,7 +15,6 @@ impl ServiceActivityLogger for PermissionService {}
 impl PermissionService {
     pub async fn create(pool: &DbPool, data: CreatePermission, created_by: Option<&str>) -> Result<Permission> {
         let permission = Permission::new(
-            data.name.clone(),
             data.guard_name.clone(),
             data.resource.clone(),
             data.action.clone(),
@@ -26,7 +25,6 @@ impl PermissionService {
         diesel::insert_into(sys_permissions::table)
             .values((
                 sys_permissions::id.eq(permission.id.to_string()),
-                sys_permissions::name.eq(&permission.name),
                 sys_permissions::guard_name.eq(&permission.guard_name),
                 sys_permissions::resource.eq(&permission.resource),
                 sys_permissions::action.eq(&permission.action),
@@ -38,7 +36,6 @@ impl PermissionService {
         // Log the permission creation activity
         let service = PermissionService;
         let properties = json!({
-            "permission_name": permission.name,
             "resource": permission.resource,
             "action": permission.action,
             "guard_name": permission.guard_name,
@@ -68,13 +65,14 @@ impl PermissionService {
         Ok(permission)
     }
 
-    pub fn find_by_name(pool: &DbPool, name: &str, guard_name: Option<&str>) -> Result<Option<Permission>> {
+    pub fn find_by_resource_and_action(pool: &DbPool, resource: Option<&str>, action: &str, guard_name: Option<&str>) -> Result<Option<Permission>> {
         let guard = guard_name.unwrap_or("api");
 
         let mut conn = pool.get()?;
 
         let permission = sys_permissions::table
-            .filter(sys_permissions::name.eq(name))
+            .filter(sys_permissions::resource.nullable().eq(resource))
+            .filter(sys_permissions::action.eq(action))
             .filter(sys_permissions::guard_name.eq(guard))
             .select(Permission::as_select())
             .first(&mut conn)
@@ -83,13 +81,18 @@ impl PermissionService {
         Ok(permission)
     }
 
+    pub fn find_by_name(pool: &DbPool, name: &str, guard_name: Option<&str>) -> Result<Option<Permission>> {
+        let parts: Vec<&str> = name.split('.').collect();
+        if parts.len() != 2 { return Ok(None); }
+        let (resource, action) = (Some(parts[0]), parts[1]);
+
+        Self::find_by_resource_and_action(pool, resource, action, guard_name)
+    }
+
     pub fn update(pool: &DbPool, id: String, data: UpdatePermission) -> Result<Permission> {
         let mut permission = Self::find_by_id(pool, id.clone())?
             .ok_or_else(|| anyhow::anyhow!("Permission not found"))?;
 
-        if let Some(name) = data.name {
-            permission.name = name;
-        }
         if let Some(guard_name) = data.guard_name {
             permission.guard_name = guard_name;
         }
@@ -105,7 +108,6 @@ impl PermissionService {
 
         diesel::update(sys_permissions::table.filter(sys_permissions::id.eq(id.to_string())))
             .set((
-                sys_permissions::name.eq(&permission.name),
                 sys_permissions::guard_name.eq(&permission.guard_name),
                 sys_permissions::resource.eq(&permission.resource),
                 sys_permissions::action.eq(&permission.action),
@@ -184,7 +186,8 @@ impl PermissionService {
             .inner_join(sys_permissions::table.on(sys_model_has_permissions::permission_id.eq(sys_permissions::id)))
             .filter(sys_model_has_permissions::model_type.eq("Role"))
             .filter(sys_model_has_permissions::model_id.eq(role_id.to_string()))
-            .filter(sys_permissions::name.eq(permission_name))
+            .filter(sys_permissions::resource.eq(permission_name.split('.').nth(0).unwrap_or("")))
+            .filter(sys_permissions::action.eq(permission_name.split('.').nth(1).unwrap_or("")))
             .filter(sys_permissions::guard_name.eq(guard))
             .count()
             .get_result::<i64>(&mut conn)?;
@@ -205,7 +208,8 @@ impl PermissionService {
             .inner_join(sys_permissions::table.on(sys_model_has_permissions::permission_id.eq(sys_permissions::id)))
             .filter(sys_model_has_roles::model_type.eq(T::model_type()))
             .filter(sys_model_has_roles::model_id.eq(model.model_id()))
-            .filter(sys_permissions::name.eq(permission_name))
+            .filter(sys_permissions::resource.eq(permission_name.split('.').nth(0).unwrap_or("")))
+            .filter(sys_permissions::action.eq(permission_name.split('.').nth(1).unwrap_or("")))
             .filter(sys_permissions::guard_name.eq(guard))
             .count()
             .get_result::<i64>(&mut conn)?;
@@ -227,7 +231,7 @@ impl PermissionService {
         }
 
         let permissions = query
-            .order(sys_permissions::name.asc())
+            .order(sys_permissions::action.asc())
             .select(Permission::as_select())
             .load(&mut conn)?;
 
@@ -253,7 +257,7 @@ impl PermissionService {
         }
 
         let permissions = query
-            .order(sys_permissions::name.asc())
+            .order(sys_permissions::action.asc())
             .select(Permission::as_select())
             .distinct()
             .load(&mut conn)?;

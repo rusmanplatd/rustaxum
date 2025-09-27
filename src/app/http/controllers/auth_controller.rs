@@ -324,10 +324,10 @@ pub async fn me(
     State(pool): State<DbPool>,
     Extension(auth_user): Extension<crate::app::http::middleware::auth_guard::AuthUser>
 ) -> impl IntoResponse {
-    match crate::app::services::user_service::UserService::find_by_id_with_organizations(&pool, auth_user.user_id) {
+    match crate::app::services::user_service::UserService::find_by_id_with_organizations_and_user_roles(&pool, auth_user.user_id) {
         Ok(Some((user, user_organizations))) => {
             let response = json!({
-                "user": user.to_response(),
+                "user": user,
                 "organizations": user_organizations
             });
             (StatusCode::OK, ResponseJson(response)).into_response()

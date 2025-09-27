@@ -25,6 +25,14 @@ pub struct SysModelHasPermission {
     pub created_at: DateTime<Utc>,
     #[schema(example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
+    #[schema(example = "2023-01-01T00:00:00Z")]
+    pub deleted_at: Option<DateTime<Utc>>,
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub created_by: DieselUlid,
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub updated_by: DieselUlid,
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub deleted_by: Option<DieselUlid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -48,6 +56,10 @@ pub struct NewSysModelHasPermission {
     pub scope_id: Option<DieselUlid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
+    pub created_by: DieselUlid,
+    pub updated_by: DieselUlid,
+    pub deleted_by: Option<DieselUlid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -138,6 +150,10 @@ impl NewSysModelHasPermission {
             scope_id,
             created_at: now,
             updated_at: now,
+            deleted_at: None,
+            created_by: DieselUlid::new(), // TODO: Should be passed as parameter
+            updated_by: DieselUlid::new(), // TODO: Should be passed as parameter
+            deleted_by: None,
         }
     }
 }
@@ -154,6 +170,10 @@ impl SysModelHasPermission {
             scope_id,
             created_at: now,
             updated_at: now,
+            deleted_at: None,
+            created_by: DieselUlid::new(), // TODO: Should be passed as parameter
+            updated_by: DieselUlid::new(), // TODO: Should be passed as parameter
+            deleted_by: None,
         }
     }
 

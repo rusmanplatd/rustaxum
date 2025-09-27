@@ -11,11 +11,18 @@ use crate::app::models::activity_log::HasId;
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Role {
     pub id: DieselUlid,
+    pub organization_id: Option<DieselUlid>,
     pub name: String,
     pub description: Option<String>,
     pub guard_name: String,
+    pub scope_type: Option<String>,
+    pub scope_id: Option<DieselUlid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
+    pub created_by: DieselUlid,
+    pub updated_by: DieselUlid,
+    pub deleted_by: Option<DieselUlid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -47,11 +54,18 @@ impl Role {
         let now = Utc::now();
         Self {
             id: DieselUlid::new(),
+            organization_id: None,
             name,
             description,
             guard_name: guard_name.unwrap_or_else(|| "api".to_string()),
+            scope_type: None,
+            scope_id: None,
             created_at: now,
             updated_at: now,
+            deleted_at: None,
+            created_by: DieselUlid::new(), // TODO: Should be passed as parameter
+            updated_by: DieselUlid::new(), // TODO: Should be passed as parameter
+            deleted_by: None,
         }
     }
 

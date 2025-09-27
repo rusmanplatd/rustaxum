@@ -70,11 +70,13 @@ pub mod model_types {
     use crate::app::models::user::User;
     use crate::app::models::organization::Organization;
     use crate::app::models::user_organization::UserOrganization;
+    use crate::app::models::role::Role;
     use crate::app::models::HasModelType;
 
     /// Returns a list of all valid model types
     pub fn valid_model_types() -> Vec<&'static str> {
         vec![
+            Role::model_type(),
             User::model_type(),
             Organization::model_type(),
             UserOrganization::model_type(),
@@ -87,6 +89,7 @@ pub mod model_types {
     }
 
     /// Model type constants for easy access
+    pub const ROLE: &str = "Role";
     pub const USER: &str = "User";
     pub const ORGANIZATION: &str = "Organization";
     pub const USER_ORGANIZATION: &str = "User_Organization";
