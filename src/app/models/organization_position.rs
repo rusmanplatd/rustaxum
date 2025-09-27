@@ -8,7 +8,7 @@ use serde_json::Value as JsonValue;
 
 /// Organization position model representing specific sys_roles within organization position levels
 /// Contains position information and relationship to organization position level hierarchy
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
 #[diesel(table_name = crate::schema::organization_positions)]
 pub struct OrganizationPosition {
     /// Unique identifier for the organization position

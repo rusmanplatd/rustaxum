@@ -445,7 +445,7 @@ pub async fn regenerate_secret(
 async fn get_authenticated_user(_pool: &DbPool, headers: &HeaderMap) -> anyhow::Result<String> {
     let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
     let token = TokenUtils::extract_token_from_header(auth_header)?;
-    let claims = AuthService::decode_token(token, "jwt-secret")?;
+    let claims = AuthService::decode_token(token)?;
 
     Ok(claims.sub)
 }

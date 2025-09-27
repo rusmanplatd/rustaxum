@@ -559,7 +559,7 @@ pub async fn admin_device_stats(
 // Helper functions
 async fn get_user_from_token(_pool: &DbPool, auth_header: Option<&str>) -> anyhow::Result<String> {
     let token = TokenUtils::extract_token_from_header(auth_header)?;
-    let claims = AuthService::decode_token(token, "jwt-secret")?;
+    let claims = AuthService::decode_token(token)?;
 
     let user_id = ulid::Ulid::from_string(&claims.sub)?;
     Ok(user_id.to_string())

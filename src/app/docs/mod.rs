@@ -1,4 +1,5 @@
 use utoipa::OpenApi;
+use utoipa_auto_discovery::utoipa_auto_discovery;
 
 pub mod oauth;
 
@@ -19,6 +20,9 @@ use crate::app::models::organization_position::{OrganizationPosition, CreateOrga
 use crate::app::http::requests::organization_position_level_requests::{CreateOrganizationPositionLevelRequest, UpdateOrganizationPositionLevelRequest, IndexOrganizationPositionLevelRequest};
 use crate::app::http::requests::organization_position_requests::{CreateOrganizationPositionRequest, UpdateOrganizationPositionRequest, IndexOrganizationPositionRequest, OrganizationPositionsByLevelRequest};
 
+// Auth controller models
+use crate::app::http::controllers::auth_controller::MfaLoginRequest;
+
 // Role and permission models need ToSchema trait implementation - commented out for now
 // use crate::app::models::role::{Role, CreateRole, UpdateRole, RoleResponse};
 // use crate::app::models::permission::{Permission, CreatePermission, UpdatePermission, PermissionResponse};
@@ -31,14 +35,40 @@ use crate::app::models::organization::{Organization, CreateOrganization, UpdateO
 // use crate::app::models::sys_model_has_permission::{SysModelHasPermission, CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse};
 // use crate::app::models::sys_model_has_role::{SysModelHasRole, CreateSysModelHasRole, UpdateSysModelHasRole, SysModelHasRoleResponse};
 
-/// Main OpenAPI documentation structure
-/// This generates the OpenAPI specification automatically from code annotations
+/// Main OpenAPI documentation structure with auto-discovery
+/// This automatically discovers all endpoints with utoipa path annotations
+#[utoipa_auto_discovery(
+    paths = "(crate::app::http::controllers::auth_controller => ./src/app/http/controllers/auth_controller.rs);
+             (crate::app::http::controllers::country_controller => ./src/app/http/controllers/country_controller.rs);
+             (crate::app::http::controllers::user_controller => ./src/app/http/controllers/user_controller.rs);
+             (crate::app::http::controllers::province_controller => ./src/app/http/controllers/province_controller.rs);
+             (crate::app::http::controllers::city_controller => ./src/app/http/controllers/city_controller.rs);
+             (crate::app::http::controllers::village_controller => ./src/app/http/controllers/village_controller.rs);
+             (crate::app::http::controllers::district_controller => ./src/app/http/controllers/district_controller.rs);
+             (crate::app::http::controllers::organization_controller => ./src/app/http/controllers/organization_controller.rs);
+             (crate::app::http::controllers::organization_position_level_controller => ./src/app/http/controllers/organization_position_level_controller.rs);
+             (crate::app::http::controllers::organization_position_controller => ./src/app/http/controllers/organization_position_controller.rs);
+             (crate::app::http::controllers::role_controller => ./src/app/http/controllers/role_controller.rs);
+             (crate::app::http::controllers::permission_controller => ./src/app/http/controllers/permission_controller.rs);
+             (crate::app::http::controllers::user_organization_controller => ./src/app/http/controllers/user_organization_controller.rs);
+             (crate::app::http::controllers::sys_model_has_permission_controller => ./src/app/http/controllers/sys_model_has_permission_controller.rs);
+             (crate::app::http::controllers::sys_model_has_role_controller => ./src/app/http/controllers/sys_model_has_role_controller.rs);
+             (crate::app::http::controllers::activity_log_controller => ./src/app/http/controllers/activity_log_controller.rs);
+             (crate::app::http::controllers::oauth::oauth_controller => ./src/app/http/controllers/oauth/oauth_controller.rs);
+             (crate::app::http::controllers::oauth::client_controller => ./src/app/http/controllers/oauth/client_controller.rs);
+             (crate::app::http::controllers::oauth::personal_access_token_controller => ./src/app/http/controllers/oauth/personal_access_token_controller.rs);
+             (crate::app::http::controllers::oauth::scope_controller => ./src/app/http/controllers/oauth/scope_controller.rs);
+             (crate::app::http::controllers::oauth::authorization_controller => ./src/app/http/controllers/oauth/authorization_controller.rs);
+             (crate::app::http::controllers::oauth::token_controller => ./src/app/http/controllers/oauth/token_controller.rs);
+             (crate::app::http::controllers::oauth::admin_controller => ./src/app/http/controllers/oauth/admin_controller.rs);
+             (crate::app::http::controllers::oauth::device_controller => ./src/app/http/controllers/oauth/device_controller.rs)"
+)]
 #[derive(OpenApi)]
 #[openapi(
     info(
         title = "RustAxum API",
         version = "1.0.0",
-        description = "A Laravel-inspired Rust web framework built with Axum\n\nThis API follows REST conventions and provides comprehensive CRUD operations for all resources. All endpoints return JSON responses and follow consistent error handling patterns.",
+        description = "A Laravel-inspired Rust web framework built with Axum\n\nThis API follows REST conventions and provides comprehensive CRUD operations for all resources. All endpoints return JSON responses and follow consistent error handling patterns.\n\n## 🚀 Auto-Discovery\n\nThis API documentation is automatically generated using utoipa_auto_discovery, which scans for all endpoints with `#[utoipa::path]` annotations and includes them in the OpenAPI specification.",
         contact(
             name = "API Support",
             email = "support@rustaxum.dev"
@@ -72,6 +102,7 @@ use crate::app::models::organization::{Organization, CreateOrganization, UpdateO
 
             // Basic auth requests
             RegisterRequest, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest,
+            MfaLoginRequest,
 
             // Note: Complex schemas with potential circular dependencies are commented out
             // to prevent stack overflow during OpenAPI generation

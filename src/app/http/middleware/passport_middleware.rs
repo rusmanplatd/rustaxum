@@ -59,7 +59,7 @@ async fn authenticate_request(
         })?;
 
     // Decode and validate the JWT token
-    let claims = AuthService::decode_token(&token, "jwt-secret")
+    let claims = AuthService::decode_token(&token)
         .map_err(|_e| {
             (
                 StatusCode::UNAUTHORIZED,

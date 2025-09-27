@@ -101,7 +101,7 @@ fn extract_user_id_from_token(headers: &HeaderMap) -> Option<String> {
     let token = TokenUtils::extract_token_from_header(Some(auth_str)).ok()?;
 
     // Decode the JWT token to get claims
-    let claims = AuthService::decode_token(token, "jwt-secret").ok()?;
+    let claims = AuthService::decode_token(token).ok()?;
 
     // Extract the user ID from the subject (sub) field
     let user_id = Ulid::from_string(&claims.sub).ok()?;

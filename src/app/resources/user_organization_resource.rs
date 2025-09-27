@@ -94,6 +94,10 @@ pub struct UserOrganizationResourceWithRelations {
     pub organization: Option<OrganizationBasicInfo>,
     /// Organization position information
     pub organization_position: Option<OrganizationPositionBasicInfo>,
+    /// Roles assigned to this user organization relationship
+    pub roles: Vec<RoleBasicInfo>,
+    /// Permissions assigned to this user organization relationship (direct and from roles)
+    pub permissions: Vec<PermissionBasicInfo>,
 }
 
 /// Basic user information for relations
@@ -169,6 +173,32 @@ pub struct RoleBasicInfo {
     /// Role description
     #[schema(example = "Department manager role")]
     pub description: Option<String>,
+    /// Role guard name
+    #[schema(example = "web")]
+    pub guard_name: String,
+}
+
+/// Basic permission information for relations
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct PermissionBasicInfo {
+    /// Permission ID
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub id: String,
+    /// Permission name
+    #[schema(example = "edit_posts")]
+    pub name: String,
+    /// Resource this permission applies to
+    #[schema(example = "posts")]
+    pub resource: Option<String>,
+    /// Action this permission allows
+    #[schema(example = "edit")]
+    pub action: String,
+    /// Permission guard name
+    #[schema(example = "web")]
+    pub guard_name: String,
+    /// Source of the permission (direct or from role)
+    #[schema(example = "role:Manager")]
+    pub source: Option<String>,
 }
 
 /// User Organization Collection Response with pagination

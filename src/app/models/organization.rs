@@ -9,7 +9,7 @@ use serde_json::Value as JsonValue;
 
 /// Organization model representing an organizational entity
 /// Contains organizational information including hierarchy and metadata
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
 #[diesel(table_name = crate::schema::organizations)]
 pub struct Organization {
     /// Unique identifier for the organization

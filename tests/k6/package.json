@@ -1,0 +1,26 @@
+{
+  "name": "rustaxum-k6-tests",
+  "version": "1.0.0",
+  "description": "K6 load testing suite for RustAxum API",
+  "scripts": {
+    "test": "k6 run auth.js",
+    "test:auth": "k6 run auth.js",
+    "test:me": "k6 run me-endpoint.js",
+    "test:comprehensive": "k6 run api-comprehensive.js",
+    "test:smoke": "k6 run --vus 1 --duration 30s api-comprehensive.js",
+    "test:load": "k6 run --vus 10 --duration 2m api-comprehensive.js",
+    "test:stress": "k6 run --vus 50 --duration 5m api-comprehensive.js",
+    "test:all": "npm run test:auth && npm run test:me && npm run test:comprehensive",
+    "test:ci": "k6 run --vus 1 --duration 10s auth.js && k6 run --vus 1 --duration 10s me-endpoint.js"
+  },
+  "keywords": [
+    "k6",
+    "load-testing",
+    "performance",
+    "api-testing",
+    "rustaxum"
+  ],
+  "devDependencies": {
+    "k6": "^0.1.0"
+  }
+}

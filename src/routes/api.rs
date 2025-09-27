@@ -30,6 +30,7 @@ pub fn routes() -> Router<DbPool> {
         .route("/api/auth/change-password", put(auth_controller::change_password))
         .route("/api/auth/session/logout", post(auth_controller::logout_session))
         .route("/api/auth/session/user", get(auth_controller::user_session))
+        .route("/api/me", get(auth_controller::me))
         .route_layer(middleware::from_fn(auth_guard));
 
     // Protected routes (require authentication)

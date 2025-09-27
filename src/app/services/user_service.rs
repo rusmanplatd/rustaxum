@@ -4,9 +4,21 @@ use diesel::prelude::*;
 use serde_json::json;
 use crate::app::models::DieselUlid;
 use crate::database::{DbPool};
-use crate::schema::sys_users;
+use crate::schema::{sys_users, user_organizations, organizations, organization_positions, organization_position_levels,
+    sys_model_has_roles, sys_roles, sys_model_has_permissions, sys_permissions};
 use crate::app::models::user::{User, CreateUser, UpdateUser};
+use crate::app::models::user_organization::UserOrganization;
+use crate::app::models::organization::Organization;
+use crate::app::models::organization_position::OrganizationPosition;
+use crate::app::models::organization_position_level::OrganizationPositionLevel;
+use crate::app::models::role::Role;
+use crate::app::models::permission::Permission;
 use crate::app::traits::ServiceActivityLogger;
+use crate::app::resources::user_organization_resource::{
+    UserOrganizationResourceWithRelations, UserBasicInfo, OrganizationBasicInfo,
+    OrganizationPositionBasicInfo, OrganizationPositionLevelBasicInfo, RoleBasicInfo, PermissionBasicInfo
+};
+use std::collections::{HashMap, HashSet};
 
 pub struct UserService;
 
@@ -318,5 +330,201 @@ impl UserService {
             .load::<User>(&mut conn)?;
 
         Ok(result)
+    }
+
+    /// Find user by ID with all their organization relationships and related data
+    pub fn find_by_id_with_organizations(pool: &DbPool, id: String) -> Result<Option<(User, Vec<UserOrganizationResourceWithRelations>)>> {
+        let mut conn = pool.get()?;
+
+        // First get the user
+        let user = sys_users::table
+            .filter(sys_users::id.eq(&id))
+            .filter(sys_users::deleted_at.is_null())
+            .select(User::as_select())
+            .first::<User>(&mut conn)
+            .optional()?;
+
+        let user = match user {
+            Some(user) => user,
+            None => return Ok(None),
+        };
+
+        // Get user organizations with all related data using left joins
+        let user_org_data = user_organizations::table
+            .filter(user_organizations::user_id.eq(&id))
+            .left_join(organizations::table.on(organizations::id.eq(user_organizations::organization_id)))
+            .left_join(organization_positions::table.on(organization_positions::id.eq(user_organizations::organization_position_id)))
+            .left_join(organization_position_levels::table.on(organization_position_levels::id.eq(organization_positions::organization_position_level_id)))
+            .select((
+                UserOrganization::as_select(),
+                organizations::all_columns.nullable(),
+                organization_positions::all_columns.nullable(),
+                organization_position_levels::all_columns.nullable(),
+            ))
+            .load::<(UserOrganization, Option<Organization>, Option<OrganizationPosition>, Option<OrganizationPositionLevel>)>(&mut conn)?;
+
+        // Get all user organization IDs for loading roles and permissions
+        let user_org_ids: Vec<String> = user_org_data
+            .iter()
+            .map(|(user_org, _, _, _)| user_org.id.to_string())
+            .collect();
+
+        // Load roles for all user organizations
+        let user_org_roles = if !user_org_ids.is_empty() {
+            sys_model_has_roles::table
+                .filter(sys_model_has_roles::model_type.eq("UserOrganization"))
+                .filter(sys_model_has_roles::model_id.eq_any(&user_org_ids))
+                .inner_join(sys_roles::table.on(sys_roles::id.eq(sys_model_has_roles::role_id)))
+                .select((sys_model_has_roles::model_id, Role::as_select()))
+                .load::<(String, Role)>(&mut conn)?
+        } else {
+            vec![]
+        };
+
+        // Create a map of user_org_id -> roles
+        let mut roles_map: HashMap<String, Vec<Role>> = HashMap::new();
+        for (user_org_id, role) in user_org_roles {
+            roles_map.entry(user_org_id).or_insert_with(Vec::new).push(role);
+        }
+
+        // Get all role IDs for loading permissions through roles
+        let role_ids: Vec<String> = roles_map
+            .values()
+            .flat_map(|roles| roles.iter().map(|r| r.id.to_string()))
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect();
+
+        // Load direct permissions for user organizations
+        let direct_permissions = if !user_org_ids.is_empty() {
+            sys_model_has_permissions::table
+                .filter(sys_model_has_permissions::model_type.eq("UserOrganization"))
+                .filter(sys_model_has_permissions::model_id.eq_any(&user_org_ids))
+                .inner_join(sys_permissions::table.on(sys_permissions::id.eq(sys_model_has_permissions::permission_id)))
+                .select((sys_model_has_permissions::model_id, Permission::as_select()))
+                .load::<(String, Permission)>(&mut conn)?
+        } else {
+            vec![]
+        };
+
+        // Load permissions through roles
+        let role_permissions = if !role_ids.is_empty() {
+            sys_model_has_permissions::table
+                .filter(sys_model_has_permissions::model_type.eq("Role"))
+                .filter(sys_model_has_permissions::model_id.eq_any(&role_ids))
+                .inner_join(sys_permissions::table.on(sys_permissions::id.eq(sys_model_has_permissions::permission_id)))
+                .select((sys_model_has_permissions::model_id, Permission::as_select()))
+                .load::<(String, Permission)>(&mut conn)?
+        } else {
+            vec![]
+        };
+
+        // Create a map of role_id -> permissions
+        let mut role_permissions_map: HashMap<String, Vec<Permission>> = HashMap::new();
+        for (role_id, permission) in role_permissions {
+            role_permissions_map.entry(role_id).or_insert_with(Vec::new).push(permission);
+        }
+
+        // Create a map of user_org_id -> direct permissions
+        let mut direct_permissions_map: HashMap<String, Vec<Permission>> = HashMap::new();
+        for (user_org_id, permission) in direct_permissions {
+            direct_permissions_map.entry(user_org_id).or_insert_with(Vec::new).push(permission);
+        }
+
+        // Transform the data into UserOrganizationResourceWithRelations
+        let user_organizations: Vec<UserOrganizationResourceWithRelations> = user_org_data
+            .into_iter()
+            .map(|(user_org, org, pos, level)| {
+                let user_org_id = user_org.id.to_string();
+
+                let user_basic = Some(UserBasicInfo {
+                    id: user.id.to_string(),
+                    name: user.name.clone(),
+                    email: user.email.clone(),
+                });
+
+                let organization_basic = org.map(|o| OrganizationBasicInfo {
+                    id: o.id.to_string(),
+                    name: o.name,
+                    organization_type: o.organization_type,
+                    code: o.code,
+                });
+
+                let organization_position_basic = pos.map(|p| OrganizationPositionBasicInfo {
+                    id: p.id.to_string(),
+                    name: p.name,
+                    code: if p.code.is_empty() { None } else { Some(p.code) },
+                    organization_position_level: level.map(|l| OrganizationPositionLevelBasicInfo {
+                        id: l.id.to_string(),
+                        name: l.name,
+                        level: l.level,
+                    }),
+                });
+
+                // Get roles for this user organization
+                let roles = roles_map.get(&user_org_id).cloned().unwrap_or_default();
+                let role_basic_info: Vec<RoleBasicInfo> = roles.iter().map(|r| RoleBasicInfo {
+                    id: r.id.to_string(),
+                    name: r.name.clone(),
+                    description: r.description.clone(),
+                    guard_name: r.guard_name.clone(),
+                }).collect();
+
+                // Get all permissions (direct + from roles)
+                let mut all_permissions: Vec<PermissionBasicInfo> = Vec::new();
+
+                // Add direct permissions
+                if let Some(direct_perms) = direct_permissions_map.get(&user_org_id) {
+                    for perm in direct_perms {
+                        all_permissions.push(PermissionBasicInfo {
+                            id: perm.id.to_string(),
+                            name: perm.name.clone(),
+                            resource: perm.resource.clone(),
+                            action: perm.action.clone(),
+                            guard_name: perm.guard_name.clone(),
+                            source: Some("direct".to_string()),
+                        });
+                    }
+                }
+
+                // Add permissions from roles
+                for role in &roles {
+                    if let Some(role_perms) = role_permissions_map.get(&role.id.to_string()) {
+                        for perm in role_perms {
+                            // Check if we already have this permission (avoid duplicates)
+                            if !all_permissions.iter().any(|p| p.id == perm.id.to_string()) {
+                                all_permissions.push(PermissionBasicInfo {
+                                    id: perm.id.to_string(),
+                                    name: perm.name.clone(),
+                                    resource: perm.resource.clone(),
+                                    action: perm.action.clone(),
+                                    guard_name: perm.guard_name.clone(),
+                                    source: Some(format!("role:{}", role.name)),
+                                });
+                            }
+                        }
+                    }
+                }
+
+                UserOrganizationResourceWithRelations {
+                    id: user_org_id,
+                    user_id: user_org.user_id.to_string(),
+                    organization_id: user_org.organization_id.to_string(),
+                    organization_position_id: user_org.organization_position_id.to_string(),
+                    is_active: user_org.is_active,
+                    started_at: user_org.started_at,
+                    ended_at: user_org.ended_at,
+                    created_at: user_org.created_at,
+                    updated_at: user_org.updated_at,
+                    user: user_basic,
+                    organization: organization_basic,
+                    organization_position: organization_position_basic,
+                    roles: role_basic_info,
+                    permissions: all_permissions,
+                }
+            })
+            .collect();
+
+        Ok(Some((user, user_organizations)))
     }
 }

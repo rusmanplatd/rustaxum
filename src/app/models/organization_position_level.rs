@@ -7,7 +7,7 @@ use crate::app::query_builder::{SortDirection};
 
 /// Job level model representing organizational hierarchy levels
 /// Contains level information including rank, code, and description
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
 #[diesel(table_name = crate::schema::organization_position_levels)]
 pub struct OrganizationPositionLevel {
     /// Unique identifier for the organization position level

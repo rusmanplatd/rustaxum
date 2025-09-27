@@ -166,3 +166,26 @@ The project follows Laravel conventions adapted for Rust:
 - **bcrypt**: Password hashing
 - **jsonwebtoken**: JWT authentication
 - **ulid**: Sortable unique identifiers
+
+```bash
+# login
+curl -X 'POST' \
+  'http://localhost:3000/api/auth/login' \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "email": "admin@example.com",
+  "password": "password"
+}' | jq
+
+# /me
+
+```
+
+```bash
+# Get current user info
+curl -X 'GET' \
+  'http://localhost:3000/api/me' \
+  -H 'accept: */*' \
+  -H 'Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMUs2MjQ4S0JTTkZKR1I3OVMwWTNRWFlUUyIsImV4cCI6MTc1OTA1NDIwMiwiaWF0IjoxNzU4OTY3ODAyLCJqdGkiOiIwMUs2NUFEQTgxREMwQjFHUVlXMjVWTUtUWCJ9.da4BxZK6Jm2-bz50bZs6tDkdz5G3K0cKhktd9HyQnKo' | jq
+```

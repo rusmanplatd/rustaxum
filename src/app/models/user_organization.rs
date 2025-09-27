@@ -20,7 +20,7 @@ struct CountResult {
 
 /// User organization model representing the relationship between users and organizations
 /// Contains employment information, organization position, and temporal data
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
 #[diesel(table_name = user_organizations)]
 pub struct UserOrganization {
     /// Unique identifier for the user-organization relationship

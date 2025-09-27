@@ -295,7 +295,7 @@ impl WebAuthController {
                 let redirect_url = form.redirect.unwrap_or_else(|| "/dashboard".to_string());
                 tracing::info!("Redirecting to: {}", redirect_url);
 
-                use axum::http::{StatusCode, HeaderValue};
+                use axum::http::{StatusCode};
                 use axum::response::{Response, Html};
 
                 // Create redirect response with HTML body for better browser compatibility

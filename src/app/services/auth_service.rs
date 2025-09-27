@@ -14,6 +14,7 @@ use crate::app::services::user_service::UserService;
 use crate::app::services::email_service::EmailService;
 use crate::app::services::mfa_service::MfaService;
 use crate::app::traits::ServiceActivityLogger;
+use crate::config::Config;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
@@ -79,7 +80,8 @@ impl AuthService {
         Ok(is_valid)
     }
 
-    pub fn generate_access_token(user_id: &str, secret: &str, expires_in_seconds: u64) -> Result<String> {
+    pub fn generate_access_token(user_id: &str, expires_in_seconds: u64) -> Result<String> {
+        let config = Config::load()?;
         let now = Utc::now();
         let expiration = now + Duration::seconds(expires_in_seconds as i64);
         let jti = Ulid::new().to_string();
@@ -94,7 +96,7 @@ impl AuthService {
         let token = encode(
             &Header::default(),
             &claims,
-            &EncodingKey::from_secret(secret.as_ref()),
+            &EncodingKey::from_secret(config.auth.jwt_secret.as_ref()),
         )?;
 
         Ok(token)
@@ -104,10 +106,11 @@ impl AuthService {
         Ulid::new().to_string()
     }
 
-    pub fn decode_token(token: &str, secret: &str) -> Result<Claims> {
+    pub fn decode_token(token: &str) -> Result<Claims> {
+        let config = Config::load()?;
         let token_data = decode::<Claims>(
             token,
-            &DecodingKey::from_secret(secret.as_ref()),
+            &DecodingKey::from_secret(config.auth.jwt_secret.as_ref()),
             &Validation::default(),
         )?;
 
@@ -135,7 +138,7 @@ impl AuthService {
         let created_user = UserService::create_user(pool, create_user_data, None).await?;
 
         // Generate tokens
-        let access_token = Self::generate_access_token(&created_user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
+        let access_token = Self::generate_access_token(&created_user.id.to_string(), 86400)?; // 24 hours
         let refresh_token = Self::generate_refresh_token();
         let expires_at = Utc::now() + Duration::seconds(86400);
         let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
@@ -243,7 +246,7 @@ impl AuthService {
         }
 
         // Generate tokens (only if MFA is not required)
-        let access_token = Self::generate_access_token(&user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
+        let access_token = Self::generate_access_token(&user.id.to_string(), 86400)?; // 24 hours
         let refresh_token = Self::generate_refresh_token();
         let expires_at = Utc::now() + Duration::seconds(86400);
         let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
@@ -293,7 +296,7 @@ impl AuthService {
             .ok_or_else(|| anyhow::anyhow!("User not found"))?;
 
         // Generate tokens
-        let access_token = Self::generate_access_token(&user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
+        let access_token = Self::generate_access_token(&user.id.to_string(), 86400)?; // 24 hours
         let refresh_token = Self::generate_refresh_token();
         let expires_at = Utc::now() + Duration::seconds(86400);
         let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
@@ -421,7 +424,7 @@ impl AuthService {
         }
 
         // Generate new tokens
-        let access_token = Self::generate_access_token(&user.id.to_string(), "jwt-secret", 86400)?; // 24 hours
+        let access_token = Self::generate_access_token(&user.id.to_string(), 86400)?; // 24 hours
         let refresh_token = Self::generate_refresh_token();
         let expires_at = Utc::now() + Duration::seconds(86400);
         let refresh_expires_at = Utc::now() + Duration::seconds(604800); // 7 days
