@@ -1,305 +1,316 @@
+<!-- Page Header -->
 <div class="page-header">
-    <h1 class="page-title">Dashboard</h1>
-    <p class="page-subtitle">Welcome back, {{user.first_name}}! Here's what's happening with your {{app_name}} account.</p>
+    <h1 class="page-title">
+        <i class="fas fa-tachometer-alt me-3"></i>
+        {{ page_title }}
+    </h1>
+    <p class="page-subtitle">Welcome back, {{user.name}}! Here's what's happening with your account.</p>
 </div>
 
-<!-- Statistics Cards -->
-<div class="row mb-4">
-    {{#each stats}}
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card">
-            <div class="stat-card-icon" style="background: linear-gradient(135deg, {{color.primary}} 0%, {{color.secondary}} 100%);">
-                <i class="{{icon}}"></i>
-            </div>
-            <div class="stat-card-value">{{value}}</div>
-            <div class="stat-card-label">{{label}}</div>
-            {{#if trend}}
-            <div class="stat-card-trend trend-{{trend.direction}}">
-                <i class="fas fa-arrow-{{#if (eq trend.direction 'up')}}up{{else}}down{{/if}} me-1"></i>
-                {{trend.percentage}}% {{trend.period}}
-            </div>
-            {{/if}}
-        </div>
-    </div>
-    {{/each}}
-</div>
-
-<!-- Charts Row -->
-<div class="row mb-4">
-    <div class="col-xl-8 mb-4">
-        <div class="data-table-wrapper">
-            <h5 class="mb-3">
-                <i class="fas fa-chart-line me-2 text-primary"></i>
-                Activity Overview
-            </h5>
-            <canvas id="activityChart" width="400" height="200"></canvas>
-        </div>
-    </div>
-    <div class="col-xl-4 mb-4">
-        <div class="data-table-wrapper">
-            <h5 class="mb-3">
-                <i class="fas fa-chart-pie me-2 text-success"></i>
-                User Distribution
-            </h5>
-            <canvas id="userDistributionChart" width="200" height="200"></canvas>
-        </div>
-    </div>
-</div>
-
-<!-- Recent Activity & Notifications -->
-<div class="row mb-4">
-    <div class="col-xl-8 mb-4">
-        <div class="data-table-wrapper">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0">
-                    <i class="fas fa-history me-2 text-info"></i>
-                    Recent Activity
-                </h5>
-                <a href="/dashboard/activity-logs" class="btn btn-sm btn-outline-primary">
-                    View All
-                </a>
-            </div>
-
-            {{#if recent_activities}}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Activity</th>
-                            <th>User</th>
-                            <th>Time</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{#each recent_activities}}
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="activity-icon me-3">
-                                        <i class="{{icon}} text-{{type}}"></i>
-                                    </div>
-                                    <div>
-                                        <div class="fw-medium">{{description}}</div>
-                                        {{#if details}}
-                                        <small class="text-muted">{{details}}</small>
-                                        {{/if}}
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <img src="{{user.avatar_url}}" alt="{{user.name}}" class="rounded-circle me-2" width="24" height="24">
-                                    <span>{{user.name}}</span>
-                                </div>
-                            </td>
-                            <td>
-                                <span title="{{timestamp}}">{{time_ago}}</span>
-                            </td>
-                            <td>
-                                <span class="badge bg-{{status_color}}">{{status}}</span>
-                            </td>
-                        </tr>
-                        {{/each}}
-                    </tbody>
-                </table>
-            </div>
-            {{else}}
-            <div class="text-center py-4 text-muted">
-                <i class="fas fa-inbox fa-2x mb-3"></i>
-                <p>No recent activity to display.</p>
-            </div>
-            {{/if}}
-        </div>
-    </div>
-
-    <div class="col-xl-4 mb-4">
-        <div class="data-table-wrapper">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0">
-                    <i class="fas fa-bell me-2 text-warning"></i>
-                    Recent Notifications
-                </h5>
-                <a href="/dashboard/notifications" class="btn btn-sm btn-outline-primary">
-                    View All
-                </a>
-            </div>
-
-            {{#if recent_notifications}}
-            <div class="list-group list-group-flush">
-                {{#each recent_notifications}}
-                <div class="list-group-item list-group-item-action border-0 {{#unless read}}bg-light{{/unless}}">
-                    <div class="d-flex align-items-start">
-                        <div class="notification-icon me-3 mt-1">
-                            <i class="{{icon}} text-{{type}}"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <div class="fw-medium">{{title}}</div>
-                            <p class="mb-1 small text-muted">{{message}}</p>
-                            <small class="text-muted">{{time_ago}}</small>
-                        </div>
-                        {{#unless read}}
-                        <div class="unread-indicator">
-                            <span class="badge bg-primary rounded-pill">•</span>
-                        </div>
-                        {{/unless}}
-                    </div>
-                </div>
-                {{/each}}
-            </div>
-            {{else}}
-            <div class="text-center py-4 text-muted">
-                <i class="fas fa-bell-slash fa-2x mb-3"></i>
-                <p>No notifications to display.</p>
-            </div>
-            {{/if}}
-        </div>
-    </div>
-</div>
-
-<!-- System Status (for admins) -->
-{{#if user.can.manage_system}}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="data-table-wrapper">
-            <h5 class="mb-3">
-                <i class="fas fa-server me-2 text-danger"></i>
-                System Status
-            </h5>
-
-            <div class="row">
-                {{#each system_status}}
-                <div class="col-md-3 mb-3">
-                    <div class="d-flex align-items-center">
-                        <div class="status-indicator me-3">
-                            <i class="fas fa-circle text-{{status_color}}"></i>
-                        </div>
-                        <div>
-                            <div class="fw-medium">{{name}}</div>
-                            <small class="text-muted">{{description}}</small>
-                        </div>
-                    </div>
-                </div>
-                {{/each}}
-            </div>
-        </div>
-    </div>
+<!-- Flash Messages -->
+{{#if success_message}}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="fas fa-check-circle me-2"></i>
+    {{ success_message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 {{/if}}
 
-<!-- Quick Actions -->
-<div class="row">
-    <div class="col-12">
-        <div class="data-table-wrapper">
-            <h5 class="mb-3">
-                <i class="fas fa-bolt me-2 text-primary"></i>
-                Quick Actions
-            </h5>
+{{#if error_message}}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="fas fa-exclamation-circle me-2"></i>
+    {{ error_message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{{/if}}
 
-            <div class="row">
-                {{#each quick_actions}}
-                <div class="col-md-3 col-sm-6 mb-3">
-                    <a href="{{url}}" class="btn btn-outline-{{color}} w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3 text-decoration-none">
-                        <i class="{{icon}} fa-2x mb-2"></i>
-                        <span>{{title}}</span>
-                        {{#if description}}
-                        <small class="text-muted mt-1">{{description}}</small>
-                        {{/if}}
-                    </a>
-                </div>
-                {{/each}}
+<!-- Quick Stats Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="stat-card-value">Active</div>
+            <div class="stat-card-label">Account Status</div>
+            <div class="stat-card-trend trend-up">
+                <i class="fas fa-check-circle me-1"></i>
+                Verified Account
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-card-value">{{user.created_at}}</div>
+            <div class="stat-card-label">Member Since</div>
+            <div class="stat-card-trend">
+                <i class="fas fa-clock me-1"></i>
+                New Member
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);">
+                <i class="fas fa-key"></i>
+            </div>
+            <div class="stat-card-value">1</div>
+            <div class="stat-card-label">Active Sessions</div>
+            <div class="stat-card-trend">
+                <i class="fas fa-clock me-1"></i>
+                Current Session
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="stat-card-value">Good</div>
+            <div class="stat-card-label">Security Status</div>
+            <div class="stat-card-trend trend-up">
+                <i class="fas fa-shield-alt me-1"></i>
+                Protected
             </div>
         </div>
     </div>
 </div>
 
-<script>
-// Activity Chart
-const activityCtx = document.getElementById('activityChart').getContext('2d');
-const activityChart = new Chart(activityCtx, {
-    type: 'line',
-    data: {
-        labels: {{{json activity_chart.labels}}},
-        datasets: [{
-            label: 'Daily Activities',
-            data: {{{json activity_chart.data}}},
-            borderColor: 'rgb(102, 126, 234)',
-            backgroundColor: 'rgba(102, 126, 234, 0.1)',
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            y: {
-                beginAtZero: true,
-                grid: {
-                    color: 'rgba(0, 0, 0, 0.1)'
-                }
-            },
-            x: {
-                grid: {
-                    color: 'rgba(0, 0, 0, 0.1)'
-                }
-            }
-        },
-        plugins: {
-            legend: {
-                display: false
-            }
-        }
+<!-- Main Content Row -->
+<div class="row">
+    <!-- Welcome Card -->
+    <div class="col-lg-8 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-start">
+                    <div class="flex-shrink-0">
+                        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px; border: 3px solid #e9ecef;">
+                            <i class="fas fa-user fa-2x text-white"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-4">
+                        <h4 class="card-title mb-2">Welcome back, {{user.name}}!</h4>
+                        <p class="text-muted mb-3">{{user.email}}</p>
+
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <h6 class="mb-1">{{user.id}}</h6>
+                                    <small class="text-muted">User ID</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <h6 class="mb-1">{{user.created_at}}</h6>
+                                    <small class="text-muted">Created</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <h6 class="mb-1">{{user.updated_at}}</h6>
+                                <small class="text-muted">Last Updated</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-bolt me-2"></i>
+                    Quick Actions
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/dashboard/profile" class="btn btn-outline-primary">
+                        <i class="fas fa-user me-2"></i>
+                        Edit Profile
+                    </a>
+                    <a href="/auth/change-password" class="btn btn-outline-secondary">
+                        <i class="fas fa-key me-2"></i>
+                        Change Password
+                    </a>
+                    <a href="/dashboard/security" class="btn btn-outline-warning">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        Security Settings
+                    </a>
+                    <a href="/dashboard/notifications" class="btn btn-outline-info">
+                        <i class="fas fa-bell me-2"></i>
+                        Notifications
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Account Information -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Account Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="info-list">
+                    <div class="info-item">
+                        <span class="info-label">Full Name:</span>
+                        <span class="info-value">{{user.name}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Email:</span>
+                        <span class="info-value">{{user.email}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">User ID:</span>
+                        <span class="info-value">{{user.id}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Account Created:</span>
+                        <span class="info-value">{{user.created_at}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Last Updated:</span>
+                        <span class="info-value">{{user.updated_at}}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    Security Checklist
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="security-checklist">
+                    <div class="security-item completed">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Account Created
+                    </div>
+                    <div class="security-item completed">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Email Verified
+                    </div>
+                    <div class="security-item">
+                        <i class="fas fa-times-circle text-warning me-2"></i>
+                        Two-Factor Authentication
+                        <a href="/dashboard/security" class="float-end btn btn-sm btn-outline-primary">Enable</a>
+                    </div>
+                    <div class="security-item">
+                        <i class="fas fa-exclamation-circle text-info me-2"></i>
+                        Password Strength
+                        <a href="/auth/change-password" class="float-end btn btn-sm btn-outline-secondary">Review</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Getting Started -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-rocket me-2"></i>
+                    Getting Started with RustAxum
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-user-cog fa-3x text-primary"></i>
+                            </div>
+                            <h6>Complete Your Profile</h6>
+                            <p class="text-muted small">Add more information to your profile to get the most out of RustAxum.</p>
+                            <a href="/dashboard/profile" class="btn btn-sm btn-outline-primary">Edit Profile</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-shield-alt fa-3x text-success"></i>
+                            </div>
+                            <h6>Secure Your Account</h6>
+                            <p class="text-muted small">Enable two-factor authentication and review your security settings.</p>
+                            <a href="/dashboard/security" class="btn btn-sm btn-outline-success">Security Settings</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-bell fa-3x text-warning"></i>
+                            </div>
+                            <h6>Manage Notifications</h6>
+                            <p class="text-muted small">Choose how and when you want to receive notifications from us.</p>
+                            <a href="/dashboard/notifications" class="btn btn-sm btn-outline-warning">Notification Settings</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .info-list .info-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f1f3f4;
+        font-size: 0.9rem;
     }
-});
 
-// User Distribution Chart
-const userDistCtx = document.getElementById('userDistributionChart').getContext('2d');
-const userDistChart = new Chart(userDistCtx, {
-    type: 'doughnut',
-    data: {
-        labels: {{{json user_distribution.labels}}},
-        datasets: [{
-            data: {{{json user_distribution.data}}},
-            backgroundColor: [
-                'rgba(102, 126, 234, 0.8)',
-                'rgba(118, 75, 162, 0.8)',
-                'rgba(40, 167, 69, 0.8)',
-                'rgba(255, 193, 7, 0.8)',
-                'rgba(220, 53, 69, 0.8)'
-            ],
-            borderWidth: 0
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom',
-                labels: {
-                    padding: 20,
-                    usePointStyle: true
-                }
-            }
-        }
+    .info-list .info-item:last-child {
+        border-bottom: none;
     }
-});
 
-// Auto-refresh dashboard data every 5 minutes
-setInterval(function() {
-    // Implement auto-refresh logic here
-    console.log('Auto-refreshing dashboard data...');
-}, 300000);
+    .info-label {
+        font-weight: 600;
+        color: #495057;
+    }
 
-// Mark notifications as read when clicked
-document.querySelectorAll('.list-group-item-action').forEach(item => {
-    item.addEventListener('click', function() {
-        if (!this.classList.contains('read')) {
-            // Mark as read via AJAX
-            // Implementation depends on your API
-        }
-    });
-});
-</script>
+    .info-value {
+        color: #6c757d;
+        font-family: 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', monospace;
+        font-size: 0.85rem;
+    }
+
+    .security-checklist .security-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f1f3f4;
+        display: flex;
+        align-items: center;
+    }
+
+    .security-checklist .security-item:last-child {
+        border-bottom: none;
+    }
+
+    .security-checklist .security-item.completed {
+        opacity: 0.8;
+    }
+</style>
