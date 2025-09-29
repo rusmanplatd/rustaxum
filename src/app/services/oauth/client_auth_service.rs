@@ -513,9 +513,14 @@ impl ClientAuthService {
             // 4. Convert to DecodingKey
             // 5. Cache the result with TTL
 
+            // Try to fetch from JWKS endpoint if client has jwks_uri configured
+            if let Some(jwks_uri) = &client.jwks_uri {
+                return Self::fetch_jwk_public_key(jwks_uri, kid).await;
+            }
+
             return Err(anyhow::anyhow!(
-                "JWKS endpoint lookup not yet implemented for key ID '{}'. TODO: use jwk in JWT header or register public_key_pem in oauth_clients table",
-                kid
+                "No JWKS endpoint configured for client '{}' with key ID '{}'. Configure jwks_uri or public_key_pem.",
+                client.id, kid
             ));
         }
 
@@ -676,8 +681,13 @@ impl ClientAuthService {
 
     /// Get client public key PEM if stored in client record
     fn get_client_public_key_pem(client: &Client) -> Option<String> {
-        // TODO: This would access a public_key_pem field in the oauth_clients table
-        None
+        // Access public_key_pem field from oauth_clients table
+        client.public_key_pem.clone().or_else(|| {
+            // Try to get from metadata as fallback
+            client.metadata.get("public_key_pem")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+        })
     }
 
     /// Extract algorithm from JWT header
@@ -700,7 +710,7 @@ impl ClientAuthService {
             .ok_or_else(|| anyhow::anyhow!("Missing algorithm in JWT header"))
     }
 
-    /// TODO: header-based authentication for basic authorization
+    /// Header-based authentication for basic authorization
     pub async fn authenticate_client_from_header(
         pool: &DbPool,
         client_id: &str,
@@ -739,6 +749,71 @@ impl ClientAuthService {
             Err(anyhow::anyhow!("Invalid client credentials"))
         } else {
             Err(anyhow::anyhow!("Only Basic authentication supported"))
+        }
+    }
+
+    /// Fetch public key from JWKS endpoint
+    async fn fetch_jwk_public_key(jwks_uri: &str, kid: &str) -> Result<DecodingKey> {
+        // Fetch JWKS document
+        let response = reqwest::get(jwks_uri).await
+            .map_err(|e| anyhow::anyhow!("Failed to fetch JWKS from {}: {}", jwks_uri, e))?;
+
+        let jwks: serde_json::Value = response.json().await
+            .map_err(|e| anyhow::anyhow!("Failed to parse JWKS JSON: {}", e))?;
+
+        // Find key with matching kid
+        if let Some(keys) = jwks.get("keys").and_then(|k| k.as_array()) {
+            for key in keys {
+                if let Some(key_id) = key.get("kid").and_then(|k| k.as_str()) {
+                    if key_id == kid {
+                        // Extract public key from JWK
+                        return Self::convert_jwk_to_decoding_key(key);
+                    }
+                }
+            }
+        }
+
+        Err(anyhow::anyhow!("Key with ID '{}' not found in JWKS endpoint {}", kid, jwks_uri))
+    }
+
+    /// Convert JWK to DecodingKey for JWT validation
+    fn convert_jwk_to_decoding_key(jwk: &serde_json::Value) -> Result<DecodingKey> {
+        // Extract key type and algorithm
+        let kty = jwk.get("kty").and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow::anyhow!("Missing key type (kty) in JWK"))?;
+
+        match kty {
+            "RSA" => {
+                // For RSA keys, try to get PEM if available, otherwise error
+                if let Some(x5c) = jwk.get("x5c").and_then(|v| v.as_array()) {
+                    if let Some(cert_b64) = x5c.first().and_then(|v| v.as_str()) {
+                        // Decode X.509 certificate and extract public key
+                        use base64::{Engine as _, engine::general_purpose::STANDARD};
+                        let cert_der = STANDARD.decode(cert_b64)
+                            .map_err(|e| anyhow::anyhow!("Failed to decode x5c certificate: {}", e))?;
+
+                        // Convert DER to PEM format
+                        let pem = format!(
+                            "-----BEGIN CERTIFICATE-----\n{}\n-----END CERTIFICATE-----",
+                            STANDARD.encode(&cert_der).chars()
+                                .collect::<Vec<char>>()
+                                .chunks(64)
+                                .map(|chunk| chunk.iter().collect::<String>())
+                                .collect::<Vec<String>>()
+                                .join("\n")
+                        );
+
+                        return DecodingKey::from_rsa_pem(pem.as_bytes())
+                            .map_err(|e| anyhow::anyhow!("Failed to create RSA key from certificate: {}", e));
+                    }
+                }
+
+                // Fallback error message
+                Err(anyhow::anyhow!(
+                    "RSA JWK conversion not fully implemented. Please configure public_key_pem directly in the client."
+                ))
+            },
+            _ => Err(anyhow::anyhow!("Unsupported key type: {}", kty))
         }
     }
 }

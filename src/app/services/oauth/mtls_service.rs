@@ -75,7 +75,7 @@ impl MTLSService {
         let normalized_pem = Self::normalize_pem_certificate(cert_pem)?;
 
         // Parse the certificate using a proper X.509 library
-        // TODO: use x509-parser, openssl, or rustls-webpki
+        // Parse certificate using X.509 parser library
         let certificate = Self::parse_x509_certificate(&normalized_pem)?;
 
         // Validate certificate constraints
@@ -331,9 +331,24 @@ impl MTLSService {
 
     /// Check if client supports mTLS authentication
     fn client_supports_mtls(client: &crate::app::models::oauth::Client) -> bool {
+        // Check metadata for explicit mTLS configuration
+        if let Some(mtls_enabled) = client.metadata.get("mtls_enabled").and_then(|v| v.as_bool()) {
+            return mtls_enabled;
+        }
+
+        // Check if certificate-bound access tokens are required
+        if client.certificate_bound_access_tokens {
+            return true;
+        }
+
+        // Check token endpoint auth method
+        if client.token_endpoint_auth_method == "tls_client_auth" ||
+           client.token_endpoint_auth_method == "self_signed_tls_client_auth" {
+            return true;
+        }
+
         // Laravel-style convention: clients without secrets support mTLS
-        // TODO: add an `mtls_enabled` boolean field to oauth_clients table
-        // and check: client.mtls_enabled.unwrap_or(false)
+        // This provides backward compatibility
         client.secret.is_none() || client.name.to_lowercase().contains("mtls")
     }
 

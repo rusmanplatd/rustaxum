@@ -93,18 +93,33 @@ impl ScopeValidationService {
         pool: &DbPool,
         context: &ExchangeContext,
     ) -> Result<ScopePolicy> {
-        // Load scope policy based on client settings and organization policies
-        // TODO: this would come from client metadata and organization settings
-
+        // Load scope policy from client metadata and organization settings
         let client = ClientService::find_by_id(pool, context.subject_client_id.clone())?
             .ok_or_else(|| anyhow::anyhow!("Subject client not found"))?;
 
-        // Build policy based on client type and scenario
+        // Extract policy settings from client metadata
+        let metadata = &client.metadata;
+        let scope_policy = metadata.get("scope_policy").and_then(|p| p.as_object());
+
+        // Build policy based on client configuration and scenario
         let mut policy = ScopePolicy {
-            allow_scope_escalation: false, // Conservative default
-            allow_cross_client_scopes: false,
-            require_explicit_consent: true,
-            max_scope_lifetime_hours: Some(24),
+            allow_scope_escalation: scope_policy
+                .and_then(|p| p.get("allow_scope_escalation"))
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false), // Conservative default
+            allow_cross_client_scopes: scope_policy
+                .and_then(|p| p.get("allow_cross_client_scopes"))
+                .and_then(|v| v.as_bool())
+                .unwrap_or(client.organization_id.is_some()), // Allow within organization
+            require_explicit_consent: scope_policy
+                .and_then(|p| p.get("require_explicit_consent"))
+                .and_then(|v| v.as_bool())
+                .unwrap_or(!client.personal_access_client), // PATs don't need consent
+            max_scope_lifetime_hours: scope_policy
+                .and_then(|p| p.get("max_scope_lifetime_hours"))
+                .and_then(|v| v.as_u64())
+                .map(|h| h as usize)
+                .or_else(|| if client.personal_access_client { Some(8760) } else { Some(24) }), // 1 year for PATs, 24h for others
             restricted_scopes: Self::get_restricted_scopes(),
             delegation_rules: Self::build_delegation_rules(&client).await?,
         };
@@ -514,11 +529,42 @@ impl ScopeValidationService {
     }
 
     async fn check_stepup_permission(
-        _pool: &DbPool,
-        _client_id: &str,
-        _scope: &str,
+        pool: &DbPool,
+        client_id: &str,
+        scope: &str,
     ) -> Result<bool> {
-        // TODO: check step-up authorization database
+        use crate::schema::oauth_clients::dsl::*;
+        use diesel::prelude::*;
+
+        // Check step-up authorization requirements in database
+        let mut conn = pool.get()?;
+
+        // Load client to check step-up permissions
+        let client = oauth_clients
+            .filter(id.eq(client_id))
+            .select(crate::app::models::oauth::Client::as_select())
+            .first::<crate::app::models::oauth::Client>(&mut conn)
+            .optional()?;
+
+        if let Some(client) = client {
+            // Check metadata for step-up scope permissions
+            if let Some(stepup_config) = client.metadata.get("stepup_scopes").and_then(|v| v.as_object()) {
+                if let Some(allowed_scopes) = stepup_config.get("allowed").and_then(|v| v.as_array()) {
+                    return Ok(allowed_scopes.iter()
+                        .filter_map(|v| v.as_str())
+                        .any(|allowed_scope| {
+                            // Check exact match or wildcard pattern
+                            allowed_scope == scope ||
+                            (allowed_scope.ends_with("*") && scope.starts_with(&allowed_scope[..allowed_scope.len()-1]))
+                        }));
+                }
+            }
+
+            // Default: allow step-up for personal access clients and trusted clients
+            return Ok(client.personal_access_client ||
+                     client.metadata.get("trusted").and_then(|v| v.as_bool()).unwrap_or(false));
+        }
+
         Ok(false)
     }
 }

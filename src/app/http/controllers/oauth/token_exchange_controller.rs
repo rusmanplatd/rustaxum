@@ -48,7 +48,7 @@ pub async fn exchange_token(
     }
 
     // Extract and authenticate client
-    let client_id = match extract_client_credentials(&headers, &form) {
+    let client_id = match extract_client_credentials(&pool, &headers, &form).await {
         Ok(id) => id,
         Err(err) => {
             return Err((
@@ -213,7 +213,8 @@ pub async fn validate_exchange_request(
 // Helper functions
 
 /// Extract client credentials from various sources
-fn extract_client_credentials(
+async fn extract_client_credentials(
+    pool: &DbPool,
     headers: &HeaderMap,
     form: &TokenExchangeFormRequest,
 ) -> Result<String, String> {
@@ -224,12 +225,18 @@ fn extract_client_credentials(
 
     // Try form parameters
     if let Some(client_id) = &form.client_id {
-        if let Some(_secret) = &form.client_secret {
-            // TODO: validate the client secret
+        if let Some(secret) = &form.client_secret {
+            // Validate the client secret
+            use crate::app::services::oauth::ClientAuthService;
+            ClientAuthService::authenticate_client_credentials(pool, client_id, secret).await
+                .map_err(|_| anyhow::anyhow!("Invalid client credentials"))?;
             return Ok(client_id.clone());
         }
-        // Public client (no secret required)
-        return Ok(client_id.clone());
+        // Public client (no secret required) - validate it exists
+        use crate::app::services::oauth::ClientService;
+        if ClientService::find_by_id(pool, client_id.clone())?.is_some() {
+            return Ok(client_id.clone());
+        }
     }
 
     Err("Client authentication required".to_string())

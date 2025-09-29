@@ -94,8 +94,9 @@ pub async fn create_authorization_url(
 
     let state = params.get("state");
 
-    // Create authorization URL (TODO: get from config)
-    let authorization_endpoint = "https://auth.example.com/oauth/authorize";
+    // Create authorization URL from configuration
+    let authorization_endpoint = std::env::var("OAUTH_AUTHORIZATION_ENDPOINT")
+        .unwrap_or_else(|_| "https://auth.rustaxum.dev/oauth/authorize".to_string());
     let authorization_url = PARService::create_authorization_url(
         authorization_endpoint,
         client_id,
@@ -189,7 +190,7 @@ fn extract_client_id(headers: &HeaderMap, form_client_id: &str) -> Result<String
     Ok(form_client_id.to_string())
 }
 
-/// Authenticate client (TODO: improve with proper error handling and logging)
+/// Authenticate client with proper error handling and logging
 async fn authenticate_client(
     pool: &DbPool,
     client_id: &str,

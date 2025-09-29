@@ -80,6 +80,7 @@ impl TokenExchangeService {
             pool,
             &request.subject_token,
             &request.subject_token_type,
+            client_id,
         ).await?;
 
         // Validate actor token if present
@@ -89,6 +90,7 @@ impl TokenExchangeService {
                 actor_token,
                 request.actor_token_type.as_ref()
                     .ok_or_else(|| anyhow::anyhow!("Actor token type is required when actor token is provided"))?,
+                client_id,
             ).await?)
         } else {
             None
@@ -134,6 +136,7 @@ impl TokenExchangeService {
         pool: &DbPool,
         token: &str,
         token_type: &str,
+        client_id: &str,
     ) -> Result<TokenContext> {
         match token_type {
             "urn:ietf:params:oauth:token-type:access_token" => {
@@ -143,7 +146,7 @@ impl TokenExchangeService {
                 Self::parse_refresh_token(pool, token).await
             },
             "urn:ietf:params:oauth:token-type:id_token" => {
-                Self::parse_id_token(token).await
+                Self::parse_id_token(pool, token, client_id).await
             },
             "urn:ietf:params:oauth:token-type:jwt" => {
                 Self::parse_jwt_token(token).await
@@ -198,9 +201,9 @@ impl TokenExchangeService {
     }
 
     /// Parse ID token (JWT) and extract context with full validation
-    async fn parse_id_token(token: &str) -> Result<TokenContext> {
+    async fn parse_id_token(pool: &DbPool, token: &str, client_id: &str) -> Result<TokenContext> {
         // Validate ID token signature and structure
-        let claims = Self::validate_id_token_signature(token)?;
+        let claims = Self::validate_id_token_signature(pool, token, &client_id).await?;
 
         // Validate token expiration
         let now = chrono::Utc::now().timestamp() as usize;
@@ -249,7 +252,7 @@ impl TokenExchangeService {
     }
 
     /// Validate ID token signature and decode claims
-    fn validate_id_token_signature(token: &str) -> Result<RFC9068Claims> {
+    async fn validate_id_token_signature(pool: &DbPool, token: &str, client_id: &str) -> Result<RFC9068Claims> {
         use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
 
         // Parse JWT header to determine algorithm
@@ -280,8 +283,8 @@ impl TokenExchangeService {
                 DecodingKey::from_secret(secret.as_bytes())
             },
             Algorithm::RS256 | Algorithm::RS384 | Algorithm::RS512 => {
-                // TODO: load RSA public key from JWKS endpoint
-                DecodingKey::from_secret(secret.as_bytes())
+                // Load RSA public key from JWKS endpoint or client configuration
+                Self::load_rsa_public_key(pool, client_id, &header).await?
             },
             _ => return Err(anyhow::anyhow!("Unsupported JWT algorithm: {:?}", header.alg))
         };
@@ -536,6 +539,104 @@ impl TokenExchangeService {
         let new_token = encode(&header, &claims, &encoding_key)?;
 
         Ok(new_token)
+    }
+
+    /// Load RSA public key for JWT verification
+    async fn load_rsa_public_key(
+        pool: &DbPool,
+        client_id: &str,
+        header: &jsonwebtoken::Header,
+    ) -> Result<jsonwebtoken::DecodingKey> {
+        use crate::schema::oauth_clients::dsl::{oauth_clients, id};
+        use diesel::prelude::*;
+
+        let mut conn = pool.get()?;
+
+        // Load client to get public key or JWKS URI
+        let client = oauth_clients
+            .filter(id.eq(client_id))
+            .select(crate::app::models::oauth::Client::as_select())
+            .first::<crate::app::models::oauth::Client>(&mut conn)
+            .optional()?;
+
+        if let Some(client) = client {
+            // Try to get public key from client record
+            if let Some(public_key_pem) = &client.public_key_pem {
+                return Self::decode_rsa_public_key_from_pem(public_key_pem);
+            }
+
+            // Try to fetch from JWKS URI if available
+            if let Some(jwks_uri) = &client.jwks_uri {
+                if let Some(kid) = &header.kid {
+                    return Self::fetch_public_key_from_jwks(jwks_uri, kid).await;
+                }
+            }
+
+            // Try to get public key from metadata
+            if let Some(public_key) = client.metadata.get("public_key_pem").and_then(|v| v.as_str()) {
+                return Self::decode_rsa_public_key_from_pem(public_key);
+            }
+        }
+
+        Err(anyhow::anyhow!(
+            "No RSA public key found for client '{}'. Configure public_key_pem or jwks_uri.",
+            client_id
+        ))
+    }
+
+    /// Decode RSA public key from PEM format
+    fn decode_rsa_public_key_from_pem(pem: &str) -> Result<jsonwebtoken::DecodingKey> {
+        jsonwebtoken::DecodingKey::from_rsa_pem(pem.as_bytes())
+            .map_err(|e| anyhow::anyhow!("Failed to decode RSA public key: {}", e))
+    }
+
+    /// Fetch public key from JWKS endpoint
+    async fn fetch_public_key_from_jwks(jwks_uri: &str, kid: &str) -> Result<jsonwebtoken::DecodingKey> {
+        // Fetch JWKS document
+        let response = reqwest::get(jwks_uri).await
+            .map_err(|e| anyhow::anyhow!("Failed to fetch JWKS: {}", e))?;
+
+        let jwks: serde_json::Value = response.json().await
+            .map_err(|e| anyhow::anyhow!("Failed to parse JWKS JSON: {}", e))?;
+
+        // Find key with matching kid
+        if let Some(keys) = jwks.get("keys").and_then(|k| k.as_array()) {
+            for key in keys {
+                if let Some(key_id) = key.get("kid").and_then(|k| k.as_str()) {
+                    if key_id == kid {
+                        // Convert JWK to PEM and create decoding key
+                        return Self::jwk_to_decoding_key(key);
+                    }
+                }
+            }
+        }
+
+        Err(anyhow::anyhow!("Key with ID '{}' not found in JWKS", kid))
+    }
+
+    /// Convert JWK to DecodingKey
+    fn jwk_to_decoding_key(jwk: &serde_json::Value) -> Result<jsonwebtoken::DecodingKey> {
+        // Basic JWK to DecodingKey conversion (simplified)
+        // In production, use a proper JWK library like `jsonwebkey`
+        if let (Some(n), Some(e)) = (
+            jwk.get("n").and_then(|v| v.as_str()),
+            jwk.get("e").and_then(|v| v.as_str())
+        ) {
+            // Decode base64url values
+            use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+            let n_bytes = URL_SAFE_NO_PAD.decode(n)
+                .map_err(|e| anyhow::anyhow!("Failed to decode n parameter: {}", e))?;
+            let e_bytes = URL_SAFE_NO_PAD.decode(e)
+                .map_err(|e| anyhow::anyhow!("Failed to decode e parameter: {}", e))?;
+
+            // Convert to RSA public key (simplified - in production use proper RSA crate)
+            // For now, return an error directing to configure PEM instead
+            return Err(anyhow::anyhow!(
+                "JWK to RSA conversion not implemented. Please configure public_key_pem instead."
+            ));
+        }
+
+        Err(anyhow::anyhow!("Invalid JWK format"))
     }
 }
 
