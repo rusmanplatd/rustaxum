@@ -51,7 +51,7 @@ pub struct TokenStatsResponse {
     pub daily_token_creation: Vec<DailyTokenStats>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct ClientTokenStats {
     pub client_id: String,
     pub client_name: String,
@@ -391,17 +391,23 @@ pub async fn get_token_stats(
     }
 
     // Get token statistics from database
-    let token_stats = get_token_statistics(&pool).await
-        .map_err(|e| {
+    let token_stats = match get_token_statistics(&pool).await {
+        Ok(stats) => stats,
+        Err(e) => {
             tracing::error!("Failed to get token statistics: {}", e);
-            OAuthError::server_error("Failed to retrieve token statistics")
-        })?;
+            let error = ErrorResponse {
+                error: "server_error".to_string(),
+                error_description: Some("Failed to retrieve token statistics".to_string()),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
 
     let response = TokenStatsResponse {
-        total_tokens: token_stats.total,
-        active_tokens: token_stats.active,
-        expired_tokens: token_stats.expired,
-        revoked_tokens: token_stats.revoked,
+        total_tokens: token_stats.total as i64,
+        active_tokens: token_stats.active as i64,
+        expired_tokens: token_stats.expired as i64,
+        revoked_tokens: token_stats.revoked as i64,
         tokens_by_client: token_stats.by_client,
         tokens_by_scope: vec![],
         daily_token_creation: vec![],
@@ -537,8 +543,6 @@ struct TokenStatistics {
     revoked: u64,
     by_client: Vec<ClientTokenStats>,
 }
-
-#[derive(Debug)]
 
 async fn get_token_statistics(pool: &DbPool) -> anyhow::Result<TokenStatistics> {
     use crate::schema::oauth_access_tokens::dsl::*;

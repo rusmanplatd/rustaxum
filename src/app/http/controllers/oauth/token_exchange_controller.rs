@@ -227,14 +227,22 @@ async fn extract_client_credentials(
     if let Some(client_id) = &form.client_id {
         if let Some(secret) = &form.client_secret {
             // Validate the client secret
-            use crate::app::services::oauth::ClientAuthService;
-            ClientAuthService::authenticate_client_credentials(pool, client_id, secret).await
-                .map_err(|_| anyhow::anyhow!("Invalid client credentials"))?;
-            return Ok(client_id.clone());
+            use crate::app::services::oauth::{ClientService, ClientAuthService};
+            let client = ClientService::find_by_id(pool, client_id.clone())
+                .map_err(|_| "Database error".to_string())?
+                .ok_or_else(|| "Client not found".to_string())?;
+
+            if ClientAuthService::verify_client_secret(&client, secret)
+                .map_err(|_| "Invalid credentials".to_string())? {
+                return Ok(client_id.clone());
+            } else {
+                return Err("Invalid client credentials".to_string());
+            }
         }
         // Public client (no secret required) - validate it exists
         use crate::app::services::oauth::ClientService;
-        if ClientService::find_by_id(pool, client_id.clone())?.is_some() {
+        if ClientService::find_by_id(pool, client_id.clone())
+            .map_err(|_| "Database error".to_string())?.is_some() {
             return Ok(client_id.clone());
         }
     }

@@ -158,7 +158,7 @@ impl ClientAuthService {
             .ok_or_else(|| anyhow::anyhow!("Client not found"))?;
 
         // Validate JWT signature and claims
-        Self::validate_jwt_client_assertion(&client, client_assertion, &claims)?;
+        Self::validate_jwt_client_assertion(&client, client_assertion, &claims).await?;
 
         Ok(ClientAuthResult {
             authenticated: true,
@@ -288,7 +288,7 @@ impl ClientAuthService {
     }
 
     /// Verify client secret using constant-time comparison
-    fn verify_client_secret(client: &Client, provided_secret: &str) -> Result<bool> {
+    pub fn verify_client_secret(client: &Client, provided_secret: &str) -> Result<bool> {
         let stored_secret = client.secret.as_ref()
             .ok_or_else(|| anyhow::anyhow!("Client has no secret (public client)"))?;
 
@@ -360,7 +360,7 @@ impl ClientAuthService {
     }
 
     /// Validate JWT client assertion claims and signature
-    fn validate_jwt_client_assertion(
+    async fn validate_jwt_client_assertion(
         client: &Client,
         jwt: &str,
         claims: &ClientAssertionClaims,
@@ -388,13 +388,13 @@ impl ClientAuthService {
         }
 
         // Verify JWT signature
-        Self::verify_jwt_signature(client, jwt, claims)?;
+        Self::verify_jwt_signature(client, jwt, claims).await?;
 
         Ok(())
     }
 
     /// Verify JWT signature using proper cryptographic validation
-    fn verify_jwt_signature(
+    async fn verify_jwt_signature(
         client: &Client,
         jwt: &str,
         claims: &ClientAssertionClaims,
@@ -439,7 +439,7 @@ impl ClientAuthService {
             Algorithm::ES256 | Algorithm::ES384 |
             Algorithm::PS256 | Algorithm::PS384 | Algorithm::PS512 => {
                 // Asymmetric verification - extract public key from JWT header or use stored key
-                match Self::extract_public_key_from_jwt_header(&jwt) {
+                match Self::extract_public_key_from_jwt_header(&jwt, client).await {
                     Ok(key) => key,
                     Err(_) => {
                         // Fallback: try to load from client's public_key_pem field if available
@@ -476,7 +476,7 @@ impl ClientAuthService {
     }
 
     /// Extract public key from JWT header's jwk field for asymmetric verification
-    fn extract_public_key_from_jwt_header(jwt: &str) -> Result<DecodingKey> {
+    async fn extract_public_key_from_jwt_header(jwt: &str, client: &Client) -> Result<DecodingKey> {
         use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 
         // Parse JWT header

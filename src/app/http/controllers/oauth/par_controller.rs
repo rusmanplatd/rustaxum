@@ -98,7 +98,7 @@ pub async fn create_authorization_url(
     let authorization_endpoint = std::env::var("OAUTH_AUTHORIZATION_ENDPOINT")
         .unwrap_or_else(|_| "https://auth.rustaxum.dev/oauth/authorize".to_string());
     let authorization_url = PARService::create_authorization_url(
-        authorization_endpoint,
+        &authorization_endpoint,
         client_id,
         request_uri,
         state.map(|s| s.as_str()),
@@ -151,9 +151,9 @@ pub async fn cleanup_expired_requests(
 /// GET /oauth/par/required/{client_id}
 pub async fn check_par_requirement(
     Path(client_id): Path<String>,
-    State(_pool): State<DbPool>,
+    State(pool): State<DbPool>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let par_required = PARService::require_par_for_client(&client_id);
+    let par_required = PARService::require_par_for_client(&pool, &client_id).await;
 
     Ok(Json(json!({
         "client_id": client_id,

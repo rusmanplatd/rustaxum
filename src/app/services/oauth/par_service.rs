@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc, Duration};
 use crate::database::DbPool;
 use crate::app::models::DieselUlid;
+use crate::app::services::oauth::ClientService;
 use diesel::prelude::*;
 use rand::{distributions::Alphanumeric, Rng};
 

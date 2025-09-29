@@ -118,7 +118,7 @@ impl ScopeValidationService {
             max_scope_lifetime_hours: scope_policy
                 .and_then(|p| p.get("max_scope_lifetime_hours"))
                 .and_then(|v| v.as_u64())
-                .map(|h| h as usize)
+                .map(|h| h as u32)
                 .or_else(|| if client.personal_access_client { Some(8760) } else { Some(24) }), // 1 year for PATs, 24h for others
             restricted_scopes: Self::get_restricted_scopes(),
             delegation_rules: Self::build_delegation_rules(&client).await?,
@@ -533,7 +533,7 @@ impl ScopeValidationService {
         client_id: &str,
         scope: &str,
     ) -> Result<bool> {
-        use crate::schema::oauth_clients::dsl::*;
+        use crate::schema::oauth_clients::dsl::{oauth_clients, id};
         use diesel::prelude::*;
 
         // Check step-up authorization requirements in database
