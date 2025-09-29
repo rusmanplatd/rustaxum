@@ -2,7 +2,7 @@ use anyhow::Result;
 use diesel::prelude::*;
 use serde_json::json;
 use crate::database::DbPool;
-use crate::schema::districts;
+use crate::schema::ref_geo_districts;
 use crate::app::models::district::{District, CreateDistrict, UpdateDistrict, NewDistrict};
 use crate::app::traits::ServiceActivityLogger;
 
@@ -15,7 +15,7 @@ impl DistrictService {
         let mut conn = pool.get()?;
         let new_district = NewDistrict::new(data.city_id.clone(), data.name.clone(), data.code.clone());
 
-        let result = diesel::insert_into(districts::table)
+        let result = diesel::insert_into(ref_geo_districts::table)
             .values(&new_district)
             .get_result::<District>(&mut conn)?;
 
@@ -42,8 +42,8 @@ impl DistrictService {
     pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<District>> {
         let mut conn = pool.get()?;
 
-        let result = districts::table
-            .filter(districts::id.eq(id.to_string()))
+        let result = ref_geo_districts::table
+            .filter(ref_geo_districts::id.eq(id.to_string()))
             .first::<District>(&mut conn)
             .optional()?;
 
@@ -53,12 +53,12 @@ impl DistrictService {
     pub fn update(pool: &DbPool, id: String, data: UpdateDistrict) -> Result<District> {
         let mut conn = pool.get()?;
 
-        let result = diesel::update(districts::table.filter(districts::id.eq(id.to_string())))
+        let result = diesel::update(ref_geo_districts::table.filter(ref_geo_districts::id.eq(id.to_string())))
             .set((
-                data.city_id.map(|c| districts::city_id.eq(c)),
-                data.name.map(|n| districts::name.eq(n)),
-                data.code.map(|c| districts::code.eq(c)),
-                districts::updated_at.eq(diesel::dsl::now),
+                data.city_id.map(|c| ref_geo_districts::city_id.eq(c)),
+                data.name.map(|n| ref_geo_districts::name.eq(n)),
+                data.code.map(|c| ref_geo_districts::code.eq(c)),
+                ref_geo_districts::updated_at.eq(diesel::dsl::now),
             ))
             .get_result::<District>(&mut conn)?;
 
@@ -68,7 +68,7 @@ impl DistrictService {
     pub fn delete(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
-        diesel::delete(districts::table.filter(districts::id.eq(id.to_string())))
+        diesel::delete(ref_geo_districts::table.filter(ref_geo_districts::id.eq(id.to_string())))
             .execute(&mut conn)?;
 
         Ok(())
@@ -77,10 +77,10 @@ impl DistrictService {
     pub fn find_by_city_id(pool: &DbPool, city_id: String) -> Result<Vec<District>> {
         let mut conn = pool.get()?;
 
-        let result = districts::table
-            .filter(districts::city_id.eq(city_id))
-            .filter(districts::deleted_at.is_null())
-            .order(districts::name.asc())
+        let result = ref_geo_districts::table
+            .filter(ref_geo_districts::city_id.eq(city_id))
+            .filter(ref_geo_districts::deleted_at.is_null())
+            .order(ref_geo_districts::name.asc())
             .load::<District>(&mut conn)?;
 
         Ok(result)
@@ -89,9 +89,9 @@ impl DistrictService {
     pub fn list_all(pool: &DbPool) -> Result<Vec<District>> {
         let mut conn = pool.get()?;
 
-        let result = districts::table
-            .filter(districts::deleted_at.is_null())
-            .order(districts::name.asc())
+        let result = ref_geo_districts::table
+            .filter(ref_geo_districts::deleted_at.is_null())
+            .order(ref_geo_districts::name.asc())
             .load::<District>(&mut conn)?;
 
         Ok(result)

@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use serde_json::json;
 use rust_decimal::Decimal;
 use crate::database::DbPool;
-use crate::schema::villages;
+use crate::schema::ref_geo_villages;
 use crate::app::models::village::{Village, CreateVillage, UpdateVillage, NewVillage};
 use crate::app::traits::ServiceActivityLogger;
 
@@ -22,7 +22,7 @@ impl VillageService {
             data.longitude,
         );
 
-        let result = diesel::insert_into(villages::table)
+        let result = diesel::insert_into(ref_geo_villages::table)
             .values(&new_village)
             .get_result::<Village>(&mut conn)?;
 
@@ -51,8 +51,8 @@ impl VillageService {
     pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<Village>> {
         let mut conn = pool.get()?;
 
-        let result = villages::table
-            .filter(villages::id.eq(id.to_string()))
+        let result = ref_geo_villages::table
+            .filter(ref_geo_villages::id.eq(id.to_string()))
             .first::<Village>(&mut conn)
             .optional()?;
 
@@ -62,14 +62,14 @@ impl VillageService {
     pub fn update(pool: &DbPool, id: String, data: UpdateVillage) -> Result<Village> {
         let mut conn = pool.get()?;
 
-        let result = diesel::update(villages::table.filter(villages::id.eq(id.to_string())))
+        let result = diesel::update(ref_geo_villages::table.filter(ref_geo_villages::id.eq(id.to_string())))
             .set((
-                data.district_id.map(|d| villages::district_id.eq(d)),
-                data.name.map(|n| villages::name.eq(n)),
-                data.code.map(|c| villages::code.eq(c)),
-                data.latitude.map(|l| villages::latitude.eq(l)),
-                data.longitude.map(|l| villages::longitude.eq(l)),
-                villages::updated_at.eq(diesel::dsl::now),
+                data.district_id.map(|d| ref_geo_villages::district_id.eq(d)),
+                data.name.map(|n| ref_geo_villages::name.eq(n)),
+                data.code.map(|c| ref_geo_villages::code.eq(c)),
+                data.latitude.map(|l| ref_geo_villages::latitude.eq(l)),
+                data.longitude.map(|l| ref_geo_villages::longitude.eq(l)),
+                ref_geo_villages::updated_at.eq(diesel::dsl::now),
             ))
             .get_result::<Village>(&mut conn)?;
 
@@ -79,7 +79,7 @@ impl VillageService {
     pub fn delete(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
-        diesel::delete(villages::table.filter(villages::id.eq(id.to_string())))
+        diesel::delete(ref_geo_villages::table.filter(ref_geo_villages::id.eq(id.to_string())))
             .execute(&mut conn)?;
 
         Ok(())
@@ -88,10 +88,10 @@ impl VillageService {
     pub fn find_by_district_id(pool: &DbPool, district_id: String) -> Result<Vec<Village>> {
         let mut conn = pool.get()?;
 
-        let result = villages::table
-            .filter(villages::district_id.eq(district_id))
-            .filter(villages::deleted_at.is_null())
-            .order(villages::name.asc())
+        let result = ref_geo_villages::table
+            .filter(ref_geo_villages::district_id.eq(district_id))
+            .filter(ref_geo_villages::deleted_at.is_null())
+            .order(ref_geo_villages::name.asc())
             .load::<Village>(&mut conn)?;
 
         Ok(result)
@@ -100,9 +100,9 @@ impl VillageService {
     pub fn list_all(pool: &DbPool) -> Result<Vec<Village>> {
         let mut conn = pool.get()?;
 
-        let result = villages::table
-            .filter(villages::deleted_at.is_null())
-            .order(villages::name.asc())
+        let result = ref_geo_villages::table
+            .filter(ref_geo_villages::deleted_at.is_null())
+            .order(ref_geo_villages::name.asc())
             .load::<Village>(&mut conn)?;
 
         Ok(result)
@@ -116,15 +116,15 @@ impl VillageService {
         let min_lng_decimal = Decimal::from_f64_retain(min_lng).unwrap_or_default();
         let max_lng_decimal = Decimal::from_f64_retain(max_lng).unwrap_or_default();
 
-        let result = villages::table
-            .filter(villages::deleted_at.is_null())
-            .filter(villages::latitude.is_not_null())
-            .filter(villages::longitude.is_not_null())
-            .filter(villages::latitude.ge(min_lat_decimal))
-            .filter(villages::latitude.le(max_lat_decimal))
-            .filter(villages::longitude.ge(min_lng_decimal))
-            .filter(villages::longitude.le(max_lng_decimal))
-            .order(villages::name.asc())
+        let result = ref_geo_villages::table
+            .filter(ref_geo_villages::deleted_at.is_null())
+            .filter(ref_geo_villages::latitude.is_not_null())
+            .filter(ref_geo_villages::longitude.is_not_null())
+            .filter(ref_geo_villages::latitude.ge(min_lat_decimal))
+            .filter(ref_geo_villages::latitude.le(max_lat_decimal))
+            .filter(ref_geo_villages::longitude.ge(min_lng_decimal))
+            .filter(ref_geo_villages::longitude.le(max_lng_decimal))
+            .order(ref_geo_villages::name.asc())
             .load::<Village>(&mut conn)?;
 
         Ok(result)

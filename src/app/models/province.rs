@@ -8,7 +8,7 @@ use crate::app::query_builder::{SortDirection};
 /// Province model representing a state/province within a country
 /// Contains geographical and administrative information
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
-#[diesel(table_name = crate::schema::provinces)]
+#[diesel(table_name = crate::schema::ref_geo_provinces)]
 pub struct Province {
     /// Unique province identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
@@ -48,7 +48,7 @@ pub struct CreateProvince {
 
 /// Insertable struct for provinces
 #[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::provinces)]
+#[diesel(table_name = crate::schema::ref_geo_provinces)]
 pub struct NewProvince {
     pub id: DieselUlid,
     pub country_id: String,
@@ -130,7 +130,7 @@ impl Province {
 
 impl crate::app::query_builder::Queryable for Province {
     fn table_name() -> &'static str {
-        "provinces"
+        "ref_geo_provinces"
     }
 
     fn allowed_filters() -> Vec<&'static str> {
@@ -297,31 +297,31 @@ impl crate::app::query_builder::Includable for Province {
         for include in includes {
             match include.as_str() {
                 "roles" => {
-                    crate::app::query_builder::RolePermissionLoader::load_model_roles("provinces", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_model_roles("ref_geo_provinces", ids, _conn)?;
                 },
                 "permissions" => {
-                    crate::app::query_builder::RolePermissionLoader::load_model_permissions("provinces", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_model_permissions("ref_geo_provinces", ids, _conn)?;
                 },
                 "roles.permissions" => {
-                    crate::app::query_builder::RolePermissionLoader::load_model_roles_with_permissions("provinces", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_model_roles_with_permissions("ref_geo_provinces", ids, _conn)?;
                 },
                 "permissions.roles" => {
-                    crate::app::query_builder::RolePermissionLoader::load_model_permissions_with_roles("provinces", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_model_permissions_with_roles("ref_geo_provinces", ids, _conn)?;
                 },
                 "roles.organization" => {
-                    crate::app::query_builder::RolePermissionLoader::load_roles_with_organization("provinces", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_roles_with_organization("ref_geo_provinces", ids, _conn)?;
                 },
                 "permissions.organization" => {
-                    crate::app::query_builder::RolePermissionLoader::load_permissions_with_organization("provinces", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_permissions_with_organization("ref_geo_provinces", ids, _conn)?;
                 },
                 "authorizationContext" => {
-                    crate::app::query_builder::RolePermissionLoader::load_complete_authorization_context("provinces", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_complete_authorization_context("ref_geo_provinces", ids, _conn)?;
                 },
                 "scopedRoles" => {
-                    crate::app::query_builder::RolePermissionLoader::load_scoped_roles("provinces", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_scoped_roles("ref_geo_provinces", ids, _conn)?;
                 },
                 "scopedPermissions" => {
-                    crate::app::query_builder::RolePermissionLoader::load_scoped_permissions("provinces", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_scoped_permissions("ref_geo_provinces", ids, _conn)?;
                 },
                 "country" => {
                     tracing::debug!("Loading country for provinces: {:?}", ids);
@@ -333,40 +333,40 @@ impl crate::app::query_builder::Includable for Province {
                     tracing::debug!("Loading cities.districts for provinces: {:?}", ids);
                 },
                 "createdBy" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_users("provinces", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_users("ref_geo_provinces", ids, _conn)?;
                 },
                 "updatedBy" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_users("provinces", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_users("ref_geo_provinces", ids, _conn)?;
                 },
                 "deletedBy" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_users("provinces", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_users("ref_geo_provinces", ids, _conn)?;
                 },
                 "createdBy.organizations" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_organizations("provinces", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_organizations("ref_geo_provinces", ids, _conn)?;
                 },
                 "updatedBy.organizations" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_organizations("provinces", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_organizations("ref_geo_provinces", ids, _conn)?;
                 },
                 "deletedBy.organizations" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_organizations("provinces", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_organizations("ref_geo_provinces", ids, _conn)?;
                 },
                 "createdBy.organizations.position" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_positions("provinces", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_positions("ref_geo_provinces", ids, _conn)?;
                 },
                 "updatedBy.organizations.position" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_positions("provinces", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_positions("ref_geo_provinces", ids, _conn)?;
                 },
                 "deletedBy.organizations.position" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_positions("provinces", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_positions("ref_geo_provinces", ids, _conn)?;
                 },
                 "createdBy.organizations.position.level" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_levels("provinces", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_levels("ref_geo_provinces", ids, _conn)?;
                 },
                 "updatedBy.organizations.position.level" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_levels("provinces", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_levels("ref_geo_provinces", ids, _conn)?;
                 },
                 "deletedBy.organizations.position.level" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_levels("provinces", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_levels("ref_geo_provinces", ids, _conn)?;
                 },
                 _ => {
                     tracing::warn!("Unknown relationship: {}", include);
@@ -388,10 +388,10 @@ impl crate::app::query_builder::Includable for Province {
     fn build_join_clause(relationship: &str, main_table: &str) -> Option<String> {
         match relationship {
             "country" => {
-                Some(format!("LEFT JOIN countries ON {}.country_id = countries.id", main_table))
+                Some(format!("LEFT JOIN ref_geo_countries ON {}.country_id = ref_geo_countries.id", main_table))
             },
             "cities" => {
-                Some(format!("LEFT JOIN cities ON {}.id = cities.province_id", main_table))
+                Some(format!("LEFT JOIN ref_geo_cities ON {}.id = ref_geo_cities.province_id", main_table))
             },
             "createdBy" => {
                 Some(format!("LEFT JOIN sys_users AS created_by ON {}.created_by_id = created_by.id", main_table))

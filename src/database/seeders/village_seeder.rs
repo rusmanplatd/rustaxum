@@ -10,7 +10,7 @@ use ulid::Ulid;
 use rust_decimal::Decimal;
 use std::str::FromStr;
 use diesel::prelude::*;
-use crate::schema::villages;
+use crate::schema::ref_geo_villages;
 
 #[derive(Debug, Deserialize)]
 struct VillageRecord {
@@ -129,7 +129,7 @@ impl Seeder for Villageseeder {
                 longitude,
             );
 
-            let _inserted_village: Village = diesel::insert_into(villages::table)
+            let _inserted_village: Village = diesel::insert_into(ref_geo_villages::table)
                 .values(&new_village)
                 .get_result(&mut conn)?;
 

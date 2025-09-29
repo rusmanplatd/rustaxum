@@ -478,3 +478,5 @@ NEVER proactively create documentation files (*.md) or README files. Only create
 - Implement full functionality immediately rather than suggesting incremental improvements
 - Use proper error handling, type safety, and follow established patterns consistently
 - Code must compile and function correctly without requiring additional implementation steps
+
+i want to change geography table name to have prefix `ref_geo_`, modify existing migration and adjust other codebase references accordingly

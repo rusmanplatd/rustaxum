@@ -2,7 +2,7 @@ use anyhow::Result;
 use diesel::prelude::*;
 use serde_json::json;
 use crate::database::DbPool;
-use crate::schema::countries;
+use crate::schema::ref_geo_countries;
 use crate::app::models::country::{Country, CreateCountry, UpdateCountry, NewCountry};
 use crate::app::traits::ServiceActivityLogger;
 
@@ -15,7 +15,7 @@ impl CountryService {
         let mut conn = pool.get()?;
         let new_country = NewCountry::new(data.name.clone(), data.iso_code.clone(), data.phone_code.clone());
 
-        let result = diesel::insert_into(countries::table)
+        let result = diesel::insert_into(ref_geo_countries::table)
             .values(&new_country)
             .get_result::<Country>(&mut conn)?;
 
@@ -42,8 +42,8 @@ impl CountryService {
     pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<Country>> {
         let mut conn = pool.get()?;
 
-        let result = countries::table
-            .filter(countries::id.eq(id.to_string()))
+        let result = ref_geo_countries::table
+            .filter(ref_geo_countries::id.eq(id.to_string()))
             .first::<Country>(&mut conn)
             .optional()?;
 
@@ -53,8 +53,8 @@ impl CountryService {
     pub fn find_by_iso_code(pool: &DbPool, iso_code: &str) -> Result<Option<Country>> {
         let mut conn = pool.get()?;
 
-        let result = countries::table
-            .filter(countries::iso_code.eq(iso_code))
+        let result = ref_geo_countries::table
+            .filter(ref_geo_countries::iso_code.eq(iso_code))
             .first::<Country>(&mut conn)
             .optional()?;
 
@@ -64,8 +64,8 @@ impl CountryService {
     pub fn list(pool: &DbPool, _query_params: std::collections::HashMap<String, String>) -> Result<Vec<Country>> {
         let mut conn = pool.get()?;
 
-        let result = countries::table
-            .order(countries::name.asc())
+        let result = ref_geo_countries::table
+            .order(ref_geo_countries::name.asc())
             .load::<Country>(&mut conn)?;
         Ok(result)
     }
@@ -73,12 +73,12 @@ impl CountryService {
     pub fn update(pool: &DbPool, id: String, data: UpdateCountry) -> Result<Country> {
         let mut conn = pool.get()?;
 
-        let result = diesel::update(countries::table.filter(countries::id.eq(id.to_string())))
+        let result = diesel::update(ref_geo_countries::table.filter(ref_geo_countries::id.eq(id.to_string())))
             .set((
-                data.name.map(|n| countries::name.eq(n)),
-                data.iso_code.map(|c| countries::iso_code.eq(c)),
-                data.phone_code.map(|p| countries::phone_code.eq(p)),
-                countries::updated_at.eq(chrono::Utc::now()),
+                data.name.map(|n| ref_geo_countries::name.eq(n)),
+                data.iso_code.map(|c| ref_geo_countries::iso_code.eq(c)),
+                data.phone_code.map(|p| ref_geo_countries::phone_code.eq(p)),
+                ref_geo_countries::updated_at.eq(chrono::Utc::now()),
             ))
             .get_result::<Country>(&mut conn)?;
 
@@ -88,7 +88,7 @@ impl CountryService {
     pub fn delete(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
-        diesel::delete(countries::table.filter(countries::id.eq(id.to_string())))
+        diesel::delete(ref_geo_countries::table.filter(ref_geo_countries::id.eq(id.to_string())))
             .execute(&mut conn)?;
 
         Ok(())
@@ -97,7 +97,7 @@ impl CountryService {
     pub fn count(pool: &DbPool) -> Result<i64> {
         let mut conn = pool.get()?;
 
-        let result = countries::table.count().get_result::<i64>(&mut conn)?;
+        let result = ref_geo_countries::table.count().get_result::<i64>(&mut conn)?;
 
         Ok(result)
     }

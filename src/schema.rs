@@ -48,7 +48,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    cities (id) {
+    ref_geo_cities (id) {
         #[max_length = 26]
         id -> Bpchar,
         #[max_length = 26]
@@ -157,7 +157,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    countries (id) {
+    ref_geo_countries (id) {
         #[max_length = 26]
         id -> Bpchar,
         name -> Varchar,
@@ -402,7 +402,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    districts (id) {
+    ref_geo_districts (id) {
         #[max_length = 26]
         id -> Bpchar,
         #[max_length = 26]
@@ -1134,7 +1134,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    provinces (id) {
+    ref_geo_provinces (id) {
         #[max_length = 26]
         id -> Bpchar,
         #[max_length = 26]
@@ -1550,7 +1550,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    villages (id) {
+    ref_geo_villages (id) {
         #[max_length = 26]
         id -> Bpchar,
         #[max_length = 26]
@@ -1571,7 +1571,7 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(cities -> provinces (province_id));
+diesel::joinable!(ref_geo_cities -> ref_geo_provinces (province_id));
 diesel::joinable!(conversation_algorithm_negotiations -> conversations (conversation_id));
 diesel::joinable!(conversation_device_settings -> conversations (conversation_id));
 diesel::joinable!(conversation_device_settings -> devices (device_id));
@@ -1589,7 +1589,7 @@ diesel::joinable!(device_push_tokens -> devices (device_id));
 diesel::joinable!(device_session_backups -> devices (device_id));
 diesel::joinable!(device_session_backups -> sys_users (user_id));
 diesel::joinable!(devices -> sys_users (user_id));
-diesel::joinable!(districts -> cities (city_id));
+diesel::joinable!(ref_geo_districts -> ref_geo_cities (city_id));
 diesel::joinable!(encrypted_backup_keys -> devices (device_id));
 diesel::joinable!(encrypted_backup_keys -> sys_users (user_id));
 diesel::joinable!(forward_history -> devices (forwarded_by_device_id));
@@ -1639,7 +1639,7 @@ diesel::joinable!(poll_votes -> polls (poll_id));
 diesel::joinable!(poll_votes -> sys_users (user_id));
 diesel::joinable!(polls -> conversations (conversation_id));
 diesel::joinable!(polls -> messages (message_id));
-diesel::joinable!(provinces -> countries (country_id));
+diesel::joinable!(ref_geo_provinces -> ref_geo_countries (country_id));
 diesel::joinable!(scheduled_message_edits -> devices (edited_by_device_id));
 diesel::joinable!(scheduled_message_edits -> scheduled_messages (scheduled_message_id));
 diesel::joinable!(scheduled_messages -> conversations (conversation_id));
@@ -1665,17 +1665,17 @@ diesel::joinable!(typing_indicators -> devices (device_id));
 diesel::joinable!(typing_indicators -> sys_users (user_id));
 diesel::joinable!(user_organizations -> organization_positions (organization_position_id));
 diesel::joinable!(user_organizations -> organizations (organization_id));
-diesel::joinable!(villages -> districts (district_id));
+diesel::joinable!(ref_geo_villages -> ref_geo_districts (district_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     activity_log,
     algorithm_compatibility_matrix,
-    cities,
+    ref_geo_cities,
     conversation_algorithm_negotiations,
     conversation_device_settings,
     conversation_participants,
     conversations,
-    countries,
+    ref_geo_countries,
     device_algorithm_preferences,
     device_capabilities,
     device_fingerprints,
@@ -1686,7 +1686,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     device_sync_sessions,
     device_verification_codes,
     devices,
-    districts,
+    ref_geo_districts,
     encrypted_backup_keys,
     events,
     forward_history,
@@ -1721,7 +1721,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     poll_votes,
     polls,
     prekey_bundles,
-    provinces,
+    ref_geo_provinces,
     push_subscriptions,
     scheduled_message_edits,
     scheduled_messages,
@@ -1738,5 +1738,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     sys_users,
     typing_indicators,
     user_organizations,
-    villages,
+    ref_geo_villages,
 );

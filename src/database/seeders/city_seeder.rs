@@ -10,7 +10,7 @@ use ulid::Ulid;
 use rust_decimal::Decimal;
 use std::str::FromStr;
 use diesel::prelude::*;
-use crate::schema::cities;
+use crate::schema::ref_geo_cities;
 
 #[derive(Debug, Deserialize)]
 struct CityRecord {
@@ -116,7 +116,7 @@ impl Seeder for Cityseeder {
                 longitude,
             );
 
-            diesel::insert_into(cities::table)
+            diesel::insert_into(ref_geo_cities::table)
                 .values(&new_city)
                 .execute(&mut conn)?;
 

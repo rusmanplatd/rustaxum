@@ -2,7 +2,7 @@ use anyhow::Result;
 use ulid::Ulid;
 use crate::database::DbPool;
 use diesel::prelude::*;
-use crate::schema::provinces;
+use crate::schema::ref_geo_provinces;
 
 use crate::app::models::province::{Province, CreateProvince, UpdateProvince};
 
@@ -14,14 +14,14 @@ impl ProvinceService {
         let province = Province::new(country_id.to_string(), data.name, data.code);
         let mut conn = pool.get()?;
 
-        diesel::insert_into(provinces::table)
+        diesel::insert_into(ref_geo_provinces::table)
             .values((
-                provinces::id.eq(&province.id),
-                provinces::country_id.eq(&province.country_id),
-                provinces::name.eq(&province.name),
-                provinces::code.eq(&province.code),
-                provinces::created_at.eq(province.created_at),
-                provinces::updated_at.eq(province.updated_at),
+                ref_geo_provinces::id.eq(&province.id),
+                ref_geo_provinces::country_id.eq(&province.country_id),
+                ref_geo_provinces::name.eq(&province.name),
+                ref_geo_provinces::code.eq(&province.code),
+                ref_geo_provinces::created_at.eq(province.created_at),
+                ref_geo_provinces::updated_at.eq(province.updated_at),
             ))
             .execute(&mut conn)?;
 
@@ -31,8 +31,8 @@ impl ProvinceService {
     pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<Province>> {
         let mut conn = pool.get()?;
 
-        let result = provinces::table
-            .filter(provinces::id.eq(id))
+        let result = ref_geo_provinces::table
+            .filter(ref_geo_provinces::id.eq(id))
             .first::<Province>(&mut conn)
             .optional()?;
 
@@ -42,9 +42,9 @@ impl ProvinceService {
     pub fn find_by_country_id(pool: &DbPool, country_id: String) -> Result<Vec<Province>> {
         let mut conn = pool.get()?;
 
-        let result = provinces::table
-            .filter(provinces::country_id.eq(country_id))
-            .order(provinces::name.asc())
+        let result = ref_geo_provinces::table
+            .filter(ref_geo_provinces::country_id.eq(country_id))
+            .order(ref_geo_provinces::name.asc())
             .load::<Province>(&mut conn)?;
 
         Ok(result)
@@ -53,8 +53,8 @@ impl ProvinceService {
     pub fn list(pool: &DbPool, _query_params: std::collections::HashMap<String, String>) -> Result<Vec<Province>> {
         let mut conn = pool.get()?;
 
-        let result = provinces::table
-            .order(provinces::name.asc())
+        let result = ref_geo_provinces::table
+            .order(ref_geo_provinces::name.asc())
             .load::<Province>(&mut conn)?;
 
         Ok(result)
@@ -80,12 +80,12 @@ impl ProvinceService {
         }
         current.updated_at = chrono::Utc::now();
 
-        diesel::update(provinces::table.filter(provinces::id.eq(id)))
+        diesel::update(ref_geo_provinces::table.filter(ref_geo_provinces::id.eq(id)))
             .set((
-                provinces::country_id.eq(&current.country_id),
-                provinces::name.eq(&current.name),
-                provinces::code.eq(&current.code),
-                provinces::updated_at.eq(current.updated_at),
+                ref_geo_provinces::country_id.eq(&current.country_id),
+                ref_geo_provinces::name.eq(&current.name),
+                ref_geo_provinces::code.eq(&current.code),
+                ref_geo_provinces::updated_at.eq(current.updated_at),
             ))
             .execute(&mut conn)?;
 
@@ -95,7 +95,7 @@ impl ProvinceService {
     pub fn delete(pool: &DbPool, id: String) -> Result<()> {
         let mut conn = pool.get()?;
 
-        diesel::delete(provinces::table.filter(provinces::id.eq(id.to_string())))
+        diesel::delete(ref_geo_provinces::table.filter(ref_geo_provinces::id.eq(id.to_string())))
             .execute(&mut conn)?;
 
         Ok(())
@@ -104,7 +104,7 @@ impl ProvinceService {
     pub fn count(pool: &DbPool) -> Result<i64> {
         let mut conn = pool.get()?;
 
-        let result = provinces::table
+        let result = ref_geo_provinces::table
             .count()
             .get_result::<i64>(&mut conn)?;
 
@@ -114,8 +114,8 @@ impl ProvinceService {
     pub fn count_by_country(pool: &DbPool, country_id: String) -> Result<i64> {
         let mut conn = pool.get()?;
 
-        let result = provinces::table
-            .filter(provinces::country_id.eq(country_id))
+        let result = ref_geo_provinces::table
+            .filter(ref_geo_provinces::country_id.eq(country_id))
             .count()
             .get_result::<i64>(&mut conn)?;
 

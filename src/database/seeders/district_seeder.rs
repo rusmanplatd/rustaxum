@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use serde::Deserialize;
 use ulid::Ulid;
 use diesel::prelude::*;
-use crate::schema::districts;
+use crate::schema::ref_geo_districts;
 
 #[derive(Debug, Deserialize)]
 struct DistrictRecord {
@@ -35,7 +35,7 @@ impl Seeder for Districtseeder {
         let mut conn = pool.get()?;
 
         // Check if districts already exist
-        let count: i64 = districts::table
+        let count: i64 = ref_geo_districts::table
             .count()
             .get_result(&mut conn)?;
 
@@ -99,7 +99,7 @@ impl Seeder for Districtseeder {
                 Some(record.code.clone()),
             );
 
-            let _inserted_district: District = diesel::insert_into(districts::table)
+            let _inserted_district: District = diesel::insert_into(ref_geo_districts::table)
                 .values(&new_district)
                 .get_result(&mut conn)?;
 

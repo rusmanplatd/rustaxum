@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use serde::Deserialize;
 use ulid::Ulid;
 use diesel::prelude::*;
-use crate::schema::{provinces, countries};
+use crate::schema::{ref_geo_provinces, ref_geo_countries};
 
 #[derive(Debug, Deserialize)]
 struct ProvinceRecord {
@@ -33,7 +33,7 @@ impl Seeder for Provinceseeder {
         let mut conn = pool.get()?;
 
         // Check if provinces already exist
-        let count: i64 = provinces::table
+        let count: i64 = ref_geo_provinces::table
             .count()
             .get_result(&mut conn)?;
 
@@ -43,8 +43,8 @@ impl Seeder for Provinceseeder {
         }
 
         // Get country mappings from database
-        let countries: Vec<(String, String)> = countries::table
-            .select((countries::iso_code, countries::id))
+        let countries: Vec<(String, String)> = ref_geo_countries::table
+            .select((ref_geo_countries::iso_code, ref_geo_countries::id))
             .load::<(String, String)>(&mut conn)?;
 
         let country_map: HashMap<String, Ulid> = countries
@@ -71,7 +71,7 @@ impl Seeder for Provinceseeder {
                 Some(record.code.clone()),
             );
 
-            let inserted_province: Province = diesel::insert_into(provinces::table)
+            let inserted_province: Province = diesel::insert_into(ref_geo_provinces::table)
                 .values(&new_province)
                 .get_result(&mut conn)?;
 

@@ -9,7 +9,7 @@ use crate::app::query_builder::{SortDirection};
 /// Village model representing a village within a district
 /// Contains geographical coordinates and local community information
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
-#[diesel(table_name = crate::schema::villages)]
+#[diesel(table_name = crate::schema::ref_geo_villages)]
 pub struct Village {
     /// Unique village identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
@@ -59,7 +59,7 @@ pub struct CreateVillage {
 
 /// Insertable struct for creating new villages in the database
 #[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::villages)]
+#[diesel(table_name = crate::schema::ref_geo_villages)]
 pub struct NewVillage {
     pub id: DieselUlid,
     pub district_id: String,
@@ -169,7 +169,7 @@ impl NewVillage {
 
 impl crate::app::query_builder::Queryable for Village {
     fn table_name() -> &'static str {
-        "villages"
+        "ref_geo_villages"
     }
 
     fn allowed_filters() -> Vec<&'static str> {
@@ -362,31 +362,31 @@ impl crate::app::query_builder::Includable for Village {
         for include in includes {
             match include.as_str() {
                 "roles" => {
-                    crate::app::query_builder::RolePermissionLoader::load_model_roles("villages", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_model_roles("ref_geo_villages", ids, _conn)?;
                 },
                 "permissions" => {
-                    crate::app::query_builder::RolePermissionLoader::load_model_permissions("villages", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_model_permissions("ref_geo_villages", ids, _conn)?;
                 },
                 "roles.permissions" => {
-                    crate::app::query_builder::RolePermissionLoader::load_model_roles_with_permissions("villages", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_model_roles_with_permissions("ref_geo_villages", ids, _conn)?;
                 },
                 "permissions.roles" => {
-                    crate::app::query_builder::RolePermissionLoader::load_model_permissions_with_roles("villages", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_model_permissions_with_roles("ref_geo_villages", ids, _conn)?;
                 },
                 "roles.organization" => {
-                    crate::app::query_builder::RolePermissionLoader::load_roles_with_organization("villages", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_roles_with_organization("ref_geo_villages", ids, _conn)?;
                 },
                 "permissions.organization" => {
-                    crate::app::query_builder::RolePermissionLoader::load_permissions_with_organization("villages", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_permissions_with_organization("ref_geo_villages", ids, _conn)?;
                 },
                 "authorizationContext" => {
-                    crate::app::query_builder::RolePermissionLoader::load_complete_authorization_context("villages", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_complete_authorization_context("ref_geo_villages", ids, _conn)?;
                 },
                 "scopedRoles" => {
-                    crate::app::query_builder::RolePermissionLoader::load_scoped_roles("villages", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_scoped_roles("ref_geo_villages", ids, _conn)?;
                 },
                 "scopedPermissions" => {
-                    crate::app::query_builder::RolePermissionLoader::load_scoped_permissions("villages", ids, _conn)?;
+                    crate::app::query_builder::RolePermissionLoader::load_scoped_permissions("ref_geo_villages", ids, _conn)?;
                 },
                 "district" => {
                     tracing::debug!("Loading district for villages: {:?}", ids);
@@ -401,40 +401,40 @@ impl crate::app::query_builder::Includable for Village {
                     tracing::debug!("Loading district.city.province.country for villages: {:?}", ids);
                 },
                 "createdBy" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_users("villages", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_users("ref_geo_villages", ids, _conn)?;
                 },
                 "updatedBy" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_users("villages", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_users("ref_geo_villages", ids, _conn)?;
                 },
                 "deletedBy" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_users("villages", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_users("ref_geo_villages", ids, _conn)?;
                 },
                 "createdBy.organizations" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_organizations("villages", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_organizations("ref_geo_villages", ids, _conn)?;
                 },
                 "updatedBy.organizations" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_organizations("villages", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_organizations("ref_geo_villages", ids, _conn)?;
                 },
                 "deletedBy.organizations" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_organizations("villages", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_organizations("ref_geo_villages", ids, _conn)?;
                 },
                 "createdBy.organizations.position" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_positions("villages", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_positions("ref_geo_villages", ids, _conn)?;
                 },
                 "updatedBy.organizations.position" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_positions("villages", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_positions("ref_geo_villages", ids, _conn)?;
                 },
                 "deletedBy.organizations.position" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_positions("villages", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_positions("ref_geo_villages", ids, _conn)?;
                 },
                 "createdBy.organizations.position.level" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_levels("villages", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_created_by_levels("ref_geo_villages", ids, _conn)?;
                 },
                 "updatedBy.organizations.position.level" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_levels("villages", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_updated_by_levels("ref_geo_villages", ids, _conn)?;
                 },
                 "deletedBy.organizations.position.level" => {
-                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_levels("villages", ids, _conn)?;
+                    crate::app::query_builder::AuditRelationshipLoader::load_deleted_by_levels("ref_geo_villages", ids, _conn)?;
                 },
                 _ => {
                     tracing::warn!("Unknown relationship: {}", include);
@@ -446,10 +446,10 @@ impl crate::app::query_builder::Includable for Village {
 
     fn build_join_clause(relationship: &str, main_table: &str) -> Option<String> {
         match relationship {
-            "district" => Some(format!("LEFT JOIN districts ON {}.district_id = districts.id", main_table)),
-            "district.city" => Some(format!("LEFT JOIN districts ON {}.district_id = districts.id LEFT JOIN cities ON districts.city_id = cities.id", main_table)),
-            "district.city.province" => Some(format!("LEFT JOIN districts ON {}.district_id = districts.id LEFT JOIN cities ON districts.city_id = cities.id LEFT JOIN provinces ON cities.province_id = provinces.id", main_table)),
-            "district.city.province.country" => Some(format!("LEFT JOIN districts ON {}.district_id = districts.id LEFT JOIN cities ON districts.city_id = cities.id LEFT JOIN provinces ON cities.province_id = provinces.id LEFT JOIN countries ON provinces.country_id = countries.id", main_table)),
+            "district" => Some(format!("LEFT JOIN ref_geo_districts ON {}.district_id = ref_geo_districts.id", main_table)),
+            "district.city" => Some(format!("LEFT JOIN ref_geo_districts ON {}.district_id = ref_geo_districts.id LEFT JOIN cities ON districts.city_id = cities.id", main_table)),
+            "district.city.province" => Some(format!("LEFT JOIN ref_geo_districts ON {}.district_id = ref_geo_districts.id LEFT JOIN cities ON districts.city_id = cities.id LEFT JOIN provinces ON cities.province_id = provinces.id", main_table)),
+            "district.city.province.country" => Some(format!("LEFT JOIN ref_geo_districts ON {}.district_id = ref_geo_districts.id LEFT JOIN cities ON districts.city_id = cities.id LEFT JOIN provinces ON cities.province_id = provinces.id LEFT JOIN countries ON provinces.country_id = countries.id", main_table)),
             "createdBy" => {
                 Some(format!("LEFT JOIN sys_users AS created_by ON {}.created_by_id = created_by.id", main_table))
             },

@@ -7,7 +7,7 @@ use std::fs::File;
 use std::collections::HashMap;
 use serde::Deserialize;
 use diesel::prelude::*;
-use crate::schema::countries;
+use crate::schema::ref_geo_countries;
 
 #[derive(Debug, Deserialize)]
 struct CountryRecord {
@@ -32,7 +32,7 @@ impl Seeder for Countryseeder {
         let mut conn = pool.get()?;
 
         // Check if countries already exist
-        let count: i64 = countries::table
+        let count: i64 = ref_geo_countries::table
             .count()
             .get_result(&mut conn)?;
 
@@ -57,7 +57,7 @@ impl Seeder for Countryseeder {
                 Some(record.phone_code),
             );
 
-            let inserted_country: Country = diesel::insert_into(countries::table)
+            let inserted_country: Country = diesel::insert_into(ref_geo_countries::table)
                 .values(&new_country)
                 .get_result(&mut conn)?;
 
