@@ -430,9 +430,9 @@ impl crate::app::query_builder::Includable for City {
     fn build_join_clause(relationship: &str, main_table: &str) -> Option<String> {
         match relationship {
             "province" => Some(format!("LEFT JOIN ref_geo_provinces ON {}.province_id = ref_geo_provinces.id", main_table)),
-            "province.country" => Some(format!("LEFT JOIN ref_geo_provinces ON {}.province_id = ref_geo_provinces.id LEFT JOIN countries ON provinces.country_id = countries.id", main_table)),
+            "province.country" => Some(format!("LEFT JOIN ref_geo_provinces ON {}.province_id = ref_geo_provinces.id LEFT JOIN ref_geo_countries ON provinces.country_id = ref_geo_countries.id", main_table)),
             "districts" => Some(format!("LEFT JOIN ref_geo_districts ON {}.id = ref_geo_districts.city_id", main_table)),
-            "districts.villages" => Some(format!("LEFT JOIN ref_geo_districts ON {}.id = ref_geo_districts.city_id LEFT JOIN villages ON districts.id = villages.district_id", main_table)),
+            "districts.villages" => Some(format!("LEFT JOIN ref_geo_districts ON {}.id = ref_geo_districts.city_id LEFT JOIN ref_geo_villages ON ref_geo_districts.id = ref_geo_villages.district_id", main_table)),
             "createdBy" => {
                 Some(format!("LEFT JOIN sys_users AS created_by ON {}.created_by_id = created_by.id", main_table))
             },

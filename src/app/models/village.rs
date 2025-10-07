@@ -447,9 +447,9 @@ impl crate::app::query_builder::Includable for Village {
     fn build_join_clause(relationship: &str, main_table: &str) -> Option<String> {
         match relationship {
             "district" => Some(format!("LEFT JOIN ref_geo_districts ON {}.district_id = ref_geo_districts.id", main_table)),
-            "district.city" => Some(format!("LEFT JOIN ref_geo_districts ON {}.district_id = ref_geo_districts.id LEFT JOIN cities ON districts.city_id = cities.id", main_table)),
-            "district.city.province" => Some(format!("LEFT JOIN ref_geo_districts ON {}.district_id = ref_geo_districts.id LEFT JOIN cities ON districts.city_id = cities.id LEFT JOIN provinces ON cities.province_id = provinces.id", main_table)),
-            "district.city.province.country" => Some(format!("LEFT JOIN ref_geo_districts ON {}.district_id = ref_geo_districts.id LEFT JOIN cities ON districts.city_id = cities.id LEFT JOIN provinces ON cities.province_id = provinces.id LEFT JOIN countries ON provinces.country_id = countries.id", main_table)),
+            "district.city" => Some(format!("LEFT JOIN ref_geo_districts ON {}.district_id = ref_geo_districts.id LEFT JOIN ref_geo_cities ON ref_geo_districts.city_id = ref_geo_cities.id", main_table)),
+            "district.city.province" => Some(format!("LEFT JOIN ref_geo_districts ON {}.district_id = ref_geo_districts.id LEFT JOIN ref_geo_cities ON ref_geo_districts.city_id = ref_geo_cities.id LEFT JOIN ref_geo_provinces ON ref_geo_cities.province_id = ref_geo_provinces.id", main_table)),
+            "district.city.province.country" => Some(format!("LEFT JOIN ref_geo_districts ON {}.district_id = ref_geo_districts.id LEFT JOIN ref_geo_cities ON ref_geo_districts.city_id = ref_geo_cities.id LEFT JOIN ref_geo_provinces ON ref_geo_cities.province_id = ref_geo_provinces.id LEFT JOIN ref_geo_countries ON ref_geo_provinces.country_id = countries.id", main_table)),
             "createdBy" => {
                 Some(format!("LEFT JOIN sys_users AS created_by ON {}.created_by_id = created_by.id", main_table))
             },

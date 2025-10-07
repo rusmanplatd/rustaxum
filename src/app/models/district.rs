@@ -381,8 +381,8 @@ impl crate::app::query_builder::Includable for District {
     fn build_join_clause(relationship: &str, main_table: &str) -> Option<String> {
         match relationship {
             "city" => Some(format!("LEFT JOIN ref_geo_cities ON {}.city_id = ref_geo_cities.id", main_table)),
-            "city.province" => Some(format!("LEFT JOIN ref_geo_cities ON {}.city_id = ref_geo_cities.id LEFT JOIN provinces ON cities.province_id = provinces.id", main_table)),
-            "city.province.country" => Some(format!("LEFT JOIN ref_geo_cities ON {}.city_id = ref_geo_cities.id LEFT JOIN provinces ON cities.province_id = provinces.id LEFT JOIN countries ON provinces.country_id = countries.id", main_table)),
+            "city.province" => Some(format!("LEFT JOIN ref_geo_cities ON {}.city_id = ref_geo_cities.id LEFT JOIN ref_geo_provinces ON ref_geo_cities.province_id = ref_geo_provinces.id", main_table)),
+            "city.province.country" => Some(format!("LEFT JOIN ref_geo_cities ON {}.city_id = ref_geo_cities.id LEFT JOIN ref_geo_provinces ON ref_geo_cities.province_id = ref_geo_provinces.id LEFT JOIN ref_geo_countries ON ref_geo_provinces.country_id = ref_geo_countries.id", main_table)),
             "villages" => Some(format!("LEFT JOIN ref_geo_villages ON {}.id = ref_geo_villages.district_id", main_table)),
             "createdBy" => {
                 Some(format!("LEFT JOIN sys_users AS created_by ON {}.created_by_id = created_by.id", main_table))

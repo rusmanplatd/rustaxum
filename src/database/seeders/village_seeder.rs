@@ -48,7 +48,7 @@ impl Seeder for Villageseeder {
             pub count: i64,
         }
 
-        let count: i64 = sql_query("SELECT COUNT(*) as count FROM villages")
+        let count: i64 = sql_query("SELECT COUNT(*) as count FROM ref_geo_villages")
             .load::<CountResult>(&mut conn)?
             .first()
             .map(|r| r.count)
@@ -76,10 +76,10 @@ impl Seeder for Villageseeder {
 
         let districts: Vec<DistrictMapping> = sql_query(
             "SELECT d.code, d.id, ci.code as city_code, p.code as province_code, co.iso_code
-             FROM districts d
-             JOIN cities ci ON d.city_id = ci.id
-             JOIN provinces p ON ci.province_id = p.id
-             JOIN countries co ON p.country_id = co.id"
+             FROM ref_geo_districts d
+             JOIN ref_geo_cities ci ON d.city_id = ci.id
+             JOIN ref_geo_provinces p ON ci.province_id = p.id
+             JOIN ref_geo_countries co ON p.country_id = co.id"
         )
         .load::<DistrictMapping>(&mut conn)?;
 

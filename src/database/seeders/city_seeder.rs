@@ -46,7 +46,7 @@ impl Seeder for Cityseeder {
             pub count: i64,
         }
 
-        let count: i64 = sql_query("SELECT COUNT(*) as count FROM cities")
+        let count: i64 = sql_query("SELECT COUNT(*) as count FROM ref_geo_cities")
             .load::<CountResult>(&mut conn)?
             .first()
             .map(|r| r.count)
@@ -70,8 +70,8 @@ impl Seeder for Cityseeder {
 
         let provinces: Vec<ProvinceMapping> = sql_query(
             "SELECT p.code, p.id, c.iso_code
-             FROM provinces p
-             JOIN countries c ON p.country_id = c.id"
+             FROM ref_geo_provinces p
+             JOIN ref_geo_countries c ON p.country_id = c.id"
         )
         .load::<ProvinceMapping>(&mut conn)?;
 

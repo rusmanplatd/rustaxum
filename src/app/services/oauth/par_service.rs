@@ -229,7 +229,7 @@ impl PARService {
     /// Validate JWT request object (FAPI requirement)
     async fn validate_request_object(pool: &DbPool, request_jwt: &str, client_id: &str) -> Result<()> {
         // Production implementation of JWT request object validation
-        use jsonwebtoken::{decode, DecodingKey, Validation, Header};
+        use jsonwebtoken::{decode, DecodingKey, Validation};
         use serde_json::Value;
 
         // Get client for signature verification

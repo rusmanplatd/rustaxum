@@ -61,9 +61,9 @@ impl Seeder for Districtseeder {
 
         let cities: Vec<CityMapping> = sql_query(
             "SELECT ci.code, ci.id, p.code as province_code, co.iso_code
-             FROM cities ci
-             JOIN provinces p ON ci.province_id = p.id
-             JOIN countries co ON p.country_id = co.id"
+             FROM ref_geo_cities ci
+             JOIN ref_geo_provinces p ON ci.province_id = p.id
+             JOIN ref_geo_countries co ON p.country_id = co.id"
         )
         .load::<CityMapping>(&mut conn)?;
 
