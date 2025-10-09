@@ -10,13 +10,14 @@ use crate::app::query_builder::{SortDirection};
 /// Contains geographical coordinates and local community information
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
 #[diesel(table_name = crate::schema::ref_geo_villages)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Village {
     /// Unique village identifier
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub id: DieselUlid,
     /// ID of the district this village belongs to
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    pub district_id: String,
+    pub district_id: DieselUlid,
     /// Village name
     #[schema(example = "Green Valley")]
     pub name: String,
