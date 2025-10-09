@@ -48,9 +48,6 @@ pub struct PushSubscription {
     pub user_agent: Option<String>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
-    pub failed_attempts: i32,
-    pub last_error: Option<String>,
-    pub last_failed_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 impl WebPushChannel {

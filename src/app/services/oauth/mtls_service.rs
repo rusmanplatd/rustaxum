@@ -332,7 +332,7 @@ impl MTLSService {
     /// Check if client supports mTLS authentication
     fn client_supports_mtls(client: &crate::app::models::oauth::Client) -> bool {
         // Check metadata for explicit mTLS configuration
-        if let Some(mtls_enabled) = client.metadata.get("mtls_enabled").and_then(|v| v.as_bool()) {
+        if let Some(mtls_enabled) = client.metadata.as_ref().and_then(|m| m.get("mtls_enabled").and_then(|v| v.as_bool())) {
             return mtls_enabled;
         }
 

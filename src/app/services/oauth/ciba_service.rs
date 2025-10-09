@@ -252,10 +252,8 @@ impl CIBAService {
         }
 
         // Check if client supports CIBA flow
-        let client_metadata = &client.metadata;
-
-        let supports_ciba = client_metadata
-            .get("backchannel_token_delivery_mode")
+        let supports_ciba = client.metadata.as_ref()
+            .and_then(|m| m.get("backchannel_token_delivery_mode"))
             .and_then(|v| v.as_str())
             .map(|mode| ["poll", "ping", "push"].contains(&mode))
             .unwrap_or(false);
@@ -374,10 +372,8 @@ impl CIBAService {
         let client = crate::app::services::oauth::ClientService::find_by_id(pool, _client_id.to_string())?
             .ok_or_else(|| anyhow::anyhow!("Client not found"))?;
 
-        let client_metadata = &client.metadata;
-
-        let mode = client_metadata
-            .get("backchannel_token_delivery_mode")
+        let mode = client.metadata.as_ref()
+            .and_then(|m| m.get("backchannel_token_delivery_mode"))
             .and_then(|v| v.as_str())
             .unwrap_or("poll");
 

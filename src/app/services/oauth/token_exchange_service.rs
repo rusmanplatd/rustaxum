@@ -339,10 +339,8 @@ impl TokenExchangeService {
             .ok_or_else(|| anyhow::anyhow!("Client not found"))?;
 
         // Check client configuration for allowed exchange scenarios
-        let client_metadata = &client.metadata;
-
-        let allowed_scenarios = client_metadata
-            .get("token_exchange_scenarios")
+        let allowed_scenarios = client.metadata.as_ref()
+            .and_then(|m| m.get("token_exchange_scenarios"))
             .and_then(|v| v.as_array())
             .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>())
             .unwrap_or_else(|| vec!["delegation"]); // Default to delegation only
@@ -573,7 +571,7 @@ impl TokenExchangeService {
             }
 
             // Try to get public key from metadata
-            if let Some(public_key) = client.metadata.get("public_key_pem").and_then(|v| v.as_str()) {
+            if let Some(public_key) = client.metadata.as_ref().and_then(|m| m.get("public_key_pem").and_then(|v| v.as_str())) {
                 return Self::decode_rsa_public_key_from_pem(public_key);
             }
         }

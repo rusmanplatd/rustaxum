@@ -97,3 +97,10 @@ pub mod model_types {
     pub const USER_ORGANIZATION: &str = "User_Organization";
 }
 pub mod mfamethod;
+pub mod mfa_email_code;
+pub mod mfa_webauthn;
+pub mod mfa_biometric;
+pub mod mfa_sms;
+pub mod mfa_push;
+pub mod mfa_backup_email;
+pub mod mfa_trusted_device;

@@ -48,28 +48,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    ref_geo_cities (id) {
-        #[max_length = 26]
-        id -> Bpchar,
-        #[max_length = 26]
-        province_id -> Bpchar,
-        name -> Varchar,
-        code -> Nullable<Varchar>,
-        latitude -> Nullable<Numeric>,
-        longitude -> Nullable<Numeric>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-        deleted_at -> Nullable<Timestamptz>,
-        #[max_length = 26]
-        created_by_id -> Bpchar,
-        #[max_length = 26]
-        updated_by_id -> Bpchar,
-        #[max_length = 26]
-        deleted_by_id -> Nullable<Bpchar>,
-    }
-}
-
-diesel::table! {
     conversation_algorithm_negotiations (id) {
         #[max_length = 26]
         id -> Bpchar,
@@ -153,25 +131,6 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
-    }
-}
-
-diesel::table! {
-    ref_geo_countries (id) {
-        #[max_length = 26]
-        id -> Bpchar,
-        name -> Varchar,
-        iso_code -> Varchar,
-        phone_code -> Nullable<Varchar>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-        deleted_at -> Nullable<Timestamptz>,
-        #[max_length = 26]
-        created_by_id -> Bpchar,
-        #[max_length = 26]
-        updated_by_id -> Bpchar,
-        #[max_length = 26]
-        deleted_by_id -> Nullable<Bpchar>,
     }
 }
 
@@ -398,26 +357,6 @@ diesel::table! {
         last_key_rotation_at -> Nullable<Timestamptz>,
         prekey_rotation_interval -> Interval,
         trust_level -> Varchar,
-    }
-}
-
-diesel::table! {
-    ref_geo_districts (id) {
-        #[max_length = 26]
-        id -> Bpchar,
-        #[max_length = 26]
-        city_id -> Bpchar,
-        name -> Varchar,
-        code -> Nullable<Varchar>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-        deleted_at -> Nullable<Timestamptz>,
-        #[max_length = 26]
-        created_by_id -> Bpchar,
-        #[max_length = 26]
-        updated_by_id -> Bpchar,
-        #[max_length = 26]
-        deleted_by_id -> Nullable<Bpchar>,
     }
 }
 
@@ -671,6 +610,108 @@ diesel::table! {
 }
 
 diesel::table! {
+    mfa_audit_log (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Bpchar,
+        #[max_length = 50]
+        method_type -> Varchar,
+        #[max_length = 50]
+        action -> Varchar,
+        #[max_length = 20]
+        status -> Varchar,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        device_fingerprint -> Nullable<Text>,
+        location_data -> Nullable<Jsonb>,
+        metadata -> Nullable<Jsonb>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    mfa_backup_email_codes (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        backup_email_id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Bpchar,
+        #[max_length = 10]
+        code -> Varchar,
+        code_hash -> Text,
+        expires_at -> Timestamptz,
+        verified_at -> Nullable<Timestamptz>,
+        is_used -> Bool,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    mfa_backup_emails (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Bpchar,
+        #[max_length = 255]
+        backup_email -> Varchar,
+        is_verified -> Bool,
+        verification_token -> Nullable<Text>,
+        verification_sent_at -> Nullable<Timestamptz>,
+        verified_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    mfa_biometric_credentials (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Bpchar,
+        #[max_length = 26]
+        device_id -> Nullable<Bpchar>,
+        #[max_length = 50]
+        biometric_type -> Varchar,
+        credential_id -> Text,
+        public_key -> Text,
+        #[max_length = 50]
+        platform -> Varchar,
+        #[max_length = 255]
+        device_name -> Nullable<Varchar>,
+        is_platform_authenticator -> Bool,
+        counter -> Int8,
+        last_used_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    mfa_email_codes (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Bpchar,
+        #[max_length = 10]
+        code -> Varchar,
+        code_hash -> Text,
+        expires_at -> Timestamptz,
+        verified_at -> Nullable<Timestamptz>,
+        is_used -> Bool,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     mfa_methods (id) {
         #[max_length = 26]
         id -> Bpchar,
@@ -683,6 +724,148 @@ diesel::table! {
         is_verified -> Bool,
         backup_codes -> Nullable<Jsonb>,
         recovery_codes_used_count -> Int4,
+        last_used_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        metadata -> Nullable<Jsonb>,
+    }
+}
+
+diesel::table! {
+    mfa_push_challenges (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Bpchar,
+        #[max_length = 26]
+        device_id -> Nullable<Bpchar>,
+        challenge -> Text,
+        #[max_length = 50]
+        action_type -> Varchar,
+        action_details -> Nullable<Jsonb>,
+        #[max_length = 20]
+        response -> Nullable<Varchar>,
+        responded_at -> Nullable<Timestamptz>,
+        expires_at -> Timestamptz,
+        ip_address -> Nullable<Text>,
+        location_data -> Nullable<Jsonb>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    mfa_push_devices (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Bpchar,
+        device_token -> Text,
+        #[max_length = 20]
+        device_type -> Varchar,
+        #[max_length = 255]
+        device_name -> Nullable<Varchar>,
+        device_id -> Nullable<Text>,
+        #[max_length = 50]
+        platform_version -> Nullable<Varchar>,
+        #[max_length = 50]
+        app_version -> Nullable<Varchar>,
+        is_active -> Bool,
+        last_used_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    mfa_recovery_methods (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Bpchar,
+        #[max_length = 50]
+        method_type -> Varchar,
+        method_data -> Jsonb,
+        is_enabled -> Bool,
+        last_used_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    mfa_sms_codes (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Bpchar,
+        #[max_length = 20]
+        phone_number -> Varchar,
+        #[max_length = 10]
+        code -> Varchar,
+        code_hash -> Text,
+        expires_at -> Timestamptz,
+        verified_at -> Nullable<Timestamptz>,
+        is_used -> Bool,
+        send_attempts -> Int4,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    mfa_trusted_devices (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Bpchar,
+        device_fingerprint -> Text,
+        #[max_length = 255]
+        device_name -> Nullable<Varchar>,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        trust_token -> Text,
+        expires_at -> Timestamptz,
+        last_used_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        revoked_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    mfa_webauthn_challenges (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Bpchar,
+        challenge -> Text,
+        #[max_length = 20]
+        challenge_type -> Varchar,
+        expires_at -> Timestamptz,
+        is_used -> Bool,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    mfa_webauthn_credentials (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Bpchar,
+        credential_id -> Text,
+        public_key -> Text,
+        counter -> Int8,
+        #[max_length = 255]
+        device_name -> Nullable<Varchar>,
+        aaguid -> Nullable<Text>,
+        transports -> Nullable<Array<Nullable<Text>>>,
+        #[max_length = 50]
+        attestation_format -> Nullable<Varchar>,
+        is_backup_eligible -> Bool,
+        is_backup_state -> Bool,
         last_used_at -> Nullable<Timestamptz>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
@@ -826,28 +1009,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    oauth_client_certificates (id) {
-        #[max_length = 26]
-        id -> Bpchar,
-        #[max_length = 26]
-        client_id -> Bpchar,
-        #[max_length = 500]
-        subject_dn -> Varchar,
-        #[max_length = 64]
-        thumbprint_sha256 -> Varchar,
-        #[max_length = 500]
-        issuer_dn -> Varchar,
-        #[max_length = 100]
-        serial_number -> Varchar,
-        valid_from -> Timestamptz,
-        valid_to -> Timestamptz,
-        is_active -> Bool,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
     oauth_clients (id) {
         #[max_length = 26]
         id -> Bpchar,
@@ -872,13 +1033,13 @@ diesel::table! {
         #[max_length = 26]
         deleted_by_id -> Nullable<Bpchar>,
         public_key_pem -> Nullable<Text>,
-        metadata -> Jsonb,
+        metadata -> Nullable<Jsonb>,
         #[max_length = 2048]
         jwks_uri -> Nullable<Varchar>,
         #[max_length = 50]
         token_endpoint_auth_method -> Varchar,
-        response_types -> Array<Nullable<Text>>,
-        grant_types -> Array<Nullable<Text>>,
+        response_types -> Nullable<Array<Nullable<Text>>>,
+        grant_types -> Nullable<Array<Nullable<Text>>>,
         #[max_length = 1000]
         scope -> Varchar,
         audience -> Nullable<Array<Nullable<Text>>>,
@@ -968,6 +1129,25 @@ diesel::table! {
 }
 
 diesel::table! {
+    organization_domains (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        code -> Nullable<Varchar>,
+        name -> Varchar,
+        description -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by_id -> Bpchar,
+        #[max_length = 26]
+        updated_by_id -> Bpchar,
+        #[max_length = 26]
+        deleted_by_id -> Nullable<Bpchar>,
+    }
+}
+
+diesel::table! {
     organization_position_levels (id) {
         #[max_length = 26]
         id -> Bpchar,
@@ -1007,25 +1187,6 @@ diesel::table! {
         max_incumbents -> Int4,
         qualifications -> Jsonb,
         responsibilities -> Jsonb,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-        deleted_at -> Nullable<Timestamptz>,
-        #[max_length = 26]
-        created_by_id -> Bpchar,
-        #[max_length = 26]
-        updated_by_id -> Bpchar,
-        #[max_length = 26]
-        deleted_by_id -> Nullable<Bpchar>,
-    }
-}
-
-diesel::table! {
-    organization_domains (id) {
-        #[max_length = 26]
-        id -> Bpchar,
-        code -> Nullable<Varchar>,
-        name -> Varchar,
-        description -> Nullable<Text>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
@@ -1176,6 +1337,82 @@ diesel::table! {
 }
 
 diesel::table! {
+    push_subscriptions (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        user_id -> Bpchar,
+        endpoint -> Text,
+        p256dh_key -> Text,
+        auth_key -> Text,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    ref_geo_cities (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        province_id -> Bpchar,
+        name -> Varchar,
+        code -> Nullable<Varchar>,
+        latitude -> Nullable<Numeric>,
+        longitude -> Nullable<Numeric>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by_id -> Bpchar,
+        #[max_length = 26]
+        updated_by_id -> Bpchar,
+        #[max_length = 26]
+        deleted_by_id -> Nullable<Bpchar>,
+    }
+}
+
+diesel::table! {
+    ref_geo_countries (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        name -> Varchar,
+        iso_code -> Varchar,
+        phone_code -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by_id -> Bpchar,
+        #[max_length = 26]
+        updated_by_id -> Bpchar,
+        #[max_length = 26]
+        deleted_by_id -> Nullable<Bpchar>,
+    }
+}
+
+diesel::table! {
+    ref_geo_districts (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        city_id -> Bpchar,
+        name -> Varchar,
+        code -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by_id -> Bpchar,
+        #[max_length = 26]
+        updated_by_id -> Bpchar,
+        #[max_length = 26]
+        deleted_by_id -> Nullable<Bpchar>,
+    }
+}
+
+diesel::table! {
     ref_geo_provinces (id) {
         #[max_length = 26]
         id -> Bpchar,
@@ -1196,20 +1433,24 @@ diesel::table! {
 }
 
 diesel::table! {
-    push_subscriptions (id) {
+    ref_geo_villages (id) {
         #[max_length = 26]
         id -> Bpchar,
         #[max_length = 26]
-        user_id -> Bpchar,
-        endpoint -> Text,
-        p256dh_key -> Text,
-        auth_key -> Text,
-        user_agent -> Nullable<Text>,
+        district_id -> Bpchar,
+        name -> Varchar,
+        code -> Nullable<Varchar>,
+        latitude -> Nullable<Numeric>,
+        longitude -> Nullable<Numeric>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
-        failed_attempts -> Int4,
-        last_error -> Nullable<Text>,
-        last_failed_at -> Nullable<Timestamptz>,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by_id -> Nullable<Bpchar>,
+        #[max_length = 26]
+        updated_by_id -> Nullable<Bpchar>,
+        #[max_length = 26]
+        deleted_by_id -> Nullable<Bpchar>,
     }
 }
 
@@ -1517,9 +1758,9 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by_id -> Bpchar,
+        created_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
-        updated_by_id -> Bpchar,
+        updated_by_id -> Nullable<Bpchar>,
         #[max_length = 26]
         deleted_by_id -> Nullable<Bpchar>,
         email_notifications -> Nullable<Bool>,
@@ -1545,6 +1786,12 @@ diesel::table! {
         mention_notifications -> Bool,
         comment_notifications -> Bool,
         follow_notifications -> Bool,
+        #[max_length = 50]
+        mfa_primary_method -> Nullable<Varchar>,
+        #[max_length = 50]
+        mfa_backup_method -> Nullable<Varchar>,
+        mfa_trust_device_enabled -> Bool,
+        mfa_trust_device_duration_days -> Nullable<Int4>,
     }
 }
 
@@ -1591,29 +1838,6 @@ diesel::table! {
     }
 }
 
-diesel::table! {
-    ref_geo_villages (id) {
-        #[max_length = 26]
-        id -> Bpchar,
-        #[max_length = 26]
-        district_id -> Bpchar,
-        name -> Varchar,
-        code -> Nullable<Varchar>,
-        latitude -> Nullable<Numeric>,
-        longitude -> Nullable<Numeric>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-        deleted_at -> Nullable<Timestamptz>,
-        #[max_length = 26]
-        created_by_id -> Bpchar,
-        #[max_length = 26]
-        updated_by_id -> Bpchar,
-        #[max_length = 26]
-        deleted_by_id -> Nullable<Bpchar>,
-    }
-}
-
-diesel::joinable!(ref_geo_cities -> ref_geo_provinces (province_id));
 diesel::joinable!(conversation_algorithm_negotiations -> conversations (conversation_id));
 diesel::joinable!(conversation_device_settings -> conversations (conversation_id));
 diesel::joinable!(conversation_device_settings -> devices (device_id));
@@ -1631,7 +1855,6 @@ diesel::joinable!(device_push_tokens -> devices (device_id));
 diesel::joinable!(device_session_backups -> devices (device_id));
 diesel::joinable!(device_session_backups -> sys_users (user_id));
 diesel::joinable!(devices -> sys_users (user_id));
-diesel::joinable!(ref_geo_districts -> ref_geo_cities (city_id));
 diesel::joinable!(encrypted_backup_keys -> devices (device_id));
 diesel::joinable!(encrypted_backup_keys -> sys_users (user_id));
 diesel::joinable!(forward_history -> devices (forwarded_by_device_id));
@@ -1652,7 +1875,21 @@ diesel::joinable!(messages -> conversations (conversation_id));
 diesel::joinable!(messages -> devices (sender_device_id));
 diesel::joinable!(messages -> sys_users (sender_user_id));
 diesel::joinable!(mfa_attempts -> sys_users (user_id));
+diesel::joinable!(mfa_audit_log -> sys_users (user_id));
+diesel::joinable!(mfa_backup_email_codes -> mfa_backup_emails (backup_email_id));
+diesel::joinable!(mfa_backup_email_codes -> sys_users (user_id));
+diesel::joinable!(mfa_backup_emails -> sys_users (user_id));
+diesel::joinable!(mfa_biometric_credentials -> sys_users (user_id));
+diesel::joinable!(mfa_email_codes -> sys_users (user_id));
 diesel::joinable!(mfa_methods -> sys_users (user_id));
+diesel::joinable!(mfa_push_challenges -> mfa_push_devices (device_id));
+diesel::joinable!(mfa_push_challenges -> sys_users (user_id));
+diesel::joinable!(mfa_push_devices -> sys_users (user_id));
+diesel::joinable!(mfa_recovery_methods -> sys_users (user_id));
+diesel::joinable!(mfa_sms_codes -> sys_users (user_id));
+diesel::joinable!(mfa_trusted_devices -> sys_users (user_id));
+diesel::joinable!(mfa_webauthn_challenges -> sys_users (user_id));
+diesel::joinable!(mfa_webauthn_credentials -> sys_users (user_id));
 diesel::joinable!(oauth_access_tokens -> oauth_clients (client_id));
 diesel::joinable!(oauth_access_tokens -> sys_users (user_id));
 diesel::joinable!(oauth_auth_codes -> oauth_clients (client_id));
@@ -1662,7 +1899,6 @@ diesel::joinable!(oauth_ciba_auth_codes -> oauth_clients (client_id));
 diesel::joinable!(oauth_ciba_auth_codes -> sys_users (user_id));
 diesel::joinable!(oauth_ciba_requests -> oauth_clients (client_id));
 diesel::joinable!(oauth_ciba_requests -> sys_users (user_id));
-diesel::joinable!(oauth_client_certificates -> oauth_clients (client_id));
 diesel::joinable!(oauth_clients -> organizations (organization_id));
 diesel::joinable!(oauth_device_codes -> oauth_clients (client_id));
 diesel::joinable!(oauth_device_codes -> sys_users (user_id));
@@ -1684,7 +1920,10 @@ diesel::joinable!(poll_votes -> polls (poll_id));
 diesel::joinable!(poll_votes -> sys_users (user_id));
 diesel::joinable!(polls -> conversations (conversation_id));
 diesel::joinable!(polls -> messages (message_id));
+diesel::joinable!(ref_geo_cities -> ref_geo_provinces (province_id));
+diesel::joinable!(ref_geo_districts -> ref_geo_cities (city_id));
 diesel::joinable!(ref_geo_provinces -> ref_geo_countries (country_id));
+diesel::joinable!(ref_geo_villages -> ref_geo_districts (district_id));
 diesel::joinable!(scheduled_message_edits -> devices (edited_by_device_id));
 diesel::joinable!(scheduled_message_edits -> scheduled_messages (scheduled_message_id));
 diesel::joinable!(scheduled_messages -> conversations (conversation_id));
@@ -1710,17 +1949,14 @@ diesel::joinable!(typing_indicators -> devices (device_id));
 diesel::joinable!(typing_indicators -> sys_users (user_id));
 diesel::joinable!(user_organizations -> organization_positions (organization_position_id));
 diesel::joinable!(user_organizations -> organizations (organization_id));
-diesel::joinable!(ref_geo_villages -> ref_geo_districts (district_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     activity_log,
     algorithm_compatibility_matrix,
-    ref_geo_cities,
     conversation_algorithm_negotiations,
     conversation_device_settings,
     conversation_participants,
     conversations,
-    ref_geo_countries,
     device_algorithm_preferences,
     device_capabilities,
     device_fingerprints,
@@ -1731,7 +1967,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     device_sync_sessions,
     device_verification_codes,
     devices,
-    ref_geo_districts,
     encrypted_backup_keys,
     events,
     forward_history,
@@ -1745,14 +1980,25 @@ diesel::allow_tables_to_appear_in_same_query!(
     message_reactions,
     messages,
     mfa_attempts,
+    mfa_audit_log,
+    mfa_backup_email_codes,
+    mfa_backup_emails,
+    mfa_biometric_credentials,
+    mfa_email_codes,
     mfa_methods,
+    mfa_push_challenges,
+    mfa_push_devices,
+    mfa_recovery_methods,
+    mfa_sms_codes,
+    mfa_trusted_devices,
+    mfa_webauthn_challenges,
+    mfa_webauthn_credentials,
     migrations,
     notifications,
     oauth_access_tokens,
     oauth_auth_codes,
     oauth_ciba_auth_codes,
     oauth_ciba_requests,
-    oauth_client_certificates,
     oauth_clients,
     oauth_device_codes,
     oauth_personal_access_clients,
@@ -1768,8 +2014,12 @@ diesel::allow_tables_to_appear_in_same_query!(
     poll_votes,
     polls,
     prekey_bundles,
-    ref_geo_provinces,
     push_subscriptions,
+    ref_geo_cities,
+    ref_geo_countries,
+    ref_geo_districts,
+    ref_geo_provinces,
+    ref_geo_villages,
     scheduled_message_edits,
     scheduled_messages,
     security_incidents,
@@ -1785,5 +2035,4 @@ diesel::allow_tables_to_appear_in_same_query!(
     sys_users,
     typing_indicators,
     user_organizations,
-    ref_geo_villages,
 );

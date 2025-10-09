@@ -25,3 +25,8 @@ pub mod template_service;
 pub mod session;
 pub mod csrf_service;
 pub mod mfa_service;
+pub mod mfa_email_service;
+pub mod mfa_webauthn_service;
+pub mod mfa_biometric_service;
+pub mod mfa_sms_service;
+pub mod mfa_manager_service;

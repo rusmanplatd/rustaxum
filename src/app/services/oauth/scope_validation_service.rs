@@ -98,8 +98,9 @@ impl ScopeValidationService {
             .ok_or_else(|| anyhow::anyhow!("Subject client not found"))?;
 
         // Extract policy settings from client metadata
-        let metadata = &client.metadata;
-        let scope_policy = metadata.get("scope_policy").and_then(|p| p.as_object());
+        let scope_policy = client.metadata.as_ref()
+            .and_then(|m| m.get("scope_policy"))
+            .and_then(|p| p.as_object());
 
         // Build policy based on client configuration and scenario
         let mut policy = ScopePolicy {
@@ -548,7 +549,7 @@ impl ScopeValidationService {
 
         if let Some(client) = client {
             // Check metadata for step-up scope permissions
-            if let Some(stepup_config) = client.metadata.get("stepup_scopes").and_then(|v| v.as_object()) {
+            if let Some(stepup_config) = client.metadata.as_ref().and_then(|m| m.get("stepup_scopes").and_then(|v| v.as_object())) {
                 if let Some(allowed_scopes) = stepup_config.get("allowed").and_then(|v| v.as_array()) {
                     return Ok(allowed_scopes.iter()
                         .filter_map(|v| v.as_str())
@@ -562,7 +563,7 @@ impl ScopeValidationService {
 
             // Default: allow step-up for personal access clients and trusted clients
             return Ok(client.personal_access_client ||
-                     client.metadata.get("trusted").and_then(|v| v.as_bool()).unwrap_or(false));
+                     client.metadata.as_ref().and_then(|m| m.get("trusted").and_then(|v| v.as_bool())).unwrap_or(false));
         }
 
         Ok(false)

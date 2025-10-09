@@ -72,9 +72,9 @@ pub struct User {
     /// Soft delete timestamp
     pub deleted_at: Option<DateTime<Utc>>,
     /// User who created this record
-    pub created_by_id: DieselUlid,
+    pub created_by_id: Option<DieselUlid>,
     /// User who last updated this record
-    pub updated_by_id: DieselUlid,
+    pub updated_by_id: Option<DieselUlid>,
     /// User who deleted this record
     pub deleted_by_id: Option<DieselUlid>,
     /// Identity public key for encryption

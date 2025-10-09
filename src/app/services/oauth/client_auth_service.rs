@@ -684,9 +684,9 @@ impl ClientAuthService {
         // Access public_key_pem field from oauth_clients table
         client.public_key_pem.clone().or_else(|| {
             // Try to get from metadata as fallback
-            client.metadata.get("public_key_pem")
+            client.metadata.as_ref().and_then(|m| m.get("public_key_pem")
                 .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
+                .map(|s| s.to_string()))
         })
     }
 

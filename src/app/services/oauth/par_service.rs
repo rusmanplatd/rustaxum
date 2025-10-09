@@ -162,10 +162,8 @@ impl PARService {
         let client = crate::app::services::oauth::ClientService::find_by_id(pool, client_id.to_string())?
             .ok_or_else(|| anyhow::anyhow!("Client not found"))?;
 
-        let client_metadata = &client.metadata;
-
-        let require_par = client_metadata
-            .get("require_pushed_authorization_requests")
+        let require_par = client.metadata.as_ref()
+            .and_then(|m| m.get("require_pushed_authorization_requests"))
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
 
@@ -401,7 +399,7 @@ impl PARService {
         // First, check the client's metadata for explicit PAR requirement
         if let Ok(Some(client)) = ClientService::find_by_id(pool, client_id.to_string()) {
             // Check if explicitly configured in client metadata
-            if let Some(require_par) = client.metadata.get("require_par").and_then(|v| v.as_bool()) {
+            if let Some(require_par) = client.metadata.as_ref().and_then(|m| m.get("require_par")).and_then(|v| v.as_bool()) {
                 return require_par;
             }
 

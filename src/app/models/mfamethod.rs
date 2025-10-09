@@ -22,6 +22,7 @@ pub struct MfaMethod {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub metadata: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Insertable)]
@@ -37,6 +38,7 @@ pub struct NewMfaMethod {
     pub recovery_codes_used_count: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub metadata: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -115,6 +117,7 @@ impl MfaMethod {
             created_at: now,
             updated_at: now,
             deleted_at: None,
+            metadata: None,
         }
     }
 
