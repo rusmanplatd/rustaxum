@@ -12,4 +12,4 @@ DROP INDEX IF EXISTS idx_jobs_priority;
 DROP INDEX IF EXISTS idx_jobs_status;
 DROP INDEX IF EXISTS idx_jobs_job_name;
 DROP INDEX IF EXISTS idx_jobs_queue_name;
-DROP TABLE IF EXISTS jobs;
+DROP TABLE jobs;

@@ -22,8 +22,8 @@ pub struct City {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: Option<DieselUlid>,
-    pub updated_by_id: Option<DieselUlid>,
+    pub created_by_id: DieselUlid,
+    pub updated_by_id: DieselUlid,
     pub deleted_by_id: Option<DieselUlid>,
 }
 
@@ -52,8 +52,8 @@ pub struct NewCity {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: Option<DieselUlid>,
-    pub updated_by_id: Option<DieselUlid>,
+    pub created_by_id: DieselUlid,
+    pub updated_by_id: DieselUlid,
     pub deleted_by_id: Option<DieselUlid>,
 }
 

@@ -7,4 +7,4 @@ DROP INDEX IF EXISTS idx_events_occurred_at;
 DROP INDEX IF EXISTS idx_events_aggregate_type;
 DROP INDEX IF EXISTS idx_events_aggregate_id;
 DROP INDEX IF EXISTS idx_events_event_name;
-DROP TABLE IF EXISTS events;
+DROP TABLE events;

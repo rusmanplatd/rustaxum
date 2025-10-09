@@ -10,4 +10,4 @@ DROP INDEX IF EXISTS idx_notifications_sent_at;
 DROP INDEX IF EXISTS idx_notifications_read_at;
 DROP INDEX IF EXISTS idx_notifications_notifiable;
 DROP INDEX IF EXISTS idx_notifications_type;
-DROP TABLE IF EXISTS notifications;
+DROP TABLE notifications;

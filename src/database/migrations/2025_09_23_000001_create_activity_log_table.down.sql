@@ -17,4 +17,4 @@ DROP INDEX IF EXISTS idx_activity_log_subject;
 DROP INDEX IF EXISTS idx_activity_log_log_name;
 
 -- Drop the table
-DROP TABLE IF EXISTS activity_log;
+DROP TABLE activity_log;

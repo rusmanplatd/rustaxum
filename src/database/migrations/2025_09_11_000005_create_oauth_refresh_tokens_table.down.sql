@@ -1,2 +1,2 @@
 -- Drop oauth_refresh_tokens table
-DROP TABLE IF EXISTS oauth_refresh_tokens;
+DROP TABLE oauth_refresh_tokens;

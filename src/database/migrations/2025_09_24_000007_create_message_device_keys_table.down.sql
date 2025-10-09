@@ -1,2 +1,2 @@
 -- Drop message device keys table
-DROP TABLE IF EXISTS message_device_keys;
+DROP TABLE message_device_keys;

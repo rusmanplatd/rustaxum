@@ -76,9 +76,9 @@ pub struct Organization {
     /// Soft delete timestamp
     pub deleted_at: Option<DateTime<Utc>>,
     /// User who created this organization
-    pub created_by_id: Option<DieselUlid>,
+    pub created_by_id: DieselUlid,
     /// User who last updated this organization
-    pub updated_by_id: Option<DieselUlid>,
+    pub updated_by_id: DieselUlid,
     /// User who deleted this organization
     pub deleted_by_id: Option<DieselUlid>,
 }
@@ -137,8 +137,8 @@ pub struct NewOrganization {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: Option<DieselUlid>,
-    pub updated_by_id: Option<DieselUlid>,
+    pub created_by_id: DieselUlid,
+    pub updated_by_id: DieselUlid,
     pub deleted_by_id: Option<DieselUlid>,
 }
 
@@ -196,8 +196,8 @@ pub struct OrganizationResponse {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: Option<DieselUlid>,
-    pub updated_by_id: Option<DieselUlid>,
+    pub created_by_id: DieselUlid,
+    pub updated_by_id: DieselUlid,
     pub deleted_by_id: Option<DieselUlid>,
 }
 

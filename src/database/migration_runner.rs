@@ -226,7 +226,7 @@ impl MigrationRunner {
                 .map(|t| format!("\"{}\"", t))
                 .collect();
 
-            let drop_sql = format!("DROP TABLE IF EXISTS {} CASCADE", table_names.join(", "));
+            let drop_sql = format!("DROP TABLE {} CASCADE", table_names.join(", "));
             println!("Dropping all tables...");
 
             sql_query(&drop_sql)

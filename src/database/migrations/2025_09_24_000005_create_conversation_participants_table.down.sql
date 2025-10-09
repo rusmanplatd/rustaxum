@@ -1,2 +1,2 @@
 -- Drop conversation participants table
-DROP TABLE IF EXISTS conversation_participants;
+DROP TABLE conversation_participants;

@@ -71,7 +71,7 @@ CREATE INDEX idx_{}_deleted_by_id ON sys_users (deleted_by_id);
 
         let down_content = format!(
             r#"-- Drop {} table
-DROP TABLE IF EXISTS {};
+DROP TABLE {};
 "#,
             table_name, table_name
         );
@@ -122,7 +122,7 @@ ALTER TABLE {} DROP COLUMN IF EXISTS {};
 
         let up_content = format!(
             r#"-- Drop {} table
-DROP TABLE IF EXISTS {};
+DROP TABLE {};
 "#,
             table_name, table_name
         );
@@ -159,7 +159,7 @@ fn generate_generic_migration(name: &str) -> (String, String) {
 
 -- ALTER TABLE example ADD COLUMN new_column VARCHAR;
 
--- DROP TABLE IF EXISTS old_table;
+-- DROP TABLE old_table;
 "#,
         name.replace('_', " ").to_uppercase()
     );
@@ -169,7 +169,7 @@ fn generate_generic_migration(name: &str) -> (String, String) {
 -- Add rollback SQL statements here
 
 -- Example:
--- DROP TABLE IF EXISTS example;
+-- DROP TABLE example;
 
 -- ALTER TABLE example DROP COLUMN IF EXISTS new_column;
 

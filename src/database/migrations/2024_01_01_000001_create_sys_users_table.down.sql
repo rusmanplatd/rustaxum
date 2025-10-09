@@ -1,2 +1,2 @@
 -- Drop sys_users table with cascade to handle foreign key dependencies
-DROP TABLE IF EXISTS sys_users CASCADE;
+DROP TABLE sys_users CASCADE;

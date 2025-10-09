@@ -9,8 +9,8 @@ CREATE TABLE ref_geo_cities (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ,
-    created_by_id CHAR(26) REFERENCES sys_users(id),
-    updated_by_id CHAR(26) REFERENCES sys_users(id),
+    created_by_id CHAR(26) NOT NULL ERENCES sys_users(id),
+    updated_by_id CHAR(26) NOT NULL ERENCES sys_users(id),
     deleted_by_id CHAR(26) REFERENCES sys_users(id),
     FOREIGN KEY (province_id) REFERENCES ref_geo_provinces(id) ON DELETE CASCADE
 );

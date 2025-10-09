@@ -1,2 +1,2 @@
 -- Drop devices table
-DROP TABLE IF EXISTS devices;
+DROP TABLE devices;

@@ -1,2 +1,2 @@
 -- Drop OrganizationPositionLevel table
-DROP TABLE IF EXISTS OrganizationPositionLevel;
+DROP TABLE OrganizationPositionLevel;

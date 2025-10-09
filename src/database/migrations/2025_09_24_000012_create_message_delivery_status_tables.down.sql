@@ -1,5 +1,5 @@
 -- Drop message delivery and presence tables
-DROP TABLE IF EXISTS device_push_tokens;
-DROP TABLE IF EXISTS device_presence;
-DROP TABLE IF EXISTS typing_indicators;
-DROP TABLE IF EXISTS message_delivery_status;
+DROP TABLE device_push_tokens;
+DROP TABLE device_presence;
+DROP TABLE typing_indicators;
+DROP TABLE message_delivery_status;

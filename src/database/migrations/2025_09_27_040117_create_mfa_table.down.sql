@@ -13,5 +13,5 @@ DROP COLUMN IF EXISTS mfa_secret,
 DROP COLUMN IF EXISTS mfa_enabled;
 
 -- Drop tables
-DROP TABLE IF EXISTS mfa_attempts;
-DROP TABLE IF EXISTS mfa_methods;
+DROP TABLE mfa_attempts;
+DROP TABLE mfa_methods;

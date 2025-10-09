@@ -1,2 +1,2 @@
 -- Drop organization_levels table
-DROP TABLE IF EXISTS organization_levels;
+DROP TABLE organization_levels;

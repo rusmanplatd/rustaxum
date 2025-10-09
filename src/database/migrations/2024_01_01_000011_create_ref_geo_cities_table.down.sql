@@ -1,2 +1,2 @@
 -- Drop ref_geo_cities table
-DROP TABLE IF EXISTS ref_geo_cities;
+DROP TABLE ref_geo_cities;

@@ -44,7 +44,7 @@ impl Seeder for UserSeeder {
             ("Robert Frontend Director", "robert.frontend@techcorp.com", Some("rfrontend"), true, Some("1986-06-15"), Some("+1-555-3002"), Some("America/Chicago"), Some("en-US")),
             ("Jennifer Mobile Director", "jennifer.mobile@techcorp.com", Some("jmobile"), true, Some("1987-10-08"), Some("+1-555-3003"), Some("America/Los_Angeles"), Some("en-US")),
             ("William QA Director", "william.qa@techcorp.com", Some("wqa"), true, Some("1984-03-25"), Some("+1-555-3004"), Some("America/Denver"), Some("en-US")),
-            ("Jessica DevOps Director", "jessica.devops@techcorp.com", Some("jdevops"), true, Some("1988-11-30"), Some("+1-555-3005"), Some("America/Phoenix"), Some("en-US")),
+            ("Jessica DevOps Director", "jessica.devops@techcorp.com", Some("jessdevops"), true, Some("1988-11-30"), Some("+1-555-3005"), Some("America/Phoenix"), Some("en-US")),
 
             // Product & Design
             ("Christopher Product Manager", "christopher.pm@techcorp.com", Some("cpm"), true, Some("1989-01-17"), Some("+1-555-4001"), Some("America/New_York"), Some("en-US")),
@@ -55,7 +55,7 @@ impl Seeder for UserSeeder {
             ("Ashley Senior Backend", "ashley.backend@techcorp.com", Some("abackend"), true, Some("1988-07-08"), Some("+1-555-5001"), Some("America/New_York"), Some("en-US")),
             ("Daniel Senior Frontend", "daniel.frontend@techcorp.com", Some("dfrontend"), true, Some("1989-12-14"), Some("+1-555-5002"), Some("America/Chicago"), Some("en-US")),
             ("Stephanie Senior Mobile", "stephanie.mobile@techcorp.com", Some("smobile"), true, Some("1990-04-19"), Some("+1-555-5003"), Some("America/Los_Angeles"), Some("en-US")),
-            ("Joshua Senior DevOps", "joshua.devops@techcorp.com", Some("jdevops"), true, Some("1987-08-23"), Some("+1-555-5004"), Some("America/Denver"), Some("en-US")),
+            ("Joshua Senior DevOps", "joshua.devops@techcorp.com", Some("joshuadevops"), true, Some("1987-08-23"), Some("+1-555-5004"), Some("America/Denver"), Some("en-US")),
 
             // Mid-Level Engineers
             ("Michelle Backend Dev", "michelle.backend@techcorp.com", Some("mbackend"), true, Some("1992-02-11"), Some("+1-555-6001"), Some("America/New_York"), Some("en-US")),

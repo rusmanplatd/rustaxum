@@ -1,2 +1,2 @@
 -- Drop conversations table
-DROP TABLE IF EXISTS conversations;
+DROP TABLE conversations;

@@ -1,2 +1,2 @@
 -- Drop oauth_auth_codes table
-DROP TABLE IF EXISTS oauth_auth_codes;
+DROP TABLE oauth_auth_codes;

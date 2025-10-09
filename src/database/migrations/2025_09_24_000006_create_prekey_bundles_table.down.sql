@@ -1,2 +1,2 @@
 -- Drop prekey bundles table
-DROP TABLE IF EXISTS prekey_bundles;
+DROP TABLE prekey_bundles;

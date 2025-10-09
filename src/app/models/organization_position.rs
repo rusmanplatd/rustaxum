@@ -51,9 +51,9 @@ pub struct OrganizationPosition {
     /// Soft delete timestamp
     pub deleted_at: Option<DateTime<Utc>>,
     /// User who created this position
-    pub created_by_id: Option<DieselUlid>,
+    pub created_by_id: DieselUlid,
     /// User who last updated this position
-    pub updated_by_id: Option<DieselUlid>,
+    pub updated_by_id: DieselUlid,
     /// User who deleted this position
     pub deleted_by_id: Option<DieselUlid>,
 }
@@ -92,8 +92,8 @@ pub struct NewOrganizationPosition {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: Option<DieselUlid>,
-    pub updated_by_id: Option<DieselUlid>,
+    pub created_by_id: DieselUlid,
+    pub updated_by_id: DieselUlid,
     pub deleted_by_id: Option<DieselUlid>,
 }
 
@@ -131,8 +131,8 @@ pub struct OrganizationPositionResponse {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: Option<DieselUlid>,
-    pub updated_by_id: Option<DieselUlid>,
+    pub created_by_id: DieselUlid,
+    pub updated_by_id: DieselUlid,
     pub deleted_by_id: Option<DieselUlid>,
 }
 

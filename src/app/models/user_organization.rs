@@ -53,9 +53,9 @@ pub struct UserOrganization {
     /// Soft delete timestamp
     pub deleted_at: Option<DateTime<Utc>>,
     /// User who created this relationship
-    pub created_by_id: Option<DieselUlid>,
+    pub created_by_id: DieselUlid,
     /// User who last updated this relationship
-    pub updated_by_id: Option<DieselUlid>,
+    pub updated_by_id: DieselUlid,
     /// User who deleted this relationship
     pub deleted_by_id: Option<DieselUlid>,
 }
@@ -83,9 +83,9 @@ pub struct NewUserOrganization {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: Option<DieselUlid>,
-    pub updated_by_id: Option<DieselUlid>,
-    pub deleted_by_id: Option<DieselUlid>,
+    pub created_by_id: String,
+    pub updated_by_id: String,
+    pub deleted_by_id: Option<String>,
 }
 
 /// Update user organization payload for service layer
@@ -111,13 +111,13 @@ pub struct UserOrganizationResponse {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: Option<DieselUlid>,
-    pub updated_by_id: Option<DieselUlid>,
+    pub created_by_id: DieselUlid,
+    pub updated_by_id: DieselUlid,
     pub deleted_by_id: Option<DieselUlid>,
 }
 
 impl NewUserOrganization {
-    pub fn new(user_id: String, organization_id: String, organization_position_id: String, started_at: Option<DateTime<Utc>>) -> Self {
+    pub fn new(user_id: String, organization_id: String, organization_position_id: String, started_at: Option<DateTime<Utc>>, created_by_id: String, updated_by_id: String) -> Self {
         let now = Utc::now();
         Self {
             id: DieselUlid::new(),
@@ -130,8 +130,8 @@ impl NewUserOrganization {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: None,
-            updated_by_id: None,
+            created_by_id: created_by_id,
+            updated_by_id: updated_by_id,
             deleted_by_id: None,
         }
     }

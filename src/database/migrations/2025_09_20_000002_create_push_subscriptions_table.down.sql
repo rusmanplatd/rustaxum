@@ -1,2 +1,2 @@
 -- Drop push subscriptions table
-DROP TABLE IF EXISTS push_subscriptions;
+DROP TABLE push_subscriptions;

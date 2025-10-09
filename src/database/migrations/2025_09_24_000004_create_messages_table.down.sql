@@ -1,2 +1,2 @@
 -- Drop messages table
-DROP TABLE IF EXISTS messages;
+DROP TABLE messages;

@@ -31,9 +31,9 @@ pub struct OrganizationDomain {
     /// Soft delete timestamp
     pub deleted_at: Option<DateTime<Utc>>,
     /// User who created this record
-    pub created_by_id: Option<DieselUlid>,
+    pub created_by_id: DieselUlid,
     /// User who last updated this record
-    pub updated_by_id: Option<DieselUlid>,
+    pub updated_by_id: DieselUlid,
     /// User who deleted this record
     pub deleted_by_id: Option<DieselUlid>,
 }
@@ -57,9 +57,9 @@ pub struct NewOrganizationDomain {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: Option<DieselUlid>,
-    pub updated_by_id: Option<DieselUlid>,
-    pub deleted_by_id: Option<DieselUlid>,
+    pub created_by_id: String,
+    pub updated_by_id: String,
+    pub deleted_by_id: Option<String>,
 }
 
 /// Update organization domain payload for service layer

@@ -1,2 +1,2 @@
 -- Drop oauth_scopes table
-DROP TABLE IF EXISTS oauth_scopes;
+DROP TABLE oauth_scopes;

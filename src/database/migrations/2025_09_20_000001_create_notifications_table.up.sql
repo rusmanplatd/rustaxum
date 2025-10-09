@@ -1,5 +1,5 @@
 -- Create notifications table for storing notification history
-CREATE TABLE IF NOT EXISTS notifications (
+CREATE TABLE notifications (
     id CHAR(26) PRIMARY KEY,
     type VARCHAR(255) NOT NULL,
     notifiable_type VARCHAR(255) NOT NULL,
@@ -19,20 +19,20 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 -- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
-CREATE INDEX IF NOT EXISTS idx_notifications_notifiable ON notifications(notifiable_type, notifiable_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_read_at ON notifications(read_at);
-CREATE INDEX IF NOT EXISTS idx_notifications_sent_at ON notifications(sent_at);
-CREATE INDEX IF NOT EXISTS idx_notifications_failed_at ON notifications(failed_at);
-CREATE INDEX IF NOT EXISTS idx_notifications_scheduled_at ON notifications(scheduled_at);
-CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
-CREATE INDEX IF NOT EXISTS idx_notifications_priority ON notifications(priority);
+CREATE INDEX idx_notifications_type ON notifications(type);
+CREATE INDEX idx_notifications_notifiable ON notifications(notifiable_type, notifiable_id);
+CREATE INDEX idx_notifications_read_at ON notifications(read_at);
+CREATE INDEX idx_notifications_sent_at ON notifications(sent_at);
+CREATE INDEX idx_notifications_failed_at ON notifications(failed_at);
+CREATE INDEX idx_notifications_scheduled_at ON notifications(scheduled_at);
+CREATE INDEX idx_notifications_created_at ON notifications(created_at);
+CREATE INDEX idx_notifications_priority ON notifications(priority);
 
 -- Create composite index for unread notifications
-CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(notifiable_type, notifiable_id, read_at) WHERE read_at IS NULL;
+CREATE INDEX idx_notifications_unread ON notifications(notifiable_type, notifiable_id, read_at) WHERE read_at IS NULL;
 
 -- Create composite index for failed notifications
-CREATE INDEX IF NOT EXISTS idx_notifications_failed ON notifications(failed_at, retry_count, max_retries) WHERE failed_at IS NOT NULL;
+CREATE INDEX idx_notifications_failed ON notifications(failed_at, retry_count, max_retries) WHERE failed_at IS NOT NULL;
 
 -- Add trigger to update updated_at timestamp
 CREATE TRIGGER update_notifications_updated_at

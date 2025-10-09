@@ -1,2 +1,2 @@
 -- Drop organizations table
-DROP TABLE IF EXISTS organizations;
+DROP TABLE organizations;

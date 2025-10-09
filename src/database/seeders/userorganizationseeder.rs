@@ -1,10 +1,10 @@
-use crate::database::DbPool;
-use anyhow::Result;
+use crate::app::models::{user_organization::NewUserOrganization, DieselUlid};
 use crate::database::seeder::Seeder;
-use crate::app::models::{DieselUlid, user_organization::{NewUserOrganization}};
-use diesel::prelude::*;
-use crate::schema::{sys_users, organizations, organization_positions, user_organizations};
+use crate::database::DbPool;
+use crate::schema::{organization_positions, organizations, sys_users, user_organizations};
+use anyhow::Result;
 use chrono::Utc;
+use diesel::prelude::*;
 
 pub struct UserOrganizationSeeder;
 
@@ -20,6 +20,12 @@ impl Seeder for UserOrganizationSeeder {
     fn run(&self, pool: &DbPool) -> Result<()> {
         println!("🌱 Seeding user organization relationships...");
         let mut conn = pool.get()?;
+
+        // Get system user ID for audit tracking
+        let system_user_id: String = sys_users::table
+            .filter(sys_users::email.eq("system@seeder.internal"))
+            .select(sys_users::id)
+            .first(conn)?;
 
         // Get users with their emails for identification
         let users: Vec<(DieselUlid, String)> = sys_users::table
@@ -37,25 +43,33 @@ impl Seeder for UserOrganizationSeeder {
             .load(&mut conn)?;
 
         if users.is_empty() || organizations.is_empty() || positions.is_empty() {
-            return Err(anyhow::anyhow!("Users, organizations, and positions must be seeded first"));
+            return Err(anyhow::anyhow!(
+                "Users, organizations, and positions must be seeded first"
+            ));
         }
 
-        println!("   Found {} users, {} organizations, {} positions",
-            users.len(), organizations.len(), positions.len());
+        println!(
+            "   Found {} users, {} organizations, {} positions",
+            users.len(),
+            organizations.len(),
+            positions.len()
+        );
 
         let now = Utc::now();
         let mut relationships = Vec::new();
 
         // Helper function to find organization by code
         let find_org_by_code = |code: &str| -> Option<DieselUlid> {
-            organizations.iter()
+            organizations
+                .iter()
                 .find(|(_, org_code)| org_code.as_deref() == Some(code))
                 .map(|(id, _)| *id)
         };
 
         // Helper function to find user by email prefix
         let find_user_by_email = |prefix: &str| -> Option<(DieselUlid, String)> {
-            users.iter()
+            users
+                .iter()
                 .find(|(_, email)| email.starts_with(prefix))
                 .map(|(id, email)| (*id, email.clone()))
         };
@@ -77,8 +91,8 @@ impl Seeder for UserOrganizationSeeder {
                         created_at: now,
                         updated_at: now,
                         deleted_at: None,
-                        created_by_id: None,
-                        updated_by_id: None,
+                        created_by_id: system_user_id.clone(),
+                        updated_by_id: system_user_id.clone(),
                         deleted_by_id: None,
                     });
                 }
@@ -107,8 +121,8 @@ impl Seeder for UserOrganizationSeeder {
                             created_at: now,
                             updated_at: now,
                             deleted_at: None,
-                            created_by_id: None,
-                            updated_by_id: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
                             deleted_by_id: None,
                         });
                     }
@@ -142,8 +156,8 @@ impl Seeder for UserOrganizationSeeder {
                             created_at: now,
                             updated_at: now,
                             deleted_at: None,
-                            created_by_id: None,
-                            updated_by_id: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
                             deleted_by_id: None,
                         });
                     }
@@ -174,8 +188,8 @@ impl Seeder for UserOrganizationSeeder {
                             created_at: now,
                             updated_at: now,
                             deleted_at: None,
-                            created_by_id: None,
-                            updated_by_id: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
                             deleted_by_id: None,
                         });
                     }
@@ -206,8 +220,8 @@ impl Seeder for UserOrganizationSeeder {
                             created_at: now,
                             updated_at: now,
                             deleted_at: None,
-                            created_by_id: None,
-                            updated_by_id: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
                             deleted_by_id: None,
                         });
                     }
@@ -239,8 +253,8 @@ impl Seeder for UserOrganizationSeeder {
                             created_at: now,
                             updated_at: now,
                             deleted_at: None,
-                            created_by_id: None,
-                            updated_by_id: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
                             deleted_by_id: None,
                         });
                     }
@@ -272,8 +286,8 @@ impl Seeder for UserOrganizationSeeder {
                             created_at: now,
                             updated_at: now,
                             deleted_at: None,
-                            created_by_id: None,
-                            updated_by_id: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
                             deleted_by_id: None,
                         });
                     }
@@ -303,8 +317,8 @@ impl Seeder for UserOrganizationSeeder {
                             created_at: now,
                             updated_at: now,
                             deleted_at: None,
-                            created_by_id: None,
-                            updated_by_id: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
                             deleted_by_id: None,
                         });
                     }
@@ -334,8 +348,8 @@ impl Seeder for UserOrganizationSeeder {
                             created_at: now,
                             updated_at: now,
                             deleted_at: None,
-                            created_by_id: None,
-                            updated_by_id: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
                             deleted_by_id: None,
                         });
                     }
@@ -344,7 +358,8 @@ impl Seeder for UserOrganizationSeeder {
         }
 
         // Consultants
-        if let (Some(cons_org_id), Some(pos_id)) = (find_org_by_code("CONS-SERV"), positions.get(3)) {
+        if let (Some(cons_org_id), Some(pos_id)) = (find_org_by_code("CONS-SERV"), positions.get(3))
+        {
             for email in &["thomas.consultant", "angela.tech"] {
                 if let Some((user_id, _)) = find_user_by_email(email) {
                     relationships.push(NewUserOrganization {
@@ -358,8 +373,8 @@ impl Seeder for UserOrganizationSeeder {
                         created_at: now,
                         updated_at: now,
                         deleted_at: None,
-                        created_by_id: None,
-                        updated_by_id: None,
+                        created_by_id: system_user_id.clone(),
+                        updated_by_id: system_user_id.clone(),
                         deleted_by_id: None,
                     });
                 }
@@ -387,8 +402,8 @@ impl Seeder for UserOrganizationSeeder {
                             created_at: now,
                             updated_at: now,
                             deleted_at: None,
-                            created_by_id: None,
-                            updated_by_id: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
                             deleted_by_id: None,
                         });
                     }
@@ -417,8 +432,8 @@ impl Seeder for UserOrganizationSeeder {
                             created_at: now,
                             updated_at: now,
                             deleted_at: None,
-                            created_by_id: None,
-                            updated_by_id: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
                             deleted_by_id: None,
                         });
                     }
@@ -431,7 +446,7 @@ impl Seeder for UserOrganizationSeeder {
         if let (Some(user), Some(org_id), Some(pos_id)) = (
             find_user_by_email("ashley.backend"),
             find_org_by_code("FRONT-DEV"),
-            positions.get(5)
+            positions.get(5),
         ) {
             relationships.push(NewUserOrganization {
                 id: DieselUlid::new(),
@@ -444,14 +459,17 @@ impl Seeder for UserOrganizationSeeder {
                 created_at: now,
                 updated_at: now,
                 deleted_at: None,
-                created_by_id: None,
-                updated_by_id: None,
+                created_by_id: system_user_id.clone(),
+                updated_by_id: system_user_id.clone(),
                 deleted_by_id: None,
             });
         }
 
         // Insert all relationships
-        println!("   Creating {} user-organization relationships...", relationships.len());
+        println!(
+            "   Creating {} user-organization relationships...",
+            relationships.len()
+        );
         for user_org in relationships {
             diesel::insert_into(user_organizations::table)
                 .values(&user_org)
@@ -459,11 +477,12 @@ impl Seeder for UserOrganizationSeeder {
                 .execute(&mut conn)?;
         }
 
-        let total_count: i64 = user_organizations::table
-            .count()
-            .get_result(&mut conn)?;
+        let total_count: i64 = user_organizations::table.count().get_result(&mut conn)?;
 
-        println!("✅ {} User Organization relationships seeded successfully!", total_count);
+        println!(
+            "✅ {} User Organization relationships seeded successfully!",
+            total_count
+        );
         Ok(())
     }
 }

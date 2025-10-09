@@ -38,9 +38,9 @@ pub struct Village {
     /// Soft delete timestamp
     pub deleted_at: Option<DateTime<Utc>>,
     /// User who created this record
-    pub created_by_id: Option<DieselUlid>,
+    pub created_by_id: DieselUlid,
     /// User who last updated this record
-    pub updated_by_id: Option<DieselUlid>,
+    pub updated_by_id: DieselUlid,
     /// User who deleted this record
     pub deleted_by_id: Option<DieselUlid>,
 }
@@ -70,8 +70,8 @@ pub struct NewVillage {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: Option<DieselUlid>,
-    pub updated_by_id: Option<DieselUlid>,
+    pub created_by_id: DieselUlid,
+    pub updated_by_id: DieselUlid,
     pub deleted_by_id: Option<DieselUlid>,
 }
 
