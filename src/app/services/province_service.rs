@@ -14,7 +14,7 @@ impl ProvinceService {
         let province = Province::new(country_id.to_string(), data.name, data.code);
         let mut conn = pool.get()?;
 
-        diesel::insert_into(ref_geo_provinces::table)
+        let result = diesel::insert_into(ref_geo_provinces::table)
             .values((
                 ref_geo_provinces::id.eq(&province.id),
                 ref_geo_provinces::country_id.eq(&province.country_id),
@@ -23,9 +23,10 @@ impl ProvinceService {
                 ref_geo_provinces::created_at.eq(province.created_at),
                 ref_geo_provinces::updated_at.eq(province.updated_at),
             ))
-            .execute(&mut conn)?;
+            .returning(Province::as_select())
+            .get_result::<Province>(&mut conn)?;
 
-        Ok(province)
+        Ok(result)
     }
 
     pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<Province>> {
@@ -33,7 +34,8 @@ impl ProvinceService {
 
         let result = ref_geo_provinces::table
             .filter(ref_geo_provinces::id.eq(id))
-            .first::<Province>(&mut conn)
+            .select(Province::as_select())
+            .first(&mut conn)
             .optional()?;
 
         Ok(result)
@@ -45,7 +47,8 @@ impl ProvinceService {
         let result = ref_geo_provinces::table
             .filter(ref_geo_provinces::country_id.eq(country_id))
             .order(ref_geo_provinces::name.asc())
-            .load::<Province>(&mut conn)?;
+            .select(Province::as_select())
+            .load(&mut conn)?;
 
         Ok(result)
     }
@@ -55,7 +58,8 @@ impl ProvinceService {
 
         let result = ref_geo_provinces::table
             .order(ref_geo_provinces::name.asc())
-            .load::<Province>(&mut conn)?;
+            .select(Province::as_select())
+            .load(&mut conn)?;
 
         Ok(result)
     }
@@ -80,16 +84,17 @@ impl ProvinceService {
         }
         current.updated_at = chrono::Utc::now();
 
-        diesel::update(ref_geo_provinces::table.filter(ref_geo_provinces::id.eq(id)))
+        let result = diesel::update(ref_geo_provinces::table.filter(ref_geo_provinces::id.eq(id)))
             .set((
                 ref_geo_provinces::country_id.eq(&current.country_id),
                 ref_geo_provinces::name.eq(&current.name),
                 ref_geo_provinces::code.eq(&current.code),
                 ref_geo_provinces::updated_at.eq(current.updated_at),
             ))
-            .execute(&mut conn)?;
+            .returning(Province::as_select())
+            .get_result(&mut conn)?;
 
-        Ok(current)
+        Ok(result)
     }
 
     pub fn delete(pool: &DbPool, id: String) -> Result<()> {

@@ -25,7 +25,7 @@ impl Seeder for UserOrganizationSeeder {
         let system_user_id: String = sys_users::table
             .filter(sys_users::email.eq("system@seeder.internal"))
             .select(sys_users::id)
-            .first(conn)?;
+            .first(&mut conn)?;
 
         // Get users with their emails for identification
         let users: Vec<(DieselUlid, String)> = sys_users::table
@@ -437,6 +437,604 @@ impl Seeder for UserOrganizationSeeder {
                             deleted_by_id: None,
                         });
                     }
+                }
+            }
+        }
+
+        // ==================== GOVERNMENT (GOV) - Ministry of Digital Affairs ====================
+        // Get Government org and positions
+        let gov_ministry_id = find_org_by_code("MDA");
+        let gov_agencies = vec![
+            ("ITA", vec!["budi.it"]),
+            ("DGA", vec!["siti.data"]),
+            ("CSA", vec!["rudi.cyber"]),
+        ];
+        let gov_depts = vec![
+            ("INFRA-DEV", vec!["rina.infra"]),
+            ("DIG-SERV", vec!["fitri.services"]),
+            ("SEC-OPS", vec!["agus.security"]),
+        ];
+
+        // Ministry Leadership
+        if let (Some(org_id), Some(pos_id)) = (gov_ministry_id, positions.first()) {
+            for email in &["sarah.minister", "ahmad.secgen", "dewi.dirgen"] {
+                if let Some((user_id, _)) = find_user_by_email(email) {
+                    relationships.push(NewUserOrganization {
+                        id: DieselUlid::new(),
+                        user_id,
+                        organization_id: org_id,
+                        organization_position_id: *pos_id,
+                        is_active: true,
+                        started_at: now - chrono::Duration::days(2500),
+                        ended_at: None,
+                        created_at: now,
+                        updated_at: now,
+                        deleted_at: None,
+                        created_by_id: system_user_id.clone(),
+                        updated_by_id: system_user_id.clone(),
+                        deleted_by_id: None,
+                    });
+                }
+            }
+        }
+
+        // Government Agency Directors
+        for (code, directors) in gov_agencies {
+            if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(3)) {
+                for director in directors {
+                    if let Some((user_id, _)) = find_user_by_email(director) {
+                        relationships.push(NewUserOrganization {
+                            id: DieselUlid::new(),
+                            user_id,
+                            organization_id: org_id,
+                            organization_position_id: *pos_id,
+                            is_active: true,
+                            started_at: now - chrono::Duration::days(1800),
+                            ended_at: None,
+                            created_at: now,
+                            updated_at: now,
+                            deleted_at: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
+                            deleted_by_id: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Government Department Staff
+        for (code, staff) in gov_depts {
+            if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(5)) {
+                for person in staff {
+                    if let Some((user_id, _)) = find_user_by_email(person) {
+                        relationships.push(NewUserOrganization {
+                            id: DieselUlid::new(),
+                            user_id,
+                            organization_id: org_id,
+                            organization_position_id: *pos_id,
+                            is_active: true,
+                            started_at: now - chrono::Duration::days(1200),
+                            ended_at: None,
+                            created_at: now,
+                            updated_at: now,
+                            deleted_at: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
+                            deleted_by_id: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Government Analysts
+        if let Some(org_id) = find_org_by_code("DIG-SERV") {
+            if let Some(pos_id) = positions.get(12) {
+                for email in &["hendra.policy", "maya.analyst", "doni.support"] {
+                    if let Some((user_id, _)) = find_user_by_email(email) {
+                        relationships.push(NewUserOrganization {
+                            id: DieselUlid::new(),
+                            user_id,
+                            organization_id: org_id,
+                            organization_position_id: *pos_id,
+                            is_active: true,
+                            started_at: now - chrono::Duration::days(900),
+                            ended_at: None,
+                            created_at: now,
+                            updated_at: now,
+                            deleted_at: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
+                            deleted_by_id: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        // ==================== EDUCATION (EDU) - National University ====================
+        let university_id = find_org_by_code("NATUNIV");
+
+        // University Leadership
+        if let (Some(org_id), Some(pos_id)) = (university_id, positions.first()) {
+            for email in &["david.rector", "lisa.vice", "michael.dean"] {
+                if let Some((user_id, _)) = find_user_by_email(email) {
+                    relationships.push(NewUserOrganization {
+                        id: DieselUlid::new(),
+                        user_id,
+                        organization_id: org_id,
+                        organization_position_id: *pos_id,
+                        is_active: true,
+                        started_at: now - chrono::Duration::days(3000),
+                        ended_at: None,
+                        created_at: now,
+                        updated_at: now,
+                        deleted_at: None,
+                        created_by_id: system_user_id.clone(),
+                        updated_by_id: system_user_id.clone(),
+                        deleted_by_id: None,
+                    });
+                }
+            }
+        }
+
+        // Faculty Professors in CS Department
+        if let Some(org_id) = find_org_by_code("CS-DEPT") {
+            if let Some(pos_id) = positions.get(3) {
+                for email in &["jennifer.ai", "robert.networks", "patricia.db"] {
+                    if let Some((user_id, _)) = find_user_by_email(email) {
+                        relationships.push(NewUserOrganization {
+                            id: DieselUlid::new(),
+                            user_id,
+                            organization_id: org_id,
+                            organization_position_id: *pos_id,
+                            is_active: true,
+                            started_at: now - chrono::Duration::days(2000),
+                            ended_at: None,
+                            created_at: now,
+                            updated_at: now,
+                            deleted_at: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
+                            deleted_by_id: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Research Staff in AI Lab
+        if let Some(org_id) = find_org_by_code("AI-LAB") {
+            if let Some(pos_id) = positions.get(11) {
+                for email in &["william.research", "maria.lab", "thomas.research"] {
+                    if let Some((user_id, _)) = find_user_by_email(email) {
+                        relationships.push(NewUserOrganization {
+                            id: DieselUlid::new(),
+                            user_id,
+                            organization_id: org_id,
+                            organization_position_id: *pos_id,
+                            is_active: true,
+                            started_at: now - chrono::Duration::days(1500),
+                            ended_at: None,
+                            created_at: now,
+                            updated_at: now,
+                            deleted_at: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
+                            deleted_by_id: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Administrative Staff
+        if let (Some(org_id), Some(pos_id)) = (university_id, positions.get(12)) {
+            for email in &["susan.registrar", "george.admin"] {
+                if let Some((user_id, _)) = find_user_by_email(email) {
+                    relationships.push(NewUserOrganization {
+                        id: DieselUlid::new(),
+                        user_id,
+                        organization_id: org_id,
+                        organization_position_id: *pos_id,
+                        is_active: true,
+                        started_at: now - chrono::Duration::days(1800),
+                        ended_at: None,
+                        created_at: now,
+                        updated_at: now,
+                        deleted_at: None,
+                        created_by_id: system_user_id.clone(),
+                        updated_by_id: system_user_id.clone(),
+                        deleted_by_id: None,
+                    });
+                }
+            }
+        }
+
+        // ==================== HEALTHCARE (HEA) - Regional Medical Center ====================
+        let hospital_id = find_org_by_code("RMC");
+
+        // Hospital Leadership
+        if let (Some(org_id), Some(pos_id)) = (hospital_id, positions.first()) {
+            for email in &["elizabeth.director", "richard.cmo", "margaret.cno"] {
+                if let Some((user_id, _)) = find_user_by_email(email) {
+                    relationships.push(NewUserOrganization {
+                        id: DieselUlid::new(),
+                        user_id,
+                        organization_id: org_id,
+                        organization_position_id: *pos_id,
+                        is_active: true,
+                        started_at: now - chrono::Duration::days(2800),
+                        ended_at: None,
+                        created_at: now,
+                        updated_at: now,
+                        deleted_at: None,
+                        created_by_id: system_user_id.clone(),
+                        updated_by_id: system_user_id.clone(),
+                        deleted_by_id: None,
+                    });
+                }
+            }
+        }
+
+        // Department Heads
+        let hospital_depts = vec![
+            ("ER", vec!["james.emergency"]),
+            ("SURG", vec!["linda.surgery"]),
+            ("RAD", vec!["mark.radiology"]),
+        ];
+
+        for (code, heads) in hospital_depts {
+            if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(3)) {
+                for head in heads {
+                    if let Some((user_id, _)) = find_user_by_email(head) {
+                        relationships.push(NewUserOrganization {
+                            id: DieselUlid::new(),
+                            user_id,
+                            organization_id: org_id,
+                            organization_position_id: *pos_id,
+                            is_active: true,
+                            started_at: now - chrono::Duration::days(2000),
+                            ended_at: None,
+                            created_at: now,
+                            updated_at: now,
+                            deleted_at: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
+                            deleted_by_id: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Medical Staff
+        if let Some(org_id) = find_org_by_code("ER") {
+            if let Some(pos_id) = positions.get(11) {
+                for email in &["karen.physician", "paul.surgeon", "jessica.nurse"] {
+                    if let Some((user_id, _)) = find_user_by_email(email) {
+                        relationships.push(NewUserOrganization {
+                            id: DieselUlid::new(),
+                            user_id,
+                            organization_id: org_id,
+                            organization_position_id: *pos_id,
+                            is_active: true,
+                            started_at: now - chrono::Duration::days(1500),
+                            ended_at: None,
+                            created_at: now,
+                            updated_at: now,
+                            deleted_at: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
+                            deleted_by_id: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Support Staff
+        if let (Some(org_id), Some(pos_id)) = (hospital_id, positions.get(12)) {
+            for email in &["angela.lab", "daniel.pharmacy", "rachel.it"] {
+                if let Some((user_id, _)) = find_user_by_email(email) {
+                    relationships.push(NewUserOrganization {
+                        id: DieselUlid::new(),
+                        user_id,
+                        organization_id: org_id,
+                        organization_position_id: *pos_id,
+                        is_active: true,
+                        started_at: now - chrono::Duration::days(1200),
+                        ended_at: None,
+                        created_at: now,
+                        updated_at: now,
+                        deleted_at: None,
+                        created_by_id: system_user_id.clone(),
+                        updated_by_id: system_user_id.clone(),
+                        deleted_by_id: None,
+                    });
+                }
+            }
+        }
+
+        // ==================== NGO - Global Aid Foundation ====================
+        let foundation_id = find_org_by_code("GAF");
+
+        // NGO Leadership
+        if let (Some(org_id), Some(pos_id)) = (foundation_id, positions.first()) {
+            for email in &["catherine.ed", "mohammed.pd", "fatima.od"] {
+                if let Some((user_id, _)) = find_user_by_email(email) {
+                    relationships.push(NewUserOrganization {
+                        id: DieselUlid::new(),
+                        user_id,
+                        organization_id: org_id,
+                        organization_position_id: *pos_id,
+                        is_active: true,
+                        started_at: now - chrono::Duration::days(2200),
+                        ended_at: None,
+                        created_at: now,
+                        updated_at: now,
+                        deleted_at: None,
+                        created_by_id: system_user_id.clone(),
+                        updated_by_id: system_user_id.clone(),
+                        deleted_by_id: None,
+                    });
+                }
+            }
+        }
+
+        // Program Managers
+        let ngo_programs = vec![
+            ("HEALTH", vec!["ahmed.field", "aisha.health"]),
+            ("EDU", vec!["hassan.edu"]),
+        ];
+
+        for (code, managers) in ngo_programs {
+            if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(5)) {
+                for manager in managers {
+                    if let Some((user_id, _)) = find_user_by_email(manager) {
+                        relationships.push(NewUserOrganization {
+                            id: DieselUlid::new(),
+                            user_id,
+                            organization_id: org_id,
+                            organization_position_id: *pos_id,
+                            is_active: true,
+                            started_at: now - chrono::Duration::days(1600),
+                            ended_at: None,
+                            created_at: now,
+                            updated_at: now,
+                            deleted_at: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
+                            deleted_by_id: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Project Officers
+        if let (Some(org_id), Some(pos_id)) = (foundation_id, positions.get(12)) {
+            for email in &["leila.project", "omar.monitoring", "zainab.eval"] {
+                if let Some((user_id, _)) = find_user_by_email(email) {
+                    relationships.push(NewUserOrganization {
+                        id: DieselUlid::new(),
+                        user_id,
+                        organization_id: org_id,
+                        organization_position_id: *pos_id,
+                        is_active: true,
+                        started_at: now - chrono::Duration::days(1200),
+                        ended_at: None,
+                        created_at: now,
+                        updated_at: now,
+                        deleted_at: None,
+                        created_by_id: system_user_id.clone(),
+                        updated_by_id: system_user_id.clone(),
+                        deleted_by_id: None,
+                    });
+                }
+            }
+        }
+
+        // Support Staff
+        if let (Some(org_id), Some(pos_id)) = (foundation_id, positions.get(12)) {
+            for email in &["yusuf.logistics", "mariam.fundraising"] {
+                if let Some((user_id, _)) = find_user_by_email(email) {
+                    relationships.push(NewUserOrganization {
+                        id: DieselUlid::new(),
+                        user_id,
+                        organization_id: org_id,
+                        organization_position_id: *pos_id,
+                        is_active: true,
+                        started_at: now - chrono::Duration::days(1000),
+                        ended_at: None,
+                        created_at: now,
+                        updated_at: now,
+                        deleted_at: None,
+                        created_by_id: system_user_id.clone(),
+                        updated_by_id: system_user_id.clone(),
+                        deleted_by_id: None,
+                    });
+                }
+            }
+        }
+
+        // ==================== MILITARY (MIL) - Defense Command ====================
+        let command_id = find_org_by_code("CYBERCOM");
+
+        // Command Leadership
+        if let (Some(org_id), Some(pos_id)) = (command_id, positions.first()) {
+            for email in &["robert.commander", "william.deputy", "barbara.chief"] {
+                if let Some((user_id, _)) = find_user_by_email(email) {
+                    relationships.push(NewUserOrganization {
+                        id: DieselUlid::new(),
+                        user_id,
+                        organization_id: org_id,
+                        organization_position_id: *pos_id,
+                        is_active: true,
+                        started_at: now - chrono::Duration::days(2600),
+                        ended_at: None,
+                        created_at: now,
+                        updated_at: now,
+                        deleted_at: None,
+                        created_by_id: system_user_id.clone(),
+                        updated_by_id: system_user_id.clone(),
+                        deleted_by_id: None,
+                    });
+                }
+            }
+        }
+
+        // Operations Officers
+        if let Some(org_id) = find_org_by_code("OPS-DIV") {
+            if let Some(pos_id) = positions.get(3) {
+                for email in &["charles.ops", "patricia.intel", "joseph.logistics"] {
+                    if let Some((user_id, _)) = find_user_by_email(email) {
+                        relationships.push(NewUserOrganization {
+                            id: DieselUlid::new(),
+                            user_id,
+                            organization_id: org_id,
+                            organization_position_id: *pos_id,
+                            is_active: true,
+                            started_at: now - chrono::Duration::days(1800),
+                            ended_at: None,
+                            created_at: now,
+                            updated_at: now,
+                            deleted_at: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
+                            deleted_by_id: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Technical Staff
+        if let Some(org_id) = find_org_by_code("CYBER-OPS") {
+            if let Some(pos_id) = positions.get(11) {
+                for email in &["steven.cyber", "jennifer.comms", "michael.systems"] {
+                    if let Some((user_id, _)) = find_user_by_email(email) {
+                        relationships.push(NewUserOrganization {
+                            id: DieselUlid::new(),
+                            user_id,
+                            organization_id: org_id,
+                            organization_position_id: *pos_id,
+                            is_active: true,
+                            started_at: now - chrono::Duration::days(1400),
+                            ended_at: None,
+                            created_at: now,
+                            updated_at: now,
+                            deleted_at: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
+                            deleted_by_id: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        // ==================== RELIGIOUS (REL) - St. Joseph Diocese ====================
+        let diocese_id = find_org_by_code("STJ-DIOC");
+
+        // Diocese Leadership
+        if let (Some(org_id), Some(pos_id)) = (diocese_id, positions.first()) {
+            for email in &["francis.bishop", "anthony.vicar", "joseph.chancellor"] {
+                if let Some((user_id, _)) = find_user_by_email(email) {
+                    relationships.push(NewUserOrganization {
+                        id: DieselUlid::new(),
+                        user_id,
+                        organization_id: org_id,
+                        organization_position_id: *pos_id,
+                        is_active: true,
+                        started_at: now - chrono::Duration::days(3500),
+                        ended_at: None,
+                        created_at: now,
+                        updated_at: now,
+                        deleted_at: None,
+                        created_by_id: system_user_id.clone(),
+                        updated_by_id: system_user_id.clone(),
+                        deleted_by_id: None,
+                    });
+                }
+            }
+        }
+
+        // Parish Priests
+        let parishes = vec![
+            ("STM", vec!["michael.parish", "patrick.mission"]),
+            ("STP", vec!["thomas.community"]),
+        ];
+
+        for (code, priests) in parishes {
+            if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(3)) {
+                for priest in priests {
+                    if let Some((user_id, _)) = find_user_by_email(priest) {
+                        relationships.push(NewUserOrganization {
+                            id: DieselUlid::new(),
+                            user_id,
+                            organization_id: org_id,
+                            organization_position_id: *pos_id,
+                            is_active: true,
+                            started_at: now - chrono::Duration::days(2000),
+                            ended_at: None,
+                            created_at: now,
+                            updated_at: now,
+                            deleted_at: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
+                            deleted_by_id: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Religious Staff and Ministers
+        if let Some(org_id) = find_org_by_code("YOUTH") {
+            if let Some(pos_id) = positions.get(11) {
+                for email in &["paul.youth", "mary.education", "catherine.charity"] {
+                    if let Some((user_id, _)) = find_user_by_email(email) {
+                        relationships.push(NewUserOrganization {
+                            id: DieselUlid::new(),
+                            user_id,
+                            organization_id: org_id,
+                            organization_position_id: *pos_id,
+                            is_active: true,
+                            started_at: now - chrono::Duration::days(1500),
+                            ended_at: None,
+                            created_at: now,
+                            updated_at: now,
+                            deleted_at: None,
+                            created_by_id: system_user_id.clone(),
+                            updated_by_id: system_user_id.clone(),
+                            deleted_by_id: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Administrative Staff
+        if let (Some(org_id), Some(pos_id)) = (diocese_id, positions.get(12)) {
+            for email in &["martha.admin", "john.finance"] {
+                if let Some((user_id, _)) = find_user_by_email(email) {
+                    relationships.push(NewUserOrganization {
+                        id: DieselUlid::new(),
+                        user_id,
+                        organization_id: org_id,
+                        organization_position_id: *pos_id,
+                        is_active: true,
+                        started_at: now - chrono::Duration::days(1800),
+                        ended_at: None,
+                        created_at: now,
+                        updated_at: now,
+                        deleted_at: None,
+                        created_by_id: system_user_id.clone(),
+                        updated_by_id: system_user_id.clone(),
+                        deleted_by_id: None,
+                    });
                 }
             }
         }

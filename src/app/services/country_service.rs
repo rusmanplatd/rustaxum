@@ -13,7 +13,7 @@ impl ServiceActivityLogger for CountryService {}
 impl CountryService {
     pub async fn create(pool: &DbPool, data: CreateCountry, created_by: Option<&str>) -> Result<Country> {
         let mut conn = pool.get()?;
-        let new_country = NewCountry::new(data.name.clone(), data.iso_code.clone(), data.phone_code.clone());
+        let new_country = NewCountry::new(data.name.clone(), data.iso_code.clone(), data.phone_code.clone(), created_by);
 
         let result = diesel::insert_into(ref_geo_countries::table)
             .values(&new_country)

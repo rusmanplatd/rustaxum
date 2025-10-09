@@ -24,7 +24,8 @@ impl VillageService {
 
         let result = diesel::insert_into(ref_geo_villages::table)
             .values(&new_village)
-            .get_result::<Village>(&mut conn)?;
+            .returning(Village::as_select())
+            .get_result(&mut conn)?;
 
         // Log the village creation activity
         let service = VillageService;
@@ -53,7 +54,8 @@ impl VillageService {
 
         let result = ref_geo_villages::table
             .filter(ref_geo_villages::id.eq(id.to_string()))
-            .first::<Village>(&mut conn)
+            .select(Village::as_select())
+            .first(&mut conn)
             .optional()?;
 
         Ok(result)
@@ -71,7 +73,8 @@ impl VillageService {
                 data.longitude.map(|l| ref_geo_villages::longitude.eq(l)),
                 ref_geo_villages::updated_at.eq(diesel::dsl::now),
             ))
-            .get_result::<Village>(&mut conn)?;
+            .returning(Village::as_select())
+            .get_result(&mut conn)?;
 
         Ok(result)
     }
@@ -92,7 +95,8 @@ impl VillageService {
             .filter(ref_geo_villages::district_id.eq(district_id))
             .filter(ref_geo_villages::deleted_at.is_null())
             .order(ref_geo_villages::name.asc())
-            .load::<Village>(&mut conn)?;
+            .select(Village::as_select())
+            .load(&mut conn)?;
 
         Ok(result)
     }
@@ -103,7 +107,8 @@ impl VillageService {
         let result = ref_geo_villages::table
             .filter(ref_geo_villages::deleted_at.is_null())
             .order(ref_geo_villages::name.asc())
-            .load::<Village>(&mut conn)?;
+            .select(Village::as_select())
+            .load(&mut conn)?;
 
         Ok(result)
     }
@@ -125,7 +130,8 @@ impl VillageService {
             .filter(ref_geo_villages::longitude.ge(min_lng_decimal))
             .filter(ref_geo_villages::longitude.le(max_lng_decimal))
             .order(ref_geo_villages::name.asc())
-            .load::<Village>(&mut conn)?;
+            .select(Village::as_select())
+            .load(&mut conn)?;
 
         Ok(result)
     }

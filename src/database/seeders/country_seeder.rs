@@ -7,7 +7,7 @@ use std::fs::File;
 use std::collections::HashMap;
 use serde::Deserialize;
 use diesel::prelude::*;
-use crate::schema::ref_geo_countries;
+use crate::schema::{ref_geo_countries, sys_users};
 
 #[derive(Debug, Deserialize)]
 struct CountryRecord {
@@ -30,6 +30,12 @@ impl Seeder for Countryseeder {
     fn run(&self, pool: &DbPool) -> Result<()> {
         println!("Seeding countries from CSV...");
         let mut conn = pool.get()?;
+
+        // Get system user ID for audit tracking
+        let system_user_id: String = sys_users::table
+            .filter(sys_users::email.eq("system@seeder.internal"))
+            .select(sys_users::id)
+            .first(&mut conn)?;
 
         // Check if countries already exist
         let count: i64 = ref_geo_countries::table
@@ -55,6 +61,7 @@ impl Seeder for Countryseeder {
                 record.name.clone(),
                 record.iso_code.clone(),
                 Some(record.phone_code),
+                Some(&system_user_id),
             );
 
             let inserted_country: Country = diesel::insert_into(ref_geo_countries::table)

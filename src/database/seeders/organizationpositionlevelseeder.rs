@@ -20,11 +20,17 @@ impl Seeder for OrganizationPositionLevelSeeder {
         println!("🌱 Seeding organization position levels...");
         let mut conn = pool.get()?;
 
-        // Get the first organization to use as the main organization
-        let org_id: DieselUlid = organizations::table
-            .select(organizations::id)
-            .first(&mut conn)
-            .map_err(|_| anyhow::anyhow!("No organizations found. Please seed organizations first."))?;
+        // Get all top-level organizations (ones without parent)
+        let organizations: Vec<(DieselUlid, Option<String>)> = organizations::table
+            .filter(organizations::parent_id.is_null())
+            .select((organizations::id, organizations::code))
+            .load(&mut conn)?;
+
+        if organizations.is_empty() {
+            return Err(anyhow::anyhow!("No organizations found. Please seed organizations first."));
+        }
+
+        println!("   Creating position levels for {} organizations", organizations.len());
 
         // Define position levels for the organization hierarchy
         let position_levels = vec![
@@ -55,23 +61,32 @@ impl Seeder for OrganizationPositionLevelSeeder {
             ("EXPERT", "Expert", Some("Expert level positions"), 25),
         ];
 
-        for (code, name, description, level) in position_levels {
-            let position_level = CreateOrganizationPositionLevel {
-                organization_id: org_id,
-                code: code.to_string(),
-                name: name.to_string(),
-                description: description.map(|d| d.to_string()),
-                level,
-            };
+        let mut total_created = 0;
 
-            let new_position_level = NewOrganizationPositionLevel::new(position_level, None);
-            diesel::insert_into(organization_position_levels::table)
-                .values(&new_position_level)
-                .on_conflict_do_nothing()
-                .execute(&mut conn)?;
+        // Create position levels for each organization
+        for (org_id, org_code) in organizations {
+            for (code, name, description, level) in &position_levels {
+                let position_level = CreateOrganizationPositionLevel {
+                    organization_id: org_id,
+                    code: code.to_string(),
+                    name: name.to_string(),
+                    description: description.map(|d| d.to_string()),
+                    level: *level,
+                };
+
+                let new_position_level = NewOrganizationPositionLevel::new(position_level, None);
+                diesel::insert_into(organization_position_levels::table)
+                    .values(&new_position_level)
+                    .on_conflict_do_nothing()
+                    .execute(&mut conn)?;
+                total_created += 1;
+            }
+            if let Some(code) = org_code {
+                println!("   ✓ Created {} position levels for {}", position_levels.len(), code);
+            }
         }
 
-        println!("✅ 25 Organization Position Levels seeded successfully!");
+        println!("✅ {} Organization Position Levels seeded successfully!", total_created);
         Ok(())
     }
 }

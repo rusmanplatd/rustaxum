@@ -14,7 +14,7 @@ impl CityService {
         let city = City::new(data.province_id, data.name, data.code, data.latitude, data.longitude);
         let mut conn = pool.get()?;
 
-        diesel::insert_into(ref_geo_cities::table)
+        let result = diesel::insert_into(ref_geo_cities::table)
             .values((
                 ref_geo_cities::id.eq(&city.id),
                 ref_geo_cities::province_id.eq(&city.province_id),
@@ -25,9 +25,10 @@ impl CityService {
                 ref_geo_cities::created_at.eq(city.created_at),
                 ref_geo_cities::updated_at.eq(city.updated_at),
             ))
-            .execute(&mut conn)?;
+            .returning(City::as_select())
+            .get_result(&mut conn)?;
 
-        Ok(city)
+        Ok(result)
     }
 
     pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<City>> {
@@ -35,7 +36,8 @@ impl CityService {
 
         let result = ref_geo_cities::table
             .filter(ref_geo_cities::id.eq(id.to_string()))
-            .first::<City>(&mut conn)
+            .select(City::as_select())
+            .first(&mut conn)
             .optional()?;
 
         Ok(result)
@@ -47,7 +49,8 @@ impl CityService {
         let result = ref_geo_cities::table
             .filter(ref_geo_cities::province_id.eq(province_id.to_string()))
             .order(ref_geo_cities::name.asc())
-            .load::<City>(&mut conn)?;
+            .select(City::as_select())
+            .load(&mut conn)?;
 
         Ok(result)
     }
@@ -84,7 +87,8 @@ impl CityService {
                 .bind::<diesel::sql_types::Numeric, _>(lat)
                 .sql(")) * sin(radians(latitude)))")
             )
-            .load::<City>(&mut conn)?;
+            .select(City::as_select())
+            .load(&mut conn)?;
 
         Ok(result)
     }
@@ -94,7 +98,8 @@ impl CityService {
 
         let result = ref_geo_cities::table
             .order(ref_geo_cities::name.asc())
-            .load::<City>(&mut conn)?;
+            .select(City::as_select())
+            .load(&mut conn)?;
 
         Ok(result)
     }
@@ -124,7 +129,7 @@ impl CityService {
         }
         current.updated_at = chrono::Utc::now();
 
-        diesel::update(ref_geo_cities::table.filter(ref_geo_cities::id.eq(&id)))
+        let result = diesel::update(ref_geo_cities::table.filter(ref_geo_cities::id.eq(&id)))
             .set((
                 ref_geo_cities::province_id.eq(&current.province_id),
                 ref_geo_cities::name.eq(&current.name),
@@ -133,9 +138,10 @@ impl CityService {
                 ref_geo_cities::longitude.eq(current.longitude),
                 ref_geo_cities::updated_at.eq(current.updated_at),
             ))
-            .execute(&mut conn)?;
+            .returning(City::as_select())
+            .get_result(&mut conn)?;
 
-        Ok(current)
+        Ok(result)
     }
 
     pub fn delete(pool: &DbPool, id: String) -> Result<()> {

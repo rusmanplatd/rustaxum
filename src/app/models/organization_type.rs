@@ -108,8 +108,8 @@ impl NewOrganizationType {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: created_by,
-            updated_by_id: created_by,
+            created_by_id: created_by.map(|id| id.to_string()).unwrap_or_else(|| "01SYSTEM000000000000000000".to_string()),
+            updated_by_id: created_by.map(|id| id.to_string()).unwrap_or_else(|| "01SYSTEM000000000000000000".to_string()),
             deleted_by_id: None,
         }
     }

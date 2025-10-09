@@ -21,7 +21,7 @@ impl Seeder for OrganizationTypeSeeder {
         let system_user_id: String = sys_users::table
             .filter(sys_users::email.eq("system@seeder.internal"))
             .select(sys_users::id)
-            .first(conn)?;
+            .first(&mut conn)?;
 
         // Define organization types by domain with hierarchical levels
         let types_data = vec![

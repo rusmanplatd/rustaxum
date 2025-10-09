@@ -113,7 +113,7 @@ impl UserService {
                 data.name.as_ref().map(|n| sys_users::name.eq(n)),
                 data.email.as_ref().map(|e| sys_users::email.eq(e)),
                 sys_users::updated_at.eq(Utc::now()),
-                sys_users::updated_by_id.eq(updated_by),
+                updated_by.map(|id| sys_users::updated_by_id.eq(id)),
             ))
             .returning(User::as_select())
             .get_result::<User>(&mut conn)?;
@@ -162,7 +162,7 @@ impl UserService {
             .set((
                 sys_users::password.eq(new_password),
                 sys_users::updated_at.eq(Utc::now()),
-                sys_users::updated_by_id.eq(updated_by),
+                updated_by.map(|id| sys_users::updated_by_id.eq(id)),
             ))
             .execute(&mut conn)?;
 

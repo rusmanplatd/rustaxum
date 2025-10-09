@@ -130,8 +130,8 @@ impl UserWithAuditResource {
             created_at: model.created_at,
             updated_at: model.updated_at,
             deleted_at: model.deleted_at,
-            created_by_id: model.created_by_id.map(|id| id.to_string()),
-            updated_by_id: model.updated_by_id.map(|id| id.to_string()),
+            created_by_id: Some(model.created_by_id.to_string()),
+            updated_by_id: Some(model.updated_by_id.to_string()),
             deleted_by_id: model.deleted_by_id.map(|id| id.to_string()),
         }
     }

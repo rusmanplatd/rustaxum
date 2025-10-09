@@ -21,7 +21,7 @@ impl Seeder for OrganizationDomainSeeder {
         let system_user_id: String = sys_users::table
             .filter(sys_users::email.eq("system@seeder.internal"))
             .select(sys_users::id)
-            .first(conn)?;
+            .first(&mut conn)?;
 
         let domains = vec![
             (

@@ -21,15 +21,17 @@ impl Seeder for OrganizationPositionSeeder {
         println!("🌱 Seeding organization positions...");
         let mut conn = pool.get()?;
 
-        // Get organization and position levels
-        let org_id: DieselUlid = organizations::table
-            .select(organizations::id)
-            .first(&mut conn)
-            .map_err(|_| anyhow::anyhow!("No organizations found. Please seed organizations first."))?;
-
-        let position_levels: Vec<(DieselUlid, String, i32)> = organization_position_levels::table
-            .select((organization_position_levels::id, organization_position_levels::code, organization_position_levels::level))
+        // Get all top-level organizations
+        let organizations: Vec<(DieselUlid, Option<String>)> = organizations::table
+            .filter(organizations::parent_id.is_null())
+            .select((organizations::id, organizations::code))
             .load(&mut conn)?;
+
+        if organizations.is_empty() {
+            return Err(anyhow::anyhow!("No organizations found. Please seed organizations first."));
+        }
+
+        println!("   Creating positions for {} organizations", organizations.len());
 
         // Define specific positions for each level
         let positions = vec![
@@ -143,31 +145,47 @@ impl Seeder for OrganizationPositionSeeder {
              json!(["Requirements analysis", "Process improvement", "Stakeholder communication"])),
         ];
 
-        for (code, name, level_code, min_sal, max_sal, max_incumbents, qualifications, responsibilities) in positions {
-            // Find the matching position level
-            if let Some((level_id, _, _)) = position_levels.iter().find(|(_, lc, _)| lc == level_code) {
-                let position = CreateOrganizationPosition {
-                    organization_id: org_id,
-                    organization_position_level_id: *level_id,
-                    code: code.to_string(),
-                    name: name.to_string(),
-                    description: Some(format!("Position: {}", name)),
-                    min_salary: Some(DecimalWrapper::from(min_sal)),
-                    max_salary: Some(DecimalWrapper::from(max_sal)),
-                    max_incumbents: Some(max_incumbents),
-                    qualifications: Some(qualifications),
-                    responsibilities: Some(responsibilities),
-                };
+        let mut total_created = 0;
 
-                let new_position = NewOrganizationPosition::new(position, None);
-                diesel::insert_into(organization_positions::table)
-                    .values(&new_position)
-                    .on_conflict_do_nothing()
-                    .execute(&mut conn)?;
+        // Create positions for each organization
+        for (org_id, org_code) in organizations {
+            // Get position levels for this organization
+            let position_levels: Vec<(DieselUlid, String, i32)> = organization_position_levels::table
+                .filter(organization_position_levels::organization_id.eq(org_id))
+                .select((organization_position_levels::id, organization_position_levels::code, organization_position_levels::level))
+                .load(&mut conn)?;
+
+            for (code, name, level_code, min_sal, max_sal, max_incumbents, qualifications, responsibilities) in &positions {
+                // Find the matching position level
+                if let Some((level_id, _, _)) = position_levels.iter().find(|(_, lc, _)| lc == level_code) {
+                    let position = CreateOrganizationPosition {
+                        organization_id: org_id,
+                        organization_position_level_id: *level_id,
+                        code: code.to_string(),
+                        name: name.to_string(),
+                        description: Some(format!("Position: {}", name)),
+                        min_salary: Some(DecimalWrapper::from(*min_sal)),
+                        max_salary: Some(DecimalWrapper::from(*max_sal)),
+                        max_incumbents: Some(*max_incumbents),
+                        qualifications: Some(qualifications.clone()),
+                        responsibilities: Some(responsibilities.clone()),
+                    };
+
+                    let new_position = NewOrganizationPosition::new(position, None);
+                    diesel::insert_into(organization_positions::table)
+                        .values(&new_position)
+                        .on_conflict_do_nothing()
+                        .execute(&mut conn)?;
+                    total_created += 1;
+                }
+            }
+
+            if let Some(code) = org_code {
+                println!("   ✓ Created {} positions for {}", positions.len(), code);
             }
         }
 
-        println!("✅ 25 Organization Positions seeded successfully!");
+        println!("✅ {} Organization Positions seeded successfully!", total_created);
         Ok(())
     }
 }

@@ -1,7 +1,7 @@
 -- Create organization_types table with hierarchical structure
 CREATE TABLE organization_types (
     id CHAR(26) PRIMARY KEY,
-    domain_id CHAR(26) REFERENCES organization_domains(id) ON DELETE CASCADE,
+    domain_id CHAR(26) NOT NULL REFERENCES organization_domains(id) ON DELETE CASCADE,
     code VARCHAR,
     name VARCHAR NOT NULL,
     description TEXT,

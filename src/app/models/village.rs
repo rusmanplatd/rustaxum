@@ -121,8 +121,8 @@ impl Village {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: None,
-            updated_by_id: None,
+            created_by_id: DieselUlid::from_string("01SYSTEM000000000000000000").unwrap(),
+            updated_by_id: DieselUlid::from_string("01SYSTEM000000000000000000").unwrap(),
             deleted_by_id: None,
         }
     }
@@ -160,8 +160,8 @@ impl NewVillage {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: None,
-            updated_by_id: None,
+            created_by_id: DieselUlid::from_string("01SYSTEM000000000000000000").unwrap(),
+            updated_by_id: DieselUlid::from_string("01SYSTEM000000000000000000").unwrap(),
             deleted_by_id: None,
         }
     }

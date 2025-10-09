@@ -82,8 +82,11 @@ pub struct CountryResponse {
 }
 
 impl NewCountry {
-    pub fn new(name: String, iso_code: String, phone_code: Option<String>) -> Self {
+    pub fn new(name: String, iso_code: String, phone_code: Option<String>, created_by: Option<&str>) -> Self {
         let now = Utc::now();
+        let system_id = created_by
+            .and_then(|s| DieselUlid::from_string(s.trim()).ok())
+            .unwrap_or_else(|| DieselUlid::from_string("01SYSTEM000000000000000000").unwrap());
         Self {
             id: DieselUlid::new(),
             name,
@@ -92,8 +95,8 @@ impl NewCountry {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: None,
-            updated_by_id: None,
+            created_by_id: system_id.clone(),
+            updated_by_id: system_id,
             deleted_by_id: None,
         }
     }
@@ -102,6 +105,7 @@ impl NewCountry {
 impl Country {
     pub fn new(name: String, iso_code: String, phone_code: Option<String>) -> Self {
         let now = Utc::now();
+        let system_id = DieselUlid::from_string("01SYSTEM000000000000000000").unwrap();
         Self {
             id: DieselUlid::new(),
             name,
@@ -110,8 +114,8 @@ impl Country {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: None,
-            updated_by_id: None,
+            created_by_id: system_id.clone(),
+            updated_by_id: system_id,
             deleted_by_id: None,
         }
     }
