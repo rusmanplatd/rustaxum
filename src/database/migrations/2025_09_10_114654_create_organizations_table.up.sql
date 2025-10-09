@@ -1,10 +1,10 @@
 -- Create organizations table with hierarchical structure
 CREATE TABLE organizations (
     id CHAR(26) PRIMARY KEY,
+    domain_id CHAR(26) NOT NULL REFERENCES organization_domains(id) ON DELETE CASCADE,
     parent_id CHAR(26) REFERENCES organizations(id) ON DELETE CASCADE,
-    type VARCHAR NOT NULL CHECK (type IN ('company', 'boc', 'bod', 'division', 'department', 'branch', 'subbranch', 'section')),
+    type_id CHAR(26) NOT NULL REFERENCES organization_types(id) ON DELETE CASCADE,
     code VARCHAR,
-    level integer NOT NULL DEFAULT 0,
     name VARCHAR NOT NULL,
     address TEXT,
     authorized_capital NUMERIC(15, 2),
@@ -33,8 +33,9 @@ CREATE TABLE organizations (
 
 -- Add indexes
 CREATE INDEX idx_organizations_name ON organizations (name);
-CREATE INDEX idx_organizations_type ON organizations (type);
+CREATE INDEX idx_organizations_domain_id ON organizations (domain_id);
 CREATE INDEX idx_organizations_parent_id ON organizations (parent_id);
+CREATE INDEX idx_organizations_type_id ON organizations (type_id);
 CREATE INDEX idx_organizations_code ON organizations (code);
 CREATE INDEX idx_organizations_is_active ON organizations (is_active);
 CREATE INDEX idx_organizations_created_at ON organizations (created_at);

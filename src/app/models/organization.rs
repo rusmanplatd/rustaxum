@@ -18,16 +18,8 @@ pub struct Organization {
     /// Parent organization ID for hierarchical structure
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub parent_id: Option<DieselUlid>,
-    /// Type of organization (company, boc, bod, division, department, branch, subbranch, section)
-    #[schema(example = "department")]
-    #[diesel(column_name = type_)]
-    pub organization_type: String,
-    /// Optional organization code
     #[schema(example = "ENG-001")]
     pub code: Option<String>,
-    /// Organization level in hierarchy
-    #[schema(example = 2)]
-    pub level: i32,
     /// Organization name
     #[schema(example = "Engineering Department")]
     pub name: String,

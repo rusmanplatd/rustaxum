@@ -1025,10 +1025,7 @@ diesel::table! {
         id -> Bpchar,
         #[max_length = 26]
         parent_id -> Nullable<Bpchar>,
-        #[sql_name = "type"]
-        type_ -> Varchar,
         code -> Nullable<Varchar>,
-        level -> Int4,
         name -> Varchar,
         address -> Nullable<Text>,
         authorized_capital -> Nullable<Numeric>,
