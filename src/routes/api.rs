@@ -6,7 +6,7 @@ use axum::{
 use crate::database::DbPool;
 use crate::app::http::middleware::auth_guard::auth_guard;
 
-use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, district_controller, village_controller, role_controller, permission_controller, docs_controller, user_organization_controller, organization_position_level_controller, organization_position_controller, sys_model_has_permission_controller, sys_model_has_role_controller, activity_log_controller, session_controller};
+use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, district_controller, village_controller, role_controller, permission_controller, docs_controller, organization_domain_controller, organization_type_controller, user_organization_controller, organization_position_level_controller, organization_position_controller, sys_model_has_permission_controller, sys_model_has_role_controller, activity_log_controller, session_controller};
 use crate::app::http::controllers::web_push_controller::WebPushController;
 
 pub fn routes() -> Router<DbPool> {
@@ -99,6 +99,18 @@ pub fn routes() -> Router<DbPool> {
         .route("/api/user-organizations/{id}/transfer", post(user_organization_controller::transfer))
         .route("/api/user-organizations/{id}/activate", post(user_organization_controller::activate))
         .route("/api/user-organizations/{id}/deactivate", post(user_organization_controller::deactivate))
+        // Organization Domain routes
+        .route("/api/organization-domains", get(organization_domain_controller::index))
+        .route("/api/organization-domains", post(organization_domain_controller::store))
+        .route("/api/organization-domains/{id}", get(organization_domain_controller::show))
+        .route("/api/organization-domains/{id}", put(organization_domain_controller::update))
+        .route("/api/organization-domains/{id}", delete(organization_domain_controller::destroy))
+        // Organization Type routes
+        .route("/api/organization-types", get(organization_type_controller::index))
+        .route("/api/organization-types", post(organization_type_controller::store))
+        .route("/api/organization-types/{id}", get(organization_type_controller::show))
+        .route("/api/organization-types/{id}", put(organization_type_controller::update))
+        .route("/api/organization-types/{id}", delete(organization_type_controller::destroy))
         // Job Level routes
         .route("/api/organization-position-levels", get(organization_position_level_controller::index))
         .route("/api/organization-position-levels", post(organization_position_level_controller::store))

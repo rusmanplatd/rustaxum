@@ -25,32 +25,84 @@ impl Seeder for UserSeeder {
         let now = Utc::now().naive_utc();
         let password = AuthService::hash_password("password")?;
 
+        // Enhanced user data with more diversity and realistic profiles
         let users = vec![
-            ("Admin User", "admin@example.com", Some("admin"), true, Some("1985-01-15"), Some("+1-555-0001"), Some("America/New_York"), Some("en-US")),
-            ("John Smith", "john.smith@example.com", Some("jsmith"), true, Some("1990-03-22"), Some("+1-555-0002"), Some("America/New_York"), Some("en-US")),
-            ("Sarah Johnson", "sarah.johnson@example.com", Some("sjohnson"), true, Some("1988-07-10"), Some("+1-555-0003"), Some("America/Chicago"), Some("en-US")),
-            ("Michael Brown", "michael.brown@example.com", Some("mbrown"), true, Some("1987-11-05"), Some("+1-555-0004"), Some("America/Denver"), Some("en-US")),
-            ("Emily Davis", "emily.davis@example.com", Some("edavis"), true, Some("1992-04-18"), Some("+1-555-0005"), Some("America/Los_Angeles"), Some("en-US")),
-            ("David Wilson", "david.wilson@example.com", Some("dwilson"), true, Some("1986-09-12"), Some("+1-555-0006"), Some("America/New_York"), Some("en-US")),
-            ("Lisa Miller", "lisa.miller@example.com", Some("lmiller"), true, Some("1991-02-28"), Some("+1-555-0007"), Some("America/Chicago"), Some("en-US")),
-            ("Robert Garcia", "robert.garcia@example.com", Some("rgarcia"), true, Some("1989-06-14"), Some("+1-555-0008"), Some("America/Phoenix"), Some("es-US")),
-            ("Jennifer Martinez", "jennifer.martinez@example.com", Some("jmartinez"), true, Some("1993-08-03"), Some("+1-555-0009"), Some("America/Los_Angeles"), Some("es-US")),
-            ("William Anderson", "william.anderson@example.com", Some("wanderson"), true, Some("1984-12-20"), Some("+1-555-0010"), Some("America/New_York"), Some("en-US")),
-            ("Jessica Taylor", "jessica.taylor@example.com", Some("jtaylor"), true, Some("1990-05-07"), Some("+1-555-0011"), Some("America/Chicago"), Some("en-US")),
-            ("Christopher Thomas", "christopher.thomas@example.com", Some("cthomas"), true, Some("1987-10-25"), Some("+1-555-0012"), Some("America/Denver"), Some("en-US")),
-            ("Amanda Jackson", "amanda.jackson@example.com", Some("ajackson"), true, Some("1994-01-16"), Some("+1-555-0013"), Some("America/Los_Angeles"), Some("en-US")),
-            ("Matthew White", "matthew.white@example.com", Some("mwhite"), true, Some("1988-03-09"), Some("+1-555-0014"), Some("America/New_York"), Some("en-US")),
-            ("Ashley Harris", "ashley.harris@example.com", Some("aharris"), true, Some("1991-07-23"), Some("+1-555-0015"), Some("America/Chicago"), Some("en-US")),
-            ("Daniel Martin", "daniel.martin@example.com", Some("dmartin"), true, Some("1986-11-11"), Some("+1-555-0016"), Some("America/Phoenix"), Some("en-US")),
-            ("Stephanie Thompson", "stephanie.thompson@example.com", Some("sthompson"), true, Some("1992-09-04"), Some("+1-555-0017"), Some("America/Los_Angeles"), Some("en-US")),
-            ("Joshua Garcia", "joshua.garcia@example.com", Some("jgarcia"), true, Some("1989-12-18"), Some("+1-555-0018"), Some("America/Denver"), Some("es-US")),
-            ("Michelle Rodriguez", "michelle.rodriguez@example.com", Some("mrodriguez"), true, Some("1993-04-27"), Some("+1-555-0019"), Some("America/Los_Angeles"), Some("es-US")),
-            ("Andrew Lewis", "andrew.lewis@example.com", Some("alewis"), true, Some("1985-08-13"), Some("+1-555-0020"), Some("America/New_York"), Some("en-US")),
-            ("Elizabeth Lee", "elizabeth.lee@example.com", Some("elee"), true, Some("1990-10-31"), Some("+1-555-0021"), Some("America/Chicago"), Some("en-US")),
-            ("Ryan Walker", "ryan.walker@example.com", Some("rwalker"), true, Some("1987-06-06"), Some("+1-555-0022"), Some("America/Denver"), Some("en-US")),
-            ("Nicole Hall", "nicole.hall@example.com", Some("nhall"), true, Some("1994-02-14"), Some("+1-555-0023"), Some("America/Los_Angeles"), Some("en-US")),
-            ("Brandon Allen", "brandon.allen@example.com", Some("ballen"), true, Some("1988-05-19"), Some("+1-555-0024"), Some("America/Phoenix"), Some("en-US")),
-            ("Samantha Young", "samantha.young@example.com", Some("syoung"), true, Some("1991-09-08"), Some("+1-555-0025"), Some("America/New_York"), Some("en-US")),
+            // Executive Leadership
+            ("Jane CEO", "jane.ceo@techcorp.com", Some("jceo"), true, Some("1975-03-15"), Some("+1-555-1001"), Some("America/New_York"), Some("en-US")),
+            ("John CFO", "john.cfo@techcorp.com", Some("jcfo"), true, Some("1978-07-22"), Some("+1-555-1002"), Some("America/New_York"), Some("en-US")),
+            ("Mary CTO", "mary.cto@techcorp.com", Some("mcto"), true, Some("1980-11-10"), Some("+1-555-1003"), Some("America/New_York"), Some("en-US")),
+            ("Bob COO", "bob.coo@techcorp.com", Some("bcoo"), true, Some("1976-05-18"), Some("+1-555-1004"), Some("America/New_York"), Some("en-US")),
+
+            // Senior Management
+            ("Sarah VP Engineering", "sarah.vp@techcorp.com", Some("svp"), true, Some("1982-09-05"), Some("+1-555-2001"), Some("America/Chicago"), Some("en-US")),
+            ("Michael VP Product", "michael.vp@techcorp.com", Some("mvp"), true, Some("1983-04-12"), Some("+1-555-2002"), Some("America/Chicago"), Some("en-US")),
+            ("Emily VP Operations", "emily.vp@techcorp.com", Some("evp"), true, Some("1981-12-28"), Some("+1-555-2003"), Some("America/Denver"), Some("en-US")),
+            ("David VP Sales", "david.vp@techcorp.com", Some("dvp"), true, Some("1979-08-14"), Some("+1-555-2004"), Some("America/Los_Angeles"), Some("en-US")),
+
+            // Engineering Directors
+            ("Lisa Backend Director", "lisa.backend@techcorp.com", Some("lbackend"), true, Some("1985-02-20"), Some("+1-555-3001"), Some("America/New_York"), Some("en-US")),
+            ("Robert Frontend Director", "robert.frontend@techcorp.com", Some("rfrontend"), true, Some("1986-06-15"), Some("+1-555-3002"), Some("America/Chicago"), Some("en-US")),
+            ("Jennifer Mobile Director", "jennifer.mobile@techcorp.com", Some("jmobile"), true, Some("1987-10-08"), Some("+1-555-3003"), Some("America/Los_Angeles"), Some("en-US")),
+            ("William QA Director", "william.qa@techcorp.com", Some("wqa"), true, Some("1984-03-25"), Some("+1-555-3004"), Some("America/Denver"), Some("en-US")),
+            ("Jessica DevOps Director", "jessica.devops@techcorp.com", Some("jdevops"), true, Some("1988-11-30"), Some("+1-555-3005"), Some("America/Phoenix"), Some("en-US")),
+
+            // Product & Design
+            ("Christopher Product Manager", "christopher.pm@techcorp.com", Some("cpm"), true, Some("1989-01-17"), Some("+1-555-4001"), Some("America/New_York"), Some("en-US")),
+            ("Amanda UX Director", "amanda.ux@techcorp.com", Some("aux"), true, Some("1990-05-22"), Some("+1-555-4002"), Some("America/Los_Angeles"), Some("en-US")),
+            ("Matthew Designer", "matthew.design@techcorp.com", Some("mdesign"), true, Some("1991-09-12"), Some("+1-555-4003"), Some("America/Chicago"), Some("en-US")),
+
+            // Senior Engineers
+            ("Ashley Senior Backend", "ashley.backend@techcorp.com", Some("abackend"), true, Some("1988-07-08"), Some("+1-555-5001"), Some("America/New_York"), Some("en-US")),
+            ("Daniel Senior Frontend", "daniel.frontend@techcorp.com", Some("dfrontend"), true, Some("1989-12-14"), Some("+1-555-5002"), Some("America/Chicago"), Some("en-US")),
+            ("Stephanie Senior Mobile", "stephanie.mobile@techcorp.com", Some("smobile"), true, Some("1990-04-19"), Some("+1-555-5003"), Some("America/Los_Angeles"), Some("en-US")),
+            ("Joshua Senior DevOps", "joshua.devops@techcorp.com", Some("jdevops"), true, Some("1987-08-23"), Some("+1-555-5004"), Some("America/Denver"), Some("en-US")),
+
+            // Mid-Level Engineers
+            ("Michelle Backend Dev", "michelle.backend@techcorp.com", Some("mbackend"), true, Some("1992-02-11"), Some("+1-555-6001"), Some("America/New_York"), Some("en-US")),
+            ("Andrew Frontend Dev", "andrew.frontend@techcorp.com", Some("afrontend"), true, Some("1993-06-27"), Some("+1-555-6002"), Some("America/Chicago"), Some("en-US")),
+            ("Elizabeth iOS Dev", "elizabeth.ios@techcorp.com", Some("eios"), true, Some("1991-10-15"), Some("+1-555-6003"), Some("America/Los_Angeles"), Some("en-US")),
+            ("Ryan Android Dev", "ryan.android@techcorp.com", Some("randroid"), true, Some("1992-03-08"), Some("+1-555-6004"), Some("America/Denver"), Some("en-US")),
+            ("Nicole QA Engineer", "nicole.qa@techcorp.com", Some("nqa"), true, Some("1993-11-22"), Some("+1-555-6005"), Some("America/Phoenix"), Some("en-US")),
+
+            // Junior Engineers
+            ("Brandon Junior Backend", "brandon.junior@techcorp.com", Some("bjunior"), true, Some("1995-01-14"), Some("+1-555-7001"), Some("America/New_York"), Some("en-US")),
+            ("Samantha Junior Frontend", "samantha.junior@techcorp.com", Some("sjunior"), true, Some("1996-05-09"), Some("+1-555-7002"), Some("America/Chicago"), Some("en-US")),
+            ("Kevin Junior Mobile", "kevin.junior@techcorp.com", Some("kjunior"), true, Some("1994-09-18"), Some("+1-555-7003"), Some("America/Los_Angeles"), Some("en-US")),
+            ("Rachel Junior QA", "rachel.junior@techcorp.com", Some("rjunior"), true, Some("1997-02-26"), Some("+1-555-7004"), Some("America/Denver"), Some("en-US")),
+            ("Tyler Junior DevOps", "tyler.junior@techcorp.com", Some("tjunior"), true, Some("1995-07-03"), Some("+1-555-7005"), Some("America/Phoenix"), Some("en-US")),
+
+            // Interns
+            ("Madison Intern Backend", "madison.intern@techcorp.com", Some("mintern"), true, Some("1999-03-21"), Some("+1-555-8001"), Some("America/New_York"), Some("en-US")),
+            ("Jordan Intern Frontend", "jordan.intern@techcorp.com", Some("jintern"), true, Some("2000-08-16"), Some("+1-555-8002"), Some("America/Chicago"), Some("en-US")),
+            ("Taylor Intern Mobile", "taylor.intern@techcorp.com", Some("tintern"), true, Some("1998-12-05"), Some("+1-555-8003"), Some("America/Los_Angeles"), Some("en-US")),
+            ("Alex Intern QA", "alex.intern@techcorp.com", Some("aintern"), true, Some("2001-04-11"), Some("+1-555-8004"), Some("America/Denver"), Some("en-US")),
+            ("Morgan Intern DevOps", "morgan.intern@techcorp.com", Some("mointern"), true, Some("1999-10-28"), Some("+1-555-8005"), Some("America/Phoenix"), Some("en-US")),
+
+            // Sales & Marketing
+            ("Brian Sales Manager", "brian.sales@techcorp.com", Some("bsales"), true, Some("1986-04-07"), Some("+1-555-9001"), Some("America/New_York"), Some("en-US")),
+            ("Melissa Marketing Manager", "melissa.marketing@techcorp.com", Some("mmarketing"), true, Some("1987-11-19"), Some("+1-555-9002"), Some("America/Los_Angeles"), Some("en-US")),
+            ("Patrick Account Manager", "patrick.account@techcorp.com", Some("paccount"), true, Some("1988-06-24"), Some("+1-555-9003"), Some("America/Chicago"), Some("en-US")),
+            ("Rebecca Business Dev", "rebecca.bizdev@techcorp.com", Some("rbizdev"), true, Some("1989-02-13"), Some("+1-555-9004"), Some("America/Denver"), Some("en-US")),
+
+            // Operations & Support
+            ("Steven IT Support", "steven.it@techcorp.com", Some("sit"), true, Some("1990-08-30"), Some("+1-555-9101"), Some("America/Phoenix"), Some("en-US")),
+            ("Christina Network Admin", "christina.network@techcorp.com", Some("cnetwork"), true, Some("1991-12-17"), Some("+1-555-9102"), Some("America/New_York"), Some("en-US")),
+            ("James Security Analyst", "james.security@techcorp.com", Some("jsecurity"), true, Some("1988-05-06"), Some("+1-555-9103"), Some("America/Chicago"), Some("en-US")),
+            ("Kimberly Data Analyst", "kimberly.data@techcorp.com", Some("kdata"), true, Some("1992-09-21"), Some("+1-555-9104"), Some("America/Los_Angeles"), Some("en-US")),
+
+            // Consultants
+            ("Thomas Enterprise Consultant", "thomas.consultant@techcorp.com", Some("tconsultant"), true, Some("1983-07-12"), Some("+1-555-9201"), Some("America/Denver"), Some("en-US")),
+            ("Angela Technical Consultant", "angela.tech@techcorp.com", Some("atech"), true, Some("1985-11-27"), Some("+1-555-9202"), Some("America/Phoenix"), Some("en-US")),
+
+            // Cloud & Infrastructure
+            ("Richard Cloud Architect", "richard.cloud@techcorp.com", Some("rcloud"), true, Some("1984-03-18"), Some("+1-555-9301"), Some("America/New_York"), Some("en-US")),
+            ("Karen SRE Lead", "karen.sre@techcorp.com", Some("ksre"), true, Some("1986-09-04"), Some("+1-555-9302"), Some("America/Chicago"), Some("en-US")),
+            ("Charles Platform Engineer", "charles.platform@techcorp.com", Some("cplatform"), true, Some("1989-01-29"), Some("+1-555-9303"), Some("America/Los_Angeles"), Some("en-US")),
+
+            // Security Team
+            ("Nancy SOC Manager", "nancy.soc@techcorp.com", Some("nsoc"), true, Some("1987-06-10"), Some("+1-555-9401"), Some("America/Denver"), Some("en-US")),
+            ("Jason Incident Response", "jason.incident@techcorp.com", Some("jincident"), true, Some("1990-10-23"), Some("+1-555-9402"), Some("America/Phoenix"), Some("en-US")),
+            ("Laura Threat Analyst", "laura.threat@techcorp.com", Some("lthreat"), true, Some("1991-04-16"), Some("+1-555-9403"), Some("America/New_York"), Some("en-US")),
         ];
 
         for (i, (name, email, username, verified, birthdate, phone, zoneinfo, locale)) in users.iter().enumerate() {
@@ -95,7 +147,7 @@ impl Seeder for UserSeeder {
                 .execute(&mut conn)?;
         }
 
-        println!("✅ 25 Users seeded successfully!");
+        println!("✅ {} Users seeded successfully!", users.len());
         Ok(())
     }
 }

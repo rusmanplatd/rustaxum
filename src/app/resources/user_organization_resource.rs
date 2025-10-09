@@ -123,9 +123,6 @@ pub struct OrganizationBasicInfo {
     /// Organization name
     #[schema(example = "Engineering Department")]
     pub name: String,
-    /// Organization type
-    #[schema(example = "department")]
-    pub organization_type: String,
     /// Organization code
     #[schema(example = "ENG-001")]
     pub code: Option<String>,

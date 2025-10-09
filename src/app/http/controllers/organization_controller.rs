@@ -133,11 +133,11 @@ pub async fn store(State(pool): State<DbPool>, request: CreateOrganizationReques
     };
 
     let payload = CreateOrganization {
+        domain_id: request.domain_id,
+        type_id: request.type_id,
         name: request.name,
-        organization_type: request.organization_type,
         parent_id,
         code: request.code,
-        level: request.level,
         address: request.address,
         authorized_capital: request.authorized_capital,
         business_activities: request.business_activities,
@@ -212,11 +212,11 @@ pub async fn update(
     };
 
     let payload = UpdateOrganization {
+        domain_id: request.domain_id,
+        type_id: request.type_id,
         name: request.name,
-        organization_type: request.organization_type,
         parent_id,
         code: Some(request.code),
-        level: None,
         address: None,
         authorized_capital: None,
         business_activities: None,

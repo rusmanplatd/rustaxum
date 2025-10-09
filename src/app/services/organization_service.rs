@@ -90,7 +90,8 @@ impl OrganizationService {
         let result = diesel::update(organizations::table.filter(organizations::id.eq(id.to_string())))
             .set((
                 data.name.map(|n| organizations::name.eq(n)),
-                data.organization_type.map(|t| organizations::type_.eq(t)),
+                data.domain_id.map(|d| organizations::domain_id.eq(d.to_string())),
+                data.type_id.map(|t| organizations::type_id.eq(t.to_string())),
                 parent_id.map(|p| organizations::parent_id.eq(p)),
                 data.code.map(|c| organizations::code.eq(c)),
                 data.description.map(|d| organizations::description.eq(d)),

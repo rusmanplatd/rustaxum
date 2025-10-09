@@ -7,7 +7,7 @@ use crate::app::http::form_request::FormRequest;
 use crate::app::validation::ValidationRules;
 use crate::validation_rules;
 use crate::impl_form_request_extractor;
-use crate::app::models::DecimalWrapper;
+use crate::app::models::{DecimalWrapper, DieselUlid};
 use serde_json::Value as JsonValue;
 use chrono::NaiveDate;
 
@@ -15,12 +15,15 @@ use chrono::NaiveDate;
 /// Contains all required and optional fields for organization creation
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct CreateOrganizationRequest {
+    /// Organization domain ID (ULID format)
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub domain_id: DieselUlid,
+    /// Organization type ID (ULID format)
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub type_id: DieselUlid,
     /// Organization name (2-100 characters)
     #[schema(example = "Engineering Department")]
     pub name: String,
-    /// Type of organization (company, boc, bod, division, department, branch, subbranch, section)
-    #[schema(example = "department")]
-    pub organization_type: String,
     /// Parent organization ID (ULID format)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
@@ -29,10 +32,6 @@ pub struct CreateOrganizationRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "ENG-001")]
     pub code: Option<String>,
-    /// Organization level in hierarchy
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(example = 2)]
-    pub level: Option<i32>,
     /// Organization address
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(example = "123 Main St, City, Country")]
@@ -87,7 +86,6 @@ impl FormRequest for CreateOrganizationRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
             "name" => ["required", "string", "min:2", "max:100"],
-            "organization_type" => ["required", "string", "min:2", "max:50"],
             "parent_id" => ["string", "regex:^[0-9A-HJKMNP-TV-Z]{26}$"],
             "code" => ["string", "min:2", "max:20", "regex:^[A-Z0-9-_]+$"],
             "description" => ["string", "max:500"]
@@ -99,9 +97,6 @@ impl FormRequest for CreateOrganizationRequest {
         messages.insert("name.required", "Organization name is required");
         messages.insert("name.min", "Organization name must be at least 2 characters");
         messages.insert("name.max", "Organization name cannot exceed 100 characters");
-        messages.insert("organization_type.required", "Organization type is required");
-        messages.insert("organization_type.min", "Organization type must be at least 2 characters");
-        messages.insert("organization_type.max", "Organization type cannot exceed 50 characters");
         messages.insert("parent_id.regex", "Parent ID must be a valid ULID format");
         messages.insert("code.min", "Organization code must be at least 2 characters");
         messages.insert("code.max", "Organization code cannot exceed 20 characters");
@@ -112,7 +107,6 @@ impl FormRequest for CreateOrganizationRequest {
 
     fn prepare_for_validation(&mut self) {
         self.name = self.name.trim().to_string();
-        self.organization_type = self.organization_type.trim().to_lowercase();
         if let Some(ref mut parent_id) = self.parent_id {
             *parent_id = parent_id.trim().to_string();
             if parent_id.is_empty() {
@@ -141,12 +135,17 @@ impl_form_request_extractor!(CreateOrganizationRequest);
 /// @example {"name": "Software Engineering Department"}
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct UpdateOrganizationRequest {
+    /// Organization domain ID (ULID format, optional)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub domain_id: Option<DieselUlid>,
+    /// Organization type ID (ULID format, optional)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub type_id: Option<DieselUlid>,
     /// Organization name (2-100 characters, optional)
     #[schema(example = "Software Engineering Department")]
     pub name: Option<String>,
-    /// Type of organization (2-50 characters, optional)
-    #[schema(example = "division")]
-    pub organization_type: Option<String>,
     /// Parent organization ID (ULID format, optional)
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub parent_id: Option<String>,
@@ -166,7 +165,6 @@ impl FormRequest for UpdateOrganizationRequest {
     fn rules() -> ValidationRules {
         validation_rules! {
             "name" => ["string", "min:2", "max:100"],
-            "organization_type" => ["string", "min:2", "max:50"],
             "parent_id" => ["string", "regex:^[0-9A-HJKMNP-TV-Z]{26}$"],
             "code" => ["string", "min:2", "max:20", "regex:^[A-Z0-9-_]+$"],
             "description" => ["string", "max:500"]
@@ -177,8 +175,6 @@ impl FormRequest for UpdateOrganizationRequest {
         let mut messages = HashMap::new();
         messages.insert("name.min", "Organization name must be at least 2 characters");
         messages.insert("name.max", "Organization name cannot exceed 100 characters");
-        messages.insert("organization_type.min", "Organization type must be at least 2 characters");
-        messages.insert("organization_type.max", "Organization type cannot exceed 50 characters");
         messages.insert("parent_id.regex", "Parent ID must be a valid ULID format");
         messages.insert("code.min", "Organization code must be at least 2 characters");
         messages.insert("code.max", "Organization code cannot exceed 20 characters");
@@ -192,12 +188,6 @@ impl FormRequest for UpdateOrganizationRequest {
             *name = name.trim().to_string();
             if name.is_empty() {
                 self.name = None;
-            }
-        }
-        if let Some(ref mut organization_type) = self.organization_type {
-            *organization_type = organization_type.trim().to_lowercase();
-            if organization_type.is_empty() {
-                self.organization_type = None;
             }
         }
         if let Some(ref mut parent_id) = self.parent_id {

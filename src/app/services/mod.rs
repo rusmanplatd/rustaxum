@@ -10,6 +10,8 @@ pub mod district_service;
 pub mod village_service;
 pub mod role_service;
 pub mod permission_service;
+pub mod organization_domain_service;
+pub mod organization_type_service;
 pub mod organization_service;
 pub mod organization_position_level_service;
 pub mod organization_position_service;

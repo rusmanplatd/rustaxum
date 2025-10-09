@@ -1020,11 +1020,56 @@ diesel::table! {
 }
 
 diesel::table! {
+    organization_domains (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        code -> Nullable<Varchar>,
+        name -> Varchar,
+        description -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by_id -> Nullable<Bpchar>,
+        #[max_length = 26]
+        updated_by_id -> Nullable<Bpchar>,
+        #[max_length = 26]
+        deleted_by_id -> Nullable<Bpchar>,
+    }
+}
+
+diesel::table! {
+    organization_types (id) {
+        #[max_length = 26]
+        id -> Bpchar,
+        #[max_length = 26]
+        domain_id -> Bpchar,
+        code -> Nullable<Varchar>,
+        name -> Varchar,
+        description -> Nullable<Text>,
+        level -> Int4,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 26]
+        created_by_id -> Nullable<Bpchar>,
+        #[max_length = 26]
+        updated_by_id -> Nullable<Bpchar>,
+        #[max_length = 26]
+        deleted_by_id -> Nullable<Bpchar>,
+    }
+}
+
+diesel::table! {
     organizations (id) {
         #[max_length = 26]
         id -> Bpchar,
         #[max_length = 26]
+        domain_id -> Bpchar,
+        #[max_length = 26]
         parent_id -> Nullable<Bpchar>,
+        #[max_length = 26]
+        type_id -> Bpchar,
         code -> Nullable<Varchar>,
         name -> Varchar,
         address -> Nullable<Text>,
@@ -1627,6 +1672,9 @@ diesel::joinable!(oauth_refresh_tokens -> oauth_access_tokens (access_token_id))
 diesel::joinable!(organization_position_levels -> organizations (organization_id));
 diesel::joinable!(organization_positions -> organization_position_levels (organization_position_level_id));
 diesel::joinable!(organization_positions -> organizations (organization_id));
+diesel::joinable!(organization_types -> organization_domains (domain_id));
+diesel::joinable!(organizations -> organization_domains (domain_id));
+diesel::joinable!(organizations -> organization_types (type_id));
 diesel::joinable!(pinned_messages -> conversations (conversation_id));
 diesel::joinable!(pinned_messages -> devices (pinned_by_device_id));
 diesel::joinable!(pinned_messages -> messages (message_id));
@@ -1711,8 +1759,10 @@ diesel::allow_tables_to_appear_in_same_query!(
     oauth_pushed_requests,
     oauth_refresh_tokens,
     oauth_scopes,
+    organization_domains,
     organization_position_levels,
     organization_positions,
+    organization_types,
     organizations,
     pinned_messages,
     poll_votes,

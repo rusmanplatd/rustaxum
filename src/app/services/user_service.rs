@@ -447,7 +447,6 @@ impl UserService {
                 let organization_basic = org.map(|o| OrganizationBasicInfo {
                     id: o.id.to_string(),
                     name: o.name,
-                    organization_type: o.organization_type,
                     code: o.code,
                 });
 
@@ -662,7 +661,6 @@ impl UserService {
                 let organization_basic = org.map(|o| OrganizationBasicInfo {
                     id: o.id.to_string(),
                     name: o.name,
-                    organization_type: o.organization_type,
                     code: o.code,
                 });
 

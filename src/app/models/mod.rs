@@ -10,6 +10,8 @@ pub mod district;
 pub mod village;
 pub mod role;
 pub mod permission;
+pub mod organization_domain;
+pub mod organization_type;
 pub mod organization;
 pub mod organization_position_level;
 pub mod organization_position;

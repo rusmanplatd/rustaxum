@@ -15,9 +15,15 @@ pub struct Organization {
     /// Unique identifier for the organization
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub id: DieselUlid,
+    /// Reference to the organization domain
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub domain_id: DieselUlid,
     /// Parent organization ID for hierarchical structure
     #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
     pub parent_id: Option<DieselUlid>,
+    /// Reference to the organization type
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub type_id: DieselUlid,
     #[schema(example = "ENG-001")]
     pub code: Option<String>,
     /// Organization name
@@ -80,11 +86,11 @@ pub struct Organization {
 /// Create organization payload for service layer
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct CreateOrganization {
+    pub domain_id: DieselUlid,
+    pub type_id: DieselUlid,
     pub name: String,
-    pub organization_type: String,
     pub parent_id: Option<DieselUlid>,
     pub code: Option<String>,
-    pub level: Option<i32>,
     pub address: Option<String>,
     pub authorized_capital: Option<DecimalWrapper>,
     pub business_activities: Option<String>,
@@ -107,11 +113,10 @@ pub struct CreateOrganization {
 #[diesel(table_name = crate::schema::organizations)]
 pub struct NewOrganization {
     pub id: DieselUlid,
+    pub domain_id: DieselUlid,
     pub parent_id: Option<DieselUlid>,
-    #[diesel(column_name = type_)]
-    pub organization_type: String,
+    pub type_id: DieselUlid,
     pub code: Option<String>,
-    pub level: i32,
     pub name: String,
     pub address: Option<String>,
     pub authorized_capital: Option<DecimalWrapper>,
@@ -140,11 +145,11 @@ pub struct NewOrganization {
 /// Update organization payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateOrganization {
+    pub domain_id: Option<DieselUlid>,
+    pub type_id: Option<DieselUlid>,
     pub name: Option<String>,
-    pub organization_type: Option<String>,
     pub parent_id: Option<Option<DieselUlid>>,
     pub code: Option<Option<String>>,
-    pub level: Option<i32>,
     pub address: Option<Option<String>>,
     pub authorized_capital: Option<Option<DecimalWrapper>>,
     pub business_activities: Option<Option<String>>,
@@ -167,10 +172,10 @@ pub struct UpdateOrganization {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct OrganizationResponse {
     pub id: DieselUlid,
+    pub domain_id: DieselUlid,
     pub parent_id: Option<DieselUlid>,
-    pub organization_type: String,
+    pub type_id: DieselUlid,
     pub code: Option<String>,
-    pub level: i32,
     pub name: String,
     pub address: Option<String>,
     pub authorized_capital: Option<DecimalWrapper>,
@@ -201,10 +206,10 @@ impl NewOrganization {
         let now = Utc::now();
         Self {
             id: DieselUlid::new(),
+            domain_id: create_org.domain_id,
             parent_id: create_org.parent_id,
-            organization_type: create_org.organization_type,
+            type_id: create_org.type_id,
             code: create_org.code,
-            level: create_org.level.unwrap_or(0),
             name: create_org.name,
             address: create_org.address,
             authorized_capital: create_org.authorized_capital,
@@ -236,10 +241,10 @@ impl Organization {
     pub fn to_response(&self) -> OrganizationResponse {
         OrganizationResponse {
             id: self.id,
+            domain_id: self.domain_id,
             parent_id: self.parent_id,
-            organization_type: self.organization_type.clone(),
+            type_id: self.type_id,
             code: self.code.clone(),
-            level: self.level,
             name: self.name.clone(),
             address: self.address.clone(),
             authorized_capital: self.authorized_capital.clone(),
@@ -294,10 +299,10 @@ impl crate::app::query_builder::Queryable for Organization {
     fn allowed_filters() -> Vec<&'static str> {
         vec![
             "id",
+            "domain_id",
             "parent_id",
-            "organization_type",
+            "type_id",
             "code",
-            "level",
             "name",
             "address",
             "email",
@@ -319,10 +324,10 @@ impl crate::app::query_builder::Queryable for Organization {
     fn allowed_sorts() -> Vec<&'static str> {
         vec![
             "id",
+            "domain_id",
             "parent_id",
-            "organization_type",
+            "type_id",
             "code",
-            "level",
             "name",
             "address",
             "email",
@@ -344,10 +349,10 @@ impl crate::app::query_builder::Queryable for Organization {
     fn allowed_fields() -> Vec<&'static str> {
         vec![
             "id",
+            "domain_id",
             "parent_id",
-            "organization_type",
+            "type_id",
             "code",
-            "level",
             "name",
             "address",
             "authorized_capital",
@@ -389,6 +394,8 @@ impl crate::app::query_builder::Queryable for Organization {
             "authorizationContext",
             "scopedRoles",
             "scopedPermissions",
+            "domain",
+            "type",
             "parent",
             "children",
             "levels",

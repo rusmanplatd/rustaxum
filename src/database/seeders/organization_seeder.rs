@@ -3,7 +3,8 @@ use crate::database::DbPool;
 use anyhow::Result;
 use crate::app::models::{DieselUlid, organization::{NewOrganization, CreateOrganization}};
 use diesel::prelude::*;
-use crate::schema::organizations;
+use crate::schema::{organization_domains, organization_types, organizations};
+use std::collections::HashMap;
 
 pub struct OrganizationSeeder;
 
@@ -16,13 +17,35 @@ impl Seeder for OrganizationSeeder {
         println!("🌱 Seeding organizations...");
         let mut conn = pool.get()?;
 
-        // Create main holding company first
+        // Get domain and type IDs from seeded data
+        let pvt_domain_id: DieselUlid = organization_domains::table
+            .filter(organization_domains::code.eq("PVT"))
+            .select(organization_domains::id)
+            .first(&mut conn)?;
+
+        // Get all private sector types
+        let type_map: HashMap<String, DieselUlid> = organization_types::table
+            .filter(organization_types::domain_id.eq(pvt_domain_id.to_string()))
+            .select((organization_types::code, organization_types::id))
+            .load::<(Option<String>, DieselUlid)>(&mut conn)?
+            .into_iter()
+            .filter_map(|(code, id)| code.map(|c| (c, id)))
+            .collect();
+
+        let hold_type_id = type_map.get("HOLD").or_else(|| type_map.get("CORP")).unwrap();
+        let corp_type_id = type_map.get("CORP").unwrap();
+        let comp_type_id = type_map.get("COMP").unwrap();
+        let div_type_id = type_map.get("DIV").unwrap();
+        let dept_type_id = type_map.get("DEPT").unwrap();
+        let team_type_id = type_map.get("TEAM").unwrap();
+
+        // Level 1: Create main holding company
         let holding_org = CreateOrganization {
+            domain_id: pvt_domain_id,
+            type_id: *hold_type_id,
             name: "TechCorp Holdings".to_string(),
-            organization_type: "company".to_string(),
             parent_id: None,
             code: Some("TECH-HOLD".to_string()),
-            level: Some(0),
             address: Some("123 Corporate Blvd, Tech City, TC 12345".to_string()),
             authorized_capital: Some(crate::app::models::DecimalWrapper::from(50000000)),
             business_activities: Some("Technology investment and management, software development, cloud services, consulting".to_string()),
@@ -47,91 +70,212 @@ impl Seeder for OrganizationSeeder {
             website: Some("https://techcorp.com".to_string()),
         };
 
-        let holding_id = {
-            let new_org = NewOrganization::new(holding_org, None);
+        let new_org = NewOrganization::new(holding_org, None);
+        let holding_id = new_org.id;
+        diesel::insert_into(organizations::table)
+            .values(&new_org)
+            .on_conflict_do_nothing()
+            .execute(&mut conn)?;
+        println!("   ✓ Created Level 1: TechCorp Holdings");
+
+        // Level 2: Create subsidiary companies
+        let subsidiaries = vec![
+            ("TechCorp Software", "TECH-SOFT", "Software development and engineering services"),
+            ("TechCorp Consulting", "TECH-CONS", "Technology consulting and advisory services"),
+            ("TechCorp Cloud", "TECH-CLOUD", "Cloud infrastructure and SaaS solutions"),
+            ("TechCorp Security", "TECH-SEC", "Cybersecurity products and services"),
+        ];
+
+        let mut subsidiary_ids = Vec::new();
+        for (name, code, desc) in subsidiaries {
+            let org = CreateOrganization {
+                domain_id: pvt_domain_id,
+                type_id: *corp_type_id,
+                name: name.to_string(),
+                parent_id: Some(holding_id),
+                code: Some(code.to_string()),
+                address: Some(format!("TechCorp Campus, {} Wing", code)),
+                authorized_capital: Some(crate::app::models::DecimalWrapper::from(10000000)),
+                business_activities: Some(desc.to_string()),
+                contact_persons: Some(serde_json::json!([
+                    {"name": format!("{} Director", name), "title": "Managing Director", "email": format!("{}@techcorp.com", code.to_lowercase()), "phone": "+1-555-0200"}
+                ])),
+                description: Some(desc.to_string()),
+                email: Some(format!("{}@techcorp.com", code.to_lowercase())),
+                establishment_date: Some(chrono::NaiveDate::from_ymd_opt(2015, 1, 1).unwrap()),
+                governance_structure: Some(serde_json::json!({"structure": "Subsidiary", "reporting_to": "Board of Directors"})),
+                legal_status: Some("Subsidiary".to_string()),
+                paid_capital: Some(crate::app::models::DecimalWrapper::from(5000000)),
+                path: Some(format!("/techcorp/{}", code.to_lowercase())),
+                phone: Some("+1-555-0200".to_string()),
+                registration_number: Some(format!("REG-{}", code)),
+                tax_number: Some(format!("TAX-{}", code)),
+                website: Some(format!("https://{}.techcorp.com", code.to_lowercase())),
+            };
+
+            let new_org = NewOrganization::new(org, None);
+            let sub_id = new_org.id;
             diesel::insert_into(organizations::table)
                 .values(&new_org)
                 .on_conflict_do_nothing()
-                .returning(organizations::id)
-                .get_result::<DieselUlid>(&mut conn)
-                .unwrap_or(new_org.id)
-        };
+                .execute(&mut conn)?;
+            subsidiary_ids.push((sub_id, name, code));
+            println!("   ✓ Created Level 2: {}", name);
+        }
 
-        // Create subsidiaries and departments
-        let organizations_data = vec![
-            // Level 1: Subsidiaries
-            ("TechCorp Software", "company", Some(holding_id), Some("TECH-SOFT"), 1, "Software development subsidiary"),
-            ("TechCorp Consulting", "company", Some(holding_id), Some("TECH-CONS"), 1, "Technology consulting subsidiary"),
-            ("TechCorp Cloud", "company", Some(holding_id), Some("TECH-CLOUD"), 1, "Cloud services subsidiary"),
-
-            // Level 2: Divisions
-            ("Engineering Division", "division", Some(holding_id), Some("ENG-DIV"), 2, "Software engineering division"),
-            ("Product Division", "division", Some(holding_id), Some("PROD-DIV"), 2, "Product development division"),
-            ("Operations Division", "division", Some(holding_id), Some("OPS-DIV"), 2, "Operations and infrastructure"),
-            ("Sales Division", "division", Some(holding_id), Some("SALES-DIV"), 2, "Sales and business development"),
-
-            // Level 3: Departments
-            ("Backend Development", "department", Some(holding_id), Some("BACK-DEV"), 3, "Backend systems development"),
-            ("Frontend Development", "department", Some(holding_id), Some("FRONT-DEV"), 3, "Frontend and UI development"),
-            ("Mobile Development", "department", Some(holding_id), Some("MOBILE-DEV"), 3, "Mobile application development"),
-            ("Quality Assurance", "department", Some(holding_id), Some("QA-DEPT"), 3, "Software testing and quality"),
-            ("DevOps & Infrastructure", "department", Some(holding_id), Some("DEVOPS"), 3, "DevOps and infrastructure"),
-            ("Product Management", "department", Some(holding_id), Some("PROD-MGT"), 3, "Product strategy and management"),
-            ("User Experience", "department", Some(holding_id), Some("UX-DEPT"), 3, "User experience and design"),
-            ("Data Engineering", "department", Some(holding_id), Some("DATA-ENG"), 3, "Data platform and analytics"),
-            ("Security", "department", Some(holding_id), Some("SEC-DEPT"), 3, "Information security"),
-            ("IT Support", "department", Some(holding_id), Some("IT-SUPP"), 3, "Internal IT support"),
-
-            // Level 4: Branches
-            ("API Development", "branch", Some(holding_id), Some("API-BR"), 4, "REST API development"),
-            ("Microservices", "branch", Some(holding_id), Some("MICRO-BR"), 4, "Microservices architecture"),
-            ("Web Applications", "branch", Some(holding_id), Some("WEB-BR"), 4, "Web application development"),
-            ("iOS Development", "branch", Some(holding_id), Some("IOS-BR"), 4, "iOS application development"),
-            ("Android Development", "branch", Some(holding_id), Some("ANDROID-BR"), 4, "Android application development"),
+        // Level 3: Create divisions
+        let divisions = vec![
+            ("Engineering Division", "ENG-DIV", "Software engineering and development", 0),
+            ("Product Division", "PROD-DIV", "Product management and strategy", 0),
+            ("Operations Division", "OPS-DIV", "Operations and infrastructure management", 0),
+            ("Sales Division", "SALES-DIV", "Sales and business development", 1),
+            ("Marketing Division", "MKTG-DIV", "Marketing and brand management", 1),
+            ("Consulting Services", "CONS-SERV", "Professional consulting services", 1),
+            ("Cloud Operations", "CLOUD-OPS", "Cloud platform operations", 2),
+            ("Infrastructure Services", "INFRA-SERV", "Infrastructure management services", 2),
+            ("Security Operations", "SEC-OPS", "Security operations center", 3),
+            ("Threat Intelligence", "THREAT-INT", "Cybersecurity threat intelligence", 3),
         ];
 
-        for (i, (name, org_type, parent_id, code, level, description)) in organizations_data.iter().enumerate() {
-            let establishment_date = Some(chrono::NaiveDate::from_ymd_opt(2015, 1, 1).unwrap() + chrono::Duration::days(i as i64 * 30));
-            let contact_email = format!("{}@techcorp.com", code.unwrap_or("info"));
-
-            let contact_persons = Some(serde_json::json!([
-                {"name": format!("{} Manager", name), "title": "Department Manager", "email": contact_email, "phone": format!("+1-555-{:04}", 200 + i)}
-            ]));
-
-            let governance_structure = match *org_type {
-                "company" => Some(serde_json::json!({"structure": "Subsidiary", "reporting_to": "Board of Directors"})),
-                "division" => Some(serde_json::json!({"structure": "Division", "reporting_to": "VP Level"})),
-                "department" => Some(serde_json::json!({"structure": "Department", "reporting_to": "Director Level"})),
-                "branch" => Some(serde_json::json!({"structure": "Branch", "reporting_to": "Manager Level"})),
-                _ => None,
-            };
-
-            let (authorized_capital, paid_capital) = match *org_type {
-                "company" => (Some(crate::app::models::DecimalWrapper::from(10000000)), Some(crate::app::models::DecimalWrapper::from(5000000))),
-                _ => (None, None),
-            };
-
+        let mut division_ids = Vec::new();
+        for (name, code, desc, parent_idx) in divisions {
+            let parent = subsidiary_ids[parent_idx];
             let org = CreateOrganization {
+                domain_id: pvt_domain_id,
+                type_id: *div_type_id,
                 name: name.to_string(),
-                organization_type: org_type.to_string(),
-                parent_id: *parent_id,
-                code: code.map(|c| c.to_string()),
-                level: Some(*level),
-                address: Some(format!("Tech Campus, Innovation Way, Floor {}, Suite {}", level, i + 100)),
-                authorized_capital,
-                business_activities: Some(format!("{} operations and related activities", description)),
-                contact_persons,
-                description: Some(description.to_string()),
-                email: Some(contact_email),
-                establishment_date,
-                governance_structure,
-                legal_status: if *org_type == "company" { Some("Subsidiary".to_string()) } else { None },
-                paid_capital,
-                path: Some(format!("/techcorp/{}", code.unwrap_or("org"))),
-                phone: Some(format!("+1-555-{:04}", 100 + i)),
-                registration_number: if *org_type == "company" { Some(format!("REG-{:03}", i + 2)) } else { None },
-                tax_number: if *org_type == "company" { Some(format!("TAX-{:03}", i + 2)) } else { None },
-                website: if *org_type == "company" { Some(format!("https://{}.techcorp.com", code.unwrap_or("info"))) } else { None },
+                parent_id: Some(parent.0),
+                code: Some(code.to_string()),
+                address: Some(format!("TechCorp Campus, {} - {}", parent.2, code)),
+                authorized_capital: None,
+                business_activities: Some(desc.to_string()),
+                contact_persons: Some(serde_json::json!([
+                    {"name": format!("{} VP", name), "title": "Vice President", "email": format!("{}@techcorp.com", code.to_lowercase().replace("-", ".")), "phone": "+1-555-0300"}
+                ])),
+                description: Some(desc.to_string()),
+                email: Some(format!("{}@techcorp.com", code.to_lowercase().replace("-", "."))),
+                establishment_date: Some(chrono::NaiveDate::from_ymd_opt(2016, 6, 1).unwrap()),
+                governance_structure: Some(serde_json::json!({"structure": "Division", "reporting_to": "VP Level"})),
+                legal_status: None,
+                paid_capital: None,
+                path: Some(format!("/techcorp/{}/{}", parent.2.to_lowercase(), code.to_lowercase())),
+                phone: Some("+1-555-0300".to_string()),
+                registration_number: None,
+                tax_number: None,
+                website: None,
+            };
+
+            let new_org = NewOrganization::new(org, None);
+            let div_id = new_org.id;
+            diesel::insert_into(organizations::table)
+                .values(&new_org)
+                .on_conflict_do_nothing()
+                .execute(&mut conn)?;
+            division_ids.push((div_id, name, code));
+            println!("   ✓ Created Level 3: {}", name);
+        }
+
+        // Level 4: Create departments
+        let departments = vec![
+            ("Backend Development", "BACK-DEV", "Backend systems and API development", 0),
+            ("Frontend Development", "FRONT-DEV", "Frontend and UI development", 0),
+            ("Mobile Development", "MOBILE-DEV", "Mobile application development", 0),
+            ("Quality Assurance", "QA-DEPT", "Software testing and quality assurance", 0),
+            ("DevOps Engineering", "DEVOPS", "DevOps and CI/CD", 0),
+            ("Product Management", "PROD-MGT", "Product strategy and planning", 1),
+            ("User Experience", "UX-DEPT", "User experience and design", 1),
+            ("Data Engineering", "DATA-ENG", "Data platform and analytics", 2),
+            ("IT Support", "IT-SUPP", "Internal IT support", 2),
+            ("Network Operations", "NET-OPS", "Network management", 2),
+            ("Business Development", "BIZ-DEV", "New business development", 3),
+            ("Account Management", "ACCT-MGT", "Customer account management", 3),
+            ("Digital Marketing", "DIG-MKTG", "Digital marketing campaigns", 4),
+            ("Brand Management", "BRAND-MGT", "Brand strategy and management", 4),
+            ("Enterprise Consulting", "ENT-CONS", "Enterprise consulting services", 5),
+            ("Technical Consulting", "TECH-CONS-DEPT", "Technical consulting", 5),
+            ("Platform Engineering", "PLAT-ENG", "Cloud platform engineering", 6),
+            ("Site Reliability", "SRE", "Site reliability engineering", 6),
+            ("SOC Operations", "SOC-OPS", "Security operations center", 8),
+            ("Incident Response", "INC-RESP", "Incident response team", 8),
+        ];
+
+        let mut dept_ids = Vec::new();
+        for (name, code, desc, parent_idx) in departments {
+            let parent = division_ids[parent_idx];
+            let org = CreateOrganization {
+                domain_id: pvt_domain_id,
+                type_id: *dept_type_id,
+                name: name.to_string(),
+                parent_id: Some(parent.0),
+                code: Some(code.to_string()),
+                address: Some(format!("TechCorp Campus, {} - {}", parent.2, code)),
+                authorized_capital: None,
+                business_activities: Some(desc.to_string()),
+                contact_persons: Some(serde_json::json!([
+                    {"name": format!("{} Director", name), "title": "Director", "email": format!("{}@techcorp.com", code.to_lowercase().replace("-", ".")), "phone": "+1-555-0400"}
+                ])),
+                description: Some(desc.to_string()),
+                email: Some(format!("{}@techcorp.com", code.to_lowercase().replace("-", "."))),
+                establishment_date: Some(chrono::NaiveDate::from_ymd_opt(2017, 1, 1).unwrap()),
+                governance_structure: Some(serde_json::json!({"structure": "Department", "reporting_to": "Director Level"})),
+                legal_status: None,
+                paid_capital: None,
+                path: Some(format!("/techcorp/departments/{}", code.to_lowercase())),
+                phone: Some("+1-555-0400".to_string()),
+                registration_number: None,
+                tax_number: None,
+                website: None,
+            };
+
+            let new_org = NewOrganization::new(org, None);
+            let dept_id = new_org.id;
+            diesel::insert_into(organizations::table)
+                .values(&new_org)
+                .on_conflict_do_nothing()
+                .execute(&mut conn)?;
+            dept_ids.push((dept_id, name, code));
+            println!("   ✓ Created Level 4: {}", name);
+        }
+
+        // Level 5: Create teams
+        let teams = vec![
+            ("API Development Team", "API-TEAM", "REST API development", 0),
+            ("Microservices Team", "MICRO-TEAM", "Microservices architecture", 0),
+            ("React Development Team", "REACT-TEAM", "React frontend development", 1),
+            ("Vue Development Team", "VUE-TEAM", "Vue.js frontend development", 1),
+            ("iOS Team", "IOS-TEAM", "iOS application development", 2),
+            ("Android Team", "ANDROID-TEAM", "Android application development", 2),
+            ("Automation Testing Team", "AUTO-TEST", "Test automation", 3),
+            ("Manual Testing Team", "MANUAL-TEST", "Manual testing", 3),
+            ("Infrastructure Team", "INFRA-TEAM", "Infrastructure automation", 4),
+            ("Release Engineering Team", "REL-ENG", "Release management", 4),
+        ];
+
+        for (name, code, desc, parent_idx) in teams {
+            let parent = dept_ids[parent_idx];
+            let org = CreateOrganization {
+                domain_id: pvt_domain_id,
+                type_id: *team_type_id,
+                name: name.to_string(),
+                parent_id: Some(parent.0),
+                code: Some(code.to_string()),
+                address: Some(format!("TechCorp Campus, {} - {}", parent.2, code)),
+                authorized_capital: None,
+                business_activities: Some(desc.to_string()),
+                contact_persons: Some(serde_json::json!([
+                    {"name": format!("{} Lead", name), "title": "Team Lead", "email": format!("{}@techcorp.com", code.to_lowercase().replace("-", ".")), "phone": "+1-555-0500"}
+                ])),
+                description: Some(desc.to_string()),
+                email: Some(format!("{}@techcorp.com", code.to_lowercase().replace("-", "."))),
+                establishment_date: Some(chrono::NaiveDate::from_ymd_opt(2018, 1, 1).unwrap()),
+                governance_structure: Some(serde_json::json!({"structure": "Team", "reporting_to": "Manager Level"})),
+                legal_status: None,
+                paid_capital: None,
+                path: Some(format!("/techcorp/teams/{}", code.to_lowercase())),
+                phone: Some("+1-555-0500".to_string()),
+                registration_number: None,
+                tax_number: None,
+                website: None,
             };
 
             let new_org = NewOrganization::new(org, None);
@@ -139,9 +283,10 @@ impl Seeder for OrganizationSeeder {
                 .values(&new_org)
                 .on_conflict_do_nothing()
                 .execute(&mut conn)?;
+            println!("   ✓ Created Level 5: {}", name);
         }
 
-        println!("✅ 25 Organizations seeded successfully!");
+        println!("✅ {} Organizations seeded successfully!", 1 + 4 + 10 + 20 + 10);
         Ok(())
     }
 }

@@ -10,6 +10,8 @@ use crate::database::seeders::{
     city_seeder::Cityseeder,
     district_seeder::Districtseeder,
     village_seeder::Villageseeder,
+    OrganizationDomainSeeder,
+    OrganizationTypeSeeder,
     organization_seeder::OrganizationSeeder,
     OrganizationPositionLevelSeeder,
     OrganizationPositionSeeder,
@@ -48,6 +50,8 @@ impl Seeder for DatabaseSeeder {
         context.call(Villageseeder)?;
 
         // Organization and position structure
+        context.call(OrganizationDomainSeeder)?;
+        context.call(OrganizationTypeSeeder)?;
         context.call(OrganizationSeeder)?;
         context.call(OrganizationPositionLevelSeeder)?;
         context.call(OrganizationPositionSeeder)?;

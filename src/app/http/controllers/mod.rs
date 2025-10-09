@@ -12,6 +12,8 @@ pub mod district_controller;
 pub mod village_controller;
 pub mod role_controller;
 pub mod permission_controller;
+pub mod organization_domain_controller;
+pub mod organization_type_controller;
 pub mod organization_controller;
 pub mod user_organization_controller;
 pub mod organization_position_level_controller;

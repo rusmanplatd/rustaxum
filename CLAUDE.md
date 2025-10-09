@@ -3,6 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Naming Rules (Laravel Naming Conventions)
+
 - **Follow Laravel naming exactly**: Use identical class names, method names, and conventions
 - **NO marketing adjectives**: Never use "advanced", "enhanced", "complete", "improved", "better", "superior", "features", "optimized", "premium", or similar terms in code names
 - **Laravel naming patterns**: Follow Laravel's exact naming patterns for consistency
@@ -11,6 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ### Building and Running
+
 ```bash
 # Build the project
 cargo build
@@ -24,6 +26,7 @@ cargo run --release
 ```
 
 ### Docker Development (Recommended)
+
 ```bash
 # Start all services (app, PostgreSQL, Redis, Adminer)
 docker compose up -d
@@ -42,6 +45,7 @@ docker compose down -v
 ```
 
 ### Artisan CLI (Laravel-like Commands)
+
 ```bash
 # Generate components using the artisan CLI
 
@@ -107,6 +111,7 @@ cargo run --bin artisan -- route list --name auth            # Filter by route n
 The Artisan CLI provides comprehensive code generation capabilities similar to Laravel's artisan command.
 
 ### Testing
+
 ```bash
 # Run tests
 cargo test
@@ -144,6 +149,7 @@ This is a Laravel-inspired Rust web framework built with Axum, following familia
 **Configuration Management**: Environment-based configuration through `src/config/mod.rs` with the `Config` struct that loads from environment variables with sensible defaults.
 
 **Modular Route Organization**:
+
 - API routes in `src/routes/api.rs` (prefixed with `/api/`)
 - Web routes in `src/routes/web.rs` (standard HTTP pages)
 - Routes are merged in `main.rs` using `Router::merge()`
@@ -267,6 +273,7 @@ This framework includes a comprehensive OAuth 2.1 authorization server implement
 ### OAuth Services and Components
 
 **Core Services** (`src/app/services/oauth/`):
+
 - `TokenService`: JWT token generation, validation, and RFC 9068 compliance
 - `ClientService`: OAuth client management and organization-scoped access
 - `ScopeService`: Permission scope validation and management
@@ -281,6 +288,7 @@ This framework includes a comprehensive OAuth 2.1 authorization server implement
 - `IdentityResolutionService`: Multi-method user identity resolution for CIBA flows
 
 **Models** (`src/app/models/oauth/`):
+
 - `AccessToken`: JWT-backed tokens with DPoP binding support
 - `RefreshToken`: Rotating refresh tokens
 - `AuthCode`: PKCE-enabled authorization codes
@@ -289,6 +297,7 @@ This framework includes a comprehensive OAuth 2.1 authorization server implement
 - `Scope`: Permission scopes
 
 **Controllers** (`src/app/http/controllers/oauth/`):
+
 - `OAuthController`: Core authorization and token endpoints
 - `DeviceController`: RFC 8628 device flow endpoints with HTML interface
 - `ClientController`: Client management API
@@ -298,6 +307,7 @@ This framework includes a comprehensive OAuth 2.1 authorization server implement
 - `MTLSController`: RFC 8705 mutual TLS certificate validation endpoints
 
 **Middleware** (`src/app/http/middleware/`):
+
 - `dpop_middleware`: DPoP token validation for protected resources
 - `oauth_middleware`: General OAuth token validation
 
@@ -319,12 +329,14 @@ This framework includes a comprehensive OAuth 2.1 authorization server implement
 ### OAuth Endpoints
 
 **Core OAuth 2.1**:
+
 - `GET /oauth/authorize` - Authorization endpoint (PKCE required)
 - `POST /oauth/token` - Token endpoint (supports DPoP)
 - `POST /oauth/introspect` - Token introspection
 - `POST /oauth/revoke` - Token revocation
 
 **Device Authorization Grant (RFC 8628)**:
+
 - `POST /oauth/device/code` - Device authorization request
 - `GET /oauth/device` - User verification interface
 - `GET /oauth/device/verify` - Device verification page
@@ -333,26 +345,31 @@ This framework includes a comprehensive OAuth 2.1 authorization server implement
 - `GET /oauth/device/admin/stats` - Admin: Device flow statistics
 
 **Token Exchange (RFC 8693)**:
+
 - `POST /oauth/token-exchange` - Token exchange endpoint
 - `POST /oauth/token-exchange/validate` - Validate exchange request
 
 **Pushed Authorization Requests (RFC 9126)**:
+
 - `POST /oauth/par` - Create pushed authorization request
 - `GET /oauth/par/authorize` - Create authorization URL with request_uri
 - `GET /oauth/par/required/{client_id}` - Check if PAR is required
 - `POST /oauth/par/cleanup` - Admin: Clean up expired requests
 
 **CIBA - Client Initiated Backchannel Authentication (RFC 8955)**:
+
 - `POST /oauth/ciba/auth` - Backchannel authentication request
 - `POST /oauth/ciba/complete/{auth_req_id}` - Complete user authentication
 - `GET /oauth/ciba/status/{auth_req_id}` - Get authentication status
 - `POST /oauth/ciba/cleanup` - Admin: Clean up expired requests
 
 **mTLS Client Authentication (RFC 8705)**:
+
 - `POST /oauth/mtls/validate` - Validate certificate-bound token
 - `POST /oauth/mtls/create-bound-claims` - Create certificate-bound JWT claims
 
 **Client Management**:
+
 - `GET /oauth/clients` - List clients
 - `POST /oauth/clients` - Create client
 - `PUT /oauth/clients/{id}` - Update client
@@ -374,6 +391,7 @@ This framework includes a comprehensive OAuth 2.1 authorization server implement
 ### Implementation Status
 
 **✅ Production Ready**:
+
 - All 10 RFC standards fully implemented and tested
 - Comprehensive error handling with proper OAuth error codes
 - Production-ready client authentication with multiple methods
@@ -383,11 +401,13 @@ This framework includes a comprehensive OAuth 2.1 authorization server implement
 - HTML interfaces for device authorization flow
 
 **🔧 Known Issues**:
+
 - Device verification route (`POST /oauth/device/authorize`) temporarily disabled due to Axum Handler trait compatibility issue
 - Some TODO comments remain for production deployment configurations
 - Admin authentication checks use placeholder implementations
 
 **📋 Development Notes**:
+
 - All services use production-ready error handling patterns
 - Database queries use proper Diesel select patterns for type safety
 - Unused variables have been cleaned up for production builds
@@ -398,9 +418,11 @@ This framework includes a comprehensive OAuth 2.1 authorization server implement
 **Compilation Errors**:
 
 1. **Missing hex dependency**: `use of unresolved module or unlinked crate hex`
+
    - Solution: Add `hex = "0.4.3"` to `Cargo.toml` dependencies
 
 2. **Borrow checker errors**: `borrow of moved value`
+
    - Solution: Clone values before moving them in async contexts
 
    ```rust
@@ -408,6 +430,7 @@ This framework includes a comprehensive OAuth 2.1 authorization server implement
    ```
 
 3. **Diesel query compatibility**: Trait bound not satisfied for User model
+
    - Solution: Use `.select(Model::as_select())` pattern for all queries
 
    ```rust
@@ -430,6 +453,7 @@ This framework includes a comprehensive OAuth 2.1 authorization server implement
    ```
 
 2. **JWT validation errors**: Ensure JWT secret is properly configured
+
    - Check `JWT_SECRET` environment variable is set
 
 3. **Client authentication failures**: Verify client credentials and authentication method
@@ -447,6 +471,7 @@ This framework includes a comprehensive OAuth 2.1 authorization server implement
    ```
 
 2. **Testing OAuth flows**:
+
    - Use Postman or curl for API testing
    - Check application logs: `docker compose logs -f app`
    - Verify database state: Access Adminer at <http://localhost:8080>
@@ -464,15 +489,15 @@ This framework includes a comprehensive OAuth 2.1 authorization server implement
    # Use Adminer interface to inspect oauth_* tables
    ```
 
-
 ## Important Instruction Reminders
 
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
-NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+NEVER proactively create documentation files (\*.md) or README files. Only create documentation files if explicitly requested by the User.
 
 ### Code Quality Standards
+
 - Provide complete, production-ready implementations without placeholders or temporary solutions
 - Avoid "TODO", "FIXME", "for now", "in production", or similar placeholder comments
 - Implement full functionality immediately rather than suggesting incremental improvements
