@@ -13,7 +13,7 @@ impl ServiceActivityLogger for DistrictService {}
 impl DistrictService {
     pub async fn create(pool: &DbPool, data: CreateDistrict, created_by: Option<&str>) -> Result<District> {
         let mut conn = pool.get()?;
-        let new_district = NewDistrict::new(data.city_id.clone(), data.name.clone(), data.code.clone());
+        let new_district = NewDistrict::new(data.city_id.clone(), data.name.clone(), data.code.clone(), created_by);
 
         let result = diesel::insert_into(ref_geo_districts::table)
             .values(&new_district)

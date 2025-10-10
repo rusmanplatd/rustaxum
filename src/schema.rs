@@ -1446,9 +1446,9 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by_id -> Nullable<Bpchar>,
+        created_by_id -> Bpchar,
         #[max_length = 26]
-        updated_by_id -> Nullable<Bpchar>,
+        updated_by_id -> Bpchar,
         #[max_length = 26]
         deleted_by_id -> Nullable<Bpchar>,
     }
@@ -1758,9 +1758,9 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         #[max_length = 26]
-        created_by_id -> Nullable<Bpchar>,
+        created_by_id -> Bpchar,
         #[max_length = 26]
-        updated_by_id -> Nullable<Bpchar>,
+        updated_by_id -> Bpchar,
         #[max_length = 26]
         deleted_by_id -> Nullable<Bpchar>,
         email_notifications -> Nullable<Bool>,

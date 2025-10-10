@@ -105,6 +105,14 @@ impl Seeder for UserSeeder {
 
         println!("   ✓ Created register test user: {}", register_user_id);
 
+        // Alter table to make created_by_id and updated_by_id NOT NULL
+        diesel::sql_query("ALTER TABLE sys_users ALTER COLUMN created_by_id SET NOT NULL")
+            .execute(&mut conn)?;
+        diesel::sql_query("ALTER TABLE sys_users ALTER COLUMN updated_by_id SET NOT NULL")
+            .execute(&mut conn)?;
+
+        println!("   ✓ Altered sys_users table: created_by_id, updated_by_id set to NOT NULL");
+
         // Enhanced user data with more diversity and realistic profiles
         let users = vec![
             // ==================== PRIVATE SECTOR (PVT) - TechCorp ====================

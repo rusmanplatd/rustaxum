@@ -82,8 +82,11 @@ pub struct DistrictResponse {
 }
 
 impl NewDistrict {
-    pub fn new(city_id: String, name: String, code: Option<String>) -> Self {
+    pub fn new(city_id: String, name: String, code: Option<String>, created_by: Option<&str>) -> Self {
         let now = Utc::now();
+        let system_id = created_by
+            .and_then(|s| DieselUlid::from_string(s.trim()).ok())
+            .unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap());
         Self {
             id: DieselUlid::new(),
             city_id,
@@ -92,8 +95,8 @@ impl NewDistrict {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap(),
-            updated_by_id: DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap(),
+            created_by_id: system_id.clone(),
+            updated_by_id: system_id,
             deleted_by_id: None,
         }
     }

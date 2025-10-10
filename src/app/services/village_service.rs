@@ -20,6 +20,7 @@ impl VillageService {
             data.code.clone(),
             data.latitude,
             data.longitude,
+            created_by,
         );
 
         let result = diesel::insert_into(ref_geo_villages::table)

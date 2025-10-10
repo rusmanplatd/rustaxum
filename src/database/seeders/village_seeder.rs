@@ -10,7 +10,7 @@ use ulid::Ulid;
 use rust_decimal::Decimal;
 use std::str::FromStr;
 use diesel::prelude::*;
-use crate::schema::ref_geo_villages;
+use crate::schema::{ref_geo_villages, sys_users};
 
 #[derive(Debug, Deserialize)]
 struct VillageRecord {
@@ -38,6 +38,12 @@ impl Seeder for Villageseeder {
     fn run(&self, pool: &DbPool) -> Result<()> {
         println!("Seeding villages from CSV...");
         let mut conn = pool.get()?;
+
+        // Get system user ID for audit tracking
+        let system_user_id: String = sys_users::table
+            .filter(sys_users::email.eq("system@seeder.internal"))
+            .select(sys_users::id)
+            .first(&mut conn)?;
 
         // Check if villages already exist
         use diesel::sql_query;
@@ -127,6 +133,7 @@ impl Seeder for Villageseeder {
                 Some(record.code.clone()),
                 latitude,
                 longitude,
+                Some(&system_user_id),
             );
 
             let _inserted_village: Village = diesel::insert_into(ref_geo_villages::table)

@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use serde::Deserialize;
 use ulid::Ulid;
 use diesel::prelude::*;
-use crate::schema::ref_geo_districts;
+use crate::schema::{ref_geo_districts, sys_users};
 
 #[derive(Debug, Deserialize)]
 struct DistrictRecord {
@@ -33,6 +33,12 @@ impl Seeder for Districtseeder {
     fn run(&self, pool: &DbPool) -> Result<()> {
         println!("Seeding districts from CSV...");
         let mut conn = pool.get()?;
+
+        // Get system user ID for audit tracking
+        let system_user_id: String = sys_users::table
+            .filter(sys_users::email.eq("system@seeder.internal"))
+            .select(sys_users::id)
+            .first(&mut conn)?;
 
         // Check if districts already exist
         let count: i64 = ref_geo_districts::table
@@ -97,6 +103,7 @@ impl Seeder for Districtseeder {
                 city_id.to_string(),
                 record.name.clone(),
                 Some(record.code.clone()),
+                Some(&system_user_id),
             );
 
             let _inserted_district: District = diesel::insert_into(ref_geo_districts::table)
