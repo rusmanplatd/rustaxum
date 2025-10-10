@@ -52,7 +52,7 @@ pub struct RoleResponse {
 impl Role {
     pub fn new(name: String, description: Option<String>, guard_name: Option<String>, user_id: Option<DieselUlid>) -> Self {
         let now = Utc::now();
-        let created_by = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM000000000000000000").unwrap_or_else(|_| DieselUlid::new()));
+        let created_by = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap_or_else(|_| DieselUlid::new()));
 
         Self {
             id: DieselUlid::new(),
@@ -73,7 +73,7 @@ impl Role {
 
     pub fn update_with_user(&mut self, user_id: Option<DieselUlid>) {
         self.updated_at = Utc::now();
-        self.updated_by_id = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM000000000000000000").unwrap());
+        self.updated_by_id = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap());
     }
 
     pub fn soft_delete(&mut self, user_id: Option<DieselUlid>) {
@@ -82,7 +82,7 @@ impl Role {
         self.deleted_at = Some(now);
         self.updated_at = now;
         self.deleted_by_id = user_id;
-        self.updated_by_id = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM000000000000000000").unwrap());
+        self.updated_by_id = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap());
     }
 
     pub fn to_response(&self) -> RoleResponse {

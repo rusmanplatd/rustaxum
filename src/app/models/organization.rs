@@ -230,8 +230,8 @@ impl NewOrganization {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: created_by.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM000000000000000000").unwrap()),
-            updated_by_id: created_by.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM000000000000000000").unwrap()),
+            created_by_id: created_by.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap()),
+            updated_by_id: created_by.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap()),
             deleted_by_id: None,
         }
     }

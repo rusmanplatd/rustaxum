@@ -26,7 +26,7 @@ impl Seeder for UserSeeder {
         let password = AuthService::hash_password("password")?;
 
         // First, create the system user that will be used as the creator for all other users
-        let system_user_id = "01SYSTEM000000000000000000";
+        let system_user_id = "01SYSTEM0SEEDER00000000000";
 
         // Insert system user first with self-referencing audit fields
         diesel::insert_into(sys_users::table)
@@ -65,6 +65,45 @@ impl Seeder for UserSeeder {
             .execute(&mut conn)?;
 
         println!("   ✓ Created system user: {}", system_user_id);
+
+        // Create register test user
+        let register_user_id = "01SYSTEM0REGISTER000000000";
+        diesel::insert_into(sys_users::table)
+            .values((
+                sys_users::id.eq(&register_user_id),
+                sys_users::name.eq("Register Test"),
+                sys_users::email.eq("register@seeder.internal"),
+                sys_users::username.eq(Some("register")),
+                sys_users::password.eq(&password),
+                sys_users::email_verified_at.eq(Some(now)),
+                sys_users::phone_number.eq::<Option<&str>>(None),
+                sys_users::phone_verified_at.eq::<Option<chrono::NaiveDateTime>>(None),
+                sys_users::birthdate.eq::<Option<chrono::NaiveDate>>(None),
+                sys_users::zoneinfo.eq(Some("UTC")),
+                sys_users::locale.eq(Some("en-US")),
+                sys_users::last_login_at.eq(Some(now)),
+                sys_users::last_seen_at.eq(now),
+                sys_users::failed_login_attempts.eq(0),
+                sys_users::avatar.eq::<Option<String>>(None),
+                sys_users::google_id.eq::<Option<String>>(None),
+                sys_users::remember_token.eq::<Option<String>>(None),
+                sys_users::password_reset_token.eq::<Option<String>>(None),
+                sys_users::password_reset_expires_at.eq::<Option<chrono::DateTime<Utc>>>(None),
+                sys_users::refresh_token.eq::<Option<String>>(None),
+                sys_users::refresh_token_expires_at.eq::<Option<chrono::DateTime<Utc>>>(None),
+                sys_users::locked_until.eq::<Option<chrono::DateTime<Utc>>>(None),
+                sys_users::created_at.eq(now),
+                sys_users::updated_at.eq(now),
+                sys_users::deleted_at.eq::<Option<chrono::DateTime<Utc>>>(None),
+                sys_users::created_by_id.eq(system_user_id),
+                sys_users::updated_by_id.eq(system_user_id),
+                sys_users::deleted_by_id.eq::<Option<String>>(None),
+            ))
+            .on_conflict(sys_users::email)
+            .do_nothing()
+            .execute(&mut conn)?;
+
+        println!("   ✓ Created register test user: {}", register_user_id);
 
         // Enhanced user data with more diversity and realistic profiles
         let users = vec![

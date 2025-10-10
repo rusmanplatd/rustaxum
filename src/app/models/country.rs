@@ -86,7 +86,7 @@ impl NewCountry {
         let now = Utc::now();
         let system_id = created_by
             .and_then(|s| DieselUlid::from_string(s.trim()).ok())
-            .unwrap_or_else(|| DieselUlid::from_string("01SYSTEM000000000000000000").unwrap());
+            .unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap());
         Self {
             id: DieselUlid::new(),
             name,
@@ -105,7 +105,7 @@ impl NewCountry {
 impl Country {
     pub fn new(name: String, iso_code: String, phone_code: Option<String>) -> Self {
         let now = Utc::now();
-        let system_id = DieselUlid::from_string("01SYSTEM000000000000000000").unwrap();
+        let system_id = DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap();
         Self {
             id: DieselUlid::new(),
             name,
