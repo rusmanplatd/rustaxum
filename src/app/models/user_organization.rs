@@ -83,9 +83,9 @@ pub struct NewUserOrganization {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: String,
-    pub updated_by_id: String,
-    pub deleted_by_id: Option<String>,
+    pub created_by_id: DieselUlid,
+    pub updated_by_id: DieselUlid,
+    pub deleted_by_id: Option<DieselUlid>,
 }
 
 /// Update user organization payload for service layer
@@ -130,8 +130,8 @@ impl NewUserOrganization {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: created_by_id,
-            updated_by_id: updated_by_id,
+            created_by_id: DieselUlid(Ulid::from_string(&created_by_id).unwrap()),
+            updated_by_id: DieselUlid(Ulid::from_string(&updated_by_id).unwrap()),
             deleted_by_id: None,
         }
     }

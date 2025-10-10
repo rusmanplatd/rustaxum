@@ -35,6 +35,31 @@ impl EmailService {
         Ok(transport.build())
     }
 
+    /// Send a generic HTML email
+    pub async fn send_html_email(to_email: &str, subject: &str, body: &str) -> Result<()> {
+        let config = Config::load()?;
+
+        let email = Message::builder()
+            .from(format!("{} <{}>", config.mail.from_name, config.mail.from_address).parse()?)
+            .to(to_email.parse()?)
+            .subject(subject)
+            .header(lettre::message::header::ContentType::TEXT_HTML)
+            .body(body.to_string())?;
+
+        let mailer = Self::get_mailer().await?;
+
+        match mailer.send(email).await {
+            Ok(_) => {
+                tracing::info!("HTML email sent successfully to: {}", to_email);
+                Ok(())
+            }
+            Err(e) => {
+                tracing::error!("Failed to send HTML email to {}: {}", to_email, e);
+                Err(anyhow::anyhow!("Failed to send email: {}", e))
+            }
+        }
+    }
+
     pub async fn send_password_reset_email(to_email: &str, name: &str, reset_token: &str) -> Result<()> {
         let config = Config::load()?;
 

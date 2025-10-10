@@ -48,11 +48,11 @@ pub struct MfaManagerService;
 
 impl MfaManagerService {
     /// Get all MFA methods available for a user
-    pub async fn get_all_methods(pool: &DbPool, user_id: String) -> Result<Vec<MfaMethodStatus>> {
+    pub async fn get_all_methods(pool: &DbPool, user_id_param: String) -> Result<Vec<MfaMethodStatus>> {
         use crate::schema::mfa_methods::dsl::*;
         use crate::schema::sys_users;
 
-        let user_id_ulid = DieselUlid::from_string(&user_id)?;
+        let user_id_ulid = DieselUlid::from_string(&user_id_param)?;
         let mut conn = pool.get()?;
 
         // Get user preferences
@@ -234,18 +234,18 @@ impl MfaManagerService {
     /// Check if device is trusted (skip MFA)
     pub async fn is_device_trusted(
         pool: &DbPool,
-        user_id: String,
-        device_fingerprint: String,
+        user_id_param: String,
+        device_fingerprint_param: String,
     ) -> Result<bool> {
         use crate::schema::mfa_trusted_devices::dsl::*;
 
-        let user_id_ulid = DieselUlid::from_string(&user_id)?;
+        let user_id_ulid = DieselUlid::from_string(&user_id_param)?;
         let mut conn = pool.get()?;
         let now = chrono::Utc::now();
 
         let count = mfa_trusted_devices
             .filter(user_id.eq(&user_id_ulid))
-            .filter(device_fingerprint.eq(&device_fingerprint))
+            .filter(device_fingerprint.eq(&device_fingerprint_param))
             .filter(expires_at.gt(now))
             .filter(revoked_at.is_null())
             .count()
@@ -296,11 +296,11 @@ impl MfaManagerService {
     }
 
     /// Revoke trusted device
-    pub async fn revoke_trusted_device(pool: &DbPool, user_id: String, device_id: String) -> Result<()> {
+    pub async fn revoke_trusted_device(pool: &DbPool, user_id_param: String, device_id_param: String) -> Result<()> {
         use crate::schema::mfa_trusted_devices::dsl::*;
 
-        let user_id_ulid = DieselUlid::from_string(&user_id)?;
-        let device_ulid = DieselUlid::from_string(&device_id)?;
+        let user_id_ulid = DieselUlid::from_string(&user_id_param)?;
+        let device_ulid = DieselUlid::from_string(&device_id_param)?;
         let mut conn = pool.get()?;
 
         diesel::update(mfa_trusted_devices)
@@ -337,22 +337,22 @@ impl MfaManagerService {
     }
 
     /// Validate that a method is enabled for user
-    async fn validate_method_enabled(pool: &DbPool, user_id: &str, method_type: &str) -> Result<()> {
+    async fn validate_method_enabled(pool: &DbPool, user_id_param: &str, method_type_param: &str) -> Result<()> {
         use crate::schema::mfa_methods::dsl::*;
 
-        let user_id_ulid = DieselUlid::from_string(user_id)?;
+        let user_id_ulid = DieselUlid::from_string(user_id_param)?;
         let mut conn = pool.get()?;
 
         let count = mfa_methods
             .filter(user_id.eq(&user_id_ulid))
-            .filter(method_type.eq(method_type))
+            .filter(method_type.eq(method_type_param))
             .filter(is_enabled.eq(true))
             .filter(is_verified.eq(true))
             .count()
             .get_result::<i64>(&mut conn)?;
 
         if count == 0 {
-            bail!("MFA method '{}' is not enabled for this user", method_type);
+            bail!("MFA method '{}' is not enabled for this user", method_type_param);
         }
 
         Ok(())

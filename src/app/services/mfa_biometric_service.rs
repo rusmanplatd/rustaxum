@@ -6,6 +6,7 @@ use crate::app::models::mfa_biometric::{MfaBiometricCredential, NewMfaBiometricC
 use crate::app::models::mfa_webauthn::{MfaWebAuthnChallenge, NewMfaWebAuthnChallenge};
 use crate::app::models::DieselUlid;
 use diesel::prelude::*;
+use serde_json;
 
 const CHALLENGE_EXPIRY_MINUTES: i64 = 5;
 
@@ -52,7 +53,7 @@ impl MfaBiometricService {
 
         let exclude_credentials: Vec<CredentialID> = existing_credentials
             .iter()
-            .filter_map(|cred| base64::decode(&cred.credential_id).ok())
+            .filter_map(|cred| serde_json::from_str::<Vec<u8>>(&cred.credential_id).ok())
             .map(|bytes| CredentialID::from(bytes))
             .collect();
 
@@ -69,12 +70,8 @@ impl MfaBiometricService {
                 Some(exclude_credentials),
             )?;
 
-        // Store challenge (reuse webauthn_challenges table)
+        // Store challenge as JSON
         let challenge_json = serde_json::to_string(&registration_state)?;
-        let metadata = serde_json::json!({
-            "biometric_type": biometric_type,
-            "platform": platform,
-        });
 
         let new_challenge = MfaWebAuthnChallenge::new(
             user_id_ulid,
@@ -89,9 +86,9 @@ impl MfaBiometricService {
             .execute(&mut conn)?;
 
         tracing::info!(
-            user_id = user_id,
-            biometric_type = biometric_type,
-            platform = platform,
+            user_id = %user_id,
+            biometric_type = %biometric_type,
+            platform = %platform,
             "Biometric registration started"
         );
 
@@ -121,15 +118,17 @@ impl MfaBiometricService {
             bail!("Challenge has expired or been used");
         }
 
-        // Parse registration state
+        // Parse registration state from JSON
         let registration_state: PasskeyRegistration = serde_json::from_str(&challenge.challenge)?;
 
         // Finish registration
         let passkey = self.webauthn
             .finish_passkey_registration(&credential, &registration_state)?;
 
-        // Store credential
-        let credential_id = base64::encode(&passkey.cred_id().0);
+        // Store credential - serialize the whole credential ID
+        let credential_id_value = serde_json::to_string(passkey.cred_id())?;
+
+        // Serialize passkey to JSON
         let public_key = serde_json::to_string(&passkey)?;
 
         let new_credential = NewMfaBiometricCredential {
@@ -137,12 +136,12 @@ impl MfaBiometricService {
             user_id: user_id_ulid,
             device_id: device_id_ulid,
             biometric_type: biometric_type.clone(),
-            credential_id,
+            credential_id: credential_id_value,
             public_key,
             platform: platform.clone(),
             device_name,
             is_platform_authenticator: true,
-            counter: passkey.counter() as i64,
+            counter: 0, // Start at 0, will be updated on authentication
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         };
@@ -160,14 +159,12 @@ impl MfaBiometricService {
             .execute(&mut conn)?;
 
         // Update mfa_methods table
-        use crate::schema::mfa_methods::dsl::*;
-
         let metadata = serde_json::json!({
             "biometric_type": biometric_type,
             "platform": platform,
         });
 
-        diesel::insert_into(mfa_methods)
+        diesel::insert_into(crate::schema::mfa_methods::table)
             .values((
                 crate::schema::mfa_methods::id.eq(DieselUlid::new()),
                 crate::schema::mfa_methods::user_id.eq(&user_id_ulid),
@@ -178,14 +175,11 @@ impl MfaBiometricService {
                 crate::schema::mfa_methods::created_at.eq(chrono::Utc::now()),
                 crate::schema::mfa_methods::updated_at.eq(chrono::Utc::now()),
             ))
-            .on_conflict((crate::schema::mfa_methods::user_id, crate::schema::mfa_methods::method_type))
-            .do_update()
-            .set(crate::schema::mfa_methods::is_enabled.eq(true))
             .execute(&mut conn)?;
 
         tracing::info!(
-            user_id = user_id,
-            biometric_type = biometric_type,
+            user_id = %user_id,
+            biometric_type = %biometric_type,
             "Biometric credential registered successfully"
         );
 
@@ -221,8 +215,9 @@ impl MfaBiometricService {
         let (request_challenge_response, authentication_state) = self.webauthn
             .start_passkey_authentication(&passkeys)?;
 
-        // Store challenge
+        // Store challenge as JSON
         let challenge_json = serde_json::to_string(&authentication_state)?;
+
         let new_challenge = MfaWebAuthnChallenge::new(
             user_id_ulid,
             challenge_json,
@@ -236,7 +231,7 @@ impl MfaBiometricService {
             .execute(&mut conn)?;
 
         tracing::info!(
-            user_id = user_id,
+            user_id = %user_id,
             "Biometric authentication started"
         );
 
@@ -259,7 +254,7 @@ impl MfaBiometricService {
             bail!("Challenge has expired or been used");
         }
 
-        // Parse authentication state
+        // Parse authentication state from JSON
         let authentication_state: PasskeyAuthentication = serde_json::from_str(&challenge.challenge)?;
 
         // Finish authentication
@@ -267,8 +262,8 @@ impl MfaBiometricService {
             .finish_passkey_authentication(&credential, &authentication_state)?;
 
         // Update credential counter
-        let credential_id = base64::encode(&auth_result.cred_id().0);
-        let new_counter = auth_result.counter() as i64;
+        let credential_id_value = serde_json::to_string(auth_result.cred_id())?;
+        let new_counter = auth_result.counter();
 
         let mut conn = pool.get()?;
 
@@ -278,20 +273,18 @@ impl MfaBiometricService {
             .execute(&mut conn)?;
 
         // Update credential counter and last used
-        use crate::schema::mfa_biometric_credentials::dsl::*;
-
-        diesel::update(mfa_biometric_credentials)
-            .filter(user_id.eq(&user_id_ulid))
-            .filter(credential_id.eq(&credential_id))
+        diesel::update(crate::schema::mfa_biometric_credentials::table)
+            .filter(crate::schema::mfa_biometric_credentials::user_id.eq(&user_id_ulid))
+            .filter(crate::schema::mfa_biometric_credentials::credential_id.eq(&credential_id_value))
             .set((
-                counter.eq(new_counter),
-                last_used_at.eq(Some(chrono::Utc::now())),
-                updated_at.eq(chrono::Utc::now()),
+                crate::schema::mfa_biometric_credentials::counter.eq(new_counter as i64),
+                crate::schema::mfa_biometric_credentials::last_used_at.eq(Some(chrono::Utc::now())),
+                crate::schema::mfa_biometric_credentials::updated_at.eq(chrono::Utc::now()),
             ))
             .execute(&mut conn)?;
 
         tracing::info!(
-            user_id = user_id,
+            user_id = %user_id,
             "Biometric authentication successful"
         );
 
@@ -320,20 +313,18 @@ impl MfaBiometricService {
         user_id_param: &str,
         challenge_type_filter: &str,
     ) -> Result<MfaWebAuthnChallenge> {
-        use crate::schema::mfa_webauthn_challenges::dsl::*;
-
         let user_id_ulid = DieselUlid::from_string(user_id_param)?;
         let mut conn = pool.get()?;
 
-        let challenge = mfa_webauthn_challenges
-            .filter(user_id.eq(&user_id_ulid))
-            .filter(challenge_type.eq(challenge_type_filter))
-            .filter(is_used.eq(false))
-            .order(created_at.desc())
+        let result = crate::schema::mfa_webauthn_challenges::table
+            .filter(crate::schema::mfa_webauthn_challenges::user_id.eq(&user_id_ulid))
+            .filter(crate::schema::mfa_webauthn_challenges::challenge_type.eq(challenge_type_filter))
+            .filter(crate::schema::mfa_webauthn_challenges::is_used.eq(false))
+            .order(crate::schema::mfa_webauthn_challenges::created_at.desc())
             .select(MfaWebAuthnChallenge::as_select())
             .first::<MfaWebAuthnChallenge>(&mut conn)?;
 
-        Ok(challenge)
+        Ok(result)
     }
 
     /// Delete a biometric credential
@@ -356,29 +347,8 @@ impl MfaBiometricService {
         Ok(())
     }
 
-    /// List user's biometric credentials
+    /// List user's credentials
     pub async fn list_credentials(pool: &DbPool, user_id: String) -> Result<Vec<MfaBiometricCredential>> {
         Self::get_user_credentials(pool, &user_id)
-    }
-
-    /// Get credentials by biometric type
-    pub async fn list_by_type(
-        pool: &DbPool,
-        user_id: String,
-        bio_type: String,
-    ) -> Result<Vec<MfaBiometricCredential>> {
-        use crate::schema::mfa_biometric_credentials::dsl::*;
-
-        let user_id_ulid = DieselUlid::from_string(&user_id)?;
-        let mut conn = pool.get()?;
-
-        let credentials = mfa_biometric_credentials
-            .filter(user_id.eq(&user_id_ulid))
-            .filter(biometric_type.eq(&bio_type))
-            .filter(deleted_at.is_null())
-            .select(MfaBiometricCredential::as_select())
-            .load::<MfaBiometricCredential>(&mut conn)?;
-
-        Ok(credentials)
     }
 }

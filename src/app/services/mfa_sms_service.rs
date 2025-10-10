@@ -63,8 +63,8 @@ impl MfaSmsService {
         Self::send_sms(&phone_number, &code).await?;
 
         tracing::info!(
-            user_id = user_id,
-            phone_number = phone_number,
+            user_id = %user_id,
+            phone_number = %phone_number,
             "SMS MFA code sent successfully"
         );
 
@@ -74,23 +74,23 @@ impl MfaSmsService {
     /// Verify SMS OTP code
     pub async fn verify_code(
         pool: &DbPool,
-        user_id: String,
-        phone_number: String,
-        code: &str,
+        user_id_param: String,
+        phone_number_param: String,
+        code_param: &str,
     ) -> Result<bool> {
         use crate::schema::mfa_sms_codes::dsl::*;
 
-        let user_id_ulid = DieselUlid::from_string(&user_id)?;
-        let code_hash = Self::hash_code(code);
+        let user_id_ulid = DieselUlid::from_string(&user_id_param)?;
+        let code_hash_value = Self::hash_code(code_param);
 
         let mut conn = pool.get()?;
 
         // Find the most recent unused code
         let sms_code = mfa_sms_codes
             .filter(user_id.eq(&user_id_ulid))
-            .filter(phone_number.eq(&phone_number))
+            .filter(phone_number.eq(&phone_number_param))
             .filter(is_used.eq(false))
-            .filter(code_hash.eq(&code_hash))
+            .filter(code_hash.eq(&code_hash_value))
             .order(created_at.desc())
             .select(MfaSmsCode::as_select())
             .first::<MfaSmsCode>(&mut conn)

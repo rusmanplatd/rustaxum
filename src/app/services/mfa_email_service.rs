@@ -57,7 +57,7 @@ impl MfaEmailService {
         Self::send_email(&user.email, &user.name, &code).await?;
 
         tracing::info!(
-            user_id = user_id,
+            user_id = %user_id,
             "Email MFA code sent successfully"
         );
 
@@ -67,13 +67,13 @@ impl MfaEmailService {
     /// Verify email OTP code
     pub async fn verify_code(
         pool: &DbPool,
-        user_id: String,
-        code: &str,
+        user_id_param: String,
+        code_param: &str,
     ) -> Result<bool> {
         use crate::schema::mfa_email_codes::dsl::*;
 
-        let user_id_ulid = DieselUlid::from_string(&user_id)?;
-        let code_hash = Self::hash_code(code);
+        let user_id_ulid = DieselUlid::from_string(&user_id_param)?;
+        let code_hash_value = Self::hash_code(code_param);
 
         let mut conn = pool.get()?;
 
@@ -81,7 +81,7 @@ impl MfaEmailService {
         let email_code = mfa_email_codes
             .filter(user_id.eq(&user_id_ulid))
             .filter(is_used.eq(false))
-            .filter(code_hash.eq(&code_hash))
+            .filter(code_hash.eq(&code_hash_value))
             .order(created_at.desc())
             .select(MfaEmailCode::as_select())
             .first::<MfaEmailCode>(&mut conn)
@@ -120,10 +120,10 @@ impl MfaEmailService {
     }
 
     /// Check if email MFA is enabled for user
-    pub fn is_enabled(pool: &DbPool, user_id: String) -> Result<bool> {
+    pub fn is_enabled(pool: &DbPool, user_id_param: String) -> Result<bool> {
         use crate::schema::mfa_methods::dsl::*;
 
-        let user_id_ulid = DieselUlid::from_string(&user_id)?;
+        let user_id_ulid = DieselUlid::from_string(&user_id_param)?;
         let mut conn = pool.get()?;
 
         let count = mfa_methods

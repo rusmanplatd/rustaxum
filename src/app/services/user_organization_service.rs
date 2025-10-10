@@ -37,8 +37,12 @@ impl UserOrganizationService {
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
             deleted_at: None,
-            created_by_id: created_by.map(|s| s.to_string()).unwrap_or_else(|| "system".to_string()),
-            updated_by_id: created_by.map(|s| s.to_string()).unwrap_or_else(|| "system".to_string()),
+            created_by_id: created_by
+                .map(|s| crate::app::models::DieselUlid::from_string(s).unwrap())
+                .unwrap_or_else(|| crate::app::models::DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap()),
+            updated_by_id: created_by
+                .map(|s| crate::app::models::DieselUlid::from_string(s).unwrap())
+                .unwrap_or_else(|| crate::app::models::DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap()),
             deleted_by_id: None,
         };
 

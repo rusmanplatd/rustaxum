@@ -91,15 +91,17 @@ pulldown-cmark = "0.13"
 # Template engine
 handlebars = "6.3"
 # WebSocket support for broadcasting
-tokio-tungstenite = "0.27"
+tokio-tungstenite = "0.28"
 # Additional serialization
 toml = "0.9"
 bigdecimal = { version = "0.4.8", features = ["serde"] }
 hex = "0.4.3"
 colored = "3"
 # WebAuthn/FIDO2 dependencies for physical keys and biometric
-webauthn-rs = "0.5"
+webauthn-rs = { version = "0.5", features = ["resident-key-support", "danger-allow-state-serialisation"] }
 webauthn-rs-proto = "0.5"
+# Binary serialization for WebAuthn state
+bincode = "2"
 
 [dev-dependencies]
 axum-test = "18.1"

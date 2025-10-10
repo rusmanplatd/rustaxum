@@ -46,7 +46,7 @@ impl MfaWebAuthnService {
 
         let exclude_credentials: Vec<CredentialID> = existing_credentials
             .iter()
-            .filter_map(|cred| base64::decode(&cred.credential_id).ok())
+            .filter_map(|cred| serde_json::from_str::<Vec<u8>>(&cred.credential_id).ok())
             .map(|bytes| CredentialID::from(bytes))
             .collect();
 
@@ -63,8 +63,9 @@ impl MfaWebAuthnService {
                 Some(exclude_credentials),
             )?;
 
-        // Store challenge
+        // Store challenge - use JSON for serialization
         let challenge_json = serde_json::to_string(&registration_state)?;
+
         let new_challenge = MfaWebAuthnChallenge::new(
             user_id_ulid,
             challenge_json,
@@ -78,7 +79,7 @@ impl MfaWebAuthnService {
             .execute(&mut conn)?;
 
         tracing::info!(
-            user_id = user_id,
+            user_id = %user_id,
             "WebAuthn registration started"
         );
 
@@ -102,15 +103,17 @@ impl MfaWebAuthnService {
             bail!("Challenge has expired or been used");
         }
 
-        // Parse registration state
+        // Parse registration state from JSON
         let registration_state: PasskeyRegistration = serde_json::from_str(&challenge.challenge)?;
 
         // Finish registration
         let passkey = self.webauthn
             .finish_passkey_registration(&credential, &registration_state)?;
 
-        // Store credential
-        let credential_id = base64::encode(&passkey.cred_id().0);
+        // Store credential - serialize the whole credential ID
+        let credential_id_value = serde_json::to_string(passkey.cred_id())?;
+
+        // Serialize passkey to JSON
         let public_key = serde_json::to_string(&passkey)?;
 
         let transports: Option<Vec<Option<String>>> = credential
@@ -122,15 +125,15 @@ impl MfaWebAuthnService {
         let new_credential = NewMfaWebAuthnCredential {
             id: DieselUlid::new(),
             user_id: user_id_ulid,
-            credential_id,
+            credential_id: credential_id_value,
             public_key,
-            counter: passkey.counter() as i64,
+            counter: 0, // Start at 0, will be updated on authentication
             device_name,
             aaguid: None,
             transports,
             attestation_format: None,
-            is_backup_eligible: passkey.backup_eligible(),
-            is_backup_state: passkey.backup_state(),
+            is_backup_eligible: false, // Default values
+            is_backup_state: false,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         };
@@ -148,9 +151,7 @@ impl MfaWebAuthnService {
             .execute(&mut conn)?;
 
         // Update mfa_methods table
-        use crate::schema::mfa_methods::dsl::*;
-
-        diesel::insert_into(mfa_methods)
+        diesel::insert_into(crate::schema::mfa_methods::table)
             .values((
                 crate::schema::mfa_methods::id.eq(DieselUlid::new()),
                 crate::schema::mfa_methods::user_id.eq(&user_id_ulid),
@@ -160,13 +161,10 @@ impl MfaWebAuthnService {
                 crate::schema::mfa_methods::created_at.eq(chrono::Utc::now()),
                 crate::schema::mfa_methods::updated_at.eq(chrono::Utc::now()),
             ))
-            .on_conflict((crate::schema::mfa_methods::user_id, crate::schema::mfa_methods::method_type))
-            .do_update()
-            .set(crate::schema::mfa_methods::is_enabled.eq(true))
             .execute(&mut conn)?;
 
         tracing::info!(
-            user_id = user_id,
+            user_id = %user_id,
             "WebAuthn credential registered successfully"
         );
 
@@ -202,8 +200,9 @@ impl MfaWebAuthnService {
         let (request_challenge_response, authentication_state) = self.webauthn
             .start_passkey_authentication(&passkeys)?;
 
-        // Store challenge
+        // Store challenge as JSON
         let challenge_json = serde_json::to_string(&authentication_state)?;
+
         let new_challenge = MfaWebAuthnChallenge::new(
             user_id_ulid,
             challenge_json,
@@ -217,7 +216,7 @@ impl MfaWebAuthnService {
             .execute(&mut conn)?;
 
         tracing::info!(
-            user_id = user_id,
+            user_id = %user_id,
             "WebAuthn authentication started"
         );
 
@@ -240,7 +239,7 @@ impl MfaWebAuthnService {
             bail!("Challenge has expired or been used");
         }
 
-        // Parse authentication state
+        // Parse authentication state from JSON
         let authentication_state: PasskeyAuthentication = serde_json::from_str(&challenge.challenge)?;
 
         // Finish authentication
@@ -248,8 +247,8 @@ impl MfaWebAuthnService {
             .finish_passkey_authentication(&credential, &authentication_state)?;
 
         // Update credential counter
-        let credential_id = base64::encode(&auth_result.cred_id().0);
-        let new_counter = auth_result.counter() as i64;
+        let credential_id_value = serde_json::to_string(auth_result.cred_id())?;
+        let new_counter = auth_result.counter();
 
         let mut conn = pool.get()?;
 
@@ -259,20 +258,18 @@ impl MfaWebAuthnService {
             .execute(&mut conn)?;
 
         // Update credential counter and last used
-        use crate::schema::mfa_webauthn_credentials::dsl::*;
-
-        diesel::update(mfa_webauthn_credentials)
-            .filter(user_id.eq(&user_id_ulid))
-            .filter(credential_id.eq(&credential_id))
+        diesel::update(crate::schema::mfa_webauthn_credentials::table)
+            .filter(crate::schema::mfa_webauthn_credentials::user_id.eq(&user_id_ulid))
+            .filter(crate::schema::mfa_webauthn_credentials::credential_id.eq(&credential_id_value))
             .set((
-                counter.eq(new_counter),
-                last_used_at.eq(Some(chrono::Utc::now())),
-                updated_at.eq(chrono::Utc::now()),
+                crate::schema::mfa_webauthn_credentials::counter.eq(new_counter as i64),
+                crate::schema::mfa_webauthn_credentials::last_used_at.eq(Some(chrono::Utc::now())),
+                crate::schema::mfa_webauthn_credentials::updated_at.eq(chrono::Utc::now()),
             ))
             .execute(&mut conn)?;
 
         tracing::info!(
-            user_id = user_id,
+            user_id = %user_id,
             "WebAuthn authentication successful"
         );
 
@@ -301,20 +298,18 @@ impl MfaWebAuthnService {
         user_id_param: &str,
         challenge_type_filter: &str,
     ) -> Result<MfaWebAuthnChallenge> {
-        use crate::schema::mfa_webauthn_challenges::dsl::*;
-
         let user_id_ulid = DieselUlid::from_string(user_id_param)?;
         let mut conn = pool.get()?;
 
-        let challenge = mfa_webauthn_challenges
-            .filter(user_id.eq(&user_id_ulid))
-            .filter(challenge_type.eq(challenge_type_filter))
-            .filter(is_used.eq(false))
-            .order(created_at.desc())
+        let result = crate::schema::mfa_webauthn_challenges::table
+            .filter(crate::schema::mfa_webauthn_challenges::user_id.eq(&user_id_ulid))
+            .filter(crate::schema::mfa_webauthn_challenges::challenge_type.eq(challenge_type_filter))
+            .filter(crate::schema::mfa_webauthn_challenges::is_used.eq(false))
+            .order(crate::schema::mfa_webauthn_challenges::created_at.desc())
             .select(MfaWebAuthnChallenge::as_select())
             .first::<MfaWebAuthnChallenge>(&mut conn)?;
 
-        Ok(challenge)
+        Ok(result)
     }
 
     /// Delete a WebAuthn credential

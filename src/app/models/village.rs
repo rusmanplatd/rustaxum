@@ -105,13 +105,14 @@ pub struct VillageResponse {
 
 impl Village {
     pub fn new(
-        district_id: String,
+        district_id_str: String,
         name: String,
         code: Option<String>,
         latitude: Option<Decimal>,
         longitude: Option<Decimal>,
     ) -> Self {
         let now = Utc::now();
+        let district_id = DieselUlid::from_string(&district_id_str).unwrap_or_else(|_| DieselUlid::new());
         Self {
             id: DieselUlid::new(),
             district_id,
@@ -131,7 +132,7 @@ impl Village {
     pub fn to_response(&self) -> VillageResponse {
         VillageResponse {
             id: self.id,
-            district_id: self.district_id.clone(),
+            district_id: self.district_id.to_string(),
             name: self.name.clone(),
             code: self.code.clone(),
             latitude: self.latitude,

@@ -22,25 +22,49 @@ impl Seeder for UserOrganizationSeeder {
         let mut conn = pool.get()?;
 
         // Get system user ID for audit tracking
-        let system_user_id: String = sys_users::table
+        let system_user_id_str: String = sys_users::table
             .filter(sys_users::email.eq("system@seeder.internal"))
             .select(sys_users::id)
-            .first(&mut conn)?;
+            .first(&mut conn)
+            .map_err(|e| anyhow::anyhow!("Failed to get system user: {}", e))?;
+        let system_user_id = DieselUlid::from_string(&system_user_id_str)?;
 
         // Get users with their emails for identification
-        let users: Vec<(DieselUlid, String)> = sys_users::table
+        let users_raw: Vec<(String, String)> = sys_users::table
             .select((sys_users::id, sys_users::email))
-            .load(&mut conn)?;
+            .load(&mut conn)
+            .map_err(|e| anyhow::anyhow!("Failed to load users: {}", e))?;
+
+        let users: Vec<(DieselUlid, String)> = users_raw
+            .into_iter()
+            .filter_map(|(id_str, email)| {
+                DieselUlid::from_string(&id_str).ok().map(|id| (id, email))
+            })
+            .collect();
 
         // Get organizations with their codes for identification
-        let organizations: Vec<(DieselUlid, Option<String>)> = organizations::table
+        let orgs_raw: Vec<(String, Option<String>)> = organizations::table
             .select((organizations::id, organizations::code))
-            .load(&mut conn)?;
+            .load(&mut conn)
+            .map_err(|e| anyhow::anyhow!("Failed to load organizations: {}", e))?;
+
+        let organizations: Vec<(DieselUlid, Option<String>)> = orgs_raw
+            .into_iter()
+            .filter_map(|(id_str, code)| {
+                DieselUlid::from_string(&id_str).ok().map(|id| (id, code))
+            })
+            .collect();
 
         // Get positions
-        let positions: Vec<DieselUlid> = organization_positions::table
+        let positions_raw: Vec<String> = organization_positions::table
             .select(organization_positions::id)
-            .load(&mut conn)?;
+            .load(&mut conn)
+            .map_err(|e| anyhow::anyhow!("Failed to load positions: {}", e))?;
+
+        let positions: Vec<DieselUlid> = positions_raw
+            .into_iter()
+            .filter_map(|id_str| DieselUlid::from_string(&id_str).ok())
+            .collect();
 
         if users.is_empty() || organizations.is_empty() || positions.is_empty() {
             return Err(anyhow::anyhow!(
