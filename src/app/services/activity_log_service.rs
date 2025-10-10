@@ -4,7 +4,7 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::app::models::{DieselUlid, HasModelType};
-use crate::app::models::activity_log::{ActivityLog, NewActivityLog};
+use crate::app::models::activity_log::{ActivityLog};
 use crate::database::DbPool;
 use crate::schema::activity_log;
 
@@ -21,7 +21,7 @@ impl ActivityLogService {
         Self { pool: Some(pool) }
     }
 
-    pub async fn create(&self, new_activity: NewActivityLog) -> Result<ActivityLog> {
+    pub async fn create(&self, new_activity: ActivityLog) -> Result<ActivityLog> {
         let pool = self.get_pool().await?;
         let mut conn = pool.get()?;
 
@@ -33,12 +33,12 @@ impl ActivityLogService {
         Ok(activity)
     }
 
-    pub async fn create_batch(&self, activities: Vec<NewActivityLog>) -> Result<Vec<ActivityLog>> {
+    pub async fn create_batch(&self, activities: Vec<ActivityLog>) -> Result<Vec<ActivityLog>> {
         let pool = self.get_pool().await?;
         let mut conn = pool.get()?;
 
         let batch_uuid = Uuid::new_v4().to_string();
-        let activities_with_batch: Vec<NewActivityLog> = activities
+        let activities_with_batch: Vec<ActivityLog> = activities
             .into_iter()
             .map(|mut activity| {
                 activity.batch_uuid = Some(batch_uuid.clone());
@@ -179,7 +179,8 @@ impl ActivityLogService {
         let mut conn = pool.get()?;
         let activity_id = DieselUlid::new();
 
-        let new_activity = NewActivityLog {
+        let now = chrono::Utc::now();
+        let new_activity = ActivityLog {
             id: activity_id,
             log_name: Some(log_name.to_string()),
             description: description.to_string(),
@@ -191,6 +192,8 @@ impl ActivityLogService {
             correlation_id: None,
             event: Some("log".to_string()),
             batch_uuid: None,
+            created_at: now,
+            updated_at: now,
         };
 
         diesel::insert_into(activity_log::table)

@@ -131,9 +131,9 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
 pub async fn store(State(pool): State<DbPool>, request: CreateNotificationRequest) -> impl IntoResponse {
     use diesel::prelude::*;
     use crate::schema::notifications;
-    use crate::app::models::notification::NewNotification;
+    use crate::app::models::notification::Notification;
 
-    let new_notification = NewNotification::new(
+    let new_notification = Notification::new(
         request.notification_type,
         request.notifiable_id,
         request.notifiable_type,

@@ -1,7 +1,7 @@
 use crate::database::DbPool;
 use anyhow::{Result, anyhow};
 use crate::database::seeder::Seeder;
-use crate::app::models::province::{Province, NewProvince};
+use crate::app::models::province::{Province};
 use csv::Reader;
 use std::fs::File;
 use std::collections::HashMap;
@@ -71,11 +71,11 @@ impl Seeder for Provinceseeder {
             let country_id = country_map.get(&record.country_iso)
                 .ok_or_else(|| anyhow!("Country with ISO code {} not found", record.country_iso))?;
 
-            let new_province = NewProvince::new(
+            let new_province = Province::new(
                 country_id.to_string(),
                 record.name.clone(),
                 Some(record.code.clone()),
-                Some(&system_user_id),
+                &system_user_id,
             );
 
             let inserted_province: Province = diesel::insert_into(ref_geo_provinces::table)

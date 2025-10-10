@@ -6,7 +6,7 @@ use crate::app::query_builder::SortDirection;
 use super::DieselUlid;
 use crate::app::models::{HasModelType, activity_log::HasId};
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable, QueryableByName)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable, QueryableByName, Insertable)]
 #[diesel(table_name = crate::schema::sys_model_has_roles)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct SysModelHasRole {
@@ -43,24 +43,6 @@ pub struct CreateSysModelHasRole {
     pub role_id: DieselUlid,
     pub scope_type: Option<String>,
     pub scope_id: Option<DieselUlid>,
-}
-
-/// Insertable struct for sys_model_has_roles
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::sys_model_has_roles)]
-pub struct NewSysModelHasRole {
-    pub id: DieselUlid,
-    pub model_type: String,
-    pub model_id: DieselUlid,
-    pub role_id: DieselUlid,
-    pub scope_type: Option<String>,
-    pub scope_id: Option<DieselUlid>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: DieselUlid,
-    pub updated_by_id: DieselUlid,
-    pub deleted_by_id: Option<DieselUlid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -149,34 +131,12 @@ impl crate::app::query_builder::Queryable for SysModelHasRole {
     }
 }
 
-impl NewSysModelHasRole {
-    pub fn new(model_type: String, model_id: DieselUlid, role_id: DieselUlid, scope_type: Option<String>, scope_id: Option<DieselUlid>, user_id: Option<DieselUlid>) -> Self {
-        let now = Utc::now();
-        let created_by = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap_or_else(|_| DieselUlid::new()));
-
-        Self {
-            id: DieselUlid::new(),
-            model_type,
-            model_id,
-            role_id,
-            scope_type,
-            scope_id,
-            created_at: now,
-            updated_at: now,
-            deleted_at: None,
-            created_by_id: created_by,
-            updated_by_id: created_by,
-            deleted_by_id: None,
-        }
-    }
-}
-
 impl SysModelHasRole {
     pub fn new(model_type: String, model_id: DieselUlid, role_id: DieselUlid, scope_type: Option<String>, scope_id: Option<DieselUlid>, user_id: Option<DieselUlid>) -> Self {
         let now = Utc::now();
         let created_by = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap_or_else(|_| DieselUlid::new()));
 
-        Self {
+        SysModelHasRole {
             id: DieselUlid::new(),
             model_type,
             model_id,

@@ -5,7 +5,7 @@ use utoipa::ToSchema;
 use crate::app::query_builder::SortDirection;
 use super::DieselUlid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable, Insertable)]
 #[diesel(table_name = crate::schema::sys_permissions)]
 pub struct Permission {
     pub id: DieselUlid,
@@ -47,9 +47,8 @@ pub struct PermissionResponse {
 }
 
 impl Permission {
-    pub fn new(guard_name: Option<String>, resource: Option<String>, action: String, user_id: Option<DieselUlid>) -> Self {
+    pub fn new(guard_name: Option<String>, resource: Option<String>, action: String, created_by: DieselUlid) -> Self {
         let now = Utc::now();
-        let created_by = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap_or_else(|_| DieselUlid::new()));
 
         Self {
             id: DieselUlid::new(),
@@ -61,21 +60,21 @@ impl Permission {
             scope_id: None,
             created_at: now,
             updated_at: now,
-            created_by_id: created_by,
+            created_by_id: created_by.clone(),
             updated_by_id: created_by,
             deleted_by_id: None,
         }
     }
 
-    pub fn update_with_user(&mut self, user_id: Option<DieselUlid>) {
+    pub fn update_with_user(&mut self, updated_by: DieselUlid) {
         self.updated_at = Utc::now();
-        self.updated_by_id = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap());
+        self.updated_by_id = updated_by;
     }
 
-    pub fn soft_delete(&mut self, user_id: Option<DieselUlid>) {
-                self.updated_at = Utc::now();
-        self.deleted_by_id = user_id;
-        self.updated_by_id = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap());
+    pub fn soft_delete(&mut self, deleted_by: DieselUlid) {
+        self.updated_at = Utc::now();
+        self.deleted_by_id = Some(deleted_by.clone());
+        self.updated_by_id = deleted_by;
     }
 
     pub fn to_response(&self) -> PermissionResponse {

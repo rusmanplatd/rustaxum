@@ -29,20 +29,6 @@ pub struct CreateMessageDeviceKey {
     pub encrypted_message_key: String,
     pub key_algorithm: String,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::message_device_keys)]
-pub struct NewMessageDeviceKey {
-    pub id: DieselUlid,
-    pub message_id: DieselUlid,
-    pub recipient_device_id: DieselUlid,
-    pub encrypted_message_key: String,
-    pub key_algorithm: String,
-    pub delivered_at: Option<DateTime<Utc>>,
-    pub read_at: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct MessageDeviceKeyResponse {
     pub id: DieselUlid,
@@ -60,8 +46,8 @@ impl MessageDeviceKey {
         recipient_device_id: DieselUlid,
         encrypted_message_key: String,
         key_algorithm: String,
-    ) -> NewMessageDeviceKey {
-        NewMessageDeviceKey {
+    ) -> Self {
+        MessageDeviceKey {
             id: DieselUlid::new(),
             message_id,
             recipient_device_id,

@@ -10,21 +10,12 @@ use crate::app::models::city::{City, CreateCity, UpdateCity};
 pub struct CityService;
 
 impl CityService {
-    pub fn create(pool: &DbPool, data: CreateCity) -> Result<City> {
-        let city = City::new(data.province_id, data.name, data.code, data.latitude, data.longitude);
+    pub fn create(pool: &DbPool, data: CreateCity, created_by: &str) -> Result<City> {
+        let city = City::new(data.province_id, data.name, data.code, data.latitude, data.longitude, created_by);
         let mut conn = pool.get()?;
 
         let result = diesel::insert_into(ref_geo_cities::table)
-            .values((
-                ref_geo_cities::id.eq(&city.id),
-                ref_geo_cities::province_id.eq(&city.province_id),
-                ref_geo_cities::name.eq(&city.name),
-                ref_geo_cities::code.eq(&city.code),
-                ref_geo_cities::latitude.eq(city.latitude),
-                ref_geo_cities::longitude.eq(city.longitude),
-                ref_geo_cities::created_at.eq(city.created_at),
-                ref_geo_cities::updated_at.eq(city.updated_at),
-            ))
+            .values(&city)
             .returning(City::as_select())
             .get_result(&mut conn)?;
 

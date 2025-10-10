@@ -28,29 +28,6 @@ pub struct SignalSession {
     pub backup_device_id: Option<DieselUlid>,
     pub is_recoverable: bool,
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, Insertable)]
-#[diesel(table_name = signal_sessions)]
-pub struct NewSignalSession {
-    pub id: DieselUlid,
-    pub local_device_id: DieselUlid,
-    pub remote_device_id: DieselUlid,
-    pub conversation_id: DieselUlid,
-    pub encrypted_session_state: String,
-    pub session_algorithm: String,
-    pub session_version: Option<i32>,
-    pub is_active: Option<bool>,
-    pub established_at: Option<DateTime<Utc>>,
-    pub last_used_at: Option<DateTime<Utc>>,
-    pub encrypted_send_counter: Option<String>,
-    pub encrypted_receive_counter: Option<String>,
-    pub backup_encrypted_state: Option<String>,
-    pub recovery_key_hash: Option<String>,
-    pub backup_created_at: Option<DateTime<Utc>>,
-    pub backup_device_id: Option<DieselUlid>,
-    pub is_recoverable: Option<bool>,
-}
-
 impl SignalSession {
     pub fn needs_backup(&self) -> bool {
         self.backup_encrypted_state.is_none() && self.is_active
@@ -61,7 +38,7 @@ impl SignalSession {
     }
 }
 
-impl NewSignalSession {
+impl SignalSession {
     pub fn new(
         local_device_id: DieselUlid,
         remote_device_id: DieselUlid,
@@ -69,24 +46,27 @@ impl NewSignalSession {
         encrypted_session_state: String,
         session_algorithm: String,
     ) -> Self {
-        Self {
+        let now = Utc::now();
+        SignalSession {
             id: DieselUlid::new(),
             local_device_id,
             remote_device_id,
             conversation_id,
             encrypted_session_state,
             session_algorithm,
-            session_version: Some(1),
-            is_active: Some(true),
-            established_at: Some(Utc::now()),
-            last_used_at: Some(Utc::now()),
+            session_version: 1,
+            is_active: true,
+            established_at: now,
+            last_used_at: now,
             encrypted_send_counter: None,
             encrypted_receive_counter: None,
+            created_at: now,
+            updated_at: now,
             backup_encrypted_state: None,
             recovery_key_hash: None,
             backup_created_at: None,
             backup_device_id: None,
-            is_recoverable: Some(false),
+            is_recoverable: false,
         }
     }
 
@@ -100,7 +80,7 @@ impl NewSignalSession {
         self.recovery_key_hash = Some(recovery_key_hash);
         self.backup_device_id = Some(backup_device_id);
         self.backup_created_at = Some(Utc::now());
-        self.is_recoverable = Some(true);
+        self.is_recoverable = true;
         self
     }
 }

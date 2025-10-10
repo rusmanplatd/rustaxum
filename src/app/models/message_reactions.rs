@@ -35,20 +35,6 @@ pub struct UpdateMessageReaction {
     pub encrypted_reaction: Option<String>,
     pub reaction_algorithm: Option<String>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::message_reactions)]
-pub struct NewMessageReaction {
-    pub id: DieselUlid,
-    pub message_id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub device_id: DieselUlid,
-    pub encrypted_reaction: String,
-    pub reaction_algorithm: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct MessageReactionResponse {
     pub id: DieselUlid,

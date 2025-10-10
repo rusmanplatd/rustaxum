@@ -8,7 +8,7 @@ use crate::app::query_builder::{SortDirection};
 
 /// City model representing a city within a province
 /// Contains geographical coordinates and administrative information
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::ref_geo_cities)]
 pub struct City {
     pub id: DieselUlid,
@@ -37,24 +37,6 @@ pub struct CreateCity {
     pub latitude: Option<Decimal>,
     #[schema(value_type = Option<f64>)]
     pub longitude: Option<Decimal>,
-}
-
-/// Insertable struct for creating new cities in the database
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::ref_geo_cities)]
-pub struct NewCity {
-    pub id: DieselUlid,
-    pub province_id: String,
-    pub name: String,
-    pub code: Option<String>,
-    pub latitude: Option<Decimal>,
-    pub longitude: Option<Decimal>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: DieselUlid,
-    pub updated_by_id: DieselUlid,
-    pub deleted_by_id: Option<DieselUlid>,
 }
 
 /// Update city payload for service layer
@@ -91,9 +73,11 @@ impl City {
         code: Option<String>,
         latitude: Option<Decimal>,
         longitude: Option<Decimal>,
+        created_by: &str,
     ) -> Self {
         let now = Utc::now();
-        Self {
+        let creator_id = DieselUlid::from_string(created_by.trim()).expect("Invalid created_by ULID provided to City::new()");
+        City {
             id: DieselUlid::new(),
             province_id,
             name,
@@ -103,8 +87,8 @@ impl City {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap(),
-            updated_by_id: DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap(),
+            created_by_id: creator_id.clone(),
+            updated_by_id: creator_id,
             deleted_by_id: None,
         }
     }
@@ -123,35 +107,6 @@ impl City {
     }
 }
 
-impl NewCity {
-    pub fn new(
-        province_id: String,
-        name: String,
-        code: Option<String>,
-        latitude: Option<Decimal>,
-        longitude: Option<Decimal>,
-        created_by: Option<&str>,
-    ) -> Self {
-        let now = Utc::now();
-        let system_id = created_by
-            .and_then(|s| DieselUlid::from_string(s.trim()).ok())
-            .unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap());
-        Self {
-            id: DieselUlid::new(),
-            province_id,
-            name,
-            code,
-            latitude,
-            longitude,
-            created_at: now,
-            updated_at: now,
-            deleted_at: None,
-            created_by_id: system_id.clone(),
-            updated_by_id: system_id,
-            deleted_by_id: None,
-        }
-    }
-}
 
 
 impl crate::app::query_builder::Queryable for City {

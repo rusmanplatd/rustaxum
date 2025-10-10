@@ -29,20 +29,6 @@ pub struct CreateOAuthPushedRequest {
     pub request_data: String,
     pub expires_in: Option<i32>, // Seconds until expiration
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::oauth_pushed_requests)]
-pub struct NewOAuthPushedRequest {
-    pub id: DieselUlid,
-    pub request_uri: String,
-    pub client_id: DieselUlid,
-    pub request_data: String,
-    pub expires_at: DateTime<Utc>,
-    pub used: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct OAuthPushedRequestResponse {
     pub id: DieselUlid,
@@ -65,13 +51,13 @@ impl OAuthPushedRequest {
         client_id: DieselUlid,
         request_data: String,
         expires_in: Option<i32>,
-    ) -> NewOAuthPushedRequest {
+    ) -> Self {
         let now = Utc::now();
         let expires_in_seconds = expires_in.unwrap_or(600); // Default 10 minutes
         let expires_at = now + chrono::Duration::seconds(expires_in_seconds as i64);
         let request_uri = format!("urn:ietf:params:oauth:request_uri:{}", DieselUlid::new());
 
-        NewOAuthPushedRequest {
+        OAuthPushedRequest {
             id: DieselUlid::new(),
             request_uri,
             client_id,

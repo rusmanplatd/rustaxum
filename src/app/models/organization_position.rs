@@ -8,7 +8,7 @@ use serde_json::Value as JsonValue;
 
 /// Organization position model representing specific sys_roles within organization position levels
 /// Contains position information and relationship to organization position level hierarchy
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::organization_positions)]
 pub struct OrganizationPosition {
     /// Unique identifier for the organization position
@@ -73,30 +73,6 @@ pub struct CreateOrganizationPosition {
     pub responsibilities: Option<JsonValue>,
 }
 
-/// Insertable struct for organization positions
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::organization_positions)]
-pub struct NewOrganizationPosition {
-    pub id: DieselUlid,
-    pub organization_id: DieselUlid,
-    pub organization_position_level_id: DieselUlid,
-    pub code: String,
-    pub name: String,
-    pub description: Option<String>,
-    pub is_active: bool,
-    pub min_salary: DecimalWrapper,
-    pub max_salary: DecimalWrapper,
-    pub max_incumbents: i32,
-    pub qualifications: JsonValue,
-    pub responsibilities: JsonValue,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: DieselUlid,
-    pub updated_by_id: DieselUlid,
-    pub deleted_by_id: Option<DieselUlid>,
-}
-
 /// Update organization position payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateOrganizationPosition {
@@ -136,10 +112,10 @@ pub struct OrganizationPositionResponse {
     pub deleted_by_id: Option<DieselUlid>,
 }
 
-impl NewOrganizationPosition {
+impl OrganizationPosition {
     pub fn new(create_position: CreateOrganizationPosition, created_by: Option<DieselUlid>) -> Self {
         let now = Utc::now();
-        Self {
+        OrganizationPosition {
             id: DieselUlid::new(),
             organization_id: create_position.organization_id,
             organization_position_level_id: create_position.organization_position_level_id,
@@ -160,9 +136,7 @@ impl NewOrganizationPosition {
             deleted_by_id: None,
         }
     }
-}
 
-impl OrganizationPosition {
     pub fn to_response(&self) -> OrganizationPositionResponse {
         OrganizationPositionResponse {
             id: self.id,

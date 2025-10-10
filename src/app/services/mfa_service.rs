@@ -407,7 +407,7 @@ impl MfaService {
 
         let mut conn = pool.get().map_err(|e| anyhow::anyhow!("Database connection error: {}", e))?;
 
-        let new_attempt = crate::app::models::mfamethod::NewMfaAttempt {
+        let new_attempt = crate::app::models::mfamethod::MfaAttempt {
             id: crate::app::models::DieselUlid::new(),
             user_id: crate::app::models::DieselUlid::from_string(user_id)?,
             method_type: method_type.to_string(),

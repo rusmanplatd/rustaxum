@@ -1,7 +1,7 @@
 use crate::database::DbPool;
 use anyhow::Result;
 use crate::database::seeder::Seeder;
-use crate::app::models::{DieselUlid, DecimalWrapper, organization_position::{NewOrganizationPosition, CreateOrganizationPosition}};
+use crate::app::models::{DieselUlid, DecimalWrapper, organization_position::{CreateOrganizationPosition, OrganizationPosition}};
 use diesel::prelude::*;
 use crate::schema::{organizations, organization_position_levels, organization_positions};
 use serde_json::json;
@@ -171,7 +171,7 @@ impl Seeder for OrganizationPositionSeeder {
                         responsibilities: Some(responsibilities.clone()),
                     };
 
-                    let new_position = NewOrganizationPosition::new(position, None);
+                    let new_position = OrganizationPosition::new(position, None);
                     diesel::insert_into(organization_positions::table)
                         .values(&new_position)
                         .on_conflict_do_nothing()

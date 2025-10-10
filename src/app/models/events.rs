@@ -33,21 +33,6 @@ pub struct CreateEvent {
     pub version: Option<i32>,
     pub occurred_at: Option<DateTime<Utc>>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::events)]
-pub struct NewEvent {
-    pub id: DieselUlid,
-    pub event_name: String,
-    pub event_data: serde_json::Value,
-    pub aggregate_id: Option<String>,
-    pub aggregate_type: Option<String>,
-    pub version: Option<i32>,
-    pub occurred_at: DateTime<Utc>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct EventResponse {
     pub id: DieselUlid,
@@ -69,9 +54,9 @@ impl Event {
         aggregate_type: Option<String>,
         version: Option<i32>,
         occurred_at: Option<DateTime<Utc>>,
-    ) -> NewEvent {
+    ) -> Self {
         let now = Utc::now();
-        NewEvent {
+        Event {
             id: DieselUlid::new(),
             event_name,
             event_data,

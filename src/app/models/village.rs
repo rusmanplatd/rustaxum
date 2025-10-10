@@ -8,7 +8,7 @@ use crate::app::query_builder::{SortDirection};
 
 /// Village model representing a village within a district
 /// Contains geographical coordinates and local community information
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::ref_geo_villages)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Village {
@@ -58,24 +58,6 @@ pub struct CreateVillage {
     pub longitude: Option<Decimal>,
 }
 
-/// Insertable struct for creating new villages in the database
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::ref_geo_villages)]
-pub struct NewVillage {
-    pub id: DieselUlid,
-    pub district_id: String,
-    pub name: String,
-    pub code: Option<String>,
-    pub latitude: Option<Decimal>,
-    pub longitude: Option<Decimal>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: DieselUlid,
-    pub updated_by_id: DieselUlid,
-    pub deleted_by_id: Option<DieselUlid>,
-}
-
 /// Update village payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateVillage {
@@ -105,17 +87,21 @@ pub struct VillageResponse {
 
 impl Village {
     pub fn new(
-        district_id_str: String,
+        district_id: String,
         name: String,
         code: Option<String>,
         latitude: Option<Decimal>,
         longitude: Option<Decimal>,
+        created_by: &str,
     ) -> Self {
         let now = Utc::now();
-        let district_id = DieselUlid::from_string(&district_id_str).unwrap_or_else(|_| DieselUlid::new());
-        Self {
+        let creator_id = DieselUlid::from_string(created_by.trim())
+            .expect("Invalid created_by ULID provided to Village::new()");
+        let district_ulid = DieselUlid::from_string(&district_id)
+            .expect("Invalid district_id ULID provided to Village::new()");
+        Village {
             id: DieselUlid::new(),
-            district_id,
+            district_id: district_ulid,
             name,
             code,
             latitude,
@@ -123,8 +109,8 @@ impl Village {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap(),
-            updated_by_id: DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap(),
+            created_by_id: creator_id.clone(),
+            updated_by_id: creator_id,
             deleted_by_id: None,
         }
     }
@@ -143,35 +129,6 @@ impl Village {
     }
 }
 
-impl NewVillage {
-    pub fn new(
-        district_id: String,
-        name: String,
-        code: Option<String>,
-        latitude: Option<Decimal>,
-        longitude: Option<Decimal>,
-        created_by: Option<&str>,
-    ) -> Self {
-        let now = Utc::now();
-        let system_id = created_by
-            .and_then(|s| DieselUlid::from_string(s.trim()).ok())
-            .unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap());
-        Self {
-            id: DieselUlid::new(),
-            district_id,
-            name,
-            code,
-            latitude,
-            longitude,
-            created_at: now,
-            updated_at: now,
-            deleted_at: None,
-            created_by_id: system_id.clone(),
-            updated_by_id: system_id,
-            deleted_by_id: None,
-        }
-    }
-}
 
 impl crate::app::query_builder::Queryable for Village {
     fn table_name() -> &'static str {

@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use crate::database::DbPool;
 use crate::app::models::{
     DieselUlid,
-    organization_type::{OrganizationType, CreateOrganizationType, UpdateOrganizationType, NewOrganizationType}
+    organization_type::{OrganizationType, CreateOrganizationType, UpdateOrganizationType}
 };
 use crate::schema::organization_types;
 
@@ -14,7 +14,7 @@ impl OrganizationTypeService {
     pub fn create(pool: &DbPool, data: CreateOrganizationType, created_by: Option<DieselUlid>) -> Result<OrganizationType> {
         let mut conn = pool.get()?;
 
-        let new_type = NewOrganizationType::new(data, created_by);
+        let new_type = OrganizationType::new(data, created_by);
 
         let org_type = diesel::insert_into(organization_types::table)
             .values(&new_type)

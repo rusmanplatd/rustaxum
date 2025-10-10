@@ -9,20 +9,13 @@ use crate::app::models::province::{Province, CreateProvince, UpdateProvince};
 pub struct ProvinceService;
 
 impl ProvinceService {
-    pub fn create(pool: &DbPool, data: CreateProvince) -> Result<Province> {
+    pub fn create(pool: &DbPool, data: CreateProvince, created_by: &str) -> Result<Province> {
         let country_id = Ulid::from_string(&data.country_id)?;
-        let province = Province::new(country_id.to_string(), data.name, data.code);
+        let province = Province::new(country_id.to_string(), data.name, data.code, created_by);
         let mut conn = pool.get()?;
 
         let result = diesel::insert_into(ref_geo_provinces::table)
-            .values((
-                ref_geo_provinces::id.eq(&province.id),
-                ref_geo_provinces::country_id.eq(&province.country_id),
-                ref_geo_provinces::name.eq(&province.name),
-                ref_geo_provinces::code.eq(&province.code),
-                ref_geo_provinces::created_at.eq(province.created_at),
-                ref_geo_provinces::updated_at.eq(province.updated_at),
-            ))
+            .values(&province)
             .returning(Province::as_select())
             .get_result::<Province>(&mut conn)?;
 

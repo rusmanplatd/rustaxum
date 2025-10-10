@@ -1,4 +1,4 @@
-use crate::app::models::organization_domain::NewOrganizationDomain;
+use crate::app::models::organization_domain::OrganizationDomain;
 use crate::app::models::DieselUlid;
 use crate::database::seeder::Seeder;
 use crate::database::DbPool;
@@ -50,7 +50,7 @@ impl Seeder for OrganizationDomainSeeder {
         ];
 
         for (code, name, description) in domains {
-            let new_domain = NewOrganizationDomain {
+            let new_domain = OrganizationDomain {
                 id: DieselUlid::new(),
                 code: Some(code.to_string()),
                 name: name.to_string(),
@@ -58,8 +58,8 @@ impl Seeder for OrganizationDomainSeeder {
                 created_at: chrono::Utc::now(),
                 updated_at: chrono::Utc::now(),
                 deleted_at: None,
-                created_by_id: system_user_id.clone(),
-                updated_by_id: system_user_id.clone(),
+                created_by_id: DieselUlid::from_string(&system_user_id).unwrap(),
+                updated_by_id: DieselUlid::from_string(&system_user_id).unwrap(),
                 deleted_by_id: None,
             };
 

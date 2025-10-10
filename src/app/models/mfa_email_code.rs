@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use super::DieselUlid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, Insertable)]
 #[diesel(table_name = crate::schema::mfa_email_codes)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct MfaEmailCode {
@@ -19,20 +19,6 @@ pub struct MfaEmailCode {
     pub user_agent: Option<String>,
     pub created_at: DateTime<Utc>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::mfa_email_codes)]
-pub struct NewMfaEmailCode {
-    pub id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub code: String,
-    pub code_hash: String,
-    pub expires_at: DateTime<Utc>,
-    pub ip_address: Option<String>,
-    pub user_agent: Option<String>,
-    pub created_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct SendEmailCodeRequest {
     pub user_id: Option<String>,
@@ -52,14 +38,16 @@ impl MfaEmailCode {
         expires_in_minutes: i64,
         ip_address: Option<String>,
         user_agent: Option<String>,
-    ) -> NewMfaEmailCode {
+    ) -> Self {
         let now = Utc::now();
-        NewMfaEmailCode {
+        MfaEmailCode {
             id: DieselUlid::new(),
             user_id,
             code,
             code_hash,
             expires_at: now + chrono::Duration::minutes(expires_in_minutes),
+            verified_at: None,
+            is_used: false,
             ip_address,
             user_agent,
             created_at: now,

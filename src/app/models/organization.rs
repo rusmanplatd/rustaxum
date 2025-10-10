@@ -9,7 +9,7 @@ use serde_json::Value as JsonValue;
 
 /// Organization model representing an organizational entity
 /// Contains organizational information including hierarchy and metadata
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::organizations)]
 pub struct Organization {
     /// Unique identifier for the organization
@@ -108,40 +108,6 @@ pub struct CreateOrganization {
     pub website: Option<String>,
 }
 
-/// Insertable struct for organizations
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::organizations)]
-pub struct NewOrganization {
-    pub id: DieselUlid,
-    pub domain_id: DieselUlid,
-    pub parent_id: Option<DieselUlid>,
-    pub type_id: DieselUlid,
-    pub code: Option<String>,
-    pub name: String,
-    pub address: Option<String>,
-    pub authorized_capital: Option<DecimalWrapper>,
-    pub business_activities: Option<String>,
-    pub contact_persons: Option<JsonValue>,
-    pub description: Option<String>,
-    pub email: Option<String>,
-    pub establishment_date: Option<NaiveDate>,
-    pub governance_structure: Option<JsonValue>,
-    pub legal_status: Option<String>,
-    pub paid_capital: Option<DecimalWrapper>,
-    pub path: Option<String>,
-    pub phone: Option<String>,
-    pub registration_number: Option<String>,
-    pub tax_number: Option<String>,
-    pub website: Option<String>,
-    pub is_active: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: DieselUlid,
-    pub updated_by_id: DieselUlid,
-    pub deleted_by_id: Option<DieselUlid>,
-}
-
 /// Update organization payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateOrganization {
@@ -201,10 +167,10 @@ pub struct OrganizationResponse {
     pub deleted_by_id: Option<DieselUlid>,
 }
 
-impl NewOrganization {
+impl Organization {
     pub fn new(create_org: CreateOrganization, created_by: Option<DieselUlid>) -> Self {
         let now = Utc::now();
-        Self {
+        Organization {
             id: DieselUlid::new(),
             domain_id: create_org.domain_id,
             parent_id: create_org.parent_id,
@@ -235,9 +201,7 @@ impl NewOrganization {
             deleted_by_id: None,
         }
     }
-}
 
-impl Organization {
     pub fn to_response(&self) -> OrganizationResponse {
         OrganizationResponse {
             id: self.id,

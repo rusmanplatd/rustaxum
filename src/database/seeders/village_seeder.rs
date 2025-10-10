@@ -1,7 +1,7 @@
 use crate::database::DbPool;
 use anyhow::Result;
 use crate::database::seeder::Seeder;
-use crate::app::models::village::{Village, NewVillage};
+use crate::app::models::village::{Village};
 use csv::Reader;
 use std::fs::File;
 use std::collections::HashMap;
@@ -127,13 +127,13 @@ impl Seeder for Villageseeder {
                 Some(Decimal::from_str(&record.longitude)?)
             };
 
-            let new_village = NewVillage::new(
+            let new_village = Village::new(
                 district_id.to_string(),
                 record.name.clone(),
                 Some(record.code.clone()),
                 latitude,
                 longitude,
-                Some(&system_user_id),
+                &system_user_id,
             );
 
             let _inserted_village: Village = diesel::insert_into(ref_geo_villages::table)

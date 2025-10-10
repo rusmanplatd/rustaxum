@@ -1,7 +1,7 @@
 use crate::database::DbPool;
 use anyhow::Result;
 use crate::database::seeder::Seeder;
-use crate::app::models::district::{District, NewDistrict};
+use crate::app::models::district::{District};
 use csv::Reader;
 use std::fs::File;
 use std::collections::HashMap;
@@ -99,11 +99,11 @@ impl Seeder for Districtseeder {
                 }
             };
 
-            let new_district = NewDistrict::new(
+            let new_district = District::new(
                 city_id.to_string(),
                 record.name.clone(),
                 Some(record.code.clone()),
-                Some(&system_user_id),
+                &system_user_id,
             );
 
             let _inserted_district: District = diesel::insert_into(ref_geo_districts::table)

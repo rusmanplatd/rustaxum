@@ -6,7 +6,7 @@ use crate::app::query_builder::SortDirection;
 use crate::app::models::DieselUlid;
 use crate::app::models::{HasModelType, activity_log::HasId};
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable, QueryableByName)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable, QueryableByName, Insertable)]
 #[diesel(table_name = crate::schema::sys_model_has_permissions)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct SysModelHasPermission {
@@ -43,24 +43,6 @@ pub struct CreateSysModelHasPermission {
     pub permission_id: DieselUlid,
     pub scope_type: Option<String>,
     pub scope_id: Option<DieselUlid>,
-}
-
-/// Insertable struct for sys_model_has_permissions
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::sys_model_has_permissions)]
-pub struct NewSysModelHasPermission {
-    pub id: DieselUlid,
-    pub model_type: String,
-    pub model_id: DieselUlid,
-    pub permission_id: DieselUlid,
-    pub scope_type: Option<String>,
-    pub scope_id: Option<DieselUlid>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: DieselUlid,
-    pub updated_by_id: DieselUlid,
-    pub deleted_by_id: Option<DieselUlid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -152,34 +134,12 @@ impl crate::app::query_builder::Queryable for SysModelHasPermission {
     }
 }
 
-impl NewSysModelHasPermission {
-    pub fn new(model_type: String, model_id: DieselUlid, permission_id: DieselUlid, scope_type: Option<String>, scope_id: Option<DieselUlid>, user_id: Option<DieselUlid>) -> Self {
-        let now = Utc::now();
-        let created_by = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap_or_else(|_| DieselUlid::new()));
-
-        Self {
-            id: DieselUlid::new(),
-            model_type,
-            model_id,
-            permission_id,
-            scope_type,
-            scope_id,
-            created_at: now,
-            updated_at: now,
-            deleted_at: None,
-            created_by_id: created_by,
-            updated_by_id: created_by,
-            deleted_by_id: None,
-        }
-    }
-}
-
 impl SysModelHasPermission {
     pub fn new(model_type: String, model_id: DieselUlid, permission_id: DieselUlid, scope_type: Option<String>, scope_id: Option<DieselUlid>, user_id: Option<DieselUlid>) -> Self {
         let now = Utc::now();
         let created_by = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap_or_else(|_| DieselUlid::new()));
 
-        Self {
+        SysModelHasPermission {
             id: DieselUlid::new(),
             model_type,
             model_id,

@@ -5,7 +5,7 @@ use crate::database::DbPool;
 use crate::schema::organizations;
 use std::collections::HashMap;
 
-use crate::app::models::organization::{Organization, CreateOrganization, UpdateOrganization, NewOrganization};
+use crate::app::models::organization::{Organization, CreateOrganization, UpdateOrganization};
 use crate::app::traits::ServiceActivityLogger;
 
 pub struct OrganizationService;
@@ -21,7 +21,7 @@ impl OrganizationService {
             crate::app::models::DieselUlid::from_string(id_str).ok()
         });
 
-        let new_org = NewOrganization::new(data.clone(), created_by_ulid);
+        let new_org = Organization::new(data.clone(), created_by_ulid);
 
         let result = diesel::insert_into(organizations::table)
             .values(&new_org)

@@ -7,7 +7,7 @@ use crate::app::query_builder::{SortDirection};
 use crate::app::models::{HasModelType, activity_log::HasId};
 
 /// Database notification model
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable, QueryableByName)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Insertable, Identifiable, QueryableByName)]
 #[diesel(table_name = crate::schema::notifications)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Notification {
@@ -62,29 +62,6 @@ pub struct CreateNotification {
     pub data: serde_json::Value,
 }
 
-/// Insertable struct for notifications
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::notifications)]
-pub struct NewNotification {
-    pub id: DieselUlid,
-    #[diesel(column_name = type_)]
-    pub notification_type: String,
-    pub notifiable_type: String,
-    pub notifiable_id: String,
-    pub data: serde_json::Value,
-    pub channels: Vec<Option<String>>,
-    pub read_at: Option<DateTime<Utc>>,
-    pub sent_at: Option<DateTime<Utc>>,
-    pub failed_at: Option<DateTime<Utc>>,
-    pub retry_count: Option<i32>,
-    pub max_retries: Option<i32>,
-    pub error_message: Option<String>,
-    pub priority: Option<i32>,
-    pub scheduled_at: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 /// Update notification payload
 #[derive(Debug, Serialize, Deserialize, ToSchema, AsChangeset)]
 #[diesel(table_name = crate::schema::notifications)]
@@ -105,7 +82,7 @@ pub struct NotificationResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl NewNotification {
+impl Notification {
     pub fn new(
         notification_type: String,
         notifiable_id: String,
@@ -113,7 +90,7 @@ impl NewNotification {
         data: serde_json::Value,
     ) -> Self {
         let now = Utc::now();
-        Self {
+        Notification {
             id: DieselUlid::new(),
             notification_type,
             notifiable_type,
@@ -132,9 +109,6 @@ impl NewNotification {
             updated_at: now,
         }
     }
-}
-
-impl Notification {
 
     pub fn to_response(&self) -> NotificationResponse {
         NotificationResponse {

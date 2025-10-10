@@ -22,23 +22,6 @@ pub struct MessageDeliveryStatus {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, Insertable)]
-#[diesel(table_name = message_delivery_status)]
-pub struct NewMessageDeliveryStatus {
-    pub id: DieselUlid,
-    pub message_id: DieselUlid,
-    pub recipient_device_id: DieselUlid,
-    pub status: String,
-    pub delivered_at: Option<DateTime<Utc>>,
-    pub read_at: Option<DateTime<Utc>>,
-    pub failed_at: Option<DateTime<Utc>>,
-    pub failure_reason: Option<String>,
-    pub retry_count: Option<i32>,
-    pub max_retries: Option<i32>,
-    pub next_retry_at: Option<DateTime<Utc>>,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DeliveryStatus {
     Pending,
@@ -91,9 +74,10 @@ impl MessageDeliveryStatus {
     }
 }
 
-impl NewMessageDeliveryStatus {
+impl MessageDeliveryStatus {
     pub fn new(message_id: DieselUlid, recipient_device_id: DieselUlid) -> Self {
-        Self {
+        let now = chrono::Utc::now();
+        MessageDeliveryStatus {
             id: DieselUlid::new(),
             message_id,
             recipient_device_id,
@@ -102,9 +86,11 @@ impl NewMessageDeliveryStatus {
             read_at: None,
             failed_at: None,
             failure_reason: None,
-            retry_count: Some(0),
-            max_retries: Some(3),
+            retry_count: 0,
+            max_retries: 3,
             next_retry_at: None,
+            created_at: now,
+            updated_at: now,
         }
     }
 

@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use std::time::Instant;
 
 use crate::app::http::middleware::correlation_middleware::CorrelationContext;
-use crate::app::models::activity_log::NewActivityLog;
+use crate::app::models::activity_log::ActivityLog;
 use crate::app::services::activity_log_service::ActivityLogService;
 use crate::app::models::DieselUlid;
 use crate::logging::Log;
@@ -213,7 +213,8 @@ async fn log_comprehensive_http_activity(
     log_to_file(&correlation_id, &request_data, status_code, duration_ms, &body_preview, &properties);
 
     // Store in database
-    let new_activity = NewActivityLog {
+    let now = chrono::Utc::now();
+    let new_activity = ActivityLog {
         id: DieselUlid::new(),
         log_name: Some("http_request".to_string()),
         description,
@@ -225,6 +226,8 @@ async fn log_comprehensive_http_activity(
         correlation_id: Some(correlation_id),
         batch_uuid: None,
         event: Some(event_name),
+        created_at: now,
+        updated_at: now,
     };
 
     service.create(new_activity).await?;
@@ -522,7 +525,8 @@ impl ActivityLogger {
         props["failure_reason"] = Value::String(reason.to_string());
 
         let service = ActivityLogService::new();
-        let new_activity = NewActivityLog {
+        let now = chrono::Utc::now();
+        let new_activity = ActivityLog {
             id: DieselUlid::new(),
             log_name: Some(self.log_name.clone()),
             description: format!("Failed login attempt for {}: {}", email, reason),
@@ -534,6 +538,8 @@ impl ActivityLogger {
             correlation_id: self.correlation_id,
             batch_uuid: None,
             event: Some("auth.login_failed".to_string()),
+            created_at: now,
+            updated_at: now,
         };
 
         service.create(new_activity).await?;
@@ -551,7 +557,8 @@ impl ActivityLogger {
             subject_id
         );
 
-        let new_activity = NewActivityLog {
+        let now = chrono::Utc::now();
+        let new_activity = ActivityLog {
             id: DieselUlid::new(),
             log_name: Some(self.log_name.clone()),
             description,
@@ -563,6 +570,8 @@ impl ActivityLogger {
             correlation_id: self.correlation_id,
             batch_uuid: None,
             event: Some(format!("{}.{}", subject_type.to_lowercase(), operation)),
+            created_at: now,
+            updated_at: now,
         };
 
         service.create(new_activity).await?;
@@ -573,7 +582,8 @@ impl ActivityLogger {
     pub async fn log_custom(&self, description: &str, event: Option<&str>, properties: Option<Value>) -> Result<(), anyhow::Error> {
         let service = ActivityLogService::new();
 
-        let new_activity = NewActivityLog {
+        let now = chrono::Utc::now();
+        let new_activity = ActivityLog {
             id: DieselUlid::new(),
             log_name: Some(self.log_name.clone()),
             description: description.to_string(),
@@ -585,6 +595,8 @@ impl ActivityLogger {
             correlation_id: self.correlation_id,
             batch_uuid: None,
             event: event.map(|e| e.to_string()),
+            created_at: now,
+            updated_at: now,
         };
 
         service.create(new_activity).await?;

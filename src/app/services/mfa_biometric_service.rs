@@ -2,8 +2,8 @@ use anyhow::{Result, bail};
 use webauthn_rs::prelude::*;
 use crate::database::DbPool;
 use crate::app::services::user_service::UserService;
-use crate::app::models::mfa_biometric::{MfaBiometricCredential, NewMfaBiometricCredential};
-use crate::app::models::mfa_webauthn::{MfaWebAuthnChallenge, NewMfaWebAuthnChallenge};
+use crate::app::models::mfa_biometric::{MfaBiometricCredential};
+use crate::app::models::mfa_webauthn::{MfaWebAuthnChallenge};
 use crate::app::models::DieselUlid;
 use diesel::prelude::*;
 use serde_json;
@@ -131,7 +131,7 @@ impl MfaBiometricService {
         // Serialize passkey to JSON
         let public_key = serde_json::to_string(&passkey)?;
 
-        let new_credential = NewMfaBiometricCredential {
+        let new_credential = MfaBiometricCredential {
             id: DieselUlid::new(),
             user_id: user_id_ulid,
             device_id: device_id_ulid,
@@ -142,8 +142,10 @@ impl MfaBiometricService {
             device_name,
             is_platform_authenticator: true,
             counter: 0, // Start at 0, will be updated on authentication
+            last_used_at: None,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
+            deleted_at: None,
         };
 
         let mut conn = pool.get()?;

@@ -1,7 +1,7 @@
 use crate::database::DbPool;
 use anyhow::{Result, anyhow};
 use crate::database::seeder::Seeder;
-use crate::app::models::city::NewCity;
+use crate::app::models::city::City;
 use csv::Reader;
 use std::fs::File;
 use std::collections::HashMap;
@@ -114,13 +114,13 @@ impl Seeder for Cityseeder {
                 Some(Decimal::from_str(&record.longitude)?)
             };
 
-            let new_city = NewCity::new(
+            let new_city = City::new(
                 province_id.to_string(),
                 record.name.clone(),
                 Some(record.code.clone()),
                 latitude,
                 longitude,
-                Some(&system_user_id),
+                &system_user_id,
             );
 
             diesel::insert_into(ref_geo_cities::table)

@@ -112,24 +112,6 @@ pub struct CreateDeviceFingerprint {
 pub struct VerifyDeviceFingerprint {
     pub verification_method: String,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::device_fingerprints)]
-pub struct NewDeviceFingerprint {
-    pub id: DieselUlid,
-    pub device_id: DieselUlid,
-    pub identity_key_fingerprint: String,
-    pub fingerprint_algorithm: String,
-    pub is_verified: bool,
-    pub verified_by_user_id: Option<DieselUlid>,
-    pub verified_at: Option<DateTime<Utc>>,
-    pub verification_method: Option<String>,
-    pub trust_score: i32,
-    pub trust_last_updated: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct DeviceFingerprintResponse {
     pub id: DieselUlid,
@@ -151,9 +133,9 @@ impl DeviceFingerprint {
         device_id: DieselUlid,
         identity_key_fingerprint: String,
         fingerprint_algorithm: FingerprintAlgorithm,
-    ) -> NewDeviceFingerprint {
+    ) -> Self {
         let now = Utc::now();
-        NewDeviceFingerprint {
+        DeviceFingerprint {
             id: DieselUlid::new(),
             device_id,
             identity_key_fingerprint,

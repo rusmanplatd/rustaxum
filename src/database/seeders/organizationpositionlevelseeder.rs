@@ -1,7 +1,7 @@
 use crate::database::DbPool;
 use anyhow::Result;
 use crate::database::seeder::Seeder;
-use crate::app::models::{DieselUlid, organization_position_level::{NewOrganizationPositionLevel, CreateOrganizationPositionLevel}};
+use crate::app::models::{DieselUlid, organization_position_level::{CreateOrganizationPositionLevel, OrganizationPositionLevel}};
 use diesel::prelude::*;
 use crate::schema::{organizations, organization_position_levels};
 
@@ -74,7 +74,7 @@ impl Seeder for OrganizationPositionLevelSeeder {
                     level: *level,
                 };
 
-                let new_position_level = NewOrganizationPositionLevel::new(position_level, None);
+                let new_position_level = OrganizationPositionLevel::new(position_level, None);
                 diesel::insert_into(organization_position_levels::table)
                     .values(&new_position_level)
                     .on_conflict_do_nothing()

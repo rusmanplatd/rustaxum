@@ -2,9 +2,7 @@ use anyhow::{Result, bail};
 use webauthn_rs::prelude::*;
 use crate::database::DbPool;
 use crate::app::services::user_service::UserService;
-use crate::app::models::mfa_webauthn::{
-    MfaWebAuthnCredential, NewMfaWebAuthnCredential, MfaWebAuthnChallenge, NewMfaWebAuthnChallenge
-};
+use crate::app::models::mfa_webauthn::{MfaWebAuthnCredential, MfaWebAuthnChallenge};
 use crate::app::models::DieselUlid;
 use diesel::prelude::*;
 use serde_json;
@@ -122,7 +120,7 @@ impl MfaWebAuthnService {
             .as_ref()
             .map(|t| t.iter().map(|s| Some(format!("{:?}", s))).collect());
 
-        let new_credential = NewMfaWebAuthnCredential {
+        let new_credential = MfaWebAuthnCredential {
             id: DieselUlid::new(),
             user_id: user_id_ulid,
             credential_id: credential_id_value,
@@ -134,8 +132,10 @@ impl MfaWebAuthnService {
             attestation_format: None,
             is_backup_eligible: false, // Default values
             is_backup_state: false,
+            last_used_at: None,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
+            deleted_at: None,
         };
 
         let mut conn = pool.get()?;

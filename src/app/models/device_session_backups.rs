@@ -76,30 +76,6 @@ pub struct CreateDeviceSessionBackup {
     pub conversations_count: i32,
     pub expires_in_days: Option<i32>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::device_session_backups)]
-pub struct NewDeviceSessionBackup {
-    pub id: DieselUlid,
-    pub device_id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub backup_name: String,
-    pub backup_type: String,
-    pub backup_version: i32,
-    pub encrypted_sessions_data: String,
-    pub backup_algorithm: String,
-    pub backup_key_hash: String,
-    pub sessions_count: i32,
-    pub conversations_count: i32,
-    pub created_at: DateTime<Utc>,
-    pub expires_at: DateTime<Utc>,
-    pub last_accessed_at: Option<DateTime<Utc>>,
-    pub backup_checksum: String,
-    pub is_verified: bool,
-    pub verification_failed_at: Option<DateTime<Utc>>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct DeviceSessionBackupResponse {
     pub id: DieselUlid,
@@ -131,13 +107,13 @@ impl DeviceSessionBackup {
         sessions_count: i32,
         conversations_count: i32,
         expires_in_days: Option<i32>,
-    ) -> NewDeviceSessionBackup {
+    ) -> Self {
         let now = Utc::now();
         let expires_in_days = expires_in_days.unwrap_or(90); // Default 3 months
         let expires_at = now + chrono::Duration::days(expires_in_days as i64);
         let backup_checksum = Self::calculate_checksum(&encrypted_sessions_data);
 
-        NewDeviceSessionBackup {
+        DeviceSessionBackup {
             id: DieselUlid::new(),
             device_id,
             user_id,

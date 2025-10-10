@@ -80,22 +80,6 @@ pub struct UpdateDevicePresence {
     pub auto_away_after_minutes: Option<i32>,
     pub auto_offline_after_minutes: Option<i32>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::device_presence)]
-pub struct NewDevicePresence {
-    pub id: DieselUlid,
-    pub device_id: DieselUlid,
-    pub status: String,
-    pub last_seen_at: DateTime<Utc>,
-    pub encrypted_status_message: Option<String>,
-    pub status_message_algorithm: Option<String>,
-    pub auto_away_after_minutes: Option<i32>,
-    pub auto_offline_after_minutes: Option<i32>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct DevicePresenceResponse {
     pub id: DieselUlid,
@@ -118,9 +102,9 @@ impl DevicePresence {
         status_message_algorithm: Option<String>,
         auto_away_after_minutes: Option<i32>,
         auto_offline_after_minutes: Option<i32>,
-    ) -> NewDevicePresence {
+    ) -> Self {
         let now = Utc::now();
-        NewDevicePresence {
+        DevicePresence {
             id: DieselUlid::new(),
             device_id,
             status: status.into(),

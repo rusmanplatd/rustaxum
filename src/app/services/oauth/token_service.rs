@@ -9,10 +9,7 @@ use diesel::prelude::*;
 use crate::schema::{oauth_access_tokens, oauth_refresh_tokens, oauth_auth_codes};
 use crate::app::models::DieselUlid;
 
-use crate::app::models::oauth::{
-    AccessToken, CreateAccessToken, NewAccessToken, RefreshToken, NewRefreshToken,
-    AuthCode, CreateAuthCode, NewAuthCode
-};
+use crate::app::models::oauth::{AccessToken, CreateAccessToken, RefreshToken, AuthCode, CreateAuthCode};
 use crate::app::services::oauth::client_service::ClientService;
 use crate::app::traits::ServiceActivityLogger;
 
@@ -92,7 +89,7 @@ impl TokenService {
         let token_name_for_log = data.name.clone();
         let scopes_for_log = data.scopes.clone();
 
-        let new_token = NewAccessToken::new(
+        let new_token = AccessToken::new(
             data.user_id,
             data.client_id,
             data.name,
@@ -126,7 +123,7 @@ impl TokenService {
         Ok(created_token)
     }
 
-    pub async fn create_access_token_record(pool: &DbPool, new_token: NewAccessToken) -> Result<AccessToken> {
+    pub async fn create_access_token_record(pool: &DbPool, new_token: AccessToken) -> Result<AccessToken> {
         let mut conn = pool.get()?;
 
         let inserted_token: AccessToken = diesel::insert_into(oauth_access_tokens::table)
@@ -143,7 +140,7 @@ impl TokenService {
     ) -> Result<RefreshToken> {
         let expires_at = expires_in_seconds.map(|seconds| Utc::now() + Duration::seconds(seconds));
 
-        let new_refresh_token = NewRefreshToken::new(access_token_id, expires_at);
+        let new_refresh_token = RefreshToken::new(access_token_id, expires_at);
 
         let mut conn = pool.get()?;
 
@@ -161,7 +158,7 @@ impl TokenService {
             Some(data.scopes.join(","))
         };
 
-        let new_auth_code = NewAuthCode::new(
+        let new_auth_code = AuthCode::new(
             data.user_id,
             data.client_id,
             scopes_str,

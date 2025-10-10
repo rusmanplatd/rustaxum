@@ -7,7 +7,7 @@ use crate::app::query_builder::SortDirection;
 
 /// OrganizationDomain model representing the domain/sector of an organization
 /// Provides high-level categorization for organizations
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::organization_domains)]
 pub struct OrganizationDomain {
     /// Unique identifier for the domain
@@ -46,22 +46,6 @@ pub struct CreateOrganizationDomain {
     pub description: Option<String>,
 }
 
-/// Insertable struct for organization domains
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::organization_domains)]
-pub struct NewOrganizationDomain {
-    pub id: DieselUlid,
-    pub code: Option<String>,
-    pub name: String,
-    pub description: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: String,
-    pub updated_by_id: String,
-    pub deleted_by_id: Option<String>,
-}
-
 /// Update organization domain payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateOrganizationDomain {
@@ -81,10 +65,10 @@ pub struct OrganizationDomainResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl NewOrganizationDomain {
-    pub fn new(create_data: CreateOrganizationDomain, created_by: Option<DieselUlid>) -> Self {
+impl OrganizationDomain {
+    pub fn new(create_data: CreateOrganizationDomain, created_by: DieselUlid) -> Self {
         let now = Utc::now();
-        Self {
+        OrganizationDomain {
             id: DieselUlid::new(),
             code: create_data.code,
             name: create_data.name,
@@ -92,14 +76,12 @@ impl NewOrganizationDomain {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: created_by.map(|id| id.to_string()).unwrap_or_else(|| "01SYSTEM0SEEDER00000000000".to_string()),
-            updated_by_id: created_by.map(|id| id.to_string()).unwrap_or_else(|| "01SYSTEM0SEEDER00000000000".to_string()),
+            created_by_id: created_by.clone(),
+            updated_by_id: created_by,
             deleted_by_id: None,
         }
     }
-}
 
-impl OrganizationDomain {
     pub fn to_response(&self) -> OrganizationDomainResponse {
         OrganizationDomainResponse {
             id: self.id,

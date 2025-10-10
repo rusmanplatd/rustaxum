@@ -3,17 +3,14 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json as ResponseJson},
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::json;
 use crate::database::DbPool;
 use crate::app::services::mfa_email_service::MfaEmailService;
 use crate::app::services::mfa_webauthn_service::MfaWebAuthnService;
 use crate::app::services::mfa_biometric_service::MfaBiometricService;
-use crate::app::models::mfa_email_code::{SendEmailCodeRequest, VerifyEmailCodeRequest};
-use crate::app::models::mfa_webauthn::{
-    WebAuthnRegistrationStartRequest, WebAuthnRegistrationFinishRequest,
-    WebAuthnAuthenticationStartRequest, WebAuthnAuthenticationFinishRequest,
-};
+use crate::app::models::mfa_email_code::VerifyEmailCodeRequest;
+use crate::app::models::mfa_webauthn::WebAuthnRegistrationStartRequest;
 use crate::app::models::mfa_biometric::{BiometricRegistrationRequest, BiometricAuthenticationRequest};
 use crate::app::http::middleware::auth_guard::AuthUser;
 use crate::config::Config;

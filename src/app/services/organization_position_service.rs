@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 use diesel::prelude::*;
 use crate::schema::organization_positions;
 
-use crate::app::models::organization_position::{OrganizationPosition, NewOrganizationPosition, CreateOrganizationPosition};
+use crate::app::models::organization_position::{OrganizationPosition, CreateOrganizationPosition};
 use crate::app::models::DieselUlid;
 use crate::app::http::requests::organization_position_requests::{
     CreateOrganizationPositionRequest, UpdateOrganizationPositionRequest, IndexOrganizationPositionRequest, OrganizationPositionsByLevelRequest
@@ -137,7 +137,7 @@ impl OrganizationPositionService {
             responsibilities: request.responsibilities.clone(),
         };
 
-        let new_position = NewOrganizationPosition::new(create_data, created_by.and_then(|s| DieselUlid::from_string(s).ok()));
+        let new_position = OrganizationPosition::new(create_data, created_by.and_then(|s| DieselUlid::from_string(s).ok()));
 
         let result = diesel::insert_into(organization_positions::table)
             .values(&new_position)

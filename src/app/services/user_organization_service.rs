@@ -5,7 +5,7 @@ use serde_json::json;
 use crate::schema::user_organizations;
 use crate::app::traits::ServiceActivityLogger;
 
-use crate::app::models::user_organization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization, NewUserOrganization};
+use crate::app::models::user_organization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization};
 
 pub struct UserOrganizationService;
 
@@ -26,7 +26,7 @@ impl UserOrganizationService {
     pub async fn create(pool: &DbPool, data: CreateUserOrganization, created_by: Option<&str>) -> Result<UserOrganization> {
         let mut conn = pool.get()?;
 
-        let new_user_org = NewUserOrganization {
+        let new_user_org = UserOrganization {
             id: crate::app::models::DieselUlid::new(),
             user_id: data.user_id,
             organization_id: data.organization_id,

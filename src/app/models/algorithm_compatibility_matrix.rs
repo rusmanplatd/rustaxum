@@ -71,26 +71,6 @@ pub struct CreateAlgorithmCompatibilityMatrix {
     pub negotiation_overhead_ms: Option<i32>,
     pub notes: Option<String>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::algorithm_compatibility_matrix)]
-pub struct NewAlgorithmCompatibilityMatrix {
-    pub id: DieselUlid,
-    pub encryption_algorithm_a: String,
-    pub encryption_algorithm_b: String,
-    pub key_exchange_algorithm_a: String,
-    pub key_exchange_algorithm_b: String,
-    pub is_compatible: bool,
-    pub compatibility_level: String,
-    pub negotiation_overhead_ms: Option<i32>,
-    pub interop_test_passed: Option<bool>,
-    pub tested_at: Option<DateTime<Utc>>,
-    pub test_version: String,
-    pub notes: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 impl AlgorithmCompatibilityMatrix {
     pub fn new(
         encryption_algorithm_a: String,
@@ -101,9 +81,9 @@ impl AlgorithmCompatibilityMatrix {
         compatibility_level: CompatibilityLevel,
         negotiation_overhead_ms: Option<i32>,
         notes: Option<String>,
-    ) -> NewAlgorithmCompatibilityMatrix {
+    ) -> Self {
         let now = Utc::now();
-        NewAlgorithmCompatibilityMatrix {
+        AlgorithmCompatibilityMatrix {
             id: DieselUlid::new(),
             encryption_algorithm_a,
             encryption_algorithm_b,

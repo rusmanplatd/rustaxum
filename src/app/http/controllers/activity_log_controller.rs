@@ -404,7 +404,8 @@ pub async fn create_activity_log(
         .map(|ctx| ctx.correlation_id)
         .unwrap_or_else(|| crate::app::models::DieselUlid::new());
 
-    let new_activity = NewActivityLog {
+    let now = chrono::Utc::now();
+    let new_activity = ActivityLog {
         id: crate::app::models::DieselUlid::new(),
         log_name: request.log_name,
         description: request.description,
@@ -416,6 +417,8 @@ pub async fn create_activity_log(
         correlation_id: Some(correlation_id),
         batch_uuid: None,
         event: request.event,
+        created_at: now,
+        updated_at: now,
     };
 
     match service.create(new_activity).await {

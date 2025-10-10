@@ -34,21 +34,6 @@ pub struct CreateTypingIndicator {
 pub struct UpdateTypingIndicator {
     pub is_typing: bool,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::typing_indicators)]
-pub struct NewTypingIndicator {
-    pub id: DieselUlid,
-    pub conversation_id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub device_id: DieselUlid,
-    pub is_typing: bool,
-    pub started_typing_at: DateTime<Utc>,
-    pub expires_at: DateTime<Utc>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct TypingIndicatorResponse {
     pub id: DieselUlid,
@@ -68,11 +53,11 @@ impl TypingIndicator {
         user_id: DieselUlid,
         device_id: DieselUlid,
         is_typing: bool,
-    ) -> NewTypingIndicator {
+    ) -> Self {
         let now = Utc::now();
         let expires_at = now + chrono::Duration::seconds(30); // Typing indicators expire after 30 seconds
 
-        NewTypingIndicator {
+        TypingIndicator {
             id: DieselUlid::new(),
             conversation_id,
             user_id,

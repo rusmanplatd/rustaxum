@@ -6,7 +6,7 @@ use serde_json::json;
 use crate::schema::organization_position_levels;
 use crate::app::traits::ServiceActivityLogger;
 
-use crate::app::models::organization_position_level::{OrganizationPositionLevel, CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel, NewOrganizationPositionLevel};
+use crate::app::models::organization_position_level::{OrganizationPositionLevel, CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel};
 use crate::app::models::DieselUlid;
 
 pub struct OrganizationPositionLevelService;
@@ -16,7 +16,7 @@ impl ServiceActivityLogger for OrganizationPositionLevelService {}
 impl OrganizationPositionLevelService {
     pub async fn create(pool: &DbPool, data: CreateOrganizationPositionLevel, created_by: Option<&str>) -> Result<OrganizationPositionLevel> {
         let mut conn = pool.get()?;
-        let new_level = NewOrganizationPositionLevel::new(data, created_by.and_then(|s| DieselUlid::from_string(s).ok()));
+        let new_level = OrganizationPositionLevel::new(data, created_by.and_then(|s| DieselUlid::from_string(s).ok()));
 
         let result = diesel::insert_into(organization_position_levels::table)
             .values(&new_level)

@@ -20,7 +20,7 @@ struct CountResult {
 
 /// User organization model representing the relationship between users and organizations
 /// Contains employment information, organization position, and temporal data
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable, Insertable)]
 #[diesel(table_name = user_organizations)]
 pub struct UserOrganization {
     /// Unique identifier for the user-organization relationship
@@ -69,25 +69,6 @@ pub struct CreateUserOrganization {
     pub started_at: Option<DateTime<Utc>>,
 }
 
-/// Insertable struct for user organizations
-#[derive(Debug, Insertable)]
-#[diesel(table_name = user_organizations)]
-pub struct NewUserOrganization {
-    pub id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub organization_id: DieselUlid,
-    pub organization_position_id: DieselUlid,
-    pub is_active: bool,
-    pub started_at: DateTime<Utc>,
-    pub ended_at: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: DieselUlid,
-    pub updated_by_id: DieselUlid,
-    pub deleted_by_id: Option<DieselUlid>,
-}
-
 /// Update user organization payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateUserOrganization {
@@ -116,10 +97,11 @@ pub struct UserOrganizationResponse {
     pub deleted_by_id: Option<DieselUlid>,
 }
 
-impl NewUserOrganization {
+
+impl UserOrganization {
     pub fn new(user_id: String, organization_id: String, organization_position_id: String, started_at: Option<DateTime<Utc>>, created_by_id: String, updated_by_id: String) -> Self {
         let now = Utc::now();
-        Self {
+        UserOrganization {
             id: DieselUlid::new(),
             user_id: DieselUlid(Ulid::from_string(&user_id).unwrap()),
             organization_id: DieselUlid(Ulid::from_string(&organization_id).unwrap()),
@@ -132,27 +114,6 @@ impl NewUserOrganization {
             deleted_at: None,
             created_by_id: DieselUlid(Ulid::from_string(&created_by_id).unwrap()),
             updated_by_id: DieselUlid(Ulid::from_string(&updated_by_id).unwrap()),
-            deleted_by_id: None,
-        }
-    }
-}
-
-impl UserOrganization {
-    pub fn new(user_id: String, organization_id: String, organization_position_id: String, started_at: Option<DateTime<Utc>>) -> Self {
-        let now = Utc::now();
-        Self {
-            id: DieselUlid::new(),
-            user_id: DieselUlid(Ulid::from_string(&user_id).unwrap()),
-            organization_id: DieselUlid(Ulid::from_string(&organization_id).unwrap()),
-            organization_position_id: DieselUlid(Ulid::from_string(&organization_position_id).unwrap()),
-            is_active: true,
-            started_at: started_at.unwrap_or(now),
-            ended_at: None,
-            created_at: now,
-            updated_at: now,
-            deleted_at: None,
-            created_by_id: DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap(),
-            updated_by_id: DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap(),
             deleted_by_id: None,
         }
     }
@@ -243,31 +204,28 @@ impl UserOrganization {
     ) -> Result<()> {
         use diesel::insert_into;
         use chrono::Utc;
+        use crate::app::models::sys_model_has_role::SysModelHasRole;
+
         let mut conn = pool.get()?;
         let now = Utc::now();
 
-        #[derive(Insertable)]
-        #[diesel(table_name = sys_model_has_roles)]
-        struct NewModelHasRole {
-            id: DieselUlid,
-            model_type: String,
-            model_id: String,
-            role_id: String,
-            scope_type: Option<String>,
-            scope_id: Option<String>,
-            created_at: chrono::DateTime<Utc>,
-            updated_at: chrono::DateTime<Utc>,
-        }
+        // Get system user for audit tracking
+        let system_user_id = DieselUlid::from_string("01SYSTEM0SEEDER00000000000")
+            .unwrap_or_else(|_| DieselUlid::new());
 
-        let new_role = NewModelHasRole {
+        let new_role = SysModelHasRole {
             id: DieselUlid::new(),
             model_type: "UserOrganization".to_string(),
-            model_id: user_organization_id,
-            role_id: role_id,
+            model_id: DieselUlid::from_string(&user_organization_id).unwrap(),
+            role_id: DieselUlid::from_string(&role_id).unwrap(),
             scope_type: None,
             scope_id: None,
             created_at: now,
             updated_at: now,
+            deleted_at: None,
+            created_by_id: system_user_id,
+            updated_by_id: system_user_id,
+            deleted_by_id: None,
         };
 
         insert_into(sys_model_has_roles::table)
@@ -443,7 +401,7 @@ impl UserOrganization {
         self.deactivate(pool)?;
 
         // Create new relationship
-        let new_user_org = NewUserOrganization::new(
+        let new_user_org = UserOrganization::new(
             self.user_id.to_string(),
             new_organization_id,
             new_organization_position_id,

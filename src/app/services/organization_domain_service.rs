@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use crate::database::DbPool;
 use crate::app::models::{
     DieselUlid,
-    organization_domain::{OrganizationDomain, CreateOrganizationDomain, UpdateOrganizationDomain, NewOrganizationDomain}
+    organization_domain::{OrganizationDomain, CreateOrganizationDomain, UpdateOrganizationDomain}
 };
 use crate::schema::organization_domains;
 
@@ -14,7 +14,7 @@ impl OrganizationDomainService {
     pub fn create(pool: &DbPool, data: CreateOrganizationDomain, created_by: Option<DieselUlid>) -> Result<OrganizationDomain> {
         let mut conn = pool.get()?;
 
-        let new_domain = NewOrganizationDomain::new(data, created_by);
+        let new_domain = OrganizationDomain::new(data, created_by);
 
         let domain = diesel::insert_into(organization_domains::table)
             .values(&new_domain)

@@ -4,7 +4,7 @@ use diesel::prelude::*;
 use chrono::{DateTime, Utc};
 use crate::app::query_builder::{SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, Insertable)]
 #[diesel(table_name = crate::schema::oauth_personal_access_clients)]
 pub struct PersonalAccessClient {
     pub id: DieselUlid,
@@ -17,16 +17,6 @@ pub struct PersonalAccessClient {
 pub struct CreatePersonalAccessClient {
     pub client_id: DieselUlid,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::oauth_personal_access_clients)]
-pub struct NewPersonalAccessClient {
-    pub id: DieselUlid,
-    pub client_id: DieselUlid,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize)]
 pub struct PersonalAccessClientResponse {
     pub id: DieselUlid,
@@ -38,7 +28,7 @@ pub struct PersonalAccessClientResponse {
 impl PersonalAccessClient {
     pub fn new(client_id: DieselUlid) -> Self {
         let now = Utc::now();
-        Self {
+        PersonalAccessClient {
             id: DieselUlid::new(),
             client_id,
             created_at: now,
@@ -56,17 +46,6 @@ impl PersonalAccessClient {
     }
 }
 
-impl NewPersonalAccessClient {
-    pub fn new(client_id: DieselUlid) -> Self {
-        let now = Utc::now();
-        Self {
-            id: DieselUlid::new(),
-            client_id,
-            created_at: now,
-            updated_at: now,
-        }
-    }
-}
 
 impl crate::app::query_builder::Queryable for PersonalAccessClient {
     fn table_name() -> &'static str {

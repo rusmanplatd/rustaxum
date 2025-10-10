@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use super::DieselUlid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, Insertable)]
 #[diesel(table_name = crate::schema::mfa_sms_codes)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct MfaSmsCode {
@@ -21,22 +21,6 @@ pub struct MfaSmsCode {
     pub user_agent: Option<String>,
     pub created_at: DateTime<Utc>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::mfa_sms_codes)]
-pub struct NewMfaSmsCode {
-    pub id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub phone_number: String,
-    pub code: String,
-    pub code_hash: String,
-    pub expires_at: DateTime<Utc>,
-    pub send_attempts: i32,
-    pub ip_address: Option<String>,
-    pub user_agent: Option<String>,
-    pub created_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct SendSmsCodeRequest {
     pub phone_number: String,
@@ -57,15 +41,17 @@ impl MfaSmsCode {
         expires_in_minutes: i64,
         ip_address: Option<String>,
         user_agent: Option<String>,
-    ) -> NewMfaSmsCode {
+    ) -> Self {
         let now = Utc::now();
-        NewMfaSmsCode {
+        MfaSmsCode {
             id: DieselUlid::new(),
             user_id,
             phone_number,
             code,
             code_hash,
             expires_at: now + chrono::Duration::minutes(expires_in_minutes),
+            verified_at: None,
+            is_used: false,
             send_attempts: 1,
             ip_address,
             user_agent,

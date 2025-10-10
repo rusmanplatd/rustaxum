@@ -26,20 +26,6 @@ pub struct CreatePinnedMessage {
     pub conversation_id: DieselUlid,
     pub message_id: DieselUlid,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::pinned_messages)]
-pub struct NewPinnedMessage {
-    pub id: DieselUlid,
-    pub conversation_id: DieselUlid,
-    pub message_id: DieselUlid,
-    pub pinned_by_user_id: DieselUlid,
-    pub pinned_by_device_id: DieselUlid,
-    pub pinned_at: DateTime<Utc>,
-    pub unpinned_at: Option<DateTime<Utc>>,
-    pub is_active: bool,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct PinnedMessageResponse {
     pub id: DieselUlid,
@@ -58,9 +44,9 @@ impl PinnedMessage {
         message_id: DieselUlid,
         pinned_by_user_id: DieselUlid,
         pinned_by_device_id: DieselUlid,
-    ) -> NewPinnedMessage {
+    ) -> Self {
         let now = Utc::now();
-        NewPinnedMessage {
+        PinnedMessage {
             id: DieselUlid::new(),
             conversation_id,
             message_id,

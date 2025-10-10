@@ -61,43 +61,6 @@ pub struct CreateDeviceCapabilities {
     pub supports_disappearing_messages: bool,
     pub supports_file_encryption: bool,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::device_capabilities)]
-pub struct NewDeviceCapabilities {
-    pub id: DieselUlid,
-    pub device_id: DieselUlid,
-    pub supports_aes_256_gcm: bool,
-    pub supports_chacha20_poly1305: bool,
-    pub supports_aes_128_gcm: bool,
-    pub supports_curve25519: bool,
-    pub supports_p256_ecdh: bool,
-    pub supports_rsa_2048: bool,
-    pub supports_rsa_4096: bool,
-    pub supports_hmac_sha256: bool,
-    pub supports_hmac_sha384: bool,
-    pub supports_hmac_sha512: bool,
-    pub supports_blake3_mac: bool,
-    pub max_signal_protocol_version: i32,
-    pub min_signal_protocol_version: i32,
-    pub supports_multi_device: bool,
-    pub supports_group_messaging: bool,
-    pub supports_disappearing_messages: bool,
-    pub supports_file_encryption: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub supports_ed25519_signature: bool,
-    pub supports_rsa_pss_signature: bool,
-    pub supports_ecdsa_p256_signature: bool,
-    pub supports_hkdf_sha256: bool,
-    pub supports_hkdf_sha384: bool,
-    pub supports_hkdf_sha512: bool,
-    pub supports_kyber_768: bool,
-    pub supports_dilithium2: bool,
-    pub supports_sphincs_plus: bool,
-    pub supports_bike_r4: bool,
-}
-
 impl DeviceCapabilities {
     pub fn new(device_id: DieselUlid) -> Self {
         let now = Utc::now();

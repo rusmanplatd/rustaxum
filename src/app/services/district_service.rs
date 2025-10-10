@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use serde_json::json;
 use crate::database::DbPool;
 use crate::schema::ref_geo_districts;
-use crate::app::models::district::{District, CreateDistrict, UpdateDistrict, NewDistrict};
+use crate::app::models::district::{District, CreateDistrict, UpdateDistrict};
 use crate::app::traits::ServiceActivityLogger;
 
 pub struct DistrictService;
@@ -11,9 +11,9 @@ pub struct DistrictService;
 impl ServiceActivityLogger for DistrictService {}
 
 impl DistrictService {
-    pub async fn create(pool: &DbPool, data: CreateDistrict, created_by: Option<&str>) -> Result<District> {
+    pub async fn create(pool: &DbPool, data: CreateDistrict, created_by: &str) -> Result<District> {
         let mut conn = pool.get()?;
-        let new_district = NewDistrict::new(data.city_id.clone(), data.name.clone(), data.code.clone(), created_by);
+        let new_district = District::new(data.city_id.clone(), data.name.clone(), data.code.clone(), created_by);
 
         let result = diesel::insert_into(ref_geo_districts::table)
             .values(&new_district)
@@ -30,7 +30,7 @@ impl DistrictService {
 
         if let Err(e) = service.log_created(
             &result,
-            created_by,
+            Some(created_by),
             Some(properties)
         ).await {
             eprintln!("Failed to log district creation activity: {}", e);

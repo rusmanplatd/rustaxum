@@ -3,7 +3,7 @@ use rand::{Rng, thread_rng};
 use sha2::{Sha256, Digest};
 use crate::database::DbPool;
 use crate::app::services::user_service::UserService;
-use crate::app::models::mfa_sms::{MfaSmsCode, NewMfaSmsCode};
+use crate::app::models::mfa_sms::{MfaSmsCode};
 use crate::app::models::DieselUlid;
 use diesel::prelude::*;
 

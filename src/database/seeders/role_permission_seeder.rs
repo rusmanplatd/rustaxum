@@ -1,78 +1,18 @@
 use anyhow::Result;
-use ulid::Ulid;
 use chrono::Utc;
 use crate::database::{seeder::Seeder, DbPool};
-use crate::app::models::HasModelType;
+use crate::app::models::{
+    HasModelType,
+    DieselUlid,
+    permission::Permission,
+    role::Role,
+    sys_model_has_permission::SysModelHasPermission,
+    sys_model_has_role::SysModelHasRole,
+    user::User,
+};
 use diesel::prelude::*;
 use diesel::insert_into;
 use crate::schema::{sys_permissions, sys_roles, sys_model_has_permissions, sys_model_has_roles, sys_users};
-
-#[derive(Insertable)]
-#[diesel(table_name = sys_permissions)]
-struct NewPermission {
-    id: String,
-    organization_id: Option<String>,
-    guard_name: String,
-    resource: Option<String>,
-    action: String,
-    scope_type: Option<String>,
-    scope_id: Option<String>,
-    created_at: chrono::DateTime<Utc>,
-    updated_at: chrono::DateTime<Utc>,
-    created_by_id: String,
-    updated_by_id: String,
-    deleted_by_id: Option<String>,
-}
-
-#[derive(Insertable)]
-#[diesel(table_name = sys_roles)]
-struct NewRole {
-    id: String,
-    organization_id: Option<String>,
-    name: String,
-    description: Option<String>,
-    guard_name: String,
-    scope_type: Option<String>,
-    scope_id: Option<String>,
-    created_at: chrono::DateTime<Utc>,
-    updated_at: chrono::DateTime<Utc>,
-    deleted_at: Option<chrono::DateTime<Utc>>,
-    created_by_id: String,
-    updated_by_id: String,
-    deleted_by_id: Option<String>,
-}
-
-#[derive(Insertable)]
-#[diesel(table_name = sys_model_has_permissions)]
-struct NewModelHasPermission {
-    id: String,
-    model_type: String,
-    model_id: String,
-    permission_id: String,
-    scope_type: Option<String>,
-    scope_id: Option<String>,
-    created_at: chrono::DateTime<Utc>,
-    updated_at: chrono::DateTime<Utc>,
-    created_by_id: String,
-    updated_by_id: String,
-    deleted_by_id: Option<String>,
-}
-
-#[derive(Insertable)]
-#[diesel(table_name = sys_model_has_roles)]
-struct NewModelHasRole {
-    id: String,
-    model_type: String,
-    model_id: String,
-    role_id: String,
-    scope_type: Option<String>,
-    scope_id: Option<String>,
-    created_at: chrono::DateTime<Utc>,
-    updated_at: chrono::DateTime<Utc>,
-    created_by_id: String,
-    updated_by_id: String,
-    deleted_by_id: Option<String>,
-}
 
 pub struct RolePermissionSeeder;
 
@@ -433,11 +373,13 @@ impl Seeder for RolePermissionSeeder {
             ("api", Some("analytics"), "performance_metrics"),
         ];
 
-        let new_permissions: Vec<NewPermission> = permissions
+        let system_user_ulid = DieselUlid::from_string(&system_user_id).unwrap();
+
+        let new_permissions: Vec<Permission> = permissions
             .into_iter()
-            .map(|(guard_name, resource, action)| NewPermission {
-                id: Ulid::new().to_string(),
-                organization_id: default_org_id.clone(),
+            .map(|(guard_name, resource, action)| Permission {
+                id: DieselUlid::new(),
+                organization_id: default_org_id.as_ref().map(|id| DieselUlid::from_string(id).unwrap()),
                 guard_name: guard_name.to_string(),
                 resource: resource.map(|r| r.to_string()),
                 action: action.to_string(),
@@ -445,8 +387,8 @@ impl Seeder for RolePermissionSeeder {
                 scope_id: None,
                 created_at: now,
                 updated_at: now,
-                created_by_id: system_user_id.clone(),
-                updated_by_id: system_user_id.clone(),
+                created_by_id: system_user_ulid,
+                updated_by_id: system_user_ulid,
                 deleted_by_id: None,
             })
             .collect();
@@ -461,10 +403,10 @@ impl Seeder for RolePermissionSeeder {
         }
 
         // Create roles
-        let admin_role_id = Ulid::new().to_string();
-        let admin_role = NewRole {
-            id: admin_role_id.clone(),
-            organization_id: default_org_id.clone(),
+        let admin_role_id = DieselUlid::new();
+        let admin_role = Role {
+            id: admin_role_id,
+            organization_id: default_org_id.as_ref().map(|id| DieselUlid::from_string(id).unwrap()),
             name: "admin".to_string(),
             description: Some("Administrator with full access".to_string()),
             guard_name: "api".to_string(),
@@ -473,8 +415,8 @@ impl Seeder for RolePermissionSeeder {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: system_user_id.clone(),
-            updated_by_id: system_user_id.clone(),
+            created_by_id: system_user_ulid,
+            updated_by_id: system_user_ulid,
             deleted_by_id: None,
         };
 
@@ -484,10 +426,10 @@ impl Seeder for RolePermissionSeeder {
             .do_nothing()
             .execute(&mut conn)?;
 
-        let user_role_id = Ulid::new().to_string();
-        let user_role = NewRole {
-            id: user_role_id.clone(),
-            organization_id: default_org_id.clone(),
+        let user_role_id = DieselUlid::new();
+        let user_role = Role {
+            id: user_role_id,
+            organization_id: default_org_id.as_ref().map(|id| DieselUlid::from_string(id).unwrap()),
             name: "user".to_string(),
             description: Some("Regular user with limited access".to_string()),
             guard_name: "api".to_string(),
@@ -496,8 +438,8 @@ impl Seeder for RolePermissionSeeder {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: system_user_id.clone(),
-            updated_by_id: system_user_id.clone(),
+            created_by_id: system_user_ulid,
+            updated_by_id: system_user_ulid,
             deleted_by_id: None,
         };
 
@@ -507,10 +449,10 @@ impl Seeder for RolePermissionSeeder {
             .do_nothing()
             .execute(&mut conn)?;
 
-        let moderator_role_id = Ulid::new().to_string();
-        let moderator_role = NewRole {
-            id: moderator_role_id.clone(),
-            organization_id: default_org_id.clone(),
+        let moderator_role_id = DieselUlid::new();
+        let moderator_role = Role {
+            id: moderator_role_id,
+            organization_id: default_org_id.as_ref().map(|id| DieselUlid::from_string(id).unwrap()),
             name: "moderator".to_string(),
             description: Some("Moderator with content management access".to_string()),
             guard_name: "api".to_string(),
@@ -519,8 +461,8 @@ impl Seeder for RolePermissionSeeder {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: system_user_id.clone(),
-            updated_by_id: system_user_id.clone(),
+            created_by_id: system_user_ulid,
+            updated_by_id: system_user_ulid,
             deleted_by_id: None,
         };
 
@@ -653,10 +595,9 @@ impl Seeder for RolePermissionSeeder {
         ];
 
         for (role_name, description) in additional_roles {
-            let role_id = Ulid::new().to_string();
-            let role = NewRole {
-                id: role_id,
-                organization_id: default_org_id.clone(),
+            let role = Role {
+                id: DieselUlid::new(),
+                organization_id: default_org_id.as_ref().map(|id| DieselUlid::from_string(id).unwrap()),
                 name: role_name.to_string(),
                 description: Some(description.to_string()),
                 guard_name: "api".to_string(),
@@ -665,8 +606,8 @@ impl Seeder for RolePermissionSeeder {
                 created_at: now,
                 updated_at: now,
                 deleted_at: None,
-                created_by_id: system_user_id.clone(),
-                updated_by_id: system_user_id.clone(),
+                created_by_id: system_user_ulid,
+                updated_by_id: system_user_ulid,
                 deleted_by_id: None,
             };
 
@@ -678,24 +619,25 @@ impl Seeder for RolePermissionSeeder {
         }
 
         // Assign all permissions to admin role using sys_model_has_permissions
-        let admin_permissions: Vec<String> = sys_permissions::table
+        let admin_permissions: Vec<DieselUlid> = sys_permissions::table
             .filter(sys_permissions::guard_name.eq("api"))
             .select(sys_permissions::id)
-            .load::<String>(&mut conn)?;
+            .load::<DieselUlid>(&mut conn)?;
 
-        let admin_role_permissions: Vec<NewModelHasPermission> = admin_permissions
+        let admin_role_permissions: Vec<SysModelHasPermission> = admin_permissions
             .into_iter()
-            .map(|permission_id| NewModelHasPermission {
-                id: Ulid::new().to_string(),
+            .map(|permission_id| SysModelHasPermission {
+                id: DieselUlid::new(),
                 model_type: "Role".to_string(),
-                model_id: admin_role_id.clone(),
+                model_id: admin_role_id,
                 permission_id,
                 scope_type: None,
                 scope_id: None,
                 created_at: now,
                 updated_at: now,
-                created_by_id: system_user_id.clone(),
-                updated_by_id: system_user_id.clone(),
+                deleted_at: None,
+                created_by_id: system_user_ulid,
+                updated_by_id: system_user_ulid,
                 deleted_by_id: None,
             })
             .collect();
@@ -709,25 +651,26 @@ impl Seeder for RolePermissionSeeder {
         }
 
         // Assign read permissions to user role using sys_model_has_permissions
-        let user_permissions: Vec<String> = sys_permissions::table
+        let user_permissions: Vec<DieselUlid> = sys_permissions::table
             .filter(sys_permissions::action.eq("read"))
             .filter(sys_permissions::guard_name.eq("api"))
             .select(sys_permissions::id)
-            .load::<String>(&mut conn)?;
+            .load::<DieselUlid>(&mut conn)?;
 
-        let user_role_permissions: Vec<NewModelHasPermission> = user_permissions
+        let user_role_permissions: Vec<SysModelHasPermission> = user_permissions
             .into_iter()
-            .map(|permission_id| NewModelHasPermission {
-                id: Ulid::new().to_string(),
+            .map(|permission_id| SysModelHasPermission {
+                id: DieselUlid::new(),
                 model_type: "Role".to_string(),
-                model_id: user_role_id.clone(),
+                model_id: user_role_id,
                 permission_id,
                 scope_type: None,
                 scope_id: None,
                 created_at: now,
                 updated_at: now,
-                created_by_id: system_user_id.clone(),
-                updated_by_id: system_user_id.clone(),
+                deleted_at: None,
+                created_by_id: system_user_ulid,
+                updated_by_id: system_user_ulid,
                 deleted_by_id: None,
             })
             .collect();
@@ -757,25 +700,26 @@ impl Seeder for RolePermissionSeeder {
             let parts: Vec<&str> = permission_name.split('.').collect();
             if parts.len() != 2 { continue; }
             let (resource, action) = (parts[0], parts[1]);
-            let permissions: Vec<String> = sys_permissions::table
+            let permissions: Vec<DieselUlid> = sys_permissions::table
                 .filter(sys_permissions::resource.eq(resource))
                 .filter(sys_permissions::action.eq(action))
                 .filter(sys_permissions::guard_name.eq("api"))
                 .select(sys_permissions::id)
-                .load::<String>(&mut conn)?;
+                .load::<DieselUlid>(&mut conn)?;
 
             for permission_id in permissions {
-                let role_permission = NewModelHasPermission {
-                    id: Ulid::new().to_string(),
+                let role_permission = SysModelHasPermission {
+                    id: DieselUlid::new(),
                     model_type: "Role".to_string(),
-                    model_id: moderator_role_id.clone(),
+                    model_id: moderator_role_id,
                     permission_id,
                     scope_type: None,
                     scope_id: None,
                     created_at: now,
                     updated_at: now,
-                    created_by_id: system_user_id.clone(),
-                    updated_by_id: system_user_id.clone(),
+                    deleted_at: None,
+                    created_by_id: system_user_ulid,
+                    updated_by_id: system_user_ulid,
                     deleted_by_id: None,
                 };
 
@@ -803,7 +747,7 @@ impl Seeder for RolePermissionSeeder {
             .collect();
 
         for admin_user_id in admin_users {
-            assign_user_role(&mut conn, &admin_user_id, &admin_role_id, now)?;
+            assign_user_role(&mut conn, &admin_user_id, &admin_role_id.to_string(), now)?;
         }
 
         // Regular users get user role (fallback for users without specific patterns)
@@ -813,7 +757,7 @@ impl Seeder for RolePermissionSeeder {
             .collect();
 
         for regular_user_id in user_pattern_users {
-            assign_user_role(&mut conn, &regular_user_id, &user_role_id, now)?;
+            assign_user_role(&mut conn, &regular_user_id, &user_role_id.to_string(), now)?;
         }
 
         // Assign roles based on email patterns for realistic organizational structure
@@ -865,7 +809,7 @@ impl Seeder for RolePermissionSeeder {
             .collect();
 
         for mod_user_id in moderator_users {
-            assign_user_role(&mut conn, &mod_user_id, &moderator_role_id, now)?;
+            assign_user_role(&mut conn, &mod_user_id, &moderator_role_id.to_string(), now)?;
             users_assigned += 1;
         }
 
@@ -883,7 +827,7 @@ impl Seeder for RolePermissionSeeder {
             .collect();
 
         for unassigned_user_id in unassigned_users {
-            assign_user_role(&mut conn, &unassigned_user_id, &user_role_id, now)?;
+            assign_user_role(&mut conn, &unassigned_user_id, &user_role_id.to_string(), now)?;
             users_assigned += 1;
         }
 
@@ -1097,15 +1041,15 @@ fn assign_permissions_to_role(
     use crate::schema::{sys_users};
 
     // Get system user ID for audit tracking
-    let system_user_id: String = sys_users::table
+    let system_user_id: DieselUlid = sys_users::table
         .filter(sys_users::email.eq("system@seeder.internal"))
         .select(sys_users::id)
         .first(conn)?;
-    
+
     use crate::schema::{sys_roles, sys_permissions, sys_model_has_permissions};
 
     // Get role ID
-    let role_id: Option<String> = sys_roles::table
+    let role_id: Option<DieselUlid> = sys_roles::table
         .filter(sys_roles::name.eq(role_name))
         .filter(sys_roles::guard_name.eq("api"))
         .select(sys_roles::id)
@@ -1117,7 +1061,7 @@ fn assign_permissions_to_role(
             let parts: Vec<&str> = permission_name.split('.').collect();
             if parts.len() != 2 { continue; }
             let (resource, action) = (parts[0], parts[1]);
-            let permission_ids: Vec<String> = sys_permissions::table
+            let permission_ids: Vec<DieselUlid> = sys_permissions::table
                 .filter(sys_permissions::resource.eq(resource))
                 .filter(sys_permissions::action.eq(action))
                 .filter(sys_permissions::guard_name.eq("api"))
@@ -1125,17 +1069,18 @@ fn assign_permissions_to_role(
                 .load(conn)?;
 
             for permission_id in permission_ids {
-                let role_permission = NewModelHasPermission {
-                    id: Ulid::new().to_string(),
+                let role_permission = SysModelHasPermission {
+                    id: DieselUlid::new(),
                     model_type: "Role".to_string(),
-                    model_id: role_id.clone(),
+                    model_id: role_id,
                     permission_id,
                     scope_type: None,
                     scope_id: None,
                     created_at: now,
                     updated_at: now,
-                    created_by_id: system_user_id.clone(),
-                    updated_by_id: system_user_id.clone(),
+                    deleted_at: None,
+                    created_by_id: system_user_id,
+                    updated_by_id: system_user_id,
                     deleted_by_id: None,
                 };
 
@@ -1161,56 +1106,71 @@ fn get_or_create_system_user(
     use argon2::{Argon2, PasswordHasher, password_hash::{SaltString, rand_core::OsRng}};
 
     // Try to find existing system user
-    let existing_user: Option<String> = sys_users::table
+    let existing_user: Option<DieselUlid> = sys_users::table
         .filter(sys_users::email.eq("system@seeder.internal"))
         .select(sys_users::id)
         .first(conn)
         .optional()?;
 
     if let Some(user_id) = existing_user {
-        return Ok(user_id);
+        return Ok(user_id.to_string());
     }
 
     // Create system user if not exists
-    let system_user_id = Ulid::new().to_string();
+    let system_user_id = DieselUlid::new();
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
     let hashed_password = argon2.hash_password(b"system-seeder-password", &salt)
         .map_err(|e| anyhow::anyhow!("Failed to hash password: {}", e))?
         .to_string();
 
-    #[derive(Insertable)]
-    #[diesel(table_name = sys_users)]
-    struct NewSystemUser {
-        id: String,
-        name: String,
-        email: String,
-        email_verified_at: Option<chrono::DateTime<Utc>>,
-        password: String,
-        username: Option<String>,
-        avatar: Option<String>,
-        birthdate: Option<chrono::NaiveDate>,
-        last_login_at: Option<chrono::DateTime<Utc>>,
-        last_seen_at: Option<chrono::DateTime<Utc>>,
-        created_at: chrono::DateTime<Utc>,
-        updated_at: chrono::DateTime<Utc>,
-        deleted_at: Option<chrono::DateTime<Utc>>,
-    }
-
-    let new_user = NewSystemUser {
-        id: system_user_id.clone(),
+    let new_user = User {
+        id: system_user_id,
         name: "System Seeder".to_string(),
         email: "system@seeder.internal".to_string(),
         email_verified_at: Some(now),
-        password: hashed_password,
         username: Some("system_seeder".to_string()),
+        password: hashed_password,
+        remember_token: None,
+        password_reset_token: None,
+        password_reset_expires_at: None,
+        refresh_token: None,
+        refresh_token_expires_at: None,
         avatar: None,
         birthdate: None,
+        failed_login_attempts: 0,
+        google_id: None,
         last_login_at: None,
-        last_seen_at: Some(now),
+        last_seen_at: now,
+        locale: None,
+        locked_until: None,
+        phone_number: None,
+        phone_verified_at: None,
+        zoneinfo: None,
         created_at: now,
         updated_at: now,
         deleted_at: None,
+        created_by_id: system_user_id,
+        updated_by_id: system_user_id,
+        deleted_by_id: None,
+        identity_public_key: None,
+        identity_key_created_at: None,
+        mfa_enabled: false,
+        mfa_secret: None,
+        mfa_backup_codes: None,
+        mfa_required: false,
+        email_notifications: Some(true),
+        database_notifications: Some(true),
+        broadcast_notifications: Some(true),
+        web_push_notifications: Some(true),
+        sms_notifications: Some(false),
+        slack_notifications: Some(false),
+        marketing_emails: Some(false),
+        security_alerts: Some(true),
+        order_updates: Some(false),
+        newsletter: Some(false),
+        promotional_emails: Some(false),
+        account_notifications: Some(true),
     };
 
     insert_into(sys_users::table)
@@ -1218,7 +1178,7 @@ fn get_or_create_system_user(
         .execute(conn)?;
 
     println!("Created system seeder user with ID: {}", system_user_id);
-    Ok(system_user_id)
+    Ok(system_user_id.to_string())
 }
 
 // Helper function to assign a role to a user
@@ -1232,25 +1192,26 @@ fn assign_user_role(
     use crate::schema::sys_users;
 
     // Get system user ID for audit tracking
-    let system_user_id: String = sys_users::table
+    let system_user_id: DieselUlid = sys_users::table
         .filter(sys_users::email.eq("system@seeder.internal"))
         .select(sys_users::id)
         .first(conn)?;
-    
+
     use crate::schema::sys_model_has_roles;
     use crate::app::models::{HasModelType, user::User};
 
-    let user_role = NewModelHasRole {
-        id: Ulid::new().to_string(),
+    let user_role = SysModelHasRole {
+        id: DieselUlid::new(),
         model_type: User::model_type().to_string(),
-        model_id: user_id.to_string(),
-        role_id: role_id.to_string(),
+        model_id: DieselUlid::from_string(user_id).unwrap(),
+        role_id: DieselUlid::from_string(role_id).unwrap(),
         scope_type: None,
         scope_id: None,
         created_at: now,
         updated_at: now,
-        created_by_id: system_user_id.clone(),
-        updated_by_id: system_user_id.clone(),
+        deleted_at: None,
+        created_by_id: system_user_id,
+        updated_by_id: system_user_id,
         deleted_by_id: None,
     };
 

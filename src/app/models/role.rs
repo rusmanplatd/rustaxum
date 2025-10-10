@@ -6,7 +6,7 @@ use crate::app::query_builder::SortDirection;
 use crate::app::models::{DieselUlid, HasModelType};
 use crate::app::models::activity_log::HasId;
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, QueryableByName, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, QueryableByName, Identifiable, Insertable)]
 #[diesel(table_name = crate::schema::sys_roles)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Role {
@@ -50,9 +50,8 @@ pub struct RoleResponse {
 }
 
 impl Role {
-    pub fn new(name: String, description: Option<String>, guard_name: Option<String>, user_id: Option<DieselUlid>) -> Self {
+    pub fn new(name: String, description: Option<String>, guard_name: Option<String>, created_by: DieselUlid) -> Self {
         let now = Utc::now();
-        let created_by = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap_or_else(|_| DieselUlid::new()));
 
         Self {
             id: DieselUlid::new(),
@@ -65,24 +64,24 @@ impl Role {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: created_by,
+            created_by_id: created_by.clone(),
             updated_by_id: created_by,
             deleted_by_id: None,
         }
     }
 
-    pub fn update_with_user(&mut self, user_id: Option<DieselUlid>) {
+    pub fn update_with_user(&mut self, updated_by: DieselUlid) {
         self.updated_at = Utc::now();
-        self.updated_by_id = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap());
+        self.updated_by_id = updated_by;
     }
 
-    pub fn soft_delete(&mut self, user_id: Option<DieselUlid>) {
+    pub fn soft_delete(&mut self, deleted_by: DieselUlid) {
         let now = Utc::now();
 
         self.deleted_at = Some(now);
         self.updated_at = now;
-        self.deleted_by_id = user_id;
-        self.updated_by_id = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap());
+        self.deleted_by_id = Some(deleted_by.clone());
+        self.updated_by_id = deleted_by;
     }
 
     pub fn to_response(&self) -> RoleResponse {

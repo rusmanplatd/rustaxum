@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use diesel::prelude::*;
 
 use crate::app::services::session::SessionHandler;
-use crate::app::models::session::{SessionModel, NewSession, UpdateSession};
+use crate::app::models::session::{SessionModel, UpdateSession};
 use crate::schema::sessions;
 use crate::database::DbPool;
 
@@ -52,7 +52,7 @@ impl SessionHandler for DatabaseSessionHandler {
 
         // If no rows were updated, insert a new session
         if updated == 0 {
-            let new_session = NewSession {
+            let new_session = SessionModel {
                 id: session_id.to_string(),
                 user_id: None,
                 ip_address: None,

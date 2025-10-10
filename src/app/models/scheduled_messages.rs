@@ -49,31 +49,6 @@ pub struct UpdateScheduledMessage {
     pub timezone: Option<String>,
     pub max_retries: Option<i32>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::scheduled_messages)]
-pub struct NewScheduledMessage {
-    pub id: DieselUlid,
-    pub message_id: DieselUlid,
-    pub conversation_id: DieselUlid,
-    pub sender_user_id: DieselUlid,
-    pub sender_device_id: DieselUlid,
-    pub scheduled_for: DateTime<Utc>,
-    pub timezone: String,
-    pub is_sent: bool,
-    pub sent_at: Option<DateTime<Utc>>,
-    pub failed_at: Option<DateTime<Utc>>,
-    pub failure_reason: Option<String>,
-    pub retry_count: i32,
-    pub max_retries: i32,
-    pub next_retry_at: Option<DateTime<Utc>>,
-    pub is_cancelled: bool,
-    pub cancelled_at: Option<DateTime<Utc>>,
-    pub cancelled_by_device_id: Option<DieselUlid>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct ScheduledMessageResponse {
     pub id: DieselUlid,
@@ -104,9 +79,9 @@ impl ScheduledMessage {
         scheduled_for: DateTime<Utc>,
         timezone: String,
         max_retries: Option<i32>,
-    ) -> NewScheduledMessage {
+    ) -> Self {
         let now = Utc::now();
-        NewScheduledMessage {
+        ScheduledMessage {
             id: DieselUlid::new(),
             message_id,
             conversation_id,

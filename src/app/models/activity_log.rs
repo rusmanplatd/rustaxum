@@ -24,23 +24,6 @@ pub struct ActivityLog {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
-
-#[derive(Insertable, Serialize, Deserialize, Debug, Clone, ToSchema)]
-#[diesel(table_name = crate::schema::activity_log)]
-pub struct NewActivityLog {
-    pub id: DieselUlid,
-    pub log_name: Option<String>,
-    pub description: String,
-    pub subject_type: Option<String>,
-    pub subject_id: Option<String>,
-    pub causer_type: Option<String>,
-    pub causer_id: Option<String>,
-    pub properties: Option<Value>,
-    pub correlation_id: Option<DieselUlid>,
-    pub batch_uuid: Option<String>,
-    pub event: Option<String>,
-}
-
 impl HasModelType for ActivityLog {
     fn model_type() -> &'static str {
         "ActivityLog"
@@ -251,10 +234,11 @@ impl ActivityLogBuilder {
         self
     }
 
-    pub fn build(self) -> Result<NewActivityLog, &'static str> {
+    pub fn build(self) -> Result<ActivityLog, &'static str> {
         let description = self.description.ok_or("Description is required")?;
+        let now = chrono::Utc::now();
 
-        Ok(NewActivityLog {
+        Ok(ActivityLog {
             id: DieselUlid::new(),
             log_name: self.log_name,
             description,
@@ -266,6 +250,8 @@ impl ActivityLogBuilder {
             correlation_id: self.correlation_id,
             batch_uuid: self.batch_uuid,
             event: self.event,
+            created_at: now,
+            updated_at: now,
         })
     }
 

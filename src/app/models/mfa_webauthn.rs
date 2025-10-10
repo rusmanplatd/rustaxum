@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use super::DieselUlid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, Insertable)]
 #[diesel(table_name = crate::schema::mfa_webauthn_credentials)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct MfaWebAuthnCredential {
@@ -24,26 +24,7 @@ pub struct MfaWebAuthnCredential {
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::mfa_webauthn_credentials)]
-pub struct NewMfaWebAuthnCredential {
-    pub id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub credential_id: String,
-    pub public_key: String,
-    pub counter: i64,
-    pub device_name: Option<String>,
-    pub aaguid: Option<String>,
-    pub transports: Option<Vec<Option<String>>>,
-    pub attestation_format: Option<String>,
-    pub is_backup_eligible: bool,
-    pub is_backup_state: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, Insertable)]
 #[diesel(table_name = crate::schema::mfa_webauthn_challenges)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct MfaWebAuthnChallenge {
@@ -55,18 +36,6 @@ pub struct MfaWebAuthnChallenge {
     pub is_used: bool,
     pub created_at: DateTime<Utc>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::mfa_webauthn_challenges)]
-pub struct NewMfaWebAuthnChallenge {
-    pub id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub challenge: String,
-    pub challenge_type: String,
-    pub expires_at: DateTime<Utc>,
-    pub created_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct WebAuthnRegistrationStartRequest {
     pub device_name: Option<String>,
@@ -115,9 +84,9 @@ impl MfaWebAuthnCredential {
         attestation_format: Option<String>,
         is_backup_eligible: bool,
         is_backup_state: bool,
-    ) -> NewMfaWebAuthnCredential {
+    ) -> Self {
         let now = Utc::now();
-        NewMfaWebAuthnCredential {
+        MfaWebAuthnCredential {
             id: DieselUlid::new(),
             user_id,
             credential_id,
@@ -129,8 +98,10 @@ impl MfaWebAuthnCredential {
             attestation_format,
             is_backup_eligible,
             is_backup_state,
+            last_used_at: None,
             created_at: now,
             updated_at: now,
+            deleted_at: None,
         }
     }
 
@@ -157,15 +128,16 @@ impl MfaWebAuthnChallenge {
         challenge: String,
         challenge_type: String,
         expires_in_minutes: i64,
-    ) -> NewMfaWebAuthnChallenge {
+    ) -> Self {
         let now = Utc::now();
-        NewMfaWebAuthnChallenge {
+        MfaWebAuthnChallenge {
             id: DieselUlid::new(),
             user_id,
             challenge,
             challenge_type,
             expires_at: now + chrono::Duration::minutes(expires_in_minutes),
             created_at: now,
+            is_used: false,
         }
     }
 

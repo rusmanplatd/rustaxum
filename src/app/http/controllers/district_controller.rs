@@ -133,7 +133,34 @@ pub async fn store(State(pool): State<DbPool>, request: CreateDistrictRequest) -
         code: request.code,
     };
 
-    match DistrictService::create(&pool, payload, None).await {
+    let mut conn = match pool.get() {
+        Ok(conn) => conn,
+        Err(e) => {
+            let error = ErrorResponse {
+                error: format!("Database connection error: {}", e),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
+
+    use diesel::prelude::*;
+    use crate::schema::sys_users;
+
+    let system_user_id: String = match sys_users::table
+        .filter(sys_users::email.eq("system@seeder.internal"))
+        .select(sys_users::id)
+        .first(&mut conn)
+    {
+        Ok(id) => id,
+        Err(e) => {
+            let error = ErrorResponse {
+                error: format!("Failed to get system user: {}", e),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
+
+    match DistrictService::create(&pool, payload, &system_user_id).await {
         Ok(district) => (StatusCode::CREATED, ResponseJson(district.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {

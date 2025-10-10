@@ -118,25 +118,6 @@ pub struct CreateSecurityIncident {
     pub encrypted_incident_data: Option<String>,
     pub incident_algorithm: Option<String>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::security_incidents)]
-pub struct NewSecurityIncident {
-    pub id: DieselUlid,
-    pub device_id: Option<DieselUlid>,
-    pub user_id: Option<DieselUlid>,
-    pub conversation_id: Option<DieselUlid>,
-    pub incident_type: String,
-    pub severity: String,
-    pub encrypted_incident_data: Option<String>,
-    pub incident_algorithm: Option<String>,
-    pub is_resolved: bool,
-    pub resolved_at: Option<DateTime<Utc>>,
-    pub resolution_notes: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 impl SecurityIncident {
     pub fn new(
         device_id: Option<DieselUlid>,
@@ -146,9 +127,9 @@ impl SecurityIncident {
         severity: IncidentSeverity,
         encrypted_incident_data: Option<String>,
         incident_algorithm: Option<String>,
-    ) -> NewSecurityIncident {
+    ) -> Self {
         let now = Utc::now();
-        NewSecurityIncident {
+        SecurityIncident {
             id: DieselUlid::new(),
             device_id,
             user_id,

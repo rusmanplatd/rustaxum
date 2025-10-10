@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use crate::app::query_builder::{SortDirection};
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, Insertable, ToSchema)]
 #[diesel(table_name = crate::schema::oauth_scopes)]
 #[schema(description = "OAuth2 scope definition")]
 pub struct Scope {
@@ -16,18 +16,6 @@ pub struct Scope {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::oauth_scopes)]
-pub struct NewScope {
-    pub id: DieselUlid,
-    pub name: String,
-    pub description: Option<String>,
-    pub is_default: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateScope {
     pub name: String,
@@ -55,7 +43,7 @@ pub struct ScopeResponse {
 impl Scope {
     pub fn new(name: String, description: Option<String>, is_default: bool) -> Self {
         let now = Utc::now();
-        Self {
+        Scope {
             id: DieselUlid::new(),
             name,
             description,
@@ -85,19 +73,6 @@ impl Scope {
     }
 }
 
-impl NewScope {
-    pub fn new(name: String, description: Option<String>, is_default: bool) -> Self {
-        let now = Utc::now();
-        Self {
-            id: DieselUlid::new(),
-            name,
-            description,
-            is_default,
-            created_at: now,
-            updated_at: now,
-        }
-    }
-}
 
 impl crate::app::query_builder::Queryable for Scope {
     fn table_name() -> &'static str {

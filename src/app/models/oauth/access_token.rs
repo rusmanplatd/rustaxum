@@ -4,7 +4,7 @@ use diesel::prelude::*;
 use chrono::{DateTime, Utc};
 use crate::app::query_builder::{SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Insertable)]
 #[diesel(table_name = crate::schema::oauth_access_tokens)]
 pub struct AccessToken {
     pub id: DieselUlid,
@@ -28,22 +28,6 @@ pub struct CreateAccessToken {
     pub expires_at: Option<DateTime<Utc>>,
     pub jwk_thumbprint: Option<String>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::oauth_access_tokens)]
-pub struct NewAccessToken {
-    pub id: DieselUlid,
-    pub user_id: Option<String>,
-    pub client_id: String,
-    pub name: Option<String>,
-    pub scopes: Option<String>,
-    pub revoked: bool,
-    pub expires_at: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub jwk_thumbprint: Option<String>,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateAccessToken {
     pub name: Option<String>,
@@ -115,7 +99,7 @@ impl AccessToken {
     }
 }
 
-impl NewAccessToken {
+impl AccessToken {
     pub fn new(
         user_id: Option<String>,
         client_id: String,
@@ -125,7 +109,7 @@ impl NewAccessToken {
         jwk_thumbprint: Option<String>,
     ) -> Self {
         let now = Utc::now();
-        Self {
+        AccessToken {
             id: DieselUlid::new(),
             user_id,
             client_id,

@@ -27,26 +27,6 @@ pub struct Conversation {
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, Insertable)]
-#[diesel(table_name = conversations)]
-pub struct NewConversation {
-    pub id: DieselUlid,
-    pub conversation_type: String,
-    pub is_encrypted: Option<bool>,
-    pub encryption_immutable: Option<bool>,
-    pub encrypted_name: Option<String>,
-    pub encrypted_description: Option<String>,
-    pub encrypted_avatar_url: Option<String>,
-    pub preferred_algorithm: Option<String>,
-    pub preferred_key_exchange: Option<String>,
-    pub preferred_mac: Option<String>,
-    pub creator_id: Option<DieselUlid>,
-    pub max_participants: Option<i32>,
-    pub is_public: Option<bool>,
-    pub disappearing_messages_timer: Option<i32>,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ConversationType {
     Direct,
@@ -81,13 +61,14 @@ impl Conversation {
     }
 }
 
-impl NewConversation {
+impl Conversation {
     pub fn new(conversation_type: ConversationType, creator_id: Option<DieselUlid>) -> Self {
-        Self {
+        let now = chrono::Utc::now();
+        Conversation {
             id: DieselUlid::new(),
             conversation_type: conversation_type.into(),
-            is_encrypted: Some(false),
-            encryption_immutable: Some(false),
+            is_encrypted: false,
+            encryption_immutable: false,
             encrypted_name: None,
             encrypted_description: None,
             encrypted_avatar_url: None,
@@ -96,13 +77,16 @@ impl NewConversation {
             preferred_mac: Some("hmac-sha256".to_string()),
             creator_id,
             max_participants: None,
-            is_public: Some(false),
+            is_public: false,
             disappearing_messages_timer: None,
+            created_at: now,
+            updated_at: now,
+            deleted_at: None,
         }
     }
 
     pub fn encrypted(mut self, is_encrypted: bool) -> Self {
-        self.is_encrypted = Some(is_encrypted);
+        self.is_encrypted = is_encrypted;
         self
     }
 
@@ -117,7 +101,7 @@ impl NewConversation {
     }
 
     pub fn public(mut self, is_public: bool) -> Self {
-        self.is_public = Some(is_public);
+        self.is_public = is_public;
         self
     }
 

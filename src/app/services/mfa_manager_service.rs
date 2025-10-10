@@ -264,7 +264,7 @@ impl MfaManagerService {
         user_agent: Option<String>,
     ) -> Result<()> {
         use crate::schema::mfa_trusted_devices;
-        use crate::app::models::mfa_trusted_device::NewMfaTrustedDevice;
+        use crate::app::models::mfa_trusted_device::MfaTrustedDevice;
 
         let user_id_ulid = DieselUlid::from_string(&user_id_param)?;
 
@@ -274,7 +274,8 @@ impl MfaManagerService {
         // Generate trust token
         let trust_token = uuid::Uuid::new_v4().to_string();
 
-        let new_device = NewMfaTrustedDevice {
+        let now = chrono::Utc::now();
+        let new_device = MfaTrustedDevice {
             id: DieselUlid::new(),
             user_id: user_id_ulid,
             device_fingerprint: fingerprint,
@@ -282,9 +283,10 @@ impl MfaManagerService {
             ip_address,
             user_agent,
             trust_token,
-            expires_at: chrono::Utc::now()
-                + chrono::Duration::days(prefs.trust_device_duration_days as i64),
-            created_at: chrono::Utc::now(),
+            expires_at: now + chrono::Duration::days(prefs.trust_device_duration_days as i64),
+            last_used_at: None,
+            created_at: now,
+            revoked_at: None,
         };
 
         let mut conn = pool.get()?;

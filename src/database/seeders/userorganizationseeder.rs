@@ -1,4 +1,4 @@
-use crate::app::models::{user_organization::NewUserOrganization, DieselUlid};
+use crate::app::models::{user_organization::UserOrganization, DieselUlid};
 use crate::database::seeder::Seeder;
 use crate::database::DbPool;
 use crate::schema::{organization_positions, organizations, sys_users, user_organizations};
@@ -104,7 +104,7 @@ impl Seeder for UserOrganizationSeeder {
             // CEOs, CFOs, CTOs, COOs in holding company
             for email_prefix in &["jane.ceo", "john.cfo", "mary.cto", "bob.coo"] {
                 if let Some((user_id, _)) = find_user_by_email(email_prefix) {
-                    relationships.push(NewUserOrganization {
+                    relationships.push(UserOrganization {
                         id: DieselUlid::new(),
                         user_id,
                         organization_id: org_id,
@@ -134,7 +134,7 @@ impl Seeder for UserOrganizationSeeder {
             if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(1)) {
                 for vp_email in vps {
                     if let Some((user_id, _)) = find_user_by_email(vp_email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -169,7 +169,7 @@ impl Seeder for UserOrganizationSeeder {
             if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(2)) {
                 for director_email in directors {
                     if let Some((user_id, _)) = find_user_by_email(director_email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -201,7 +201,7 @@ impl Seeder for UserOrganizationSeeder {
             if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(3)) {
                 for senior_email in seniors {
                     if let Some((user_id, _)) = find_user_by_email(senior_email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -233,7 +233,7 @@ impl Seeder for UserOrganizationSeeder {
             if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(4)) {
                 for mid_email in mids {
                     if let Some((user_id, _)) = find_user_by_email(mid_email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -266,7 +266,7 @@ impl Seeder for UserOrganizationSeeder {
             if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(5)) {
                 for junior_email in juniors {
                     if let Some((user_id, _)) = find_user_by_email(junior_email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -299,7 +299,7 @@ impl Seeder for UserOrganizationSeeder {
             if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(6)) {
                 for intern_email in interns {
                     if let Some((user_id, _)) = find_user_by_email(intern_email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -330,7 +330,7 @@ impl Seeder for UserOrganizationSeeder {
             if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(2)) {
                 for email in people {
                     if let Some((user_id, _)) = find_user_by_email(email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -361,7 +361,7 @@ impl Seeder for UserOrganizationSeeder {
             if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(4)) {
                 for email in people {
                     if let Some((user_id, _)) = find_user_by_email(email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -386,7 +386,7 @@ impl Seeder for UserOrganizationSeeder {
         {
             for email in &["thomas.consultant", "angela.tech"] {
                 if let Some((user_id, _)) = find_user_by_email(email) {
-                    relationships.push(NewUserOrganization {
+                    relationships.push(UserOrganization {
                         id: DieselUlid::new(),
                         user_id,
                         organization_id: cons_org_id,
@@ -415,7 +415,7 @@ impl Seeder for UserOrganizationSeeder {
             if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(3)) {
                 for email in people {
                     if let Some((user_id, _)) = find_user_by_email(email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -445,7 +445,7 @@ impl Seeder for UserOrganizationSeeder {
             if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(3)) {
                 for email in people {
                     if let Some((user_id, _)) = find_user_by_email(email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -483,7 +483,7 @@ impl Seeder for UserOrganizationSeeder {
         if let (Some(org_id), Some(pos_id)) = (gov_ministry_id, positions.first()) {
             for email in &["sarah.minister", "ahmad.secgen", "dewi.dirgen"] {
                 if let Some((user_id, _)) = find_user_by_email(email) {
-                    relationships.push(NewUserOrganization {
+                    relationships.push(UserOrganization {
                         id: DieselUlid::new(),
                         user_id,
                         organization_id: org_id,
@@ -507,7 +507,7 @@ impl Seeder for UserOrganizationSeeder {
             if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(3)) {
                 for director in directors {
                     if let Some((user_id, _)) = find_user_by_email(director) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -532,7 +532,7 @@ impl Seeder for UserOrganizationSeeder {
             if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(5)) {
                 for person in staff {
                     if let Some((user_id, _)) = find_user_by_email(person) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -557,7 +557,7 @@ impl Seeder for UserOrganizationSeeder {
             if let Some(pos_id) = positions.get(12) {
                 for email in &["hendra.policy", "maya.analyst", "doni.support"] {
                     if let Some((user_id, _)) = find_user_by_email(email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -584,7 +584,7 @@ impl Seeder for UserOrganizationSeeder {
         if let (Some(org_id), Some(pos_id)) = (university_id, positions.first()) {
             for email in &["david.rector", "lisa.vice", "michael.dean"] {
                 if let Some((user_id, _)) = find_user_by_email(email) {
-                    relationships.push(NewUserOrganization {
+                    relationships.push(UserOrganization {
                         id: DieselUlid::new(),
                         user_id,
                         organization_id: org_id,
@@ -608,7 +608,7 @@ impl Seeder for UserOrganizationSeeder {
             if let Some(pos_id) = positions.get(3) {
                 for email in &["jennifer.ai", "robert.networks", "patricia.db"] {
                     if let Some((user_id, _)) = find_user_by_email(email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -633,7 +633,7 @@ impl Seeder for UserOrganizationSeeder {
             if let Some(pos_id) = positions.get(11) {
                 for email in &["william.research", "maria.lab", "thomas.research"] {
                     if let Some((user_id, _)) = find_user_by_email(email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -657,7 +657,7 @@ impl Seeder for UserOrganizationSeeder {
         if let (Some(org_id), Some(pos_id)) = (university_id, positions.get(12)) {
             for email in &["susan.registrar", "george.admin"] {
                 if let Some((user_id, _)) = find_user_by_email(email) {
-                    relationships.push(NewUserOrganization {
+                    relationships.push(UserOrganization {
                         id: DieselUlid::new(),
                         user_id,
                         organization_id: org_id,
@@ -683,7 +683,7 @@ impl Seeder for UserOrganizationSeeder {
         if let (Some(org_id), Some(pos_id)) = (hospital_id, positions.first()) {
             for email in &["elizabeth.director", "richard.cmo", "margaret.cno"] {
                 if let Some((user_id, _)) = find_user_by_email(email) {
-                    relationships.push(NewUserOrganization {
+                    relationships.push(UserOrganization {
                         id: DieselUlid::new(),
                         user_id,
                         organization_id: org_id,
@@ -713,7 +713,7 @@ impl Seeder for UserOrganizationSeeder {
             if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(3)) {
                 for head in heads {
                     if let Some((user_id, _)) = find_user_by_email(head) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -738,7 +738,7 @@ impl Seeder for UserOrganizationSeeder {
             if let Some(pos_id) = positions.get(11) {
                 for email in &["karen.physician", "paul.surgeon", "jessica.nurse"] {
                     if let Some((user_id, _)) = find_user_by_email(email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -762,7 +762,7 @@ impl Seeder for UserOrganizationSeeder {
         if let (Some(org_id), Some(pos_id)) = (hospital_id, positions.get(12)) {
             for email in &["angela.lab", "daniel.pharmacy", "rachel.it"] {
                 if let Some((user_id, _)) = find_user_by_email(email) {
-                    relationships.push(NewUserOrganization {
+                    relationships.push(UserOrganization {
                         id: DieselUlid::new(),
                         user_id,
                         organization_id: org_id,
@@ -788,7 +788,7 @@ impl Seeder for UserOrganizationSeeder {
         if let (Some(org_id), Some(pos_id)) = (foundation_id, positions.first()) {
             for email in &["catherine.ed", "mohammed.pd", "fatima.od"] {
                 if let Some((user_id, _)) = find_user_by_email(email) {
-                    relationships.push(NewUserOrganization {
+                    relationships.push(UserOrganization {
                         id: DieselUlid::new(),
                         user_id,
                         organization_id: org_id,
@@ -817,7 +817,7 @@ impl Seeder for UserOrganizationSeeder {
             if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(5)) {
                 for manager in managers {
                     if let Some((user_id, _)) = find_user_by_email(manager) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -841,7 +841,7 @@ impl Seeder for UserOrganizationSeeder {
         if let (Some(org_id), Some(pos_id)) = (foundation_id, positions.get(12)) {
             for email in &["leila.project", "omar.monitoring", "zainab.eval"] {
                 if let Some((user_id, _)) = find_user_by_email(email) {
-                    relationships.push(NewUserOrganization {
+                    relationships.push(UserOrganization {
                         id: DieselUlid::new(),
                         user_id,
                         organization_id: org_id,
@@ -864,7 +864,7 @@ impl Seeder for UserOrganizationSeeder {
         if let (Some(org_id), Some(pos_id)) = (foundation_id, positions.get(12)) {
             for email in &["yusuf.logistics", "mariam.fundraising"] {
                 if let Some((user_id, _)) = find_user_by_email(email) {
-                    relationships.push(NewUserOrganization {
+                    relationships.push(UserOrganization {
                         id: DieselUlid::new(),
                         user_id,
                         organization_id: org_id,
@@ -890,7 +890,7 @@ impl Seeder for UserOrganizationSeeder {
         if let (Some(org_id), Some(pos_id)) = (command_id, positions.first()) {
             for email in &["robert.commander", "william.deputy", "barbara.chief"] {
                 if let Some((user_id, _)) = find_user_by_email(email) {
-                    relationships.push(NewUserOrganization {
+                    relationships.push(UserOrganization {
                         id: DieselUlid::new(),
                         user_id,
                         organization_id: org_id,
@@ -914,7 +914,7 @@ impl Seeder for UserOrganizationSeeder {
             if let Some(pos_id) = positions.get(3) {
                 for email in &["charles.ops", "patricia.intel", "joseph.logistics"] {
                     if let Some((user_id, _)) = find_user_by_email(email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -939,7 +939,7 @@ impl Seeder for UserOrganizationSeeder {
             if let Some(pos_id) = positions.get(11) {
                 for email in &["steven.cyber", "jennifer.comms", "michael.systems"] {
                     if let Some((user_id, _)) = find_user_by_email(email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -966,7 +966,7 @@ impl Seeder for UserOrganizationSeeder {
         if let (Some(org_id), Some(pos_id)) = (diocese_id, positions.first()) {
             for email in &["francis.bishop", "anthony.vicar", "joseph.chancellor"] {
                 if let Some((user_id, _)) = find_user_by_email(email) {
-                    relationships.push(NewUserOrganization {
+                    relationships.push(UserOrganization {
                         id: DieselUlid::new(),
                         user_id,
                         organization_id: org_id,
@@ -995,7 +995,7 @@ impl Seeder for UserOrganizationSeeder {
             if let (Some(org_id), Some(pos_id)) = (find_org_by_code(code), positions.get(3)) {
                 for priest in priests {
                     if let Some((user_id, _)) = find_user_by_email(priest) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -1020,7 +1020,7 @@ impl Seeder for UserOrganizationSeeder {
             if let Some(pos_id) = positions.get(11) {
                 for email in &["paul.youth", "mary.education", "catherine.charity"] {
                     if let Some((user_id, _)) = find_user_by_email(email) {
-                        relationships.push(NewUserOrganization {
+                        relationships.push(UserOrganization {
                             id: DieselUlid::new(),
                             user_id,
                             organization_id: org_id,
@@ -1044,7 +1044,7 @@ impl Seeder for UserOrganizationSeeder {
         if let (Some(org_id), Some(pos_id)) = (diocese_id, positions.get(12)) {
             for email in &["martha.admin", "john.finance"] {
                 if let Some((user_id, _)) = find_user_by_email(email) {
-                    relationships.push(NewUserOrganization {
+                    relationships.push(UserOrganization {
                         id: DieselUlid::new(),
                         user_id,
                         organization_id: org_id,
@@ -1070,7 +1070,7 @@ impl Seeder for UserOrganizationSeeder {
             find_org_by_code("FRONT-DEV"),
             positions.get(5),
         ) {
-            relationships.push(NewUserOrganization {
+            relationships.push(UserOrganization {
                 id: DieselUlid::new(),
                 user_id: user.0,
                 organization_id: org_id,

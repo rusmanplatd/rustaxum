@@ -7,7 +7,7 @@ use crate::app::query_builder::{SortDirection};
 
 /// Job level model representing organizational hierarchy levels
 /// Contains level information including rank, code, and description
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::organization_position_levels)]
 pub struct OrganizationPositionLevel {
     /// Unique identifier for the organization position level
@@ -57,25 +57,6 @@ pub struct CreateOrganizationPositionLevel {
     pub level: i32,
 }
 
-/// Insertable struct for organization position levels
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::organization_position_levels)]
-pub struct NewOrganizationPositionLevel {
-    pub id: DieselUlid,
-    pub organization_id: DieselUlid,
-    pub code: String,
-    pub name: String,
-    pub description: Option<String>,
-    pub level: i32,
-    pub is_active: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: DieselUlid,
-    pub updated_by_id: DieselUlid,
-    pub deleted_by_id: Option<DieselUlid>,
-}
-
 /// Update organization position level payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateOrganizationPositionLevel {
@@ -105,10 +86,10 @@ pub struct OrganizationPositionLevelResponse {
     pub deleted_by_id: Option<DieselUlid>,
 }
 
-impl NewOrganizationPositionLevel {
+impl OrganizationPositionLevel {
     pub fn new(create_level: CreateOrganizationPositionLevel, created_by: Option<DieselUlid>) -> Self {
         let now = Utc::now();
-        Self {
+        OrganizationPositionLevel {
             id: DieselUlid::new(),
             organization_id: create_level.organization_id,
             code: create_level.code,
@@ -124,9 +105,7 @@ impl NewOrganizationPositionLevel {
             deleted_by_id: None,
         }
     }
-}
 
-impl OrganizationPositionLevel {
     pub fn to_response(&self) -> OrganizationPositionLevelResponse {
         OrganizationPositionLevelResponse {
             id: self.id,

@@ -29,26 +29,6 @@ pub struct Message {
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, Insertable)]
-#[diesel(table_name = messages)]
-pub struct NewMessage {
-    pub id: DieselUlid,
-    pub conversation_id: DieselUlid,
-    pub sender_user_id: DieselUlid,
-    pub sender_device_id: DieselUlid,
-    pub message_type: Option<String>,
-    pub encrypted_content: String,
-    pub content_algorithm: String,
-    pub reply_to_message_id: Option<DieselUlid>,
-    pub forward_from_message_id: Option<DieselUlid>,
-    pub edit_of_message_id: Option<DieselUlid>,
-    pub is_edited: Option<bool>,
-    pub is_deleted: Option<bool>,
-    pub expires_at: Option<DateTime<Utc>>,
-    pub sent_at: Option<DateTime<Utc>>,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MessageType {
     Text,
@@ -99,9 +79,7 @@ impl Message {
     pub fn message_type_enum(&self) -> MessageType {
         self.message_type.clone().into()
     }
-}
 
-impl NewMessage {
     pub fn new(
         conversation_id: DieselUlid,
         sender_user_id: DieselUlid,
@@ -109,26 +87,30 @@ impl NewMessage {
         encrypted_content: String,
         content_algorithm: String,
     ) -> Self {
-        Self {
+        let now = Utc::now();
+        Message {
             id: DieselUlid::new(),
             conversation_id,
             sender_user_id,
             sender_device_id,
-            message_type: Some("text".to_string()),
+            message_type: "text".to_string(),
             encrypted_content,
             content_algorithm,
             reply_to_message_id: None,
             forward_from_message_id: None,
             edit_of_message_id: None,
-            is_edited: Some(false),
-            is_deleted: Some(false),
+            is_edited: false,
+            is_deleted: false,
             expires_at: None,
-            sent_at: Some(Utc::now()),
+            sent_at: now,
+            created_at: now,
+            updated_at: now,
+            deleted_at: None,
         }
     }
 
     pub fn with_type(mut self, message_type: MessageType) -> Self {
-        self.message_type = Some(message_type.into());
+        self.message_type = message_type.into();
         self
     }
 

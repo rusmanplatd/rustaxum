@@ -86,6 +86,9 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
 }
 
 pub async fn store(State(pool): State<DbPool>, request: CreateCityRequest) -> impl IntoResponse {
+    use diesel::prelude::*;
+    use crate::schema::sys_users;
+
     let payload = CreateCity {
         province_id: request.province_id,
         name: request.name,
@@ -94,7 +97,31 @@ pub async fn store(State(pool): State<DbPool>, request: CreateCityRequest) -> im
         longitude: request.longitude,
     };
 
-    match CityService::create(&pool, payload) {
+    let mut conn = match pool.get() {
+        Ok(conn) => conn,
+        Err(e) => {
+            let error = ErrorResponse {
+                error: format!("Database connection error: {}", e),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
+
+    let system_user_id: String = match sys_users::table
+        .filter(sys_users::email.eq("system@seeder.internal"))
+        .select(sys_users::id)
+        .first(&mut conn)
+    {
+        Ok(id) => id,
+        Err(e) => {
+            let error = ErrorResponse {
+                error: format!("Failed to get system user: {}", e),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
+
+    match CityService::create(&pool, payload, &system_user_id) {
         Ok(city) => (StatusCode::CREATED, ResponseJson(city.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {

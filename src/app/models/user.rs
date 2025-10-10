@@ -8,7 +8,7 @@ use crate::app::models::activity_log::HasId;
 
 /// User model representing a registered user
 /// Contains authentication, profile, and security information
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Selectable, Identifiable, Insertable)]
 #[diesel(table_name = crate::schema::sys_users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct User {
@@ -130,34 +130,6 @@ pub struct UpdateUser {
     pub email: Option<String>,
 }
 
-/// Insertable struct for creating new users in the database
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::sys_users)]
-pub struct NewUser {
-    pub id: DieselUlid,
-    pub name: String,
-    pub email: String,
-    pub username: Option<String>,
-    pub password: String,
-    pub last_seen_at: DateTime<Utc>,
-    pub failed_login_attempts: i32,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub created_by_id: DieselUlid,
-    pub email_notifications: Option<bool>,
-    pub database_notifications: Option<bool>,
-    pub broadcast_notifications: Option<bool>,
-    pub web_push_notifications: Option<bool>,
-    pub sms_notifications: Option<bool>,
-    pub slack_notifications: Option<bool>,
-    pub marketing_emails: Option<bool>,
-    pub security_alerts: Option<bool>,
-    pub order_updates: Option<bool>,
-    pub newsletter: Option<bool>,
-    pub promotional_emails: Option<bool>,
-    pub account_notifications: Option<bool>,
-}
-
 /// Login request payload
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct LoginRequest {
@@ -214,8 +186,10 @@ impl User {
     pub fn phone(&self) -> Option<&String> {
         self.phone_number.as_ref()
     }
-    pub fn new(name: String, email: String, password: String) -> Self {
+    pub fn new(name: String, email: String, password: String, created_by: &str) -> Self {
         let now = Utc::now();
+        let creator_id = DieselUlid::from_string(created_by.trim())
+            .expect("Invalid created_by ULID provided to User::new()");
         Self {
             id: DieselUlid::new(),
             name,
@@ -242,8 +216,8 @@ impl User {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap(),
-            updated_by_id: DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap(),
+            created_by_id: creator_id.clone(),
+            updated_by_id: creator_id,
             deleted_by_id: None,
             identity_public_key: None,
             identity_key_created_at: None,
@@ -316,19 +290,44 @@ impl User {
         self.deleted_by_id = None;
     }
 
-    pub fn to_new_user(name: String, email: String, password: String, created_by: Option<DieselUlid>) -> NewUser {
+    pub fn to_new_user(name: String, email: String, password: String, created_by: Option<DieselUlid>) -> User {
         let now = Utc::now();
-        NewUser {
+        let created_by_ulid = created_by.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap());
+        User {
             id: DieselUlid::new(),
             name,
             email,
+            email_verified_at: None,
             username: None,
             password,
-            last_seen_at: now,
+            remember_token: None,
+            password_reset_token: None,
+            password_reset_expires_at: None,
+            refresh_token: None,
+            refresh_token_expires_at: None,
+            avatar: None,
+            birthdate: None,
             failed_login_attempts: 0,
+            google_id: None,
+            last_login_at: None,
+            last_seen_at: now,
+            locale: None,
+            locked_until: None,
+            phone_number: None,
+            phone_verified_at: None,
+            zoneinfo: None,
             created_at: now,
             updated_at: now,
-            created_by_id: created_by.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap()),
+            deleted_at: None,
+            created_by_id: created_by_ulid,
+            updated_by_id: created_by_ulid,
+            deleted_by_id: None,
+            identity_public_key: None,
+            identity_key_created_at: None,
+            mfa_enabled: false,
+            mfa_secret: None,
+            mfa_backup_codes: None,
+            mfa_required: false,
             email_notifications: Some(true),
             database_notifications: Some(true),
             broadcast_notifications: Some(true),

@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use super::DieselUlid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, Insertable)]
 #[diesel(table_name = crate::schema::mfa_biometric_credentials)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct MfaBiometricCredential {
@@ -23,24 +23,6 @@ pub struct MfaBiometricCredential {
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::mfa_biometric_credentials)]
-pub struct NewMfaBiometricCredential {
-    pub id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub device_id: Option<DieselUlid>,
-    pub biometric_type: String,
-    pub credential_id: String,
-    pub public_key: String,
-    pub platform: String,
-    pub device_name: Option<String>,
-    pub is_platform_authenticator: bool,
-    pub counter: i64,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct BiometricRegistrationRequest {
     pub biometric_type: String, // fingerprint, face, iris, voice
@@ -81,9 +63,9 @@ impl MfaBiometricCredential {
         platform: String,
         device_name: Option<String>,
         is_platform_authenticator: bool,
-    ) -> NewMfaBiometricCredential {
+    ) -> Self {
         let now = Utc::now();
-        NewMfaBiometricCredential {
+        MfaBiometricCredential {
             id: DieselUlid::new(),
             user_id,
             device_id,
@@ -94,8 +76,10 @@ impl MfaBiometricCredential {
             device_name,
             is_platform_authenticator,
             counter: 0,
+            last_used_at: None,
             created_at: now,
             updated_at: now,
+            deleted_at: None,
         }
     }
 

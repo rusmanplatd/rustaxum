@@ -7,7 +7,7 @@ use crate::app::query_builder::{SortDirection};
 
 /// District model representing a district within a city
 /// Contains administrative information for sub-city divisions
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::ref_geo_districts)]
 pub struct District {
     /// Unique district identifier
@@ -46,22 +46,6 @@ pub struct CreateDistrict {
     pub code: Option<String>,
 }
 
-/// Insertable struct for districts
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::ref_geo_districts)]
-pub struct NewDistrict {
-    pub id: DieselUlid,
-    pub city_id: String,
-    pub name: String,
-    pub code: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: DieselUlid,
-    pub updated_by_id: DieselUlid,
-    pub deleted_by_id: Option<DieselUlid>,
-}
-
 /// Update district payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateDistrict {
@@ -81,31 +65,11 @@ pub struct DistrictResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl NewDistrict {
-    pub fn new(city_id: String, name: String, code: Option<String>, created_by: Option<&str>) -> Self {
-        let now = Utc::now();
-        let system_id = created_by
-            .and_then(|s| DieselUlid::from_string(s.trim()).ok())
-            .unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap());
-        Self {
-            id: DieselUlid::new(),
-            city_id,
-            name,
-            code,
-            created_at: now,
-            updated_at: now,
-            deleted_at: None,
-            created_by_id: system_id.clone(),
-            updated_by_id: system_id,
-            deleted_by_id: None,
-        }
-    }
-}
-
 impl District {
-    pub fn new(city_id: String, name: String, code: Option<String>) -> Self {
+    pub fn new(city_id: String, name: String, code: Option<String>, created_by: &str) -> Self {
         let now = Utc::now();
-        Self {
+        let creator_id = DieselUlid::from_string(created_by.trim()).expect("Invalid created_by ULID provided to District::new()");
+        District {
             id: DieselUlid::new(),
             city_id,
             name,
@@ -113,8 +77,8 @@ impl District {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap(),
-            updated_by_id: DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap(),
+            created_by_id: creator_id.clone(),
+            updated_by_id: creator_id,
             deleted_by_id: None,
         }
     }

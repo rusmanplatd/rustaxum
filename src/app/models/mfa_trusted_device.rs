@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use utoipa::ToSchema;
 use super::DieselUlid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, Insertable)]
 #[diesel(table_name = crate::schema::mfa_trusted_devices)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct MfaTrustedDevice {
@@ -20,21 +20,6 @@ pub struct MfaTrustedDevice {
     pub created_at: DateTime<Utc>,
     pub revoked_at: Option<DateTime<Utc>>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::mfa_trusted_devices)]
-pub struct NewMfaTrustedDevice {
-    pub id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub device_fingerprint: String,
-    pub device_name: Option<String>,
-    pub ip_address: Option<String>,
-    pub user_agent: Option<String>,
-    pub trust_token: String,
-    pub expires_at: DateTime<Utc>,
-    pub created_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct TrustDeviceRequest {
     pub device_fingerprint: String,
@@ -61,9 +46,9 @@ impl MfaTrustedDevice {
         expires_in_days: i64,
         ip_address: Option<String>,
         user_agent: Option<String>,
-    ) -> NewMfaTrustedDevice {
+    ) -> Self {
         let now = Utc::now();
-        NewMfaTrustedDevice {
+        MfaTrustedDevice {
             id: DieselUlid::new(),
             user_id,
             device_fingerprint,
@@ -72,7 +57,9 @@ impl MfaTrustedDevice {
             user_agent,
             trust_token,
             expires_at: now + chrono::Duration::days(expires_in_days),
+            last_used_at: None,
             created_at: now,
+            revoked_at: None,
         }
     }
 

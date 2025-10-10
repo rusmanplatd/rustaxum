@@ -46,23 +46,6 @@ pub struct UpdatePoll {
     pub expires_at: Option<DateTime<Utc>>,
     pub is_closed: Option<bool>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::polls)]
-pub struct NewPoll {
-    pub id: DieselUlid,
-    pub message_id: DieselUlid,
-    pub conversation_id: DieselUlid,
-    pub encrypted_question: String,
-    pub encrypted_options: String,
-    pub allows_multiple_votes: bool,
-    pub is_anonymous: bool,
-    pub expires_at: Option<DateTime<Utc>>,
-    pub is_closed: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct PollResponse {
     pub id: DieselUlid,

@@ -6,7 +6,7 @@ use crate::app::models::{HasModelType, activity_log::HasId};
 
 use crate::schema::sessions;
 
-#[derive(Debug, Clone, Queryable, Selectable, Serialize, Deserialize)]
+#[derive(Debug, Clone, Queryable, Selectable, Serialize, Deserialize, Insertable)]
 #[diesel(table_name = sessions)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct SessionModel {
@@ -17,18 +17,6 @@ pub struct SessionModel {
     pub payload: String,
     pub last_activity: i32,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = sessions)]
-pub struct NewSession {
-    pub id: String,
-    pub user_id: Option<String>,
-    pub ip_address: Option<String>,
-    pub user_agent: Option<String>,
-    pub payload: String,
-    pub last_activity: i32,
-}
-
 #[derive(Debug, AsChangeset)]
 #[diesel(table_name = sessions)]
 pub struct UpdateSession {
@@ -46,8 +34,8 @@ impl SessionModel {
         user_id: Option<String>,
         ip_address: Option<String>,
         user_agent: Option<String>,
-    ) -> NewSession {
-        NewSession {
+    ) -> Self {
+        SessionModel {
             id,
             user_id,
             ip_address,

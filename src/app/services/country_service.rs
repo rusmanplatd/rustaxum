@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use serde_json::json;
 use crate::database::DbPool;
 use crate::schema::ref_geo_countries;
-use crate::app::models::country::{Country, CreateCountry, UpdateCountry, NewCountry};
+use crate::app::models::country::{Country, CreateCountry, UpdateCountry};
 use crate::app::traits::ServiceActivityLogger;
 
 pub struct CountryService;
@@ -11,9 +11,9 @@ pub struct CountryService;
 impl ServiceActivityLogger for CountryService {}
 
 impl CountryService {
-    pub async fn create(pool: &DbPool, data: CreateCountry, created_by: Option<&str>) -> Result<Country> {
+    pub async fn create(pool: &DbPool, data: CreateCountry, created_by: &str) -> Result<Country> {
         let mut conn = pool.get()?;
-        let new_country = NewCountry::new(data.name.clone(), data.iso_code.clone(), data.phone_code.clone(), created_by);
+        let new_country = Country::new(data.name.clone(), data.iso_code.clone(), data.phone_code.clone(), created_by);
 
         let result = diesel::insert_into(ref_geo_countries::table)
             .values(&new_country)

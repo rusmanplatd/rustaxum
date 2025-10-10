@@ -23,18 +23,12 @@ impl ScopeService {
     pub fn create_scope_record(pool: &DbPool, scope: Scope) -> Result<Scope> {
         let mut conn = pool.get()?;
 
-        diesel::insert_into(oauth_scopes::table)
-            .values((
-                oauth_scopes::id.eq(scope.id.to_string()),
-                oauth_scopes::name.eq(&scope.name),
-                oauth_scopes::description.eq(&scope.description),
-                oauth_scopes::is_default.eq(scope.is_default),
-                oauth_scopes::created_at.eq(scope.created_at),
-                oauth_scopes::updated_at.eq(scope.updated_at),
-            ))
-            .execute(&mut conn)?;
+        let created = diesel::insert_into(oauth_scopes::table)
+            .values(&scope)
+            .returning(Scope::as_returning())
+            .get_result(&mut conn)?;
 
-        Ok(scope)
+        Ok(created)
     }
 
     pub fn find_by_id(pool: &DbPool, id: &str) -> Result<Option<Scope>> {

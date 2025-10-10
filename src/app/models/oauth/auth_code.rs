@@ -4,7 +4,7 @@ use diesel::prelude::*;
 use chrono::{DateTime, Utc};
 use crate::app::query_builder::{SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Insertable)]
 #[diesel(table_name = crate::schema::oauth_auth_codes)]
 pub struct AuthCode {
     pub id: DieselUlid,
@@ -30,23 +30,6 @@ pub struct CreateAuthCode {
     pub challenge_method: Option<String>,
     pub expires_at: Option<DateTime<Utc>>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::oauth_auth_codes)]
-pub struct NewAuthCode {
-    pub id: DieselUlid,
-    pub user_id: String,
-    pub client_id: String,
-    pub scopes: Option<String>,
-    pub revoked: bool,
-    pub expires_at: Option<DateTime<Utc>>,
-    pub challenge: Option<String>,
-    pub challenge_method: Option<String>,
-    pub redirect_uri: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize)]
 pub struct AuthCodeResponse {
     pub id: DieselUlid,
@@ -130,7 +113,7 @@ impl AuthCode {
     }
 }
 
-impl NewAuthCode {
+impl AuthCode {
     pub fn new(
         user_id: String,
         client_id: String,
@@ -141,7 +124,7 @@ impl NewAuthCode {
         expires_at: Option<DateTime<Utc>>,
     ) -> Self {
         let now = Utc::now();
-        Self {
+        AuthCode {
             id: DieselUlid::new(),
             user_id,
             client_id,

@@ -39,25 +39,6 @@ pub struct CreateOAuthCibaAuthCode {
     pub code_challenge_method: Option<String>,
     pub expires_in: Option<i32>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::oauth_ciba_auth_codes)]
-pub struct NewOAuthCibaAuthCode {
-    pub id: DieselUlid,
-    pub ciba_request_id: DieselUlid,
-    pub code: String,
-    pub client_id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub scopes: Option<String>,
-    pub redirect_uri: Option<String>,
-    pub code_challenge: Option<String>,
-    pub code_challenge_method: Option<String>,
-    pub expires_at: DateTime<Utc>,
-    pub revoked: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct OAuthCibaAuthCodeResponse {
     pub id: DieselUlid,
@@ -84,13 +65,13 @@ impl OAuthCibaAuthCode {
         code_challenge: Option<String>,
         code_challenge_method: Option<String>,
         expires_in: Option<i32>,
-    ) -> NewOAuthCibaAuthCode {
+    ) -> Self {
         let now = Utc::now();
         let expires_in_seconds = expires_in.unwrap_or(600); // Default 10 minutes
         let expires_at = now + chrono::Duration::seconds(expires_in_seconds as i64);
         let code = Self::generate_auth_code();
 
-        NewOAuthCibaAuthCode {
+        OAuthCibaAuthCode {
             id: DieselUlid::new(),
             ciba_request_id,
             code,

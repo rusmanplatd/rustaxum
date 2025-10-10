@@ -22,23 +22,6 @@ pub struct MfaPushDevice {
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::mfa_push_devices)]
-pub struct NewMfaPushDevice {
-    pub id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub device_token: String,
-    pub device_type: String,
-    pub device_name: Option<String>,
-    pub device_id: Option<String>,
-    pub platform_version: Option<String>,
-    pub app_version: Option<String>,
-    pub is_active: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::mfa_push_challenges)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -56,22 +39,6 @@ pub struct MfaPushChallenge {
     pub location_data: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::mfa_push_challenges)]
-pub struct NewMfaPushChallenge {
-    pub id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub device_id: Option<DieselUlid>,
-    pub challenge: String,
-    pub action_type: String,
-    pub action_details: Option<serde_json::Value>,
-    pub expires_at: DateTime<Utc>,
-    pub ip_address: Option<String>,
-    pub location_data: Option<serde_json::Value>,
-    pub created_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct RegisterPushDeviceRequest {
     pub device_token: String,
@@ -122,9 +89,9 @@ impl MfaPushDevice {
         device_id: Option<String>,
         platform_version: Option<String>,
         app_version: Option<String>,
-    ) -> NewMfaPushDevice {
+    ) -> Self {
         let now = Utc::now();
-        NewMfaPushDevice {
+        MfaPushDevice {
             id: DieselUlid::new(),
             user_id,
             device_token,
@@ -134,8 +101,10 @@ impl MfaPushDevice {
             platform_version,
             app_version,
             is_active: true,
+            last_used_at: None,
             created_at: now,
             updated_at: now,
+            deleted_at: None,
         }
     }
 
@@ -165,15 +134,17 @@ impl MfaPushChallenge {
         expires_in_minutes: i64,
         ip_address: Option<String>,
         location_data: Option<serde_json::Value>,
-    ) -> NewMfaPushChallenge {
+    ) -> Self {
         let now = Utc::now();
-        NewMfaPushChallenge {
+        MfaPushChallenge {
             id: DieselUlid::new(),
             user_id,
             device_id,
             challenge,
             action_type,
             action_details,
+            response: None,
+            responded_at: None,
             expires_at: now + chrono::Duration::minutes(expires_in_minutes),
             ip_address,
             location_data,

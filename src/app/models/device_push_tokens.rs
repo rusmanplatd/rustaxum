@@ -84,24 +84,6 @@ pub struct UpdateDevicePushToken {
     pub is_active: Option<bool>,
     pub expires_in_days: Option<i32>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::device_push_tokens)]
-pub struct NewDevicePushToken {
-    pub id: DieselUlid,
-    pub device_id: DieselUlid,
-    pub platform: String,
-    pub token: String,
-    pub endpoint: Option<String>,
-    pub encrypted_notification_settings: Option<String>,
-    pub settings_algorithm: Option<String>,
-    pub is_active: bool,
-    pub last_used_at: DateTime<Utc>,
-    pub expires_at: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct DevicePushTokenResponse {
     pub id: DieselUlid,
@@ -124,11 +106,11 @@ impl DevicePushToken {
         encrypted_notification_settings: Option<String>,
         settings_algorithm: Option<String>,
         expires_in_days: Option<i32>,
-    ) -> NewDevicePushToken {
+    ) -> Self {
         let now = Utc::now();
         let expires_at = expires_in_days.map(|days| now + chrono::Duration::days(days as i64));
 
-        NewDevicePushToken {
+        DevicePushToken {
             id: DieselUlid::new(),
             device_id,
             platform: platform.into(),

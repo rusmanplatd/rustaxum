@@ -19,20 +19,6 @@ pub struct MfaBackupEmail {
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::mfa_backup_emails)]
-pub struct NewMfaBackupEmail {
-    pub id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub backup_email: String,
-    pub is_verified: bool,
-    pub verification_token: Option<String>,
-    pub verification_sent_at: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::mfa_backup_email_codes)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -49,21 +35,6 @@ pub struct MfaBackupEmailCode {
     pub user_agent: Option<String>,
     pub created_at: DateTime<Utc>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::mfa_backup_email_codes)]
-pub struct NewMfaBackupEmailCode {
-    pub id: DieselUlid,
-    pub backup_email_id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub code: String,
-    pub code_hash: String,
-    pub expires_at: DateTime<Utc>,
-    pub ip_address: Option<String>,
-    pub user_agent: Option<String>,
-    pub created_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct AddBackupEmailRequest {
     pub backup_email: String,
@@ -99,17 +70,19 @@ impl MfaBackupEmail {
         user_id: DieselUlid,
         backup_email: String,
         verification_token: String,
-    ) -> NewMfaBackupEmail {
+    ) -> Self {
         let now = Utc::now();
-        NewMfaBackupEmail {
+        MfaBackupEmail {
             id: DieselUlid::new(),
             user_id,
             backup_email,
             is_verified: false,
+            verified_at: None,
             verification_token: Some(verification_token),
             verification_sent_at: Some(now),
             created_at: now,
             updated_at: now,
+            deleted_at: None,
         }
     }
 
@@ -137,15 +110,17 @@ impl MfaBackupEmailCode {
         expires_in_minutes: i64,
         ip_address: Option<String>,
         user_agent: Option<String>,
-    ) -> NewMfaBackupEmailCode {
+    ) -> Self {
         let now = Utc::now();
-        NewMfaBackupEmailCode {
+        MfaBackupEmailCode {
             id: DieselUlid::new(),
             backup_email_id,
             user_id,
             code,
             code_hash,
             expires_at: now + chrono::Duration::minutes(expires_in_minutes),
+            verified_at: None,
+            is_used: false,
             ip_address,
             user_agent,
             created_at: now,

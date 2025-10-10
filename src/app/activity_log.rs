@@ -282,7 +282,7 @@ pub mod helpers {
 /// Re-export commonly used items
 pub mod prelude {
     pub use super::{
-        ActivityLog, ActivityLogBuilder, NewActivityLog,
+        ActivityLog, ActivityLogBuilder,
         ActivityLogService, ActivityLogQueryBuilder,
         LogsActivity, helpers, HasId
     };

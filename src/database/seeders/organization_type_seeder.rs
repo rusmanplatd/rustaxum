@@ -1,4 +1,4 @@
-use crate::app::models::organization_type::NewOrganizationType;
+use crate::app::models::organization_type::OrganizationType;
 use crate::app::models::DieselUlid;
 use crate::database::seeder::Seeder;
 use crate::database::DbPool;
@@ -128,7 +128,7 @@ impl Seeder for OrganizationTypeSeeder {
             println!("   📁 Seeding types for domain: {}", domain_code);
 
             for (code, name, description, level) in types {
-                let new_type = NewOrganizationType {
+                let new_type = OrganizationType {
                     id: DieselUlid::new(),
                     domain_id,
                     code: Some(code.to_string()),
@@ -138,8 +138,8 @@ impl Seeder for OrganizationTypeSeeder {
                     created_at: chrono::Utc::now(),
                     updated_at: chrono::Utc::now(),
                     deleted_at: None,
-                    created_by_id: system_user_id.clone(),
-                    updated_by_id: system_user_id.clone(),
+                    created_by_id: DieselUlid::from_string(&system_user_id).unwrap(),
+                    updated_by_id: DieselUlid::from_string(&system_user_id).unwrap(),
                     deleted_by_id: None,
                 };
 

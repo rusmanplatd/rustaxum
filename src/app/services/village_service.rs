@@ -4,7 +4,7 @@ use serde_json::json;
 use rust_decimal::Decimal;
 use crate::database::DbPool;
 use crate::schema::ref_geo_villages;
-use crate::app::models::village::{Village, CreateVillage, UpdateVillage, NewVillage};
+use crate::app::models::village::{Village, CreateVillage, UpdateVillage};
 use crate::app::traits::ServiceActivityLogger;
 
 pub struct VillageService;
@@ -12,9 +12,9 @@ pub struct VillageService;
 impl ServiceActivityLogger for VillageService {}
 
 impl VillageService {
-    pub async fn create(pool: &DbPool, data: CreateVillage, created_by: Option<&str>) -> Result<Village> {
+    pub async fn create(pool: &DbPool, data: CreateVillage, created_by: &str) -> Result<Village> {
         let mut conn = pool.get()?;
-        let new_village = NewVillage::new(
+        let new_village = Village::new(
             data.district_id.clone(),
             data.name.clone(),
             data.code.clone(),

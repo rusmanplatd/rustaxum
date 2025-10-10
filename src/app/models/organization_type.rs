@@ -7,7 +7,7 @@ use crate::app::query_builder::SortDirection;
 
 /// OrganizationType model representing the type/level of an organization within a domain
 /// Provides hierarchical classification for organizations
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::organization_types)]
 pub struct OrganizationType {
     /// Unique identifier for the type
@@ -54,24 +54,6 @@ pub struct CreateOrganizationType {
     pub level: i32,
 }
 
-/// Insertable struct for organization types
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::organization_types)]
-pub struct NewOrganizationType {
-    pub id: DieselUlid,
-    pub domain_id: DieselUlid,
-    pub code: Option<String>,
-    pub name: String,
-    pub description: Option<String>,
-    pub level: i32,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: String,
-    pub updated_by_id: String,
-    pub deleted_by_id: Option<String>,
-}
-
 /// Update organization type payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateOrganizationType {
@@ -95,10 +77,10 @@ pub struct OrganizationTypeResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl NewOrganizationType {
-    pub fn new(create_data: CreateOrganizationType, created_by: Option<DieselUlid>) -> Self {
+impl OrganizationType {
+    pub fn new(create_data: CreateOrganizationType, created_by: DieselUlid) -> Self {
         let now = Utc::now();
-        Self {
+        OrganizationType {
             id: DieselUlid::new(),
             domain_id: create_data.domain_id,
             code: create_data.code,
@@ -108,14 +90,12 @@ impl NewOrganizationType {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: created_by.map(|id| id.to_string()).unwrap_or_else(|| "01SYSTEM0SEEDER00000000000".to_string()),
-            updated_by_id: created_by.map(|id| id.to_string()).unwrap_or_else(|| "01SYSTEM0SEEDER00000000000".to_string()),
+            created_by_id: created_by.clone(),
+            updated_by_id: created_by,
             deleted_by_id: None,
         }
     }
-}
 
-impl OrganizationType {
     pub fn to_response(&self) -> OrganizationTypeResponse {
         OrganizationTypeResponse {
             id: self.id,

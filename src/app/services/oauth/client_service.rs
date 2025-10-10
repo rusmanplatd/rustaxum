@@ -6,10 +6,7 @@ use diesel::prelude::*;
 use serde_json::json;
 use crate::schema::{oauth_clients, oauth_personal_access_clients, user_organizations};
 
-use crate::app::models::oauth::{
-    Client, CreateClient, UpdateClient, ClientResponse,
-    PersonalAccessClient
-};
+use crate::app::models::oauth::{Client, CreateClient, UpdateClient, ClientResponse, PersonalAccessClient};
 use crate::app::models::DieselUlid;
 use crate::app::traits::ServiceActivityLogger;
 
@@ -103,16 +100,12 @@ impl ClientService {
     ) -> Result<PersonalAccessClient> {
         let mut conn = pool.get()?;
 
-        diesel::insert_into(oauth_personal_access_clients::table)
-            .values((
-                oauth_personal_access_clients::id.eq(pac.id.clone()),
-                oauth_personal_access_clients::client_id.eq(pac.client_id.clone()),
-                oauth_personal_access_clients::created_at.eq(pac.created_at),
-                oauth_personal_access_clients::updated_at.eq(pac.updated_at),
-            ))
-            .execute(&mut conn)?;
+        let created = diesel::insert_into(oauth_personal_access_clients::table)
+            .values(&pac)
+            .returning(PersonalAccessClient::as_returning())
+            .get_result(&mut conn)?;
 
-        Ok(pac)
+        Ok(created)
     }
 
     pub fn find_by_id(pool: &DbPool, id: String) -> Result<Option<Client>> {

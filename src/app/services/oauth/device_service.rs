@@ -5,7 +5,7 @@ use chrono::{Utc, Duration};
 use serde_json::json;
 
 use crate::schema::oauth_device_codes;
-use crate::app::models::oauth::{DeviceCode, NewDeviceCode, DeviceAuthorizationResponse, CreateDeviceCode};
+use crate::app::models::oauth::{DeviceCode, DeviceAuthorizationResponse, CreateDeviceCode};
 use crate::app::services::oauth::{ClientService, ScopeService, TokenService};
 use crate::app::models::oauth::CreateAccessToken;
 use crate::app::traits::ServiceActivityLogger;
@@ -48,7 +48,7 @@ impl DeviceService {
         let verification_uri_complete = Some(format!("{}?user_code={}", verification_uri, user_code));
 
         // Create device code record
-        let new_device_code = NewDeviceCode::new(
+        let new_device_code = DeviceCode::new(
             device_code.clone(),
             user_code.clone(),
             client.id.to_string(),
@@ -322,7 +322,7 @@ impl DeviceService {
     }
 
     /// Create device code record
-    fn create_device_code_record(pool: &DbPool, new_device_code: NewDeviceCode) -> Result<DeviceCode> {
+    fn create_device_code_record(pool: &DbPool, new_device_code: DeviceCode) -> Result<DeviceCode> {
         let mut conn = pool.get()?;
 
         let inserted_device_code: DeviceCode = diesel::insert_into(oauth_device_codes::table)

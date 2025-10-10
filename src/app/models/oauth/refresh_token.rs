@@ -4,7 +4,7 @@ use diesel::prelude::*;
 use chrono::{DateTime, Utc};
 use crate::app::query_builder::{SortDirection};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Insertable)]
 #[diesel(table_name = crate::schema::oauth_refresh_tokens)]
 pub struct RefreshToken {
     pub id: DieselUlid,
@@ -14,18 +14,6 @@ pub struct RefreshToken {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::oauth_refresh_tokens)]
-pub struct NewRefreshToken {
-    pub id: DieselUlid,
-    pub access_token_id: String,
-    pub revoked: bool,
-    pub expires_at: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateRefreshToken {
     pub access_token_id: String,
@@ -67,10 +55,10 @@ impl RefreshToken {
     }
 }
 
-impl NewRefreshToken {
+impl RefreshToken {
     pub fn new(access_token_id: String, expires_at: Option<DateTime<Utc>>) -> Self {
         let now = Utc::now();
-        Self {
+        RefreshToken {
             id: DieselUlid::new(),
             access_token_id,
             revoked: false,

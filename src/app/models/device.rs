@@ -61,29 +61,6 @@ pub struct Device {
     pub prekey_rotation_interval: diesel::pg::data_types::PgInterval,
     pub trust_level: String, // Store as String, convert to/from enum as needed
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, Insertable)]
-#[diesel(table_name = devices)]
-pub struct NewDevice {
-    pub id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub device_name: String,
-    pub device_type: String,
-    pub identity_public_key: String,
-    pub signed_prekey_public: String,
-    pub signed_prekey_signature: String,
-    pub signed_prekey_id: i32,
-    pub supported_algorithms: Option<Vec<Option<String>>>,
-    pub is_active: Option<bool>,
-    pub last_seen_at: Option<DateTime<Utc>>,
-    pub registration_id: i32,
-    pub signed_prekey_rotation_needed: Option<bool>,
-    pub last_key_rotation_at: Option<DateTime<Utc>>,
-    #[serde(skip)]
-    pub prekey_rotation_interval: Option<diesel::pg::data_types::PgInterval>,
-    pub trust_level: Option<String>,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DeviceType {
     Mobile,
@@ -135,7 +112,7 @@ impl Device {
     }
 }
 
-impl NewDevice {
+impl Device {
     pub fn new(
         user_id: DieselUlid,
         device_name: String,
@@ -151,7 +128,8 @@ impl NewDevice {
         // Default 7-day rotation interval
         let interval = PgInterval::from_days(7);
 
-        Self {
+        let now = Utc::now();
+        Device {
             id: DieselUlid::new(),
             user_id,
             device_name,
@@ -160,29 +138,31 @@ impl NewDevice {
             signed_prekey_public,
             signed_prekey_signature,
             signed_prekey_id,
-            supported_algorithms: Some(vec![
+            supported_algorithms: vec![
                 Some("aes-256-gcm".to_string()),
                 Some("chacha20-poly1305".to_string()),
                 Some("curve25519".to_string()),
                 Some("hmac-sha256".to_string()),
-            ]),
-            is_active: Some(true),
-            last_seen_at: Some(Utc::now()),
+            ],
+            is_active: true,
+            last_seen_at: now,
             registration_id,
-            signed_prekey_rotation_needed: Some(false),
+            signed_prekey_rotation_needed: false,
             last_key_rotation_at: None,
-            prekey_rotation_interval: Some(interval),
-            trust_level: Some(TrustLevel::Unverified.into()),
+            prekey_rotation_interval: interval,
+            trust_level: TrustLevel::Unverified.into(),
+            created_at: now,
+            updated_at: now,
         }
     }
 
     pub fn with_algorithms(mut self, algorithms: Vec<String>) -> Self {
-        self.supported_algorithms = Some(algorithms.into_iter().map(Some).collect());
+        self.supported_algorithms = algorithms.into_iter().map(Some).collect();
         self
     }
 
     pub fn with_trust_level(mut self, trust_level: TrustLevel) -> Self {
-        self.trust_level = Some(trust_level.into());
+        self.trust_level = trust_level.into();
         self
     }
 }

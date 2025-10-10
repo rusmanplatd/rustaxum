@@ -76,24 +76,6 @@ pub struct CreateEncryptedBackupKey {
     pub backup_hash: String,
     pub expires_in_days: Option<i32>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::encrypted_backup_keys)]
-pub struct NewEncryptedBackupKey {
-    pub id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub device_id: DieselUlid,
-    pub encrypted_backup_data: String,
-    pub backup_algorithm: String,
-    pub backup_type: String,
-    pub backup_size_bytes: i64,
-    pub backup_hash: String,
-    pub is_verified: bool,
-    pub expires_at: DateTime<Utc>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct EncryptedBackupKeyResponse {
     pub id: DieselUlid,
@@ -118,13 +100,13 @@ impl EncryptedBackupKey {
         backup_type: BackupType,
         backup_hash: String,
         expires_in_days: Option<i32>,
-    ) -> NewEncryptedBackupKey {
+    ) -> Self {
         let now = Utc::now();
         let expires_in_days = expires_in_days.unwrap_or(365); // Default 1 year
         let expires_at = now + chrono::Duration::days(expires_in_days as i64);
         let backup_size_bytes = encrypted_backup_data.len() as i64;
 
-        NewEncryptedBackupKey {
+        EncryptedBackupKey {
             id: DieselUlid::new(),
             user_id,
             device_id,

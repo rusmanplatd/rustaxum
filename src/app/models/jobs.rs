@@ -78,28 +78,6 @@ pub struct CreateJob {
     pub available_at: Option<DateTime<Utc>>,
     pub timeout_seconds: Option<i32>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::jobs)]
-pub struct NewJob {
-    pub id: DieselUlid,
-    pub queue_name: String,
-    pub job_name: String,
-    pub payload: serde_json::Value,
-    pub attempts: i32,
-    pub max_attempts: i32,
-    pub status: String,
-    pub priority: i32,
-    pub available_at: DateTime<Utc>,
-    pub reserved_at: Option<DateTime<Utc>>,
-    pub processed_at: Option<DateTime<Utc>>,
-    pub failed_at: Option<DateTime<Utc>>,
-    pub error_message: Option<String>,
-    pub timeout_seconds: Option<i32>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 impl Job {
     pub fn new(
         queue_name: String,
@@ -109,9 +87,9 @@ impl Job {
         priority: i32,
         available_at: Option<DateTime<Utc>>,
         timeout_seconds: Option<i32>,
-    ) -> NewJob {
+    ) -> Self {
         let now = Utc::now();
-        NewJob {
+        Job {
             id: DieselUlid::new(),
             queue_name,
             job_name,

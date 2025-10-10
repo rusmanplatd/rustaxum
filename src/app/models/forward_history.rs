@@ -29,19 +29,6 @@ pub struct CreateForwardHistory {
     pub forwarded_by_device_id: DieselUlid,
     pub forward_depth: i32,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::forward_history)]
-pub struct NewForwardHistory {
-    pub id: DieselUlid,
-    pub message_id: DieselUlid,
-    pub original_message_id: DieselUlid,
-    pub forwarded_by_user_id: DieselUlid,
-    pub forwarded_by_device_id: DieselUlid,
-    pub forward_depth: i32,
-    pub created_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct ForwardHistoryResponse {
     pub id: DieselUlid,
@@ -60,8 +47,8 @@ impl ForwardHistory {
         forwarded_by_user_id: DieselUlid,
         forwarded_by_device_id: DieselUlid,
         forward_depth: i32,
-    ) -> NewForwardHistory {
-        NewForwardHistory {
+    ) -> Self {
+        ForwardHistory {
             id: DieselUlid::new(),
             message_id,
             original_message_id,

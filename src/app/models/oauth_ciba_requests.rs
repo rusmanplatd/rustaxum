@@ -82,32 +82,6 @@ pub struct CreateOAuthCibaRequest {
     pub notification_endpoint: Option<String>,
     pub notification_token: Option<String>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::oauth_ciba_requests)]
-pub struct NewOAuthCibaRequest {
-    pub id: DieselUlid,
-    pub auth_req_id: String,
-    pub client_id: DieselUlid,
-    pub user_id: Option<DieselUlid>,
-    pub scope: Option<String>,
-    pub binding_message: Option<String>,
-    pub user_code: Option<String>,
-    pub login_hint: Option<String>,
-    pub login_hint_token: Option<String>,
-    pub id_token_hint: Option<String>,
-    pub requested_expiry: Option<i32>,
-    pub status: String,
-    pub notification_endpoint: Option<String>,
-    pub notification_token: Option<String>,
-    pub expires_at: DateTime<Utc>,
-    pub interval_seconds: i32,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub authorized_at: Option<DateTime<Utc>>,
-    pub denied_at: Option<DateTime<Utc>>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct OAuthCibaRequestResponse {
     pub id: DieselUlid,
@@ -145,13 +119,13 @@ impl OAuthCibaRequest {
         requested_expiry: Option<i32>,
         notification_endpoint: Option<String>,
         notification_token: Option<String>,
-    ) -> NewOAuthCibaRequest {
+    ) -> Self {
         let now = Utc::now();
         let expires_in_seconds = requested_expiry.unwrap_or(600); // Default 10 minutes
         let expires_at = now + chrono::Duration::seconds(expires_in_seconds as i64);
         let auth_req_id = format!("urn:ietf:params:oauth:ciba:auth-req-id:{}", DieselUlid::new());
 
-        NewOAuthCibaRequest {
+        OAuthCibaRequest {
             id: DieselUlid::new(),
             auth_req_id,
             client_id,

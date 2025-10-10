@@ -24,23 +24,6 @@ pub struct MfaMethod {
     pub deleted_at: Option<DateTime<Utc>>,
     pub metadata: Option<serde_json::Value>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::mfa_methods)]
-pub struct NewMfaMethod {
-    pub id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub method_type: String,
-    pub secret: Option<String>,
-    pub is_enabled: bool,
-    pub is_verified: bool,
-    pub backup_codes: Option<serde_json::Value>,
-    pub recovery_codes_used_count: i32,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub metadata: Option<serde_json::Value>,
-}
-
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct MfaSetupRequest {
     pub method_type: String,
@@ -74,7 +57,7 @@ pub struct MfaMethodResponse {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, Insertable)]
 #[diesel(table_name = crate::schema::mfa_attempts)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct MfaAttempt {
@@ -87,20 +70,6 @@ pub struct MfaAttempt {
     pub attempted_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::mfa_attempts)]
-pub struct NewMfaAttempt {
-    pub id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub method_type: String,
-    pub ip_address: Option<String>,
-    pub user_agent: Option<String>,
-    pub success: bool,
-    pub attempted_at: DateTime<Utc>,
-    pub created_at: DateTime<Utc>,
-}
-
 impl MfaMethod {
     pub fn new(user_id: DieselUlid, method_type: String) -> Self {
         let now = Utc::now();

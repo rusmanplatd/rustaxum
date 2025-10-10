@@ -63,19 +63,6 @@ pub struct CreateMessageMention {
     pub mention_start_pos: Option<i32>,
     pub mention_length: Option<i32>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::message_mentions)]
-pub struct NewMessageMention {
-    pub id: DieselUlid,
-    pub message_id: DieselUlid,
-    pub mentioned_user_id: DieselUlid,
-    pub mention_type: String,
-    pub mention_start_pos: Option<i32>,
-    pub mention_length: Option<i32>,
-    pub created_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct MessageMentionResponse {
     pub id: DieselUlid,
@@ -94,8 +81,8 @@ impl MessageMention {
         mention_type: MentionType,
         mention_start_pos: Option<i32>,
         mention_length: Option<i32>,
-    ) -> NewMessageMention {
-        NewMessageMention {
+    ) -> Self {
+        MessageMention {
             id: DieselUlid::new(),
             message_id,
             mentioned_user_id,

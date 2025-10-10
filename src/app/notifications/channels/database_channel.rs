@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use crate::database::DbPool;
 use crate::app::notifications::channels::Channel;
 use crate::app::notifications::notification::{Notification, Notifiable, NotificationChannel};
-use crate::app::models::notification::{Notification as NotificationModel, NewNotification};
+use crate::app::models::notification::Notification as NotificationModel;
 use crate::config::Config;
 use diesel::prelude::*;
 use crate::schema::notifications;
@@ -77,7 +77,7 @@ impl Channel for DatabaseChannel {
 
         // Create notification model
         let notifiable_type = Self::detect_notifiable_type(notifiable);
-        let notification_model = NewNotification::new(
+        let notification_model = NotificationModel::new(
             notification.notification_type().to_string(),
             notifiable.get_key(),
             notifiable_type,

@@ -35,20 +35,6 @@ pub struct UpdatePollVote {
     pub encrypted_vote_data: Option<String>,
     pub vote_algorithm: Option<String>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::poll_votes)]
-pub struct NewPollVote {
-    pub id: DieselUlid,
-    pub poll_id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub device_id: DieselUlid,
-    pub encrypted_vote_data: String,
-    pub vote_algorithm: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct PollVoteResponse {
     pub id: DieselUlid,

@@ -7,7 +7,7 @@ use crate::app::query_builder::{SortDirection};
 
 /// Country model representing a country entity
 /// Contains country information including name, ISO code, and phone code
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Queryable, Identifiable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::ref_geo_countries)]
 pub struct Country {
     /// Unique identifier for the country
@@ -46,22 +46,6 @@ pub struct CreateCountry {
     pub phone_code: Option<String>,
 }
 
-/// Insertable struct for countries
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::ref_geo_countries)]
-pub struct NewCountry {
-    pub id: DieselUlid,
-    pub name: String,
-    pub iso_code: String,
-    pub phone_code: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by_id: DieselUlid,
-    pub updated_by_id: DieselUlid,
-    pub deleted_by_id: Option<DieselUlid>,
-}
-
 /// Update country payload for service layer
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateCountry {
@@ -81,32 +65,12 @@ pub struct CountryResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl NewCountry {
-    pub fn new(name: String, iso_code: String, phone_code: Option<String>, created_by: Option<&str>) -> Self {
-        let now = Utc::now();
-        let system_id = created_by
-            .and_then(|s| DieselUlid::from_string(s.trim()).ok())
-            .unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap());
-        Self {
-            id: DieselUlid::new(),
-            name,
-            iso_code,
-            phone_code,
-            created_at: now,
-            updated_at: now,
-            deleted_at: None,
-            created_by_id: system_id.clone(),
-            updated_by_id: system_id,
-            deleted_by_id: None,
-        }
-    }
-}
-
 impl Country {
-    pub fn new(name: String, iso_code: String, phone_code: Option<String>) -> Self {
+    pub fn new(name: String, iso_code: String, phone_code: Option<String>, created_by: &str) -> Self {
         let now = Utc::now();
-        let system_id = DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap();
-        Self {
+        let creator_id = DieselUlid::from_string(created_by.trim())
+            .expect("Invalid created_by ULID provided to Country::new()");
+        Country {
             id: DieselUlid::new(),
             name,
             iso_code,
@@ -114,8 +78,8 @@ impl Country {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: system_id.clone(),
-            updated_by_id: system_id,
+            created_by_id: creator_id.clone(),
+            updated_by_id: creator_id,
             deleted_by_id: None,
         }
     }

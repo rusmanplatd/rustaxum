@@ -4,7 +4,7 @@ use sha2::{Sha256, Digest};
 use crate::database::DbPool;
 use crate::app::services::user_service::UserService;
 use crate::app::services::email_service::EmailService;
-use crate::app::models::mfa_email_code::{MfaEmailCode, NewMfaEmailCode};
+use crate::app::models::mfa_email_code::{MfaEmailCode};
 use crate::app::models::DieselUlid;
 use diesel::prelude::*;
 

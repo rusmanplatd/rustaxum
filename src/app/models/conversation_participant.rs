@@ -21,21 +21,6 @@ pub struct ConversationParticipant {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, Insertable)]
-#[diesel(table_name = conversation_participants)]
-pub struct NewConversationParticipant {
-    pub id: DieselUlid,
-    pub conversation_id: DieselUlid,
-    pub user_id: DieselUlid,
-    pub role: Option<String>,
-    pub is_active: Option<bool>,
-    pub joined_at: Option<DateTime<Utc>>,
-    pub left_at: Option<DateTime<Utc>>,
-    pub last_read_message_id: Option<DieselUlid>,
-    pub last_read_at: Option<DateTime<Utc>>,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ParticipantRole {
     Owner,
@@ -86,33 +71,34 @@ impl ConversationParticipant {
             ParticipantRole::Owner | ParticipantRole::Admin | ParticipantRole::Moderator
         )
     }
-}
-
-impl NewConversationParticipant {
+    
     pub fn new(conversation_id: DieselUlid, user_id: DieselUlid, role: ParticipantRole) -> Self {
-        Self {
+        let now = Utc::now();
+        ConversationParticipant {
             id: DieselUlid::new(),
             conversation_id,
             user_id,
-            role: Some(role.into()),
-            is_active: Some(true),
-            joined_at: Some(Utc::now()),
+            role: role.into(),
+            is_active: true,
+            joined_at: now,
             left_at: None,
             last_read_message_id: None,
             last_read_at: None,
+            created_at: now,
+            updated_at: now,
         }
     }
-
+    
     pub fn member(conversation_id: DieselUlid, user_id: DieselUlid) -> Self {
-        Self::new(conversation_id, user_id, ParticipantRole::Member)
+        ConversationParticipant::new(conversation_id, user_id, ParticipantRole::Member)
     }
 
     pub fn owner(conversation_id: DieselUlid, user_id: DieselUlid) -> Self {
-        Self::new(conversation_id, user_id, ParticipantRole::Owner)
+        ConversationParticipant::new(conversation_id, user_id, ParticipantRole::Owner)
     }
 
     pub fn admin(conversation_id: DieselUlid, user_id: DieselUlid) -> Self {
-        Self::new(conversation_id, user_id, ParticipantRole::Admin)
+        ConversationParticipant::new(conversation_id, user_id, ParticipantRole::Admin)
     }
 }
 

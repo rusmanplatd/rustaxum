@@ -3,7 +3,7 @@ use anyhow::Result;
 use crate::database::seeder::Seeder;
 use diesel::prelude::*;
 use crate::schema::oauth_scopes;
-use crate::app::models::oauth::{NewScope};
+use crate::app::models::oauth::Scope;
 
 pub struct OAuthScopeSeeder;
 
@@ -30,102 +30,102 @@ impl Seeder for OAuthScopeSeeder {
 
         // Define comprehensive OAuth scopes similar to Laravel Passport
         let scopes = vec![
-            NewScope::new(
+            Scope::new(
                 "*".to_string(),
                 Some("Full access to all resources".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "read".to_string(),
                 Some("Read access to user resources".to_string()),
                 true,
             ),
-            NewScope::new(
+            Scope::new(
                 "write".to_string(),
                 Some("Write access to user resources".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "admin".to_string(),
                 Some("Administrative access to all resources".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "user:read".to_string(),
                 Some("Read user profile information".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "user:write".to_string(),
                 Some("Modify user profile information".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "user:delete".to_string(),
                 Some("Delete user account".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "oauth:clients".to_string(),
                 Some("Manage OAuth clients".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "oauth:tokens".to_string(),
                 Some("Manage OAuth tokens".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "api:read".to_string(),
                 Some("Read access to API resources".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "api:write".to_string(),
                 Some("Write access to API resources".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "roles:read".to_string(),
                 Some("Read roles and permissions".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "roles:write".to_string(),
                 Some("Manage roles and permissions".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "organizations:read".to_string(),
                 Some("Read organization information".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "organizations:write".to_string(),
                 Some("Manage organization information".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "notifications:read".to_string(),
                 Some("Read notifications".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "notifications:write".to_string(),
                 Some("Send and manage notifications".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "files:read".to_string(),
                 Some("Read file resources".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "files:write".to_string(),
                 Some("Upload and manage files".to_string()),
                 false,
             ),
-            NewScope::new(
+            Scope::new(
                 "analytics:read".to_string(),
                 Some("Read analytics data".to_string()),
                 false,

@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use crate::app::query_builder::{SortDirection};
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, Insertable, ToSchema)]
 #[diesel(table_name = crate::schema::oauth_device_codes)]
 #[schema(description = "OAuth2 device authorization code for RFC 8628")]
 pub struct DeviceCode {
@@ -32,26 +32,6 @@ pub struct CreateDeviceCode {
     #[schema(example = "read write")]
     pub scope: Option<String>,
 }
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = crate::schema::oauth_device_codes)]
-pub struct NewDeviceCode {
-    pub id: DieselUlid,
-    pub device_code: String,
-    pub user_code: String,
-    pub client_id: String,
-    pub user_id: Option<String>,
-    pub scopes: Option<String>,
-    pub verification_uri: String,
-    pub verification_uri_complete: Option<String>,
-    pub expires_at: DateTime<Utc>,
-    pub interval: i32,
-    pub user_authorized: bool,
-    pub revoked: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 #[schema(description = "Device authorization response per RFC 8628")]
 pub struct DeviceAuthorizationResponse {
@@ -87,7 +67,7 @@ impl DeviceCode {
         interval: i32,
     ) -> Self {
         let now = Utc::now();
-        Self {
+        DeviceCode {
             id: DieselUlid::new(),
             device_code,
             user_code,
@@ -170,37 +150,6 @@ impl DeviceCode {
         (0..64)
             .map(|_| CHARS[rng.gen_range(0..CHARS.len())] as char)
             .collect()
-    }
-}
-
-impl NewDeviceCode {
-    pub fn new(
-        device_code: String,
-        user_code: String,
-        client_id: String,
-        scopes: Option<String>,
-        verification_uri: String,
-        verification_uri_complete: Option<String>,
-        expires_in: i64,
-        interval: i32,
-    ) -> Self {
-        let now = Utc::now();
-        Self {
-            id: DieselUlid::new(),
-            device_code,
-            user_code,
-            client_id,
-            user_id: None,
-            scopes,
-            verification_uri,
-            verification_uri_complete,
-            expires_at: now + chrono::Duration::seconds(expires_in),
-            interval,
-            user_authorized: false,
-            revoked: false,
-            created_at: now,
-            updated_at: now,
-        }
     }
 }
 
