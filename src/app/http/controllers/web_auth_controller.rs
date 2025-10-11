@@ -35,6 +35,7 @@ pub struct ForgotPasswordForm {
     pub email: String,
 }
 
+
 #[derive(Debug, Deserialize)]
 pub struct ResetPasswordForm {
     pub token: String,
@@ -59,12 +60,11 @@ pub struct TokenQuery {
     pub token: String,
 }
 
-pub struct WebAuthController;
 
-impl WebAuthController {
+
     // Authentication Pages
 
-    pub async fn show_login(
+pub async fn show_login(
         Extension(session): Extension<SessionStore>,
         Query(query): Query<RedirectQuery>,
     ) -> impl IntoResponse {
@@ -97,7 +97,7 @@ impl WebAuthController {
         TemplateResponse::new("auth/login", &data).with_layout("layouts/auth").into_response()
     }
 
-    pub async fn show_register(
+pub async fn show_register(
         Extension(session): Extension<SessionStore>,
     ) -> impl IntoResponse {
         // Check if already authenticated
@@ -126,7 +126,7 @@ impl WebAuthController {
         TemplateResponse::new("auth/register", &data).with_layout("layouts/auth").into_response()
     }
 
-    pub async fn show_forgot_password(
+pub async fn show_forgot_password(
         Extension(session): Extension<SessionStore>,
     ) -> impl IntoResponse {
         let data = json!({
@@ -150,7 +150,7 @@ impl WebAuthController {
         TemplateResponse::new("auth/forgot-password", &data).with_layout("layouts/auth").into_response()
     }
 
-    pub async fn show_reset_password(
+pub async fn show_reset_password(
         Path(token): Path<String>,
         Extension(session): Extension<SessionStore>,
         State(pool): State<DbPool>,
@@ -181,7 +181,7 @@ impl WebAuthController {
         }
     }
 
-    pub async fn show_reset_password_query(
+pub async fn show_reset_password_query(
         Query(params): Query<TokenQuery>,
         Extension(session): Extension<SessionStore>,
         State(pool): State<DbPool>,
@@ -211,7 +211,7 @@ impl WebAuthController {
         }
     }
 
-    pub async fn show_change_password(
+pub async fn show_change_password(
         Extension(session): Extension<SessionStore>,
     ) -> impl IntoResponse {
         // Check if authenticated
@@ -240,7 +240,7 @@ impl WebAuthController {
 
     // Authentication Actions
 
-    pub async fn login(
+pub async fn login(
         State(pool): State<DbPool>,
         Extension(session): Extension<SessionStore>,
         Form(form): Form<LoginForm>,
@@ -344,7 +344,7 @@ impl WebAuthController {
         }
     }
 
-    pub async fn register(
+pub async fn register(
         State(pool): State<DbPool>,
         Extension(session): Extension<SessionStore>,
         Form(form): Form<RegisterForm>,
@@ -423,7 +423,7 @@ impl WebAuthController {
         }
     }
 
-    pub async fn forgot_password(
+pub async fn forgot_password(
         State(pool): State<DbPool>,
         Extension(session): Extension<SessionStore>,
         Form(form): Form<ForgotPasswordForm>,
@@ -453,7 +453,7 @@ impl WebAuthController {
         }
     }
 
-    pub async fn reset_password(
+pub async fn reset_password(
         State(pool): State<DbPool>,
         Extension(session): Extension<SessionStore>,
         Form(form): Form<ResetPasswordForm>,
@@ -493,7 +493,7 @@ impl WebAuthController {
         }
     }
 
-    pub async fn change_password(
+pub async fn change_password(
         State(pool): State<DbPool>,
         Extension(session): Extension<SessionStore>,
         Form(form): Form<ChangePasswordForm>,
@@ -549,7 +549,7 @@ impl WebAuthController {
         }
     }
 
-    pub async fn logout(
+pub async fn logout(
         Extension(session): Extension<SessionStore>,
     ) -> impl IntoResponse {
         // Clear all session data
@@ -566,7 +566,7 @@ impl WebAuthController {
 
     // Dashboard and Profile
 
-    pub async fn dashboard(
+pub async fn dashboard(
         State(pool): State<DbPool>,
         Extension(session): Extension<SessionStore>,
     ) -> impl IntoResponse {
@@ -607,4 +607,3 @@ impl WebAuthController {
             }
         }
     }
-}

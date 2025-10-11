@@ -6,8 +6,7 @@ use axum::{
 use crate::database::DbPool;
 use crate::app::http::middleware::auth_guard::auth_guard;
 
-use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, district_controller, village_controller, role_controller, permission_controller, docs_controller, organization_domain_controller, organization_type_controller, user_organization_controller, organization_position_level_controller, organization_position_controller, sys_model_has_permission_controller, sys_model_has_role_controller, activity_log_controller, session_controller};
-use crate::app::http::controllers::web_push_controller::WebPushController;
+use crate::app::http::controllers::{auth_controller, user_controller, country_controller, province_controller, city_controller, district_controller, village_controller, role_controller, permission_controller, docs_controller, organization_domain_controller, organization_type_controller, user_organization_controller, organization_position_level_controller, organization_position_controller, sys_model_has_permission_controller, sys_model_has_role_controller, activity_log_controller, session_controller, web_push_controller};
 
 pub fn routes() -> Router<DbPool> {
     tracing::debug!("Creating API routes...");
@@ -129,13 +128,13 @@ pub fn routes() -> Router<DbPool> {
         .route("/api/organization-positions/{id}/deactivate", post(organization_position_controller::deactivate))
         .route("/api/organization-levels/{organization_position_level_id}/positions", get(organization_position_controller::by_level))
         // Web Push routes
-        .route("/api/web-push/vapid-public-key", get(WebPushController::get_vapid_public_key))
-        .route("/api/web-push/subscribe", post(WebPushController::subscribe))
-        .route("/api/web-push/unsubscribe", delete(WebPushController::unsubscribe))
-        .route("/api/web-push/subscriptions", get(WebPushController::get_subscriptions))
-        .route("/api/web-push/test", post(WebPushController::send_test_notification))
-        .route("/api/web-push/status", get(WebPushController::get_status))
-        .route("/api/web-push/cleanup", post(WebPushController::cleanup_subscriptions))
+        .route("/api/web-push/vapid-public-key", get(web_push_controller::get_vapid_public_key))
+        .route("/api/web-push/subscribe", post(web_push_controller::subscribe))
+        .route("/api/web-push/unsubscribe", delete(web_push_controller::unsubscribe))
+        .route("/api/web-push/subscriptions", get(web_push_controller::get_subscriptions))
+        .route("/api/web-push/test", post(web_push_controller::send_test_notification))
+        .route("/api/web-push/status", get(web_push_controller::get_status))
+        .route("/api/web-push/cleanup", post(web_push_controller::cleanup_subscriptions))
         // Sys Model Has Permission routes
         .route("/api/sys-model-has-permissions", get(sys_model_has_permission_controller::index))
         .route("/api/sys-model-has-permissions", post(sys_model_has_permission_controller::store))

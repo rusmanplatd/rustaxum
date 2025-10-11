@@ -459,39 +459,3 @@ pub async fn by_level(
         }
     }
 }
-
-pub struct OrganizationPositionController;
-
-impl OrganizationPositionController {
-    pub fn index() -> &'static str {
-        "index"
-    }
-
-    pub fn show() -> &'static str {
-        "show"
-    }
-
-    pub fn store() -> &'static str {
-        "store"
-    }
-
-    pub fn update() -> &'static str {
-        "update"
-    }
-
-    pub fn destroy() -> &'static str {
-        "destroy"
-    }
-
-    pub fn activate() -> &'static str {
-        "activate"
-    }
-
-    pub fn deactivate() -> &'static str {
-        "deactivate"
-    }
-
-    pub fn by_level() -> &'static str {
-        "by_level"
-    }
-}

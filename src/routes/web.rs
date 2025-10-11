@@ -1,8 +1,8 @@
 use axum::{routing::{get, post}, Router, response::Html, middleware};
 use crate::database::DbPool;
-use crate::app::http::controllers::home_controller::HomeController;
-use crate::app::http::controllers::csrf_controller::CSRFController;
-use crate::app::http::controllers::web_auth_controller::WebAuthController;
+use crate::app::http::controllers::home_controller;
+use crate::app::http::controllers::csrf_controller;
+use crate::app::http::controllers::web_auth_controller;
 use crate::app::http::controllers::mfa_controller;
 use crate::app::http::middleware::auth_guard::{auth_guard, mfa_guard};
 
@@ -11,22 +11,22 @@ pub fn routes() -> Router<DbPool> {
 
     // Public web authentication routes
     let auth_routes = Router::new()
-        .route("/auth/login", get(WebAuthController::show_login))
-        .route("/auth/login", post(WebAuthController::login))
-        .route("/auth/register", get(WebAuthController::show_register))
-        .route("/auth/register", post(WebAuthController::register))
-        .route("/auth/forgot-password", get(WebAuthController::show_forgot_password))
-        .route("/auth/forgot-password", post(WebAuthController::forgot_password))
-        .route("/auth/reset-password/{token}", get(WebAuthController::show_reset_password))
-        .route("/auth/reset-password", get(WebAuthController::show_reset_password_query))
-        .route("/auth/reset-password", post(WebAuthController::reset_password));
+        .route("/auth/login", get(web_auth_controller::show_login))
+        .route("/auth/login", post(web_auth_controller::login))
+        .route("/auth/register", get(web_auth_controller::show_register))
+        .route("/auth/register", post(web_auth_controller::register))
+        .route("/auth/forgot-password", get(web_auth_controller::show_forgot_password))
+        .route("/auth/forgot-password", post(web_auth_controller::forgot_password))
+        .route("/auth/reset-password/{token}", get(web_auth_controller::show_reset_password))
+        .route("/auth/reset-password", get(web_auth_controller::show_reset_password_query))
+        .route("/auth/reset-password", post(web_auth_controller::reset_password));
 
     // Protected web authentication routes
     let protected_auth_routes = Router::new()
-        .route("/auth/logout", post(WebAuthController::logout))
-        .route("/auth/change-password", get(WebAuthController::show_change_password))
-        .route("/auth/change-password", post(WebAuthController::change_password))
-        .route("/dashboard", get(WebAuthController::dashboard))
+        .route("/auth/logout", post(web_auth_controller::logout))
+        .route("/auth/change-password", get(web_auth_controller::show_change_password))
+        .route("/auth/change-password", post(web_auth_controller::change_password))
+        .route("/dashboard", get(web_auth_controller::dashboard))
         // Non-setup MFA management routes require full auth
         .route("/mfa/disable", post(mfa_controller::disable_mfa))
         .route("/mfa/backup-codes", post(mfa_controller::regenerate_backup_codes))
@@ -42,15 +42,15 @@ pub fn routes() -> Router<DbPool> {
 
     // Public routes
     let public_routes = Router::new()
-        .route("/", get(HomeController::index))
+        .route("/", get(home_controller::index))
         .route("/health", get(health_check))
         .route("/web-push-demo", get(web_push_demo))
         // CSRF test routes
-        .route("/csrf/token", get(CSRFController::token))
-        .route("/csrf/form", get(CSRFController::form))
-        .route("/csrf/test", post(CSRFController::test_form))
-        .route("/csrf/api-test", post(CSRFController::test_api))
-        .route("/csrf/regenerate", post(CSRFController::regenerate))
+        .route("/csrf/token", get(csrf_controller::token))
+        .route("/csrf/form", get(csrf_controller::form))
+        .route("/csrf/test", post(csrf_controller::test_form))
+        .route("/csrf/api-test", post(csrf_controller::test_api))
+        .route("/csrf/regenerate", post(csrf_controller::regenerate))
         // Documentation UIs - custom HTML that references the OpenAPI endpoint
         .route("/docs/swagger", get(swagger_ui))
         .route("/docs/rapidoc", get(rapidoc_ui))
