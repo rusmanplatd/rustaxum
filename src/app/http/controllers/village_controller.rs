@@ -2,6 +2,7 @@ use axum::{
     extract::{State, Path, Query},
     http::StatusCode,
     response::{IntoResponse, Json as ResponseJson},
+    Extension,
 };
 use serde::Serialize;
 use crate::database::DbPool;
@@ -130,7 +131,11 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn store(State(pool): State<DbPool>, request: CreateVillageRequest) -> impl IntoResponse {
+pub async fn store(
+    State(pool): State<DbPool>,
+    Extension(auth_user): Extension<crate::app::http::middleware::auth_guard::AuthUser>,
+    request: CreateVillageRequest
+) -> impl IntoResponse {
     let payload = CreateVillage {
         district_id: request.district_id,
         name: request.name,
@@ -139,7 +144,7 @@ pub async fn store(State(pool): State<DbPool>, request: CreateVillageRequest) ->
         longitude: request.longitude,
     };
 
-    match VillageService::create(&pool, payload, None).await {
+    match VillageService::create(&pool, payload, &auth_user.user_id).await {
         Ok(village) => (StatusCode::CREATED, ResponseJson(village.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {

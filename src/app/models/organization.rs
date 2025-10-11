@@ -168,7 +168,7 @@ pub struct OrganizationResponse {
 }
 
 impl Organization {
-    pub fn new(create_org: CreateOrganization, created_by: Option<DieselUlid>) -> Self {
+    pub fn new(create_org: CreateOrganization, created_by: DieselUlid) -> Self {
         let now = Utc::now();
         Organization {
             id: DieselUlid::new(),
@@ -196,8 +196,8 @@ impl Organization {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: created_by.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap()),
-            updated_by_id: created_by.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap()),
+            created_by_id: created_by.clone(),
+            updated_by_id: created_by,
             deleted_by_id: None,
         }
     }

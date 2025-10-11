@@ -3,7 +3,7 @@ use crate::database::DbPool;
 use anyhow::Result;
 use crate::app::models::{DieselUlid, organization::{CreateOrganization, Organization}};
 use diesel::prelude::*;
-use crate::schema::{organization_domains, organization_types, organizations};
+use crate::schema::{organization_domains, organization_types, organizations, sys_users};
 use std::collections::HashMap;
 
 pub struct OrganizationSeeder;
@@ -16,6 +16,12 @@ impl Seeder for OrganizationSeeder {
     fn run(&self, pool: &DbPool) -> Result<()> {
         println!("🌱 Seeding organizations...");
         let mut conn = pool.get()?;
+
+        // Get system user for audit fields
+        let system_user_id: DieselUlid = sys_users::table
+            .filter(sys_users::email.eq("system@seeder.internal"))
+            .select(sys_users::id)
+            .first(&mut conn)?;
 
         // Get domain and type IDs from seeded data
         let pvt_domain_id: DieselUlid = organization_domains::table
@@ -70,7 +76,7 @@ impl Seeder for OrganizationSeeder {
             website: Some("https://techcorp.com".to_string()),
         };
 
-        let new_org = Organization::new(holding_org, None);
+        let new_org = Organization::new(holding_org, system_user_id);
         let holding_id = new_org.id;
         diesel::insert_into(organizations::table)
             .values(&new_org)
@@ -113,7 +119,7 @@ impl Seeder for OrganizationSeeder {
                 website: Some(format!("https://{}.techcorp.com", code.to_lowercase())),
             };
 
-            let new_org = Organization::new(org, None);
+            let new_org = Organization::new(org, system_user_id);
             let sub_id = new_org.id;
             diesel::insert_into(organizations::table)
                 .values(&new_org)
@@ -165,7 +171,7 @@ impl Seeder for OrganizationSeeder {
                 website: None,
             };
 
-            let new_org = Organization::new(org, None);
+            let new_org = Organization::new(org, system_user_id);
             let div_id = new_org.id;
             diesel::insert_into(organizations::table)
                 .values(&new_org)
@@ -227,7 +233,7 @@ impl Seeder for OrganizationSeeder {
                 website: None,
             };
 
-            let new_org = Organization::new(org, None);
+            let new_org = Organization::new(org, system_user_id);
             let dept_id = new_org.id;
             diesel::insert_into(organizations::table)
                 .values(&new_org)
@@ -278,7 +284,7 @@ impl Seeder for OrganizationSeeder {
                 website: None,
             };
 
-            let new_org = Organization::new(org, None);
+            let new_org = Organization::new(org, system_user_id);
             diesel::insert_into(organizations::table)
                 .values(&new_org)
                 .on_conflict_do_nothing()
@@ -332,7 +338,7 @@ impl Seeder for OrganizationSeeder {
             website: Some("https://digital.gov.id".to_string()),
         };
 
-        let new_org = Organization::new(ministry_org, None);
+        let new_org = Organization::new(ministry_org, system_user_id);
         let ministry_id = new_org.id;
         diesel::insert_into(organizations::table)
             .values(&new_org)
@@ -372,7 +378,7 @@ impl Seeder for OrganizationSeeder {
                 website: None,
             };
 
-            let new_org = Organization::new(org, None);
+            let new_org = Organization::new(org, system_user_id);
             let agency_id = new_org.id;
             diesel::insert_into(organizations::table)
                 .values(&new_org)
@@ -414,7 +420,7 @@ impl Seeder for OrganizationSeeder {
                 website: None,
             };
 
-            let new_org = Organization::new(org, None);
+            let new_org = Organization::new(org, system_user_id);
             diesel::insert_into(organizations::table)
                 .values(&new_org)
                 .on_conflict_do_nothing()
@@ -466,7 +472,7 @@ impl Seeder for OrganizationSeeder {
             website: Some("https://www.natuniv.edu".to_string()),
         };
 
-        let new_org = Organization::new(university_org, None);
+        let new_org = Organization::new(university_org, system_user_id);
         let university_id = new_org.id;
         diesel::insert_into(organizations::table)
             .values(&new_org)
@@ -505,7 +511,7 @@ impl Seeder for OrganizationSeeder {
                 website: None,
             };
 
-            let new_org = Organization::new(org, None);
+            let new_org = Organization::new(org, system_user_id);
             let college_id = new_org.id;
             diesel::insert_into(organizations::table)
                 .values(&new_org)
@@ -546,7 +552,7 @@ impl Seeder for OrganizationSeeder {
                 website: None,
             };
 
-            let new_org = Organization::new(org, None);
+            let new_org = Organization::new(org, system_user_id);
             diesel::insert_into(organizations::table)
                 .values(&new_org)
                 .on_conflict_do_nothing()
@@ -598,7 +604,7 @@ impl Seeder for OrganizationSeeder {
             website: Some("https://www.rmc.health".to_string()),
         };
 
-        let new_org = Organization::new(hospital_org, None);
+        let new_org = Organization::new(hospital_org, system_user_id);
         let hospital_id = new_org.id;
         diesel::insert_into(organizations::table)
             .values(&new_org)
@@ -638,7 +644,7 @@ impl Seeder for OrganizationSeeder {
                 website: None,
             };
 
-            let new_org = Organization::new(org, None);
+            let new_org = Organization::new(org, system_user_id);
             let dept_id = new_org.id;
             diesel::insert_into(organizations::table)
                 .values(&new_org)
@@ -679,7 +685,7 @@ impl Seeder for OrganizationSeeder {
                 website: None,
             };
 
-            let new_org = Organization::new(org, None);
+            let new_org = Organization::new(org, system_user_id);
             diesel::insert_into(organizations::table)
                 .values(&new_org)
                 .on_conflict_do_nothing()
@@ -731,7 +737,7 @@ impl Seeder for OrganizationSeeder {
             website: Some("https://www.globalaid.org".to_string()),
         };
 
-        let new_org = Organization::new(foundation_org, None);
+        let new_org = Organization::new(foundation_org, system_user_id);
         let foundation_id = new_org.id;
         diesel::insert_into(organizations::table)
             .values(&new_org)
@@ -770,7 +776,7 @@ impl Seeder for OrganizationSeeder {
                 website: None,
             };
 
-            let new_org = Organization::new(org, None);
+            let new_org = Organization::new(org, system_user_id);
             let prog_id = new_org.id;
             diesel::insert_into(organizations::table)
                 .values(&new_org)
@@ -811,7 +817,7 @@ impl Seeder for OrganizationSeeder {
                 website: None,
             };
 
-            let new_org = Organization::new(org, None);
+            let new_org = Organization::new(org, system_user_id);
             diesel::insert_into(organizations::table)
                 .values(&new_org)
                 .on_conflict_do_nothing()
@@ -863,7 +869,7 @@ impl Seeder for OrganizationSeeder {
             website: None,
         };
 
-        let new_org = Organization::new(command_org, None);
+        let new_org = Organization::new(command_org, system_user_id);
         let command_id = new_org.id;
         diesel::insert_into(organizations::table)
             .values(&new_org)
@@ -902,7 +908,7 @@ impl Seeder for OrganizationSeeder {
                 website: None,
             };
 
-            let new_org = Organization::new(org, None);
+            let new_org = Organization::new(org, system_user_id);
             let div_id = new_org.id;
             diesel::insert_into(organizations::table)
                 .values(&new_org)
@@ -942,7 +948,7 @@ impl Seeder for OrganizationSeeder {
                 website: None,
             };
 
-            let new_org = Organization::new(org, None);
+            let new_org = Organization::new(org, system_user_id);
             diesel::insert_into(organizations::table)
                 .values(&new_org)
                 .on_conflict_do_nothing()
@@ -994,7 +1000,7 @@ impl Seeder for OrganizationSeeder {
             website: Some("https://www.stjoseph.church".to_string()),
         };
 
-        let new_org = Organization::new(diocese_org, None);
+        let new_org = Organization::new(diocese_org, system_user_id);
         let diocese_id = new_org.id;
         diesel::insert_into(organizations::table)
             .values(&new_org)
@@ -1033,7 +1039,7 @@ impl Seeder for OrganizationSeeder {
                 website: None,
             };
 
-            let new_org = Organization::new(org, None);
+            let new_org = Organization::new(org, system_user_id);
             let parish_id = new_org.id;
             diesel::insert_into(organizations::table)
                 .values(&new_org)
@@ -1074,7 +1080,7 @@ impl Seeder for OrganizationSeeder {
                 website: None,
             };
 
-            let new_org = Organization::new(org, None);
+            let new_org = Organization::new(org, system_user_id);
             diesel::insert_into(organizations::table)
                 .values(&new_org)
                 .on_conflict_do_nothing()

@@ -2,6 +2,7 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Json},
+    Extension,
 };
 use crate::database::DbPool;
 use serde::{Deserialize, Serialize};
@@ -118,6 +119,7 @@ pub async fn index(
 
 pub async fn store(
     State(pool): State<DbPool>,
+    Extension(auth_user): Extension<crate::app::http::middleware::auth_guard::AuthUser>,
     Json(payload): Json<CreateRoleRequest>
 ) -> impl IntoResponse {
     let create_role = CreateRole {
@@ -126,7 +128,7 @@ pub async fn store(
         guard_name: payload.guard_name,
     };
 
-    match RoleService::create(&pool, create_role, None).await {
+    match RoleService::create(&pool, create_role, &auth_user.user_id).await {
         Ok(role) => {
             let role_data = RoleData::from(role);
             (StatusCode::CREATED, Json(json!({

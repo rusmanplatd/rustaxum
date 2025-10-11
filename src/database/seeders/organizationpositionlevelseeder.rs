@@ -3,7 +3,7 @@ use anyhow::Result;
 use crate::database::seeder::Seeder;
 use crate::app::models::{DieselUlid, organization_position_level::{CreateOrganizationPositionLevel, OrganizationPositionLevel}};
 use diesel::prelude::*;
-use crate::schema::{organizations, organization_position_levels};
+use crate::schema::{organizations, organization_position_levels, sys_users};
 
 pub struct OrganizationPositionLevelSeeder;
 
@@ -19,6 +19,12 @@ impl Seeder for OrganizationPositionLevelSeeder {
     fn run(&self, pool: &DbPool) -> Result<()> {
         println!("🌱 Seeding organization position levels...");
         let mut conn = pool.get()?;
+
+        // Get system user for audit fields
+        let system_user_id: DieselUlid = sys_users::table
+            .filter(sys_users::email.eq("system@seeder.internal"))
+            .select(sys_users::id)
+            .first(&mut conn)?;
 
         // Get all top-level organizations (ones without parent)
         let organizations: Vec<(DieselUlid, Option<String>)> = organizations::table
@@ -74,7 +80,7 @@ impl Seeder for OrganizationPositionLevelSeeder {
                     level: *level,
                 };
 
-                let new_position_level = OrganizationPositionLevel::new(position_level, None);
+                let new_position_level = OrganizationPositionLevel::new(position_level, system_user_id);
                 diesel::insert_into(organization_position_levels::table)
                     .values(&new_position_level)
                     .on_conflict_do_nothing()

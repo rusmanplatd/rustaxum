@@ -13,9 +13,14 @@ pub struct RoleService;
 impl ServiceActivityLogger for RoleService {}
 
 impl RoleService {
-    pub async fn create(pool: &DbPool, data: CreateRole, created_by: Option<&str>) -> Result<Role> {
+    pub async fn create(pool: &DbPool, data: CreateRole, created_by: &str) -> Result<Role> {
         let mut conn = pool.get()?;
-        let role = Role::new(data.name.clone(), data.description.clone(), data.guard_name.clone(), None);
+
+        use crate::app::models::DieselUlid;
+        let creator_ulid = DieselUlid::from_string(created_by)
+            .map_err(|e| anyhow::anyhow!("Invalid created_by ULID: {}", e))?;
+
+        let role = Role::new(data.name.clone(), data.description.clone(), data.guard_name.clone(), creator_ulid);
 
         diesel::insert_into(sys_roles::table)
             .values((
@@ -39,7 +44,7 @@ impl RoleService {
 
         if let Err(e) = service.log_created(
             &role,
-            created_by,
+            Some(created_by),
             Some(properties)
         ).await {
             eprintln!("Failed to log role creation activity: {}", e);

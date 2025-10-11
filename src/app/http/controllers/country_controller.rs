@@ -2,6 +2,7 @@ use axum::{
     extract::{State, Path, Query},
     http::StatusCode,
     response::{IntoResponse, Json as ResponseJson},
+    Extension,
 };
 use serde::Serialize;
 use crate::database::DbPool;
@@ -126,13 +127,41 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
     )
 )]
 pub async fn store(State(pool): State<DbPool>, request: CreateCountryRequest) -> impl IntoResponse {
+    // Get system user ID for audit trail
+    use diesel::prelude::*;
+    use crate::schema::sys_users;
+
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(e) => {
+            let error = ErrorResponse {
+                error: format!("Database connection error: {}", e),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
+
+    let system_user_id: String = match sys_users::table
+        .filter(sys_users::email.eq("system@seeder.internal"))
+        .select(sys_users::id)
+        .first(&mut conn)
+    {
+        Ok(id) => id,
+        Err(_) => {
+            let error = ErrorResponse {
+                error: "System user not found. Please run migrations and seeders first.".to_string(),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
+
     let payload = CreateCountry {
         name: request.name,
         iso_code: request.iso_code,
         phone_code: request.phone_code,
     };
 
-    match CountryService::create(&pool, payload, None).await {
+    match CountryService::create(&pool, payload, &system_user_id).await {
         Ok(country) => (StatusCode::CREATED, ResponseJson(country.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {

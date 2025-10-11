@@ -30,7 +30,7 @@ impl CountryService {
 
         if let Err(e) = service.log_created(
             &result,
-            created_by,
+            Some(created_by),
             Some(properties)
         ).await {
             eprintln!("Failed to log country creation activity: {}", e);

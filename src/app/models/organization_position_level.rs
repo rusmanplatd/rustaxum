@@ -87,7 +87,7 @@ pub struct OrganizationPositionLevelResponse {
 }
 
 impl OrganizationPositionLevel {
-    pub fn new(create_level: CreateOrganizationPositionLevel, created_by: Option<DieselUlid>) -> Self {
+    pub fn new(create_level: CreateOrganizationPositionLevel, created_by: DieselUlid) -> Self {
         let now = Utc::now();
         OrganizationPositionLevel {
             id: DieselUlid::new(),
@@ -100,8 +100,8 @@ impl OrganizationPositionLevel {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: created_by.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap()),
-            updated_by_id: created_by.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap()),
+            created_by_id: created_by,
+            updated_by_id: created_by,
             deleted_by_id: None,
         }
     }

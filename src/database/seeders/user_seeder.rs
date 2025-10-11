@@ -26,12 +26,13 @@ impl Seeder for UserSeeder {
         let password = AuthService::hash_password("password")?;
 
         // First, create the system user that will be used as the creator for all other users
-        let system_user_id = "01SYSTEM0SEEDER00000000000";
+        // Generate a proper ULID for the system user
+        let system_user_id = Ulid::new().to_string();
 
         // Insert system user first with self-referencing audit fields
         diesel::insert_into(sys_users::table)
             .values((
-                sys_users::id.eq(system_user_id),
+                sys_users::id.eq(&system_user_id),
                 sys_users::name.eq("System"),
                 sys_users::email.eq("system@seeder.internal"),
                 sys_users::username.eq(Some("system")),
@@ -56,8 +57,8 @@ impl Seeder for UserSeeder {
                 sys_users::created_at.eq(now),
                 sys_users::updated_at.eq(now),
                 sys_users::deleted_at.eq::<Option<chrono::DateTime<Utc>>>(None),
-                sys_users::created_by_id.eq(system_user_id),
-                sys_users::updated_by_id.eq(system_user_id),
+                sys_users::created_by_id.eq(&system_user_id),
+                sys_users::updated_by_id.eq(&system_user_id),
                 sys_users::deleted_by_id.eq::<Option<String>>(None),
             ))
             .on_conflict(sys_users::email)
@@ -67,7 +68,7 @@ impl Seeder for UserSeeder {
         println!("   ✓ Created system user: {}", system_user_id);
 
         // Create register test user
-        let register_user_id = "01SYSTEM0REGISTER000000000";
+        let register_user_id = Ulid::new().to_string();
         diesel::insert_into(sys_users::table)
             .values((
                 sys_users::id.eq(&register_user_id),
@@ -95,8 +96,8 @@ impl Seeder for UserSeeder {
                 sys_users::created_at.eq(now),
                 sys_users::updated_at.eq(now),
                 sys_users::deleted_at.eq::<Option<chrono::DateTime<Utc>>>(None),
-                sys_users::created_by_id.eq(system_user_id),
-                sys_users::updated_by_id.eq(system_user_id),
+                sys_users::created_by_id.eq(&system_user_id),
+                sys_users::updated_by_id.eq(&system_user_id),
                 sys_users::deleted_by_id.eq::<Option<String>>(None),
             ))
             .on_conflict(sys_users::email)
@@ -345,8 +346,8 @@ impl Seeder for UserSeeder {
                     sys_users::created_at.eq(now),
                     sys_users::updated_at.eq(now),
                     sys_users::deleted_at.eq::<Option<chrono::DateTime<Utc>>>(None),
-                    sys_users::created_by_id.eq(system_user_id),
-                    sys_users::updated_by_id.eq(system_user_id),
+                    sys_users::created_by_id.eq(&system_user_id),
+                    sys_users::updated_by_id.eq(&system_user_id),
                     sys_users::deleted_by_id.eq::<Option<String>>(None),
                 ))
                 .on_conflict(sys_users::email)

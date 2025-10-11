@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
     Json,
+    Extension,
 };
 use serde_json::json;
 
@@ -49,8 +50,11 @@ pub async fn index(
 )]
 pub async fn store(
     State(pool): State<DbPool>,
+    Extension(auth_user): Extension<crate::app::http::middleware::auth_guard::AuthUser>,
     Json(data): Json<CreateOrganizationDomain>,
 ) -> impl IntoResponse {
+    use crate::app::models::DieselUlid;
+
     // Check if code is unique
     if let Some(ref code) = data.code {
         match OrganizationDomainService::is_code_unique(&pool, code, None) {
@@ -70,7 +74,17 @@ pub async fn store(
         }
     }
 
-    match OrganizationDomainService::create(&pool, data, None) {
+    let user_ulid = match DieselUlid::from_string(&auth_user.user_id) {
+        Ok(id) => id,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": format!("Invalid user ID: {}", e)}))
+            ).into_response();
+        }
+    };
+
+    match OrganizationDomainService::create(&pool, data, user_ulid) {
         Ok(domain) => (StatusCode::CREATED, Json(domain.to_response())).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,

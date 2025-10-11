@@ -16,10 +16,10 @@ impl OrganizationService {
     pub async fn create(pool: &DbPool, data: CreateOrganization, created_by: Option<&str>) -> Result<Organization> {
         let mut conn = pool.get()?;
 
-        // Convert created_by string to DieselUlid if provided
-        let created_by_ulid = created_by.and_then(|id_str| {
-            crate::app::models::DieselUlid::from_string(id_str).ok()
-        });
+        // Convert created_by string to DieselUlid, default to new ULID if not provided
+        let created_by_ulid = created_by
+            .and_then(|id_str| crate::app::models::DieselUlid::from_string(id_str).ok())
+            .unwrap_or_else(|| crate::app::models::DieselUlid::new());
 
         let new_org = Organization::new(data.clone(), created_by_ulid);
 

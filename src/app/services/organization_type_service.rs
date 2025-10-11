@@ -11,7 +11,7 @@ pub struct OrganizationTypeService;
 
 impl OrganizationTypeService {
     /// Create a new organization type
-    pub fn create(pool: &DbPool, data: CreateOrganizationType, created_by: Option<DieselUlid>) -> Result<OrganizationType> {
+    pub fn create(pool: &DbPool, data: CreateOrganizationType, created_by: DieselUlid) -> Result<OrganizationType> {
         let mut conn = pool.get()?;
 
         let new_type = OrganizationType::new(data, created_by);

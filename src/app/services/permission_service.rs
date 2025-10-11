@@ -13,12 +13,16 @@ pub struct PermissionService;
 impl ServiceActivityLogger for PermissionService {}
 
 impl PermissionService {
-    pub async fn create(pool: &DbPool, data: CreatePermission, created_by: Option<&str>) -> Result<Permission> {
+    pub async fn create(pool: &DbPool, data: CreatePermission, created_by: &str) -> Result<Permission> {
+        use crate::app::models::DieselUlid;
+        let creator_ulid = DieselUlid::from_string(created_by)
+            .map_err(|e| anyhow::anyhow!("Invalid created_by ULID: {}", e))?;
+
         let permission = Permission::new(
             data.guard_name.clone(),
             data.resource.clone(),
             data.action.clone(),
-            None,
+            creator_ulid,
         );
 
         let mut conn = pool.get()?;
@@ -45,7 +49,7 @@ impl PermissionService {
 
         if let Err(e) = service.log_created(
             &permission,
-            created_by,
+            Some(created_by),
             Some(properties)
         ).await {
             eprintln!("Failed to log permission creation activity: {}", e);

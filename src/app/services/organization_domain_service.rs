@@ -11,7 +11,7 @@ pub struct OrganizationDomainService;
 
 impl OrganizationDomainService {
     /// Create a new organization domain
-    pub fn create(pool: &DbPool, data: CreateOrganizationDomain, created_by: Option<DieselUlid>) -> Result<OrganizationDomain> {
+    pub fn create(pool: &DbPool, data: CreateOrganizationDomain, created_by: DieselUlid) -> Result<OrganizationDomain> {
         let mut conn = pool.get()?;
 
         let new_domain = OrganizationDomain::new(data, created_by);

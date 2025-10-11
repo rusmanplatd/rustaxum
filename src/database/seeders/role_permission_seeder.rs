@@ -780,7 +780,7 @@ impl Seeder for RolePermissionSeeder {
         let mut users_assigned = 0;
         for (role_name, email_patterns) in role_email_patterns {
             // Get role ID
-            let role_id_opt: Option<String> = sys_roles::table
+            let role_id_opt: Option<DieselUlid> = sys_roles::table
                 .filter(sys_roles::name.eq(role_name))
                 .filter(sys_roles::guard_name.eq("api"))
                 .select(sys_roles::id)
@@ -795,7 +795,7 @@ impl Seeder for RolePermissionSeeder {
                         .collect();
 
                     for user_id in matching_users {
-                        assign_user_role(&mut conn, &user_id, &role_id, now)?;
+                        assign_user_role(&mut conn, &user_id, &role_id.to_string(), now)?;
                         users_assigned += 1;
                     }
                 }
@@ -1200,11 +1200,16 @@ fn assign_user_role(
     use crate::schema::sys_model_has_roles;
     use crate::app::models::{HasModelType, user::User};
 
+    let model_id_ulid = DieselUlid::from_string(user_id.trim())
+        .map_err(|e| anyhow::anyhow!("Invalid user_id ULID '{}': {}", user_id, e))?;
+    let role_id_ulid = DieselUlid::from_string(role_id.trim())
+        .map_err(|e| anyhow::anyhow!("Invalid role_id ULID '{}': {}", role_id, e))?;
+
     let user_role = SysModelHasRole {
         id: DieselUlid::new(),
         model_type: User::model_type().to_string(),
-        model_id: DieselUlid::from_string(user_id).unwrap(),
-        role_id: DieselUlid::from_string(role_id).unwrap(),
+        model_id: model_id_ulid,
+        role_id: role_id_ulid,
         scope_type: None,
         scope_id: None,
         created_at: now,

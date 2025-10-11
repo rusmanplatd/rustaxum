@@ -16,7 +16,10 @@ impl ServiceActivityLogger for OrganizationPositionLevelService {}
 impl OrganizationPositionLevelService {
     pub async fn create(pool: &DbPool, data: CreateOrganizationPositionLevel, created_by: Option<&str>) -> Result<OrganizationPositionLevel> {
         let mut conn = pool.get()?;
-        let new_level = OrganizationPositionLevel::new(data, created_by.and_then(|s| DieselUlid::from_string(s).ok()));
+        let created_by_ulid = created_by
+            .and_then(|s| DieselUlid::from_string(s).ok())
+            .unwrap_or_else(|| DieselUlid::new());
+        let new_level = OrganizationPositionLevel::new(data, created_by_ulid);
 
         let result = diesel::insert_into(organization_position_levels::table)
             .values(&new_level)

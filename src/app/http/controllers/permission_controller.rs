@@ -2,6 +2,7 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Json},
+    Extension,
 };
 use crate::database::DbPool;
 use serde::{Deserialize, Serialize};
@@ -120,6 +121,7 @@ pub async fn index(
 
 pub async fn store(
     State(pool): State<DbPool>,
+    Extension(auth_user): Extension<crate::app::http::middleware::auth_guard::AuthUser>,
     Json(payload): Json<CreatePermissionRequest>
 ) -> impl IntoResponse {
     let create_permission = CreatePermission {
@@ -128,7 +130,7 @@ pub async fn store(
         action: payload.action,
     };
 
-    match PermissionService::create(&pool, create_permission, None).await {
+    match PermissionService::create(&pool, create_permission, &auth_user.user_id).await {
         Ok(permission) => {
             let permission_data = PermissionData::from(permission);
             (StatusCode::CREATED, Json(json!({

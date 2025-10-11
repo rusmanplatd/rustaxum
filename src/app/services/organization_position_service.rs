@@ -137,7 +137,10 @@ impl OrganizationPositionService {
             responsibilities: request.responsibilities.clone(),
         };
 
-        let new_position = OrganizationPosition::new(create_data, created_by.and_then(|s| DieselUlid::from_string(s).ok()));
+        let created_by_ulid = created_by
+            .and_then(|s| DieselUlid::from_string(s).ok())
+            .unwrap_or_else(|| DieselUlid::new());
+        let new_position = OrganizationPosition::new(create_data, created_by_ulid);
 
         let result = diesel::insert_into(organization_positions::table)
             .values(&new_position)
