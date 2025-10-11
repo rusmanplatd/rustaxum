@@ -41,14 +41,58 @@ pub struct MfaRegenerateBackupCodesRequest {
 }
 
 
-/// Display the MFA setup page
-pub async fn show_setup_page() -> impl IntoResponse {
+/// Display the MFA setup/settings page
+pub async fn show_setup_page(
+    Extension(session): Extension<crate::app::services::session::SessionStore>,
+) -> impl IntoResponse {
+    use crate::app::http::responses::template_response::TemplateResponse;
+    use axum::response::Redirect;
+
+    // Check if authenticated
+    if !session.get_bool("authenticated").await.unwrap_or(false) {
+        return Redirect::to("/auth/login").into_response();
+    }
+
+    let user_name = session.get_string("user_name").await.unwrap_or("User".to_string());
+
     let context = json!({
-        "page_title": "Multi-Factor Authentication Setup"
+        "title": "MFA Settings",
+        "page_title": "Multi-Factor Authentication",
+        "user": {
+            "name": user_name
+        },
+        "app_name": "RustAxum",
+        "csrf_token": session.token().await
+    });
+
+    TemplateResponse::new("mfa/settings", &context)
+        .with_layout("layouts/dashboard")
+        .into_response()
+}
+
+/// Display the MFA verification page (for login flow)
+pub async fn show_verify_page(
+    Extension(session): Extension<crate::app::services::session::SessionStore>,
+) -> impl IntoResponse {
+    use axum::response::Redirect;
+
+    // Check if MFA is required for this session
+    let mfa_required = session.get_bool("mfa_required").await.unwrap_or(false);
+    if !mfa_required {
+        return Redirect::to("/auth/login").into_response();
+    }
+
+    let user_id = session.get_string("mfa_user_id").await.unwrap_or_default();
+
+    let context = json!({
+        "title": "MFA Verification",
+        "user_id": user_id,
+        "app_name": "RustAxum",
+        "csrf_token": session.token().await
     });
 
     let template_service = TemplateService::global();
-    match template_service.render("mfa/setup", &context).await {
+    match template_service.render("mfa/verify", &context).await {
         Ok(html) => Html(html).into_response(),
         Err(e) => {
             tracing::error!("Template rendering error: {}", e);

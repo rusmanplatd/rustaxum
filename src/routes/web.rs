@@ -37,6 +37,7 @@ pub fn routes() -> Router<DbPool> {
     let mfa_routes = Router::new()
         .route("/mfa", get(mfa_controller::show_setup_page))
         .route("/mfa/setup", post(mfa_controller::setup_mfa))
+        .route("/mfa/verify-page", get(mfa_controller::show_verify_page)) // Login MFA verification page
         .route("/mfa/verify", post(mfa_controller::verify_mfa))
         .route_layer(middleware::from_fn(mfa_guard));
 

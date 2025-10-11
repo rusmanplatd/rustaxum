@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFA Verification - {{app_name}}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .mfa-container {
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .mfa-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .mfa-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .mfa-header i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .mfa-body {
+            padding: 2.5rem;
+        }
+
+        .code-input-group {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 2rem 0;
+        }
+
+        .code-input {
+            width: 50px;
+            height: 60px;
+            font-size: 1.5rem;
+            text-align: center;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .code-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            transform: scale(1.05);
+        }
+
+        .code-input.filled {
+            border-color: #28a745;
+            background-color: #f0fff4;
+        }
+
+        .btn-verify {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 0.75rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn-verify:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-verify:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .alternative-methods {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .method-button {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+            color: #495057;
+            text-align: left;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .method-button:hover {
+            border-color: #667eea;
+            background-color: #f8f9fa;
+            transform: translateX(5px);
+        }
+
+        .method-button i {
+            width: 30px;
+            margin-right: 0.75rem;
+            color: #667eea;
+        }
+
+        .trust-device {
+            margin: 1.5rem 0;
+        }
+
+        .trust-device label {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .alert {
+            border-radius: 8px;
+            border: none;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+            border-width: 0.15rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="mfa-container">
+        <div class="mfa-card">
+            <!-- Header -->
+            <div class="mfa-header">
+                <i class="fas fa-shield-alt"></i>
+                <h2 class="mb-2">Two-Factor Authentication</h2>
+                <p class="mb-0">Enter the code from your authenticator app</p>
+            </div>
+
+            <!-- Body -->
+            <div class="mfa-body">
+                <!-- Alert Container -->
+                <div id="alert-container"></div>
+
+                <!-- TOTP Code Input -->
+                <div id="totp-section">
+                    <p class="text-center text-muted mb-4">
+                        Open your authenticator app and enter the 6-digit code
+                    </p>
+
+                    <div class="code-input-group">
+                        <input type="text" class="code-input" maxlength="1" id="code-1" autofocus>
+                        <input type="text" class="code-input" maxlength="1" id="code-2">
+                        <input type="text" class="code-input" maxlength="1" id="code-3">
+                        <input type="text" class="code-input" maxlength="1" id="code-4">
+                        <input type="text" class="code-input" maxlength="1" id="code-5">
+                        <input type="text" class="code-input" maxlength="1" id="code-6">
+                    </div>
+
+                    <!-- Trust Device Option -->
+                    <div class="trust-device">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="trust-device" value="true">
+                            <label class="form-check-label" for="trust-device">
+                                <i class="fas fa-laptop me-2"></i>Trust this device for 30 days
+                            </label>
+                        </div>
+                        <small class="text-muted ms-4">You won't be asked for MFA on this device</small>
+                    </div>
+
+                    <!-- Verify Button -->
+                    <button id="verify-button" class="btn btn-verify" onclick="verifyCode()">
+                        <i class="fas fa-check-circle me-2"></i>Verify
+                    </button>
+                </div>
+
+                <!-- Alternative Methods -->
+                <div class="alternative-methods">
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-key me-2"></i>Alternative Methods
+                    </h6>
+
+                    <button class="method-button" onclick="useBackupCode()">
+                        <i class="fas fa-key"></i>
+                        <strong>Use Backup Code</strong>
+                        <br>
+                        <small class="text-muted">Use one of your recovery codes</small>
+                    </button>
+
+                    <button class="method-button" onclick="sendEmailCode()">
+                        <i class="fas fa-envelope"></i>
+                        <strong>Email Code</strong>
+                        <br>
+                        <small class="text-muted">Send a code to your email</small>
+                    </button>
+
+                    <button class="method-button" onclick="sendSMSCode()">
+                        <i class="fas fa-mobile-alt"></i>
+                        <strong>SMS Code</strong>
+                        <br>
+                        <small class="text-muted">Send a code to your phone</small>
+                    </button>
+                </div>
+
+                <!-- Back to Login -->
+                <div class="back-link">
+                    <a href="/auth/login">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Login
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Card -->
+        <div class="card mt-4 border-0 shadow" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="card-body text-center">
+                <h6>
+                    <i class="fas fa-question-circle me-2"></i>Need Help?
+                </h6>
+                <p class="small text-muted mb-2">
+                    Lost your device? Contact support or use a backup recovery code.
+                </p>
+                <a href="/support" class="btn btn-sm btn-outline-primary">
+                    Contact Support
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const userId = '{{user_id}}';
+        let currentMethod = 'totp';
+
+        // Setup code input behavior
+        document.addEventListener('DOMContentLoaded', function() {
+            setupCodeInputs();
+
+            // Check if coming from login with temp token
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('session')) {
+                sessionStorage.setItem('mfa_session', urlParams.get('session'));
+            }
+        });
+
+        function setupCodeInputs() {
+            const inputs = document.querySelectorAll('.code-input');
+
+            inputs.forEach((input, index) => {
+                // Auto-focus next input on digit entry
+                input.addEventListener('input', function(e) {
+                    const value = e.target.value;
+
+                    // Only allow digits
+                    if (!/^\d$/.test(value)) {
+                        e.target.value = '';
+                        return;
+                    }
+
+                    // Mark as filled
+                    e.target.classList.add('filled');
+
+                    // Move to next input
+                    if (value && index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    }
+
+                    // Auto-submit if all filled
+                    if (index === inputs.length - 1 && value) {
+                        verifyCode();
+                    }
+                });
+
+                // Handle backspace
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                        inputs[index - 1].focus();
+                        inputs[index - 1].value = '';
+                        inputs[index - 1].classList.remove('filled');
+                    }
+                });
+
+                // Handle paste
+                input.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '');
+
+                    if (pastedData.length === 6) {
+                        inputs.forEach((inp, i) => {
+                            inp.value = pastedData[i] || '';
+                            if (inp.value) inp.classList.add('filled');
+                        });
+                        verifyCode();
+                    }
+                });
+            });
+        }
+
+        async function verifyCode() {
+            const inputs = document.querySelectorAll('.code-input');
+            const code = Array.from(inputs).map(input => input.value).join('');
+
+            if (code.length !== 6) {
+                showAlert('Please enter all 6 digits', 'warning');
+                return;
+            }
+
+            const verifyButton = document.getElementById('verify-button');
+            const trustDevice = document.getElementById('trust-device').checked;
+
+            try {
+                verifyButton.disabled = true;
+                verifyButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Verifying...';
+
+                const response = await fetch('/api/auth/mfa-login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        mfa_code: code,
+                        trust_device: trustDevice
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Store auth token
+                    if (data.access_token) {
+                        localStorage.setItem('auth_token', data.access_token);
+                    }
+
+                    showAlert('Verification successful! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    verifyButton.disabled = false;
+                    verifyButton.innerHTML = '<i class="fas fa-check-circle me-2"></i>Verify';
+
+                    showAlert(data.error || 'Invalid code. Please try again.', 'danger');
+
+                    // Clear inputs
+                    inputs.forEach(input => {
+                        input.value = '';
+                        input.classList.remove('filled');
+                    });
+                    inputs[0].focus();
+                }
+            } catch (error) {
+                verifyButton.disabled = false;
+                verifyButton.innerHTML = '<i class="fas fa-check-circle me-2"></i>Verify';
+                showAlert('Network error: ' + error.message, 'danger');
+            }
+        }
+
+        function useBackupCode() {
+            const code = prompt('Enter one of your backup recovery codes:');
+            if (!code) return;
+
+            // Simulate backup code verification
+            verifyBackupCode(code);
+        }
+
+        async function verifyBackupCode(code) {
+            try {
+                const response = await fetch('/api/auth/mfa-login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        mfa_code: code,
+                        method: 'backup_code'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (data.access_token) {
+                        localStorage.setItem('auth_token', data.access_token);
+                    }
+
+                    showAlert('Backup code verified! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    showAlert(data.error || 'Invalid backup code', 'danger');
+                }
+            } catch (error) {
+                showAlert('Network error: ' + error.message, 'danger');
+            }
+        }
+
+        function sendEmailCode() {
+            showAlert('Sending code to your email...', 'info');
+            // Implementation would call MFA email service
+            alert('This feature will send a code to your registered email address.');
+        }
+
+        function sendSMSCode() {
+            showAlert('Sending code to your phone...', 'info');
+            // Implementation would call MFA SMS service
+            alert('This feature will send a code to your registered phone number.');
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alert-container');
+            const alertClass = type === 'danger' ? 'alert-danger' :
+                              type === 'warning' ? 'alert-warning' :
+                              type === 'info' ? 'alert-info' : 'alert-success';
+
+            alertContainer.innerHTML = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-${type === 'danger' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'info' ? 'info-circle' : 'check-circle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+
+            // Auto-dismiss after 5 seconds for non-error messages
+            if (type !== 'danger') {
+                setTimeout(() => {
+                    alertContainer.innerHTML = '';
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>

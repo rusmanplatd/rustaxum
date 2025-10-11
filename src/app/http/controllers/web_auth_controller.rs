@@ -333,8 +333,8 @@ pub async fn login(
                 // Regenerate session ID for security
                 session.regenerate().await.ok();
 
-                // Redirect to MFA page
-                Redirect::to("/mfa").into_response()
+                // Redirect to MFA verification page
+                Redirect::to("/mfa/verify-page").into_response()
             }
             Err(e) => {
                 session.flash("error", Value::String(e.to_string())).await;
