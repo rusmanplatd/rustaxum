@@ -60,6 +60,12 @@ pub struct TokenQuery {
     pub token: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct MfaVerifyForm {
+    pub code: String,
+    pub trust_device: Option<String>,
+}
+
 
 
     // Authentication Pages
@@ -607,3 +613,68 @@ pub async fn dashboard(
             }
         }
     }
+
+pub async fn verify_mfa_web(
+    State(pool): State<DbPool>,
+    Extension(session): Extension<SessionStore>,
+    Form(form): Form<MfaVerifyForm>,
+) -> impl IntoResponse {
+    // Check if MFA is required for this session
+    let mfa_required = session.get_bool("mfa_required").await.unwrap_or(false);
+    if !mfa_required {
+        return Redirect::to("/auth/login").into_response();
+    }
+
+    // Get user ID from session
+    let user_id = match session.get_string("mfa_user_id").await {
+        Some(id) => id,
+        None => {
+            session.flash("error", Value::String("Session expired. Please log in again.".to_string())).await;
+            return Redirect::to("/auth/login").into_response();
+        }
+    };
+
+    // Verify the MFA code
+    match AuthService::complete_mfa_login(&pool, user_id.clone(), &form.code).await {
+        Ok(response) => {
+            tracing::info!("MFA verification successful for user: {}", user_id);
+
+            // Get user details for session
+            match UserService::find_by_id(&pool, user_id.clone()) {
+                Ok(Some(user)) => {
+                    // Store user authentication in session
+                    session.put("user_id", Value::String(user.id.to_string())).await;
+                    session.put("authenticated", Value::Bool(true)).await;
+                    session.put("user_name", Value::String(user.name.clone())).await;
+                    session.put("user_email", Value::String(user.email.clone())).await;
+
+                    // Clear MFA session flags
+                    session.forget("mfa_required").await;
+                    session.forget("mfa_user_id").await;
+
+                    // Regenerate session ID for security
+                    session.regenerate().await.ok();
+
+                    tracing::info!("User session established, redirecting to dashboard");
+
+                    // Redirect to dashboard
+                    Redirect::to("/dashboard").into_response()
+                }
+                Ok(None) => {
+                    session.flash("error", Value::String("User not found. Please try again.".to_string())).await;
+                    Redirect::to("/auth/login").into_response()
+                }
+                Err(e) => {
+                    tracing::error!("Error fetching user details: {}", e);
+                    session.flash("error", Value::String("An error occurred. Please try again.".to_string())).await;
+                    Redirect::to("/auth/login").into_response()
+                }
+            }
+        }
+        Err(e) => {
+            tracing::warn!("MFA verification failed: {}", e);
+            session.flash("error", Value::String(format!("Invalid verification code: {}", e))).await;
+            Redirect::to("/mfa/verify-page").into_response()
+        }
+    }
+}

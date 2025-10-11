@@ -362,47 +362,30 @@
                 verifyButton.disabled = true;
                 verifyButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Verifying...';
 
-                const response = await fetch('/api/auth/mfa-login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        user_id: userId,
-                        mfa_code: code,
-                        trust_device: trustDevice
-                    })
-                });
+                // Use web-based form submission for session authentication
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/auth/mfa-verify';
 
-                const data = await response.json();
+                const codeInput = document.createElement('input');
+                codeInput.type = 'hidden';
+                codeInput.name = 'code';
+                codeInput.value = code;
+                form.appendChild(codeInput);
 
-                if (response.ok) {
-                    // Store auth token
-                    if (data.access_token) {
-                        localStorage.setItem('auth_token', data.access_token);
-                    }
+                const trustInput = document.createElement('input');
+                trustInput.type = 'hidden';
+                trustInput.name = 'trust_device';
+                trustInput.value = trustDevice ? 'true' : 'false';
+                form.appendChild(trustInput);
 
-                    showAlert('Verification successful! Redirecting...', 'success');
-                    setTimeout(() => {
-                        window.location.href = '/dashboard';
-                    }, 1000);
-                } else {
-                    verifyButton.disabled = false;
-                    verifyButton.innerHTML = '<i class="fas fa-check-circle me-2"></i>Verify';
+                document.body.appendChild(form);
+                form.submit();
 
-                    showAlert(data.error || 'Invalid code. Please try again.', 'danger');
-
-                    // Clear inputs
-                    inputs.forEach(input => {
-                        input.value = '';
-                        input.classList.remove('filled');
-                    });
-                    inputs[0].focus();
-                }
             } catch (error) {
                 verifyButton.disabled = false;
                 verifyButton.innerHTML = '<i class="fas fa-check-circle me-2"></i>Verify';
-                showAlert('Network error: ' + error.message, 'danger');
+                showAlert('Error: ' + error.message, 'danger');
             }
         }
 

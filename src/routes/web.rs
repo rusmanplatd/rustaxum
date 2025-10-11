@@ -13,6 +13,7 @@ pub fn routes() -> Router<DbPool> {
     let auth_routes = Router::new()
         .route("/auth/login", get(web_auth_controller::show_login))
         .route("/auth/login", post(web_auth_controller::login))
+        .route("/auth/mfa-verify", post(web_auth_controller::verify_mfa_web))
         .route("/auth/register", get(web_auth_controller::show_register))
         .route("/auth/register", post(web_auth_controller::register))
         .route("/auth/forgot-password", get(web_auth_controller::show_forgot_password))
