@@ -32,11 +32,15 @@ pub fn routes() -> Router<DbPool> {
         .route("/mfa/disable", post(mfa_controller::disable_mfa))
         .route("/mfa/backup-codes", post(mfa_controller::regenerate_backup_codes))
         .route("/mfa/methods", get(mfa_controller::get_mfa_methods))
+        .route("/mfa/setup-email", post(mfa_controller::setup_email_mfa))
+        .route("/mfa/setup-sms", post(mfa_controller::setup_sms_mfa))
+        .route("/mfa/disable-method", post(mfa_controller::disable_method))
         .route_layer(middleware::from_fn(auth_guard));
 
     // MFA setup and verification routes use relaxed MFA guard
     let mfa_routes = Router::new()
         .route("/mfa", get(mfa_controller::show_setup_page))
+        .route("/mfa/", get(mfa_controller::show_setup_page)) // Handle trailing slash
         .route("/mfa/setup", post(mfa_controller::setup_mfa))
         .route("/mfa/verify-page", get(mfa_controller::show_verify_page)) // Login MFA verification page
         .route("/mfa/verify", post(mfa_controller::verify_mfa))

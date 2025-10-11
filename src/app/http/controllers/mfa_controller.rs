@@ -40,6 +40,16 @@ pub struct MfaRegenerateBackupCodesRequest {
     pub current_password: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MfaSetupSmsRequest {
+    pub phone_number: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MfaDisableMethodRequest {
+    pub method_type: String,
+}
+
 
 /// Display the MFA setup/settings page
 pub async fn show_setup_page(
@@ -215,6 +225,109 @@ pub async fn get_mfa_methods(
                 error: e.to_string(),
             };
             (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response()
+        }
+    }
+}
+
+/// API endpoint to setup Email OTP MFA
+pub async fn setup_email_mfa(
+    State(pool): State<DbPool>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> impl IntoResponse {
+    use crate::app::services::mfa_email_service::MfaEmailService;
+
+    // Send test code
+    match MfaEmailService::send_code(&pool, auth_user.user_id.clone(), None, None).await {
+        Ok(_) => {
+            let response = json!({
+                "message": "Email OTP enabled. A test code has been sent to your email."
+            });
+            (StatusCode::OK, ResponseJson(response)).into_response()
+        }
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response()
+        }
+    }
+}
+
+/// API endpoint to setup SMS OTP MFA
+pub async fn setup_sms_mfa(
+    State(pool): State<DbPool>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(payload): Json<MfaSetupSmsRequest>,
+) -> impl IntoResponse {
+    use crate::app::services::mfa_sms_service::MfaSmsService;
+
+    // Send test code
+    match MfaSmsService::send_code(&pool, auth_user.user_id.clone(), payload.phone_number, None, None).await {
+        Ok(_) => {
+            let response = json!({
+                "message": "SMS OTP enabled. A test code has been sent to your phone."
+            });
+            (StatusCode::OK, ResponseJson(response)).into_response()
+        }
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response()
+        }
+    }
+}
+
+/// API endpoint to disable a specific MFA method
+pub async fn disable_method(
+    State(pool): State<DbPool>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(payload): Json<MfaDisableMethodRequest>,
+) -> impl IntoResponse {
+    use crate::schema::mfa_methods;
+    use crate::app::models::DieselUlid;
+    use diesel::prelude::*;
+
+    let user_id_ulid = match DieselUlid::from_string(&auth_user.user_id) {
+        Ok(ulid) => ulid,
+        Err(e) => {
+            let error = ErrorResponse {
+                error: format!("Invalid user ID: {}", e),
+            };
+            return (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response();
+        }
+    };
+
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(e) => {
+            let error = ErrorResponse {
+                error: format!("Database error: {}", e),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
+
+    // Disable the method
+    match diesel::update(
+        mfa_methods::table
+            .filter(mfa_methods::user_id.eq(&user_id_ulid))
+            .filter(mfa_methods::method_type.eq(&payload.method_type))
+    )
+    .set(mfa_methods::is_enabled.eq(false))
+    .execute(&mut conn)
+    {
+        Ok(_) => {
+            let response = json!({
+                "message": format!("{} MFA disabled successfully", payload.method_type)
+            });
+            (StatusCode::OK, ResponseJson(response)).into_response()
+        }
+        Err(e) => {
+            let error = ErrorResponse {
+                error: format!("Failed to disable method: {}", e),
+            };
+            (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response()
         }
     }
 }
