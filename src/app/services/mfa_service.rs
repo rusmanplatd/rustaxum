@@ -276,6 +276,45 @@ impl MfaService {
         Ok(user.mfa_required)
     }
 
+    /// Verify a backup code
+    pub async fn verify_backup_code(pool: &DbPool, user_id: String, code: &str) -> Result<bool> {
+        let user = UserService::find_by_id(pool, user_id.clone())?
+            .ok_or_else(|| anyhow::anyhow!("User not found"))?;
+
+        if !user.mfa_enabled {
+            bail!("MFA is not enabled for this user");
+        }
+
+        // Check rate limiting
+        Self::check_rate_limit(pool, &user_id, "backup_code").await?;
+
+        // Check backup codes
+        if let Some(backup_codes_json) = &user.mfa_backup_codes {
+            let backup_codes: Vec<String> = serde_json::from_value(backup_codes_json.clone())?;
+            let code_hash = Self::hash_backup_code(code);
+
+            if backup_codes.contains(&code_hash) {
+                // Remove used backup code
+                let mut updated_codes = backup_codes;
+                updated_codes.retain(|c| c != &code_hash);
+
+                let mut conn = pool.get()?;
+                use diesel::prelude::*;
+                use crate::schema::sys_users;
+
+                diesel::update(sys_users::table.find(&user.id))
+                    .set(sys_users::mfa_backup_codes.eq(Some(serde_json::to_value(&updated_codes)?)))
+                    .execute(&mut conn)?;
+
+                Self::log_mfa_attempt(pool, &user_id, "backup_code", true, None, None).await?;
+                return Ok(true);
+            }
+        }
+
+        Self::log_mfa_attempt(pool, &user_id, "backup_code", false, None, None).await?;
+        Ok(false)
+    }
+
     /// Get MFA methods for a user
     pub fn get_mfa_methods(pool: &DbPool, user_id: String) -> Result<Vec<MfaMethodInfo>> {
         let user = UserService::find_by_id(pool, user_id)?

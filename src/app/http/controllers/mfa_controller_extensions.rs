@@ -3,15 +3,16 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json as ResponseJson},
 };
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use serde_json::json;
+use crate::app::services::mfa_service::MfaService;
 use crate::database::DbPool;
 use crate::app::services::mfa_email_service::MfaEmailService;
 use crate::app::services::mfa_webauthn_service::MfaWebAuthnService;
 use crate::app::services::mfa_biometric_service::MfaBiometricService;
 use crate::app::models::mfa_email_code::VerifyEmailCodeRequest;
 use crate::app::models::mfa_webauthn::WebAuthnRegistrationStartRequest;
-use crate::app::models::mfa_biometric::{BiometricRegistrationRequest, BiometricAuthenticationRequest};
+use crate::app::models::mfa_biometric::{BiometricRegistrationRequest, BiometricRegistrationStartRequest, BiometricAuthenticationRequest};
 use crate::app::http::middleware::auth_guard::AuthUser;
 use crate::config::Config;
 use webauthn_rs::prelude::*;
@@ -97,9 +98,43 @@ pub async fn webauthn_register_start(
         }
     };
 
+    // Extract domain from URL and ensure it's the proper format
+    let url = match url::Url::parse(&config.app.url) {
+        Ok(u) => u,
+        Err(e) => {
+            let error = ErrorResponse {
+                error: format!("Invalid app URL: {}", e),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
+
+    // For WebAuthn, the RP ID must be a registrable domain suffix of the origin
+    let rp_id = match url.host_str() {
+        Some(host) => host.trim_end_matches('.').trim_start_matches("www.").to_string(),
+        None => {
+            let error = ErrorResponse {
+                error: "No host in app URL".to_string(),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
+
+    // Origin must be the full URL including protocol, but without path, query, or fragment
+    let origin = format!(
+        "{}://{}{}",
+        url.scheme(),
+        url.host_str().unwrap(),
+        if let Some(port) = url.port() {
+            format!(":{}", port)
+        } else {
+            "".to_string()
+        }
+    );
+
     let service = match MfaWebAuthnService::new(
-        &config.app.url,
-        &config.app.url.replace("https://", "").replace("http://", ""),
+        &origin,  // Full origin URL with protocol and port
+        &rp_id,   // Domain only (no port) for RP ID
         &config.app.name,
     ) {
         Ok(s) => s,
@@ -141,9 +176,43 @@ pub async fn webauthn_register_finish(
         }
     };
 
+    // Extract domain from URL and ensure it's the proper format
+    let url = match url::Url::parse(&config.app.url) {
+        Ok(u) => u,
+        Err(e) => {
+            let error = ErrorResponse {
+                error: format!("Invalid app URL: {}", e),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
+
+    // For WebAuthn, the RP ID must be a registrable domain suffix of the origin
+    let rp_id = match url.host_str() {
+        Some(host) => host.trim_end_matches('.').trim_start_matches("www.").to_string(),
+        None => {
+            let error = ErrorResponse {
+                error: "No host in app URL".to_string(),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
+
+    // Origin must be the full URL including protocol, but without path, query, or fragment
+    let origin = format!(
+        "{}://{}{}",
+        url.scheme(),
+        url.host_str().unwrap(),
+        if let Some(port) = url.port() {
+            format!(":{}", port)
+        } else {
+            "".to_string()
+        }
+    );
+
     let service = match MfaWebAuthnService::new(
-        &config.app.url,
-        &config.app.url.replace("https://", "").replace("http://", ""),
+        &origin,  // Full origin URL with protocol and port
+        &rp_id,   // Domain only (no port) for RP ID
         &config.app.name,
     ) {
         Ok(s) => s,
@@ -189,9 +258,43 @@ pub async fn webauthn_auth_start(
         }
     };
 
+    // Extract domain from URL and ensure it's the proper format
+    let url = match url::Url::parse(&config.app.url) {
+        Ok(u) => u,
+        Err(e) => {
+            let error = ErrorResponse {
+                error: format!("Invalid app URL: {}", e),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
+
+    // For WebAuthn, the RP ID must be a registrable domain suffix of the origin
+    let rp_id = match url.host_str() {
+        Some(host) => host.trim_end_matches('.').trim_start_matches("www.").to_string(),
+        None => {
+            let error = ErrorResponse {
+                error: "No host in app URL".to_string(),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
+
+    // Origin must be the full URL including protocol, but without path, query, or fragment
+    let origin = format!(
+        "{}://{}{}",
+        url.scheme(),
+        url.host_str().unwrap(),
+        if let Some(port) = url.port() {
+            format!(":{}", port)
+        } else {
+            "".to_string()
+        }
+    );
+
     let service = match MfaWebAuthnService::new(
-        &config.app.url,
-        &config.app.url.replace("https://", "").replace("http://", ""),
+        &origin,  // Full origin URL with protocol and port
+        &rp_id,   // Domain only (no port) for RP ID
         &config.app.name,
     ) {
         Ok(s) => s,
@@ -233,9 +336,43 @@ pub async fn webauthn_auth_finish(
         }
     };
 
+    // Extract domain from URL and ensure it's the proper format
+    let url = match url::Url::parse(&config.app.url) {
+        Ok(u) => u,
+        Err(e) => {
+            let error = ErrorResponse {
+                error: format!("Invalid app URL: {}", e),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
+
+    // For WebAuthn, the RP ID must be a registrable domain suffix of the origin
+    let rp_id = match url.host_str() {
+        Some(host) => host.trim_end_matches('.').trim_start_matches("www.").to_string(),
+        None => {
+            let error = ErrorResponse {
+                error: "No host in app URL".to_string(),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, ResponseJson(error)).into_response();
+        }
+    };
+
+    // Origin must be the full URL including protocol, but without path, query, or fragment
+    let origin = format!(
+        "{}://{}{}",
+        url.scheme(),
+        url.host_str().unwrap(),
+        if let Some(port) = url.port() {
+            format!(":{}", port)
+        } else {
+            "".to_string()
+        }
+    );
+
     let service = match MfaWebAuthnService::new(
-        &config.app.url,
-        &config.app.url.replace("https://", "").replace("http://", ""),
+        &origin,  // Full origin URL with protocol and port
+        &rp_id,   // Domain only (no port) for RP ID
         &config.app.name,
     ) {
         Ok(s) => s,
@@ -315,13 +452,65 @@ pub async fn webauthn_delete_credential(
     }
 }
 
+// ===== BACKUP CODES ENDPOINTS =====
+
+/// Generate new backup codes
+pub async fn generate_backup_codes(
+    State(pool): State<DbPool>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> impl IntoResponse {
+    match MfaService::regenerate_backup_codes(&pool, auth_user.user_id.clone(), "").await {
+        Ok(codes) => {
+            let response = json!({
+                "codes": codes,
+                "message": "Backup codes generated successfully"
+            });
+            (StatusCode::OK, ResponseJson(response)).into_response()
+        }
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response()
+        }
+    }
+}
+
+/// Verify backup code
+pub async fn verify_backup_code(
+    State(pool): State<DbPool>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(payload): Json<VerifyBackupCodeRequest>,
+) -> impl IntoResponse {
+    match MfaService::verify_backup_code(&pool, auth_user.user_id.clone(), &payload.code).await {
+        Ok(is_valid) => {
+            let response = json!({
+                "verified": is_valid,
+                "message": if is_valid { "Backup code verified" } else { "Invalid backup code" }
+            });
+            (StatusCode::OK, ResponseJson(response)).into_response()
+        }
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e.to_string(),
+            };
+            (StatusCode::BAD_REQUEST, ResponseJson(error)).into_response()
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct VerifyBackupCodeRequest {
+    pub code: String,
+}
+
 // ===== BIOMETRIC ENDPOINTS =====
 
 /// Start biometric registration
 pub async fn biometric_register_start(
     State(pool): State<DbPool>,
     Extension(auth_user): Extension<AuthUser>,
-    Json(payload): Json<BiometricRegistrationRequest>,
+    Json(payload): Json<BiometricRegistrationStartRequest>,
 ) -> impl IntoResponse {
     let config = match Config::load() {
         Ok(c) => c,

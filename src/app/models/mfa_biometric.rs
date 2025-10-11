@@ -24,6 +24,13 @@ pub struct MfaBiometricCredential {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct BiometricRegistrationStartRequest {
+    pub biometric_type: String, // fingerprint, face, iris, voice
+    pub platform: String, // ios, android, windows, macos, linux
+    pub device_name: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct BiometricRegistrationRequest {
     pub biometric_type: String, // fingerprint, face, iris, voice
     pub platform: String, // ios, android, windows, macos, linux

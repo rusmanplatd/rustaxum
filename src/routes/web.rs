@@ -4,6 +4,7 @@ use crate::app::http::controllers::home_controller;
 use crate::app::http::controllers::csrf_controller;
 use crate::app::http::controllers::web_auth_controller;
 use crate::app::http::controllers::mfa_controller;
+use crate::app::http::controllers::mfa_controller_extensions;
 use crate::app::http::middleware::auth_guard::{auth_guard, mfa_guard};
 
 pub fn routes() -> Router<DbPool> {
@@ -35,6 +36,21 @@ pub fn routes() -> Router<DbPool> {
         .route("/mfa/setup-email", post(mfa_controller::setup_email_mfa))
         .route("/mfa/setup-sms", post(mfa_controller::setup_sms_mfa))
         .route("/mfa/disable-method", post(mfa_controller::disable_method))
+        // WebAuthn routes
+        .route("/mfa/webauthn/register/start", post(mfa_controller_extensions::webauthn_register_start))
+        .route("/mfa/webauthn/register/finish", post(mfa_controller_extensions::webauthn_register_finish))
+        .route("/mfa/webauthn/auth/start", post(mfa_controller_extensions::webauthn_auth_start))
+        .route("/mfa/webauthn/auth/finish", post(mfa_controller_extensions::webauthn_auth_finish))
+        .route("/mfa/webauthn/credentials", get(mfa_controller_extensions::webauthn_list_credentials))
+        // Biometric routes
+        .route("/mfa/biometric/register/start", post(mfa_controller_extensions::biometric_register_start))
+        .route("/mfa/biometric/register/finish", post(mfa_controller_extensions::biometric_register_finish))
+        .route("/mfa/biometric/auth/start", post(mfa_controller_extensions::biometric_auth_start))
+        .route("/mfa/biometric/auth/finish", post(mfa_controller_extensions::biometric_auth_finish))
+        .route("/mfa/biometric/credentials", get(mfa_controller_extensions::biometric_list_credentials))
+        // Backup codes routes
+        .route("/mfa/backup-codes/generate", post(mfa_controller_extensions::generate_backup_codes))
+        .route("/mfa/backup-codes/verify", post(mfa_controller_extensions::verify_backup_code))
         .route_layer(middleware::from_fn(auth_guard));
 
     // MFA setup and verification routes use relaxed MFA guard

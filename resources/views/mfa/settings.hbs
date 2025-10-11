@@ -322,10 +322,10 @@
                 await setupSMS();
                 break;
             case 'webauthn':
-                showAlert('WebAuthn setup coming soon!', 'info');
+                await setupWebAuthn();
                 break;
             case 'biometric':
-                showAlert('Biometric setup coming soon!', 'info');
+                await setupBiometric();
                 break;
         }
     }
@@ -347,8 +347,6 @@
                 credentials: 'same-origin'
             });
 
-            document.getElementById('alert-container').innerHTML = '';
-
             if (response.ok) {
                 const data = await response.json();
                 showAlert('Email OTP enabled successfully! A test code has been sent to your email.', 'success');
@@ -358,8 +356,11 @@
                 showAlert(data.error || 'Failed to setup Email OTP', 'danger');
             }
         } catch (error) {
-            document.getElementById('alert-container').innerHTML = '';
             showAlert('Network error: ' + error.message, 'danger');
+        } finally {
+            // Always clear loading spinner
+            document.getElementById('alert-container').querySelector('.alert-info')?.remove();
+            hideLoading();
         }
     }
 
@@ -379,8 +380,6 @@
                 body: JSON.stringify({ phone_number: phone })
             });
 
-            document.getElementById('alert-container').innerHTML = '';
-
             if (response.ok) {
                 const data = await response.json();
                 showAlert('SMS OTP enabled successfully! A test code has been sent to your phone.', 'success');
@@ -390,8 +389,11 @@
                 showAlert(data.error || 'Failed to setup SMS OTP', 'danger');
             }
         } catch (error) {
-            document.getElementById('alert-container').innerHTML = '';
             showAlert('Network error: ' + error.message, 'danger');
+        } finally {
+            // Always clear loading spinner
+            document.getElementById('alert-container').querySelector('.alert-info')?.remove();
+            hideLoading();
         }
     }
 
@@ -411,8 +413,6 @@
                 body: JSON.stringify({ method_type: methodType })
             });
 
-            document.getElementById('alert-container').innerHTML = '';
-
             if (response.ok) {
                 const data = await response.json();
                 showAlert(`${methodType.toUpperCase()} disabled successfully`, 'success');
@@ -422,13 +422,118 @@
                 showAlert(data.error || 'Failed to disable method', 'danger');
             }
         } catch (error) {
-            document.getElementById('alert-container').innerHTML = '';
             showAlert('Network error: ' + error.message, 'danger');
+        } finally {
+            // Always clear loading spinner
+            document.getElementById('alert-container').querySelector('.alert-info')?.remove();
+            hideLoading();
         }
     }
 
     async function viewBackupCodes() {
-        showAlert('Backup codes feature coming soon!', 'info');
+        try {
+            showLoading('Generating backup codes...');
+            
+            const response = await fetch('/mfa/backup-codes/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to generate backup codes');
+            }
+
+            const data = await response.json();
+            const codes = data.codes;
+
+            // Create modal for displaying codes
+            const modalHtml = `
+                <div class="modal fade" id="backupCodesModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-key me-2"></i>Backup Codes
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    Save these codes in a secure location. Each code can only be used once and will be invalidated after use.
+                                </div>
+                                <div class="backup-codes-grid mb-3">
+                                    ${codes.map(code => `
+                                        <div class="backup-code">
+                                            <code>${code}</code>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="downloadBackupCodes(${JSON.stringify(codes)})">
+                                    <i class="fas fa-download me-1"></i>Download Codes
+                                </button>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Done</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add modal to container
+            document.getElementById('setup-modal-container').innerHTML = modalHtml;
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('backupCodesModal'));
+            modal.show();
+
+            // Add styles for backup codes grid
+            const style = document.createElement('style');
+            style.textContent = `
+                .backup-codes-grid {
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 10px;
+                    padding: 15px;
+                    background: #f8f9fa;
+                    border-radius: 5px;
+                }
+                .backup-code {
+                    padding: 8px;
+                    background: white;
+                    border: 1px solid #dee2e6;
+                    border-radius: 4px;
+                    text-align: center;
+                    font-family: monospace;
+                    font-size: 1.1em;
+                }
+            `;
+            document.head.appendChild(style);
+
+        } catch (error) {
+            console.error('Failed to generate backup codes:', error);
+            showAlert('Failed to generate backup codes: ' + error.message, 'danger');
+        } finally {
+            document.getElementById('alert-container').querySelector('.alert-info')?.remove();
+            hideLoading();
+        }
+    }
+
+    function downloadBackupCodes(codes) {
+        const content = 'MFA Backup Codes\n\n' + codes.join('\n') + '\n\nGenerated: ' + new Date().toISOString();
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'mfa-backup-codes.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     function showAlert(message, type) {
@@ -453,12 +558,181 @@
     }
 
     function showLoading(message) {
-        const alertContainer = document.getElementById('alert-container');
-        alertContainer.innerHTML = `
-            <div class="alert alert-info">
-                <span class="spinner-border spinner-border-sm me-2"></span>
-                ${message}
-            </div>
-        `;
+        {{!-- const alertContainer = document.getElementById('alert-container');
+        if (alertContainer) {
+            // Clear any existing alerts
+            alertContainer.querySelectorAll('.alert').forEach(alert => alert.remove());
+            
+            // Add loading alert
+            alertContainer.innerHTML = `
+                <div class="alert alert-info">
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                    ${message}
+                </div>
+            `;
+        } --}}
+    }
+
+    async function setupBiometric() {
+        try {
+            showLoading('Setting up Biometric Authentication...');
+
+            if (!window.PublicKeyCredential || !PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+                throw new Error('Biometric authentication is not supported on this device');
+            }
+
+            // Check if platform authenticator is available
+            const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+            if (!available) {
+                throw new Error('No biometric authenticator available on this device');
+            }
+
+            // Get credential creation options from server
+            const response = await fetch('/mfa/webauthn/register/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    device_name: navigator.platform || 'Unknown Device',
+                }),
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to get registration challenge');
+            }
+
+            const challenge = await response.json();
+
+            // Convert base64 challenge to ArrayBuffer
+            const challengeBuffer = Uint8Array.from(atob(challenge.publicKey.challenge), c => c.charCodeAt(0));
+            challenge.publicKey.challenge = challengeBuffer;
+
+            // Add platform authenticator requirement
+            challenge.publicKey.authenticatorSelection = {
+                authenticatorAttachment: 'platform',
+                userVerification: 'required',
+                requireResidentKey: false
+            };
+
+            // Create credentials
+            const credential = await navigator.credentials.create({
+                publicKey: challenge.publicKey
+            });
+
+            // Prepare credential data for server
+            const credentialResponse = {
+                id: credential.id,
+                rawId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId))),
+                response: {
+                    clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON))),
+                    attestationObject: btoa(String.fromCharCode(...new Uint8Array(credential.response.attestationObject)))
+                },
+                type: credential.type
+            };
+
+            // Send credential to server
+            const verifyResponse = await fetch('/mfa/webauthn/register/finish', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    ...credentialResponse,
+                    authenticatorAttachment: 'platform'  // Mark this as a platform authenticator
+                })
+            });
+
+            if (!verifyResponse.ok) {
+                throw new Error('Failed to verify registration');
+            }
+
+            showAlert('Biometric authentication registered successfully!', 'success');
+            await loadMFAMethods();
+        } catch (error) {
+            console.error('Biometric setup failed:', error);
+            showAlert('Failed to setup biometric authentication: ' + error.message, 'danger');
+        } finally {
+            // Clean up loading message
+            const alertContainer = document.getElementById('alert-container');
+            if (alertContainer) {
+                const loadingAlert = alertContainer.querySelector('.alert-info');
+                if (loadingAlert) {
+                    loadingAlert.remove();
+                }
+            }
+        }
+    }
+
+    async function setupWebAuthn() {
+        try {
+            showLoading('Setting up WebAuthn...');
+
+            // Get challenge from server
+            const challengeResponse = await fetch('/mfa/webauthn/register/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+
+            if (!challengeResponse.ok) {
+                throw new Error('Failed to get registration challenge');
+            }
+
+            const challenge = await challengeResponse.json();
+
+            // Convert base64 challenge to ArrayBuffer
+            const challengeBuffer = Uint8Array.from(atob(challenge.publicKey.challenge), c => c.charCodeAt(0));
+            challenge.publicKey.challenge = challengeBuffer;
+
+            // Convert user ID to ArrayBuffer if present
+            if (challenge.publicKey.user && challenge.publicKey.user.id) {
+                const userIdBuffer = Uint8Array.from(atob(challenge.publicKey.user.id), c => c.charCodeAt(0));
+                challenge.publicKey.user.id = userIdBuffer;
+            }
+
+            // Create credentials
+            const credential = await navigator.credentials.create({
+                publicKey: challenge.publicKey
+            });
+
+            // Prepare credential data for server
+            const credentialResponse = {
+                id: credential.id,
+                rawId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId))),
+                response: {
+                    clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON))),
+                    attestationObject: btoa(String.fromCharCode(...new Uint8Array(credential.response.attestationObject)))
+                },
+                type: credential.type
+            };
+
+            // Send credential to server
+            const verifyResponse = await fetch('/mfa/webauthn/register/complete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(credentialResponse)
+            });
+
+            if (!verifyResponse.ok) {
+                throw new Error('Failed to verify registration');
+            }
+
+            showAlert('WebAuthn security key registered successfully!', 'success');
+            await loadMFAMethods();
+        } catch (error) {
+            console.error('WebAuthn setup failed:', error);
+            showAlert('Failed to setup WebAuthn: ' + error.message, 'danger');
+        } finally {
+            document.getElementById('alert-container').querySelector('.alert-info')?.remove();
+            hideLoading()
+        }
     }
 </script>
