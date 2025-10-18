@@ -117,6 +117,23 @@ pub async fn index(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/roles",
+    tag = "Roles",
+    summary = "Create a new role",
+    description = "Create a new role with name, description, and guard name. Requires authentication.",
+    request_body = CreateRoleRequest,
+    responses(
+        (status = 201, description = "Role created successfully", body = crate::app::models::role::RoleResponse),
+        (status = 400, description = "Invalid request data", body = crate::app::docs::ErrorResponse),
+        (status = 401, description = "Unauthorized", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn store(
     State(pool): State<DbPool>,
     Extension(auth_user): Extension<crate::app::http::middleware::auth_guard::AuthUser>,
@@ -145,10 +162,26 @@ pub async fn store(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/roles/{id}",
+    tag = "Roles",
+    summary = "Get role by ID",
+    description = "Retrieve a specific role by its ID with full role details.",
+    params(
+        ("id" = String, Path, description = "Role ID (ULID format)")
+    ),
+    responses(
+        (status = 200, description = "Role retrieved successfully", body = crate::app::models::role::RoleResponse),
+        (status = 400, description = "Invalid role ID format", body = crate::app::docs::ErrorResponse),
+        (status = 404, description = "Role not found", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
+    )
+)]
 pub async fn show(
     State(pool): State<DbPool>,
     Path(id): Path<String>
-) -> impl IntoResponse {
+) -> impl IntoResponse{
     let role_id = match Ulid::from_string(&id) {
         Ok(id) => id,
         Err(_) => {
@@ -180,6 +213,23 @@ pub async fn show(
     }
 }
 
+#[utoipa::path(
+    put,
+    path = "/api/roles/{id}",
+    tag = "Roles",
+    summary = "Update role",
+    description = "Update an existing role's name, description, or guard name.",
+    params(
+        ("id" = String, Path, description = "Role ID (ULID format)")
+    ),
+    request_body = UpdateRoleRequest,
+    responses(
+        (status = 200, description = "Role updated successfully", body = crate::app::models::role::RoleResponse),
+        (status = 400, description = "Invalid request data or role ID", body = crate::app::docs::ErrorResponse),
+        (status = 404, description = "Role not found", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
+    )
+)]
 pub async fn update(
     State(pool): State<DbPool>,
     Path(id): Path<String>,
@@ -217,6 +267,22 @@ pub async fn update(
     }
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/roles/{id}",
+    tag = "Roles",
+    summary = "Delete role",
+    description = "Soft delete a role by its ID. The role will be marked as deleted but retained in the database.",
+    params(
+        ("id" = String, Path, description = "Role ID (ULID format)")
+    ),
+    responses(
+        (status = 200, description = "Role deleted successfully", body = crate::app::docs::MessageResponse),
+        (status = 400, description = "Invalid role ID format or deletion failed", body = crate::app::docs::ErrorResponse),
+        (status = 404, description = "Role not found", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
+    )
+)]
 pub async fn destroy(
     State(pool): State<DbPool>,
     Path(id): Path<String>
@@ -245,6 +311,23 @@ pub async fn destroy(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/roles/{id}/assign",
+    tag = "Roles",
+    summary = "Assign role to user",
+    description = "Assign a role to a user by creating a model-has-role relationship.",
+    params(
+        ("id" = String, Path, description = "Role ID (ULID format)")
+    ),
+    request_body = AssignRoleRequest,
+    responses(
+        (status = 200, description = "Role assigned to user successfully", body = crate::app::docs::MessageResponse),
+        (status = 400, description = "Invalid role ID or user ID format", body = crate::app::docs::ErrorResponse),
+        (status = 404, description = "Role or user not found", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
+    )
+)]
 pub async fn assign_to_user(
     State(pool): State<DbPool>,
     Path(id): Path<String>,
@@ -301,6 +384,23 @@ pub async fn assign_to_user(
     }
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/roles/{id}/users/{user_id}",
+    tag = "Roles",
+    summary = "Remove role from user",
+    description = "Remove a role assignment from a user by deleting the model-has-role relationship.",
+    params(
+        ("id" = String, Path, description = "Role ID (ULID format)"),
+        ("user_id" = String, Path, description = "User ID (ULID format)")
+    ),
+    responses(
+        (status = 200, description = "Role removed from user successfully", body = crate::app::docs::MessageResponse),
+        (status = 400, description = "Invalid role ID or user ID format", body = crate::app::docs::ErrorResponse),
+        (status = 404, description = "Role or user not found", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
+    )
+)]
 pub async fn remove_from_user(
     State(pool): State<DbPool>,
     Path((id, user_id)): Path<(String, String)>
@@ -338,6 +438,22 @@ pub async fn remove_from_user(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/users/{user_id}/roles",
+    tag = "Roles",
+    summary = "Get user roles",
+    description = "Retrieve all roles assigned to a specific user.",
+    params(
+        ("user_id" = String, Path, description = "User ID (ULID format)")
+    ),
+    responses(
+        (status = 200, description = "User roles retrieved successfully", body = Vec<crate::app::models::role::RoleResponse>),
+        (status = 400, description = "Invalid user ID format", body = crate::app::docs::ErrorResponse),
+        (status = 404, description = "User not found", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
+    )
+)]
 pub async fn get_user_roles(
     State(pool): State<DbPool>,
     Path(user_id): Path<String>

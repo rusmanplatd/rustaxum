@@ -119,6 +119,23 @@ pub async fn index(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/permissions",
+    tag = "Permissions",
+    summary = "Create a new permission",
+    description = "Create a new permission with guard name, resource, and action. Requires authentication.",
+    request_body = CreatePermissionRequest,
+    responses(
+        (status = 201, description = "Permission created successfully", body = crate::app::models::permission::PermissionResponse),
+        (status = 400, description = "Invalid request data", body = crate::app::docs::ErrorResponse),
+        (status = 401, description = "Unauthorized", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn store(
     State(pool): State<DbPool>,
     Extension(auth_user): Extension<crate::app::http::middleware::auth_guard::AuthUser>,
@@ -147,6 +164,21 @@ pub async fn store(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/permissions/{id}",
+    tag = "Permissions",
+    summary = "Get permission by ID",
+    description = "Retrieve a specific permission by its ID with full permission details.",
+    params(
+        ("id" = String, Path, description = "Permission ID (ULID format)")
+    ),
+    responses(
+        (status = 200, description = "Permission retrieved successfully", body = crate::app::models::permission::PermissionResponse),
+        (status = 404, description = "Permission not found", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
+    )
+)]
 pub async fn show(
     State(pool): State<DbPool>,
     Path(id): Path<String>
@@ -173,6 +205,23 @@ pub async fn show(
     }
 }
 
+#[utoipa::path(
+    put,
+    path = "/api/permissions/{id}",
+    tag = "Permissions",
+    summary = "Update permission",
+    description = "Update an existing permission's guard name, resource, or action.",
+    params(
+        ("id" = String, Path, description = "Permission ID (ULID format)")
+    ),
+    request_body = UpdatePermissionRequest,
+    responses(
+        (status = 200, description = "Permission updated successfully", body = crate::app::models::permission::PermissionResponse),
+        (status = 400, description = "Invalid request data or permission ID", body = crate::app::docs::ErrorResponse),
+        (status = 404, description = "Permission not found", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
+    )
+)]
 pub async fn update(
     State(pool): State<DbPool>,
     Path(id): Path<String>,
@@ -210,6 +259,22 @@ pub async fn update(
     }
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/permissions/{id}",
+    tag = "Permissions",
+    summary = "Delete permission",
+    description = "Soft delete a permission by its ID. The permission will be marked as deleted but retained in the database.",
+    params(
+        ("id" = String, Path, description = "Permission ID (ULID format)")
+    ),
+    responses(
+        (status = 200, description = "Permission deleted successfully", body = crate::app::docs::MessageResponse),
+        (status = 400, description = "Invalid permission ID format or deletion failed", body = crate::app::docs::ErrorResponse),
+        (status = 404, description = "Permission not found", body = crate::app::docs::ErrorResponse),
+        (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
+    )
+)]
 pub async fn destroy(
     State(pool): State<DbPool>,
     Path(id): Path<String>

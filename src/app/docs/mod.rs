@@ -8,11 +8,15 @@ use crate::app::models::country::{Country, CreateCountry, UpdateCountry, Country
 use crate::app::models::user::{User, CreateUser, UpdateUser, UserResponse, RefreshTokenRequest};
 use crate::app::models::province::{Province, CreateProvince, UpdateProvince, ProvinceResponse};
 use crate::app::models::city::{City, CreateCity, UpdateCity, CityResponse};
+use crate::app::models::district::{District, CreateDistrict, UpdateDistrict, DistrictResponse};
+use crate::app::models::village::{Village, CreateVillage, UpdateVillage, VillageResponse};
 use crate::app::http::requests::country_requests::{CreateCountryRequest, UpdateCountryRequest};
 use crate::app::http::requests::auth_requests::{RegisterRequest, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest};
 use crate::app::http::requests::user_requests::{UpdateUserRequest, SearchUsersRequest, ContactFormRequest};
 use crate::app::http::requests::province_requests::{CreateProvinceRequest, UpdateProvinceRequest};
 use crate::app::http::requests::city_requests::{CreateCityRequest, UpdateCityRequest};
+use crate::app::http::requests::district_requests::{CreateDistrictRequest, UpdateDistrictRequest};
+use crate::app::http::requests::village_requests::{CreateVillageRequest, UpdateVillageRequest};
 
 // Adding back simple models that don't have circular dependencies
 use crate::app::models::organization_position_level::{OrganizationPositionLevel, CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel, OrganizationPositionLevelResponse};
@@ -28,19 +32,28 @@ use crate::app::query_builder::pagination::{PaginationInfo, CursorData};
 // Auth controller models
 use crate::app::http::controllers::auth_controller::MfaLoginRequest;
 
-// Role and permission models need ToSchema trait implementation - commented out for now
-// use crate::app::models::role::{Role, CreateRole, UpdateRole, RoleResponse};
-// use crate::app::models::permission::{Permission, CreatePermission, UpdatePermission, PermissionResponse};
+// Role and permission models - now enabled with ToSchema implemented
+use crate::app::models::role::{Role, CreateRole, UpdateRole, RoleResponse};
+use crate::app::models::permission::{Permission, CreatePermission, UpdatePermission, PermissionResponse};
 
 // Adding organization models - should be safe as they have ToSchema implemented
 use crate::app::models::organization::{Organization, CreateOrganization, UpdateOrganization, OrganizationResponse};
 use crate::app::models::organization_domain::{OrganizationDomain, CreateOrganizationDomain, UpdateOrganizationDomain, OrganizationDomainResponse};
 use crate::app::models::organization_type::{OrganizationType, CreateOrganizationType, UpdateOrganizationType, OrganizationTypeResponse};
+use crate::app::http::requests::organization_requests::{CreateOrganizationRequest, UpdateOrganizationRequest};
 
-// More complex models with potential circular dependencies - kept commented for now
-// use crate::app::models::user_organization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization, UserOrganizationResponse};
-// use crate::app::models::sys_model_has_permission::{SysModelHasPermission, CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse};
-// use crate::app::models::sys_model_has_role::{SysModelHasRole, CreateSysModelHasRole, UpdateSysModelHasRole, SysModelHasRoleResponse};
+// User organization models - now enabled with ToSchema implemented
+use crate::app::models::user_organization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization, UserOrganizationResponse};
+use crate::app::http::requests::user_organization_requests::{CreateUserOrganizationRequest, UpdateUserOrganizationRequest};
+
+// Polymorphic permission and role models - now enabled with ToSchema implemented
+use crate::app::models::sys_model_has_permission::{SysModelHasPermission, CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse};
+use crate::app::models::sys_model_has_role::{SysModelHasRole, CreateSysModelHasRole, UpdateSysModelHasRole, SysModelHasRoleResponse};
+use crate::app::http::requests::sys_model_has_permission_requests::{CreateSysModelHasPermissionRequest};
+use crate::app::http::requests::sys_model_has_role_requests::{CreateSysModelHasRoleRequest};
+
+// Notification models and requests
+use crate::app::http::requests::notification_request::{CreateNotificationRequest, UpdateNotificationRequest};
 
 /// Main OpenAPI documentation structure with auto-discovery
 /// This automatically discovers all endpoints with utoipa path annotations
@@ -63,6 +76,9 @@ use crate::app::models::organization_type::{OrganizationType, CreateOrganization
              (crate::app::http::controllers::sys_model_has_permission_controller => ./src/app/http/controllers/sys_model_has_permission_controller.rs);
              (crate::app::http::controllers::sys_model_has_role_controller => ./src/app/http/controllers/sys_model_has_role_controller.rs);
              (crate::app::http::controllers::activity_log_controller => ./src/app/http/controllers/activity_log_controller.rs);
+             (crate::app::http::controllers::notification_controller => ./src/app/http/controllers/notification_controller.rs);
+             (crate::app::http::controllers::message_controller => ./src/app/http/controllers/message_controller.rs);
+             (crate::app::http::controllers::session_model_controller => ./src/app/http/controllers/session_model_controller.rs);
              (crate::app::http::controllers::oauth::oauth_controller => ./src/app/http/controllers/oauth/oauth_controller.rs);
              (crate::app::http::controllers::oauth::client_controller => ./src/app/http/controllers/oauth/client_controller.rs);
              (crate::app::http::controllers::oauth::personal_access_token_controller => ./src/app/http/controllers/oauth/personal_access_token_controller.rs);
@@ -93,63 +109,57 @@ use crate::app::models::organization_type::{OrganizationType, CreateOrganization
     ),
     components(
         schemas(
-            // Basic models only to prevent circular dependencies
+            // Geographic models - Countries, Provinces, Cities, Districts, Villages
             Country, CreateCountry, UpdateCountry, CountryResponse,
             CreateCountryRequest, UpdateCountryRequest,
+            Province, CreateProvince, UpdateProvince, ProvinceResponse,
+            CreateProvinceRequest, UpdateProvinceRequest,
+            City, CreateCity, UpdateCity, CityResponse,
+            CreateCityRequest, UpdateCityRequest,
+            District, CreateDistrict, UpdateDistrict, DistrictResponse,
+            CreateDistrictRequest, UpdateDistrictRequest,
+            Village, CreateVillage, UpdateVillage, VillageResponse,
+            CreateVillageRequest, UpdateVillageRequest,
 
             // User models
             User, CreateUser, UpdateUser, UserResponse, RefreshTokenRequest,
             UpdateUserRequest, SearchUsersRequest, ContactFormRequest,
 
-            // Province models
-            Province, CreateProvince, UpdateProvince, ProvinceResponse,
-            CreateProvinceRequest, UpdateProvinceRequest,
-
-            // City models
-            City, CreateCity, UpdateCity, CityResponse,
-            CreateCityRequest, UpdateCityRequest,
-
-            // Basic auth requests
+            // Authentication requests
             RegisterRequest, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest,
             MfaLoginRequest,
 
-            // Note: Complex schemas with potential circular dependencies are commented out
-            // to prevent stack overflow during OpenAPI generation
-
-            // Organization models - safe to include with ToSchema implemented
+            // Organization models - domain, type, and organization
             Organization, CreateOrganization, UpdateOrganization, OrganizationResponse,
+            CreateOrganizationRequest, UpdateOrganizationRequest,
             OrganizationDomain, CreateOrganizationDomain, UpdateOrganizationDomain, OrganizationDomainResponse,
             OrganizationType, CreateOrganizationType, UpdateOrganizationType, OrganizationTypeResponse,
 
-            // User Organization models - commented out due to complex relationships
-            // UserOrganization, CreateUserOrganization, UpdateUserOrganization, UserOrganizationResponse,
-            // CreateUserOrganizationRequest, UpdateUserOrganizationRequest, IndexUserOrganizationRequest,
-            // TransferUserOrganizationRequest, AssignRoleRequest, RemoveRoleRequest,
-
-            // Job models - safe to include as they have minimal dependencies
+            // Organization position and level models
             OrganizationPositionLevel, CreateOrganizationPositionLevel, UpdateOrganizationPositionLevel, OrganizationPositionLevelResponse,
             CreateOrganizationPositionLevelRequest, UpdateOrganizationPositionLevelRequest, IndexOrganizationPositionLevelRequest,
             OrganizationPosition, CreateOrganizationPosition, UpdateOrganizationPosition, OrganizationPositionResponse,
             CreateOrganizationPositionRequest, UpdateOrganizationPositionRequest, IndexOrganizationPositionRequest, OrganizationPositionsByLevelRequest,
 
-            // Role and Permission models - commented out until ToSchema is implemented
-            // Role, CreateRole, UpdateRole, RoleResponse,
-            // Permission, CreatePermission, UpdatePermission, PermissionResponse,
+            // User-Organization relationship models
+            UserOrganization, CreateUserOrganization, UpdateUserOrganization, UserOrganizationResponse,
+            CreateUserOrganizationRequest, UpdateUserOrganizationRequest,
 
-            // Polymorphic permission models - commented out due to potential circular references
-            // SysModelHasPermission, CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse,
-            // Role and Permission models - commented out due to potential circular references
-            // CreateSysModelHasPermissionRequest, UpdateSysModelHasPermissionRequest,
-            // SysModelHasRole, CreateSysModelHasRole, UpdateSysModelHasRole, SysModelHasRoleResponse,
-            // CreateSysModelHasRoleRequest, UpdateSysModelHasRoleRequest,
+            // RBAC models - Roles and Permissions
+            Role, CreateRole, UpdateRole, RoleResponse,
+            Permission, CreatePermission, UpdatePermission, PermissionResponse,
 
-            // Complex resource models - commented out due to circular dependencies
-            // UserOrganizationResource, UserOrganizationResourceWithRelations, UserOrganizationCollection,
-            // UserOrganizationSummaryResource, UserOrganizationActivityResource, OrganizationHierarchyResource,
-            // UserBasicInfo, OrganizationBasicInfo, OrganizationPositionBasicInfo, OrganizationPositionLevelBasicInfo, RoleBasicInfo,
-            // UserOrgPaginationMeta, OrganizationTypeCount,
+            // Polymorphic permission and role assignment models
+            SysModelHasPermission, CreateSysModelHasPermission, UpdateSysModelHasPermission, SysModelHasPermissionResponse,
+            CreateSysModelHasPermissionRequest,
+            SysModelHasRole, CreateSysModelHasRole, UpdateSysModelHasRole, SysModelHasRoleResponse,
+            CreateSysModelHasRoleRequest,
 
-            // Common response types - basic ones only
+            // Notification models
+            CreateNotificationRequest,
+            UpdateNotificationRequest,
+
+            // Common response types
             ErrorResponse,
             MessageResponse,
             ValidationErrorResponse,
@@ -180,8 +190,10 @@ use crate::app::models::organization_type::{OrganizationType, CreateOrganization
         (name = "Authentication", description = "User authentication and authorization operations"),
         (name = "Users", description = "User management operations"),
         (name = "Countries", description = "Country management operations - full CRUD with advanced filtering, sorting, pagination, and relationship inclusion\n\n## Query Parameters\n\n### Advanced Filtering (15+ operators)\n- `filter[field][operator]=value` - Apply filters using various operators\n- **Comparison**: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`\n- **Text search**: `like`, `ilike`, `contains`, `starts_with`, `ends_with`\n- **List operations**: `in`, `not_in`\n- **Null checks**: `is_null`, `is_not_null`\n- **Range queries**: `between`\n\n**Examples:**\n```\n# Exact match\nGET /api/countries?filter[name][eq]=Canada\n\n# Text search (case-insensitive)\nGET /api/countries?filter[name][contains]=united\n\n# Multiple filters with different operators\nGET /api/countries?filter[name][starts_with]=A&filter[iso_code][in]=US,CA,GB&filter[created_at][gte]=2023-01-01\n\n# Range queries\nGET /api/countries?filter[population][between]=1000000,50000000\n```\n\n### Multi-Column Sorting\n- `sort=field1,-field2,field3:desc` - Flexible syntax support\n- Use `-` prefix or `:desc` suffix for descending order\n\n**Examples:**\n```\n# Single field\nGET /api/countries?sort=name\n\n# Multiple fields with mixed syntax\nGET /api/countries?sort=region:asc,-population,name\n\n# Complex sorting\nGET /api/countries?sort=continent:asc,region:asc,-population,name:asc\n```\n\n### High-Performance Pagination\n- **Cursor-based** (default): `cursor=...&per_page=20` - Best for large datasets\n- **Offset-based**: `page=1&per_page=15` - Traditional pagination\n- `pagination_type=cursor|offset` - Force pagination type\n\n**Examples:**\n```\n# Cursor pagination (recommended)\nGET /api/countries?per_page=20&cursor=eyJpZCI6MTAwfQ==\n\n# Offset pagination\nGET /api/countries?page=2&per_page=25&pagination_type=offset\n```\n\n### Field Selection & Performance\n- `fields[countries]=id,name,iso_code` - Select specific fields\n- Reduces bandwidth and improves response time\n- Supports relationship field selection\n\n**Examples:**\n```\n# Optimize for minimal payload\nGET /api/countries?fields[countries]=id,name,iso_code\n\n# Select fields for multiple resources\nGET /api/countries?fields[countries]=id,name&fields[provinces]=id,name&include=provinces\n```\n\n### Relationship Inclusion\n- `include=provinces,provinces.cities` - Eager load relationships\n- Supports nested relationships with dot notation\n- Prevents N+1 query problems\n\n**Examples:**\n```\n# Include direct relationships\nGET /api/countries?include=provinces\n\n# Include nested relationships\nGET /api/countries?include=provinces.cities,provinces.cities.districts\n\n# Combined with field selection\nGET /api/countries?include=provinces&fields[countries]=id,name&fields[provinces]=id,name,population\n```\n\n### Complete Examples\n```\n# Advanced filtering with relationships\nGET /api/countries?\n  filter[name][contains]=united&\n  filter[population][gte]=10000000&\n  filter[continent][eq]=North America&\n  sort=population:desc,name:asc&\n  include=provinces.cities&\n  fields[countries]=id,name,population,continent&\n  per_page=10\n\n# Search with cursor pagination\nGET /api/countries?\n  filter[name][starts_with]=A&\n  sort=-created_at&\n  cursor=eyJjcmVhdGVkX2F0IjoxNjc4ODg2NDAwfQ==&\n  per_page=20\n```"),
-        (name = "Provinces", description = "Province management operations - linked to countries"),
-        (name = "Cities", description = "City management operations - linked to provinces"),
+        (name = "Provinces", description = "Province management operations - linked to countries with full query builder support"),
+        (name = "Cities", description = "City management operations - linked to provinces with advanced filtering and sorting"),
+        (name = "Districts", description = "District management operations - sub-city divisions with query builder capabilities"),
+        (name = "Villages", description = "Village management operations - local community units with geographic coordinates and advanced querying"),
         (name = "User Organizations", description = "User-Organization relationship management with hierarchical access control, RBAC/ABAC authorization, and transfer operations"),
         (name = "Organizations", description = "Hierarchical organization structure management (holding, subsidiary, divisions, departments, branches, etc.)"),
         (name = "Organization Domains", description = "Organization domain/sector management - high-level categorization for organizations (e.g., Government, Education, Private Sector)"),
@@ -192,6 +204,9 @@ use crate::app::models::organization_type::{OrganizationType, CreateOrganization
         (name = "Permissions", description = "Permission management operations"),
         (name = "Model Permissions", description = "Polymorphic model permission assignments - assign permissions to any model type"),
         (name = "Model Roles", description = "Polymorphic model role assignments - assign roles to any model type"),
+        (name = "Notifications", description = "Multi-channel notification system with priority-based delivery, read status tracking, retry logic, and scheduled notifications. Supports email, SMS, push, database, and webhook channels"),
+        (name = "Messages", description = "Secure messaging system with end-to-end encryption, conversation threading, message editing, forwarding, mentions, reactions, and ephemeral messages"),
+        (name = "Session Models", description = "Database session management with user activity tracking, IP-based filtering, device fingerprinting, and security auditing for user sessions"),
         (name = "OAuth Core", description = "OAuth2 authentication and authorization core endpoints"),
         (name = "OAuth Clients", description = "OAuth2 client management operations"),
         (name = "OAuth Scopes", description = "OAuth2 scope management and validation"),
