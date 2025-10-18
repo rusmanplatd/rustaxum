@@ -81,6 +81,7 @@ impl Client {
         redirect_uris: String,
         personal_access_client: bool,
         password_client: bool,
+        created_by_id: DieselUlid,
     ) -> Self {
         let now = Utc::now();
         Self {
@@ -97,8 +98,8 @@ impl Client {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap(),
-            updated_by_id: DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap(),
+            created_by_id,
+            updated_by_id: created_by_id,
             deleted_by_id: None,
             public_key_pem: None,
             metadata: Some(serde_json::json!({})),

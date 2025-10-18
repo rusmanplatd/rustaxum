@@ -50,7 +50,7 @@ services:
   #     - rustaxum_network
 
   db:
-    image: postgres:17-alpine
+    image: postgres:18
     environment:
       - POSTGRES_DB=rustaxum
       - POSTGRES_USER=rustaxum

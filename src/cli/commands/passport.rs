@@ -32,9 +32,16 @@ pub async fn handle_passport_command(cmd: PassportCommands) -> Result<()> {
 
 async fn handle_install(pool: &DbPool) -> Result<()> {
     use diesel::prelude::*;
-    use crate::schema::{oauth_clients, oauth_scopes};
+    use crate::schema::{oauth_clients, oauth_scopes, sys_users};
 
     println!("📦 Installing OAuth2/Passport...");
+    
+    // Get system user ID
+    let mut conn = pool.get()?;
+    let system_user_id = sys_users::table
+        .filter(sys_users::email.eq("system@seeder.internal"))
+        .select(sys_users::id)
+        .first::<String>(&mut conn)?;
 
     // Check if tables already exist by trying to count records
     let mut conn = pool.get()?;
@@ -57,16 +64,20 @@ async fn handle_install(pool: &DbPool) -> Result<()> {
             println!("✅ Personal access client already exists!");
         },
         None => {
+            // Parse the system user ID string into a ULID
+            let system_user_ulid = Ulid::from_string(&system_user_id).expect("Invalid system user ID format");
+            let diesel_user_id = crate::app::models::diesel_ulid::DieselUlid(system_user_ulid);
+
             let create_client = CreateClient {
                 organization_id: None,
-                user_id: None,
+                user_id: Some(diesel_user_id),
                 name: "Personal Access Client".to_string(),
                 redirect_uris: vec!["http://localhost".to_string()],
                 personal_access_client: true,
                 password_client: false,
             };
 
-            let client = ClientService::create_client(pool, create_client, None).await?;
+            let client = ClientService::create_client(pool, create_client, Some(&system_user_id)).await?;
             println!("✅ Created personal access client: {}", client.id);
         }
     }

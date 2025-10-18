@@ -25,6 +25,11 @@ impl ClientService {
             Some(Self::generate_client_secret())
         };
 
+        let created_by_id = created_by
+            .ok_or_else(|| anyhow::anyhow!("created_by is required"))
+            .and_then(|id| Ok(DieselUlid::from_string(id)?))
+            .expect("Invalid created_by ID format");
+
         let client = Client::new(
             data.organization_id,
             data.user_id.clone(),
@@ -33,6 +38,7 @@ impl ClientService {
             redirect_uris.clone(),
             data.personal_access_client,
             data.password_client,
+            created_by_id,
         );
 
         let created_client = Self::create_client_record(pool, client)?;

@@ -292,7 +292,7 @@ impl User {
 
     pub fn to_new_user(name: String, email: String, password: String, created_by: Option<DieselUlid>) -> User {
         let now = Utc::now();
-        let created_by_ulid = created_by.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap());
+        let created_by_ulid = created_by;
         User {
             id: DieselUlid::new(),
             name,
@@ -319,8 +319,8 @@ impl User {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: created_by_ulid,
-            updated_by_id: created_by_ulid,
+            created_by_id: created_by_ulid.unwrap_or_else(DieselUlid::new),
+            updated_by_id: created_by_ulid.unwrap_or_else(DieselUlid::new),
             deleted_by_id: None,
             identity_public_key: None,
             identity_key_created_at: None,

@@ -201,6 +201,7 @@ impl UserOrganization {
         pool: &DbPool,
         user_organization_id: String,
         role_id: String,
+        created_by_id: DieselUlid,
     ) -> Result<()> {
         use diesel::insert_into;
         use chrono::Utc;
@@ -208,10 +209,6 @@ impl UserOrganization {
 
         let mut conn = pool.get()?;
         let now = Utc::now();
-
-        // Get system user for audit tracking
-        let system_user_id = DieselUlid::from_string("01SYSTEM0SEEDER00000000000")
-            .unwrap_or_else(|_| DieselUlid::new());
 
         let new_role = SysModelHasRole {
             id: DieselUlid::new(),
@@ -223,8 +220,8 @@ impl UserOrganization {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: system_user_id,
-            updated_by_id: system_user_id,
+            created_by_id,
+            updated_by_id: created_by_id,
             deleted_by_id: None,
         };
 

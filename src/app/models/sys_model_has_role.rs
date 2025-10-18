@@ -132,9 +132,8 @@ impl crate::app::query_builder::Queryable for SysModelHasRole {
 }
 
 impl SysModelHasRole {
-    pub fn new(model_type: String, model_id: DieselUlid, role_id: DieselUlid, scope_type: Option<String>, scope_id: Option<DieselUlid>, user_id: Option<DieselUlid>) -> Self {
+    pub fn new(model_type: String, model_id: DieselUlid, role_id: DieselUlid, scope_type: Option<String>, scope_id: Option<DieselUlid>, created_by_id: DieselUlid) -> Self {
         let now = Utc::now();
-        let created_by = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap_or_else(|_| DieselUlid::new()));
 
         SysModelHasRole {
             id: DieselUlid::new(),
@@ -146,23 +145,23 @@ impl SysModelHasRole {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            created_by_id: created_by,
-            updated_by_id: created_by,
+            created_by_id,
+            updated_by_id: created_by_id,
             deleted_by_id: None,
         }
     }
 
-    pub fn update_with_user(&mut self, user_id: Option<DieselUlid>) {
+    pub fn update_with_user(&mut self, user_id: DieselUlid) {
         self.updated_at = Utc::now();
-        self.updated_by_id = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap());
+        self.updated_by_id = user_id;
     }
 
-    pub fn soft_delete(&mut self, user_id: Option<DieselUlid>) {
+    pub fn soft_delete(&mut self, user_id: DieselUlid) {
         let now = Utc::now();
-                self.deleted_at = Some(now);
+        self.deleted_at = Some(now);
         self.updated_at = now;
-        self.deleted_by_id = user_id;
-        self.updated_by_id = user_id.unwrap_or_else(|| DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap());
+        self.deleted_by_id = Some(user_id);
+        self.updated_by_id = user_id;
     }
 
     pub fn to_response(&self) -> SysModelHasRoleResponse {

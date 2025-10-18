@@ -4,6 +4,7 @@ use diesel::prelude::*;
 use serde_json::json;
 use crate::schema::user_organizations;
 use crate::app::traits::ServiceActivityLogger;
+use crate::app::models::DieselUlid;
 
 use crate::app::models::user_organization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization};
 
@@ -23,7 +24,7 @@ impl UserOrganizationService {
         Ok(user_org)
     }
 
-    pub async fn create(pool: &DbPool, data: CreateUserOrganization, created_by: Option<&str>) -> Result<UserOrganization> {
+    pub async fn create(pool: &DbPool, data: CreateUserOrganization, created_by_id: DieselUlid) -> Result<UserOrganization> {
         let mut conn = pool.get()?;
 
         let new_user_org = UserOrganization {
@@ -37,12 +38,8 @@ impl UserOrganizationService {
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
             deleted_at: None,
-            created_by_id: created_by
-                .map(|s| crate::app::models::DieselUlid::from_string(s).unwrap())
-                .unwrap_or_else(|| crate::app::models::DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap()),
-            updated_by_id: created_by
-                .map(|s| crate::app::models::DieselUlid::from_string(s).unwrap())
-                .unwrap_or_else(|| crate::app::models::DieselUlid::from_string("01SYSTEM0SEEDER00000000000").unwrap()),
+            created_by_id,
+            updated_by_id: created_by_id,
             deleted_by_id: None,
         };
 
@@ -62,7 +59,7 @@ impl UserOrganizationService {
 
         if let Err(e) = service.log_created(
             &result,
-            created_by,
+            Some(&created_by_id.to_string()),
             Some(properties)
         ).await {
             eprintln!("Failed to log user organization creation activity: {}", e);

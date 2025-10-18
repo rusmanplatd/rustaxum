@@ -20,7 +20,7 @@ impl SysModelHasRoleService {
             data.role_id,
             data.scope_type,
             data.scope_id,
-            None, // user_id parameter
+            DieselUlid::new(), // system-generated id
         );
 
 

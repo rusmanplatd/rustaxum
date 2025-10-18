@@ -5,9 +5,8 @@ use axum::{
 };
 use crate::database::DbPool;
 use ulid::Ulid;
-
-use crate::app::models::user_organization::UserOrganization;
 use crate::app::models::DieselUlid;
+use crate::app::models::user_organization::UserOrganization;
 use crate::app::http::requests::user_organization_requests::{
     CreateUserOrganizationRequest,
     UpdateUserOrganizationRequest,
@@ -121,7 +120,7 @@ pub async fn store(
     State(pool): State<DbPool>,
     headers: HeaderMap,
     request: CreateUserOrganizationRequest,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, impl IntoResponse> {
     // Authentication is handled by middleware
 
     // Convert request to CreateUserOrganization
@@ -133,21 +132,26 @@ pub async fn store(
     };
 
     // Extract user ID from authentication context
-    let user_id = crate::app::utils::token_utils::TokenUtils::extract_user_id_from_headers(&headers);
-    let user_id_str = user_id.as_ref().map(|id| id.to_string());
-    let user_id_ref = user_id_str.as_deref();
+    let user_id = crate::app::utils::token_utils::TokenUtils::extract_user_id_from_headers(&headers)
+        .ok_or_else(|| {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({ "error": "User ID not found in authentication context" }))
+            ).into_response()
+        })?;
 
-    match UserOrganizationService::create(&pool, create_data, user_id_ref).await
-        {
-        Ok(user_org) => {
-            (StatusCode::CREATED, Json(serde_json::json!(user_org.to_response()))).into_response()
-        },
-        Err(_) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
-                "error": "Failed to create user organization relationship"
-            }))).into_response()
+    Ok::<axum::http::Response<axum::body::Body>, axum::http::Response<axum::body::Body>>(
+        match UserOrganizationService::create(&pool, create_data, user_id).await {
+            Ok(user_org) => {
+                (StatusCode::CREATED, Json(serde_json::json!(user_org.to_response()))).into_response()
+            },
+            Err(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+                    "error": "Failed to create user organization relationship"
+                }))).into_response()
+            }
         }
-    }
+    )
 }
 
 #[utoipa::path(

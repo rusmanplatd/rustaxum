@@ -121,7 +121,7 @@ The PostgreSQL database is automatically set up when using `docker compose up`.
 The `docker compose.yaml` includes:
 
 - **app**: The main Rust application
-- **db**: PostgreSQL 16 database
+- **db**: PostgreSQL 18 database
 - **redis**: Redis for caching/sessions (optional)
 - **adminer**: Web-based database administration tool
 - **mailpit**: Email testing tool for development
