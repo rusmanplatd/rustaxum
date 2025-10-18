@@ -5,18 +5,21 @@ use serde_json::json;
 use crate::app::models::DieselUlid;
 use crate::database::{DbPool};
 use crate::schema::{sys_users, user_organizations, organizations, organization_positions, organization_position_levels,
-    sys_model_has_roles, sys_roles, sys_model_has_permissions, sys_permissions};
+    sys_model_has_roles, sys_roles, sys_model_has_permissions, sys_permissions, organization_types, organization_domains};
 use crate::app::models::user::{User, CreateUser, UpdateUser};
 use crate::app::models::user_organization::UserOrganization;
 use crate::app::models::organization::Organization;
 use crate::app::models::organization_position::OrganizationPosition;
 use crate::app::models::organization_position_level::OrganizationPositionLevel;
+use crate::app::models::organization_type::OrganizationType;
+use crate::app::models::organization_domain::OrganizationDomain;
 use crate::app::models::role::Role;
 use crate::app::models::permission::Permission;
 use crate::app::traits::ServiceActivityLogger;
 use crate::app::resources::user_organization_resource::{
     UserOrganizationResourceWithRelations, UserBasicInfo, OrganizationBasicInfo,
-    OrganizationPositionBasicInfo, OrganizationPositionLevelBasicInfo, RoleBasicInfo, PermissionBasicInfo
+    OrganizationPositionBasicInfo, OrganizationPositionLevelBasicInfo, RoleBasicInfo, PermissionBasicInfo,
+    OrganizationTypeBasicInfo, OrganizationDomainBasicInfo
 };
 use crate::app::resources::user_resource::{UserResourceWithRolesAndPermissions, UserRoleBasicInfo, UserPermissionBasicInfo};
 use std::collections::{HashMap, HashSet};
@@ -356,18 +359,22 @@ impl UserService {
             .left_join(organizations::table.on(organizations::id.eq(user_organizations::organization_id)))
             .left_join(organization_positions::table.on(organization_positions::id.eq(user_organizations::organization_position_id)))
             .left_join(organization_position_levels::table.on(organization_position_levels::id.eq(organization_positions::organization_position_level_id)))
+            .left_join(organization_types::table.on(organization_types::id.eq(organizations::type_id)))
+            .left_join(organization_domains::table.on(organization_domains::id.eq(organizations::domain_id)))
             .select((
                 UserOrganization::as_select(),
                 organizations::all_columns.nullable(),
                 organization_positions::all_columns.nullable(),
                 organization_position_levels::all_columns.nullable(),
+                organization_types::all_columns.nullable(),
+                organization_domains::all_columns.nullable(),
             ))
-            .load::<(UserOrganization, Option<Organization>, Option<OrganizationPosition>, Option<OrganizationPositionLevel>)>(&mut conn)?;
+            .load::<(UserOrganization, Option<Organization>, Option<OrganizationPosition>, Option<OrganizationPositionLevel>, Option<OrganizationType>, Option<OrganizationDomain>)>(&mut conn)?;
 
         // Get all user organization IDs for loading roles and permissions
         let user_org_ids: Vec<String> = user_org_data
             .iter()
-            .map(|(user_org, _, _, _)| user_org.id.to_string())
+            .map(|(user_org, _, _, _, _, _)| user_org.id.to_string())
             .collect();
 
         // Load roles for all user organizations
@@ -435,7 +442,7 @@ impl UserService {
         // Transform the data into UserOrganizationResourceWithRelations
         let user_organizations: Vec<UserOrganizationResourceWithRelations> = user_org_data
             .into_iter()
-            .map(|(user_org, org, pos, level)| {
+            .map(|(user_org, org, pos, level, org_type, org_domain)| {
                 let user_org_id = user_org.id.to_string();
 
                 let user_basic = Some(UserBasicInfo {
@@ -444,10 +451,27 @@ impl UserService {
                     email: user.email.clone(),
                 });
 
-                let organization_basic = org.map(|o| OrganizationBasicInfo {
-                    id: o.id.to_string(),
-                    name: o.name,
-                    code: o.code,
+                let organization_basic = org.map(|o| {
+                    let organization_type_basic = org_type.as_ref().map(|ot| OrganizationTypeBasicInfo {
+                        id: ot.id.to_string(),
+                        name: ot.name.clone(),
+                        code: ot.code.clone(),
+                        level: ot.level,
+                    });
+
+                    let organization_domain_basic = org_domain.as_ref().map(|od| OrganizationDomainBasicInfo {
+                        id: od.id.to_string(),
+                        name: od.name.clone(),
+                        code: od.code.clone(),
+                    });
+
+                    OrganizationBasicInfo {
+                        id: o.id.to_string(),
+                        name: o.name,
+                        code: o.code,
+                        organization_type: organization_type_basic,
+                        organization_domain: organization_domain_basic,
+                    }
                 });
 
                 let organization_position_basic = pos.map(|p| OrganizationPositionBasicInfo {
@@ -551,18 +575,22 @@ impl UserService {
             .left_join(organizations::table.on(organizations::id.eq(user_organizations::organization_id)))
             .left_join(organization_positions::table.on(organization_positions::id.eq(user_organizations::organization_position_id)))
             .left_join(organization_position_levels::table.on(organization_position_levels::id.eq(organization_positions::organization_position_level_id)))
+            .left_join(organization_types::table.on(organization_types::id.eq(organizations::type_id)))
+            .left_join(organization_domains::table.on(organization_domains::id.eq(organizations::domain_id)))
             .select((
                 UserOrganization::as_select(),
                 organizations::all_columns.nullable(),
                 organization_positions::all_columns.nullable(),
                 organization_position_levels::all_columns.nullable(),
+                organization_types::all_columns.nullable(),
+                organization_domains::all_columns.nullable(),
             ))
-            .load::<(UserOrganization, Option<Organization>, Option<OrganizationPosition>, Option<OrganizationPositionLevel>)>(&mut conn)?;
+            .load::<(UserOrganization, Option<Organization>, Option<OrganizationPosition>, Option<OrganizationPositionLevel>, Option<OrganizationType>, Option<OrganizationDomain>)>(&mut conn)?;
 
         // Get all user organization IDs for loading roles and permissions
         let user_org_ids: Vec<String> = user_org_data
             .iter()
-            .map(|(user_org, _, _, _)| user_org.id.to_string())
+            .map(|(user_org, _, _, _, _, _)| user_org.id.to_string())
             .collect();
 
         // Load roles for all user organizations
@@ -649,7 +677,7 @@ impl UserService {
         // Transform the user organization data into UserOrganizationResourceWithRelations
         let user_organizations: Vec<UserOrganizationResourceWithRelations> = user_org_data
             .into_iter()
-            .map(|(user_org, org, pos, level)| {
+            .map(|(user_org, org, pos, level, org_type, org_domain)| {
                 let user_org_id = user_org.id.to_string();
 
                 let user_basic = Some(UserBasicInfo {
@@ -658,10 +686,27 @@ impl UserService {
                     email: user.email.clone(),
                 });
 
-                let organization_basic = org.map(|o| OrganizationBasicInfo {
-                    id: o.id.to_string(),
-                    name: o.name,
-                    code: o.code,
+                let organization_basic = org.map(|o| {
+                    let organization_type_basic = org_type.as_ref().map(|ot| OrganizationTypeBasicInfo {
+                        id: ot.id.to_string(),
+                        name: ot.name.clone(),
+                        code: ot.code.clone(),
+                        level: ot.level,
+                    });
+
+                    let organization_domain_basic = org_domain.as_ref().map(|od| OrganizationDomainBasicInfo {
+                        id: od.id.to_string(),
+                        name: od.name.clone(),
+                        code: od.code.clone(),
+                    });
+
+                    OrganizationBasicInfo {
+                        id: o.id.to_string(),
+                        name: o.name,
+                        code: o.code,
+                        organization_type: organization_type_basic,
+                        organization_domain: organization_domain_basic,
+                    }
                 });
 
                 let organization_position_basic = pos.map(|p| OrganizationPositionBasicInfo {

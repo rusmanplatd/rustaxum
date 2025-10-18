@@ -126,6 +126,41 @@ pub struct OrganizationBasicInfo {
     /// Organization code
     #[schema(example = "ENG-001")]
     pub code: Option<String>,
+    /// Organization type information
+    pub organization_type: Option<OrganizationTypeBasicInfo>,
+    /// Organization domain information
+    pub organization_domain: Option<OrganizationDomainBasicInfo>,
+}
+
+/// Basic organization type information for relations
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct OrganizationTypeBasicInfo {
+    /// Organization type ID
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub id: String,
+    /// Organization type name
+    #[schema(example = "Ministry")]
+    pub name: String,
+    /// Organization type code
+    #[schema(example = "MIN")]
+    pub code: Option<String>,
+    /// Hierarchical level
+    #[schema(example = 1)]
+    pub level: i32,
+}
+
+/// Basic organization domain information for relations
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct OrganizationDomainBasicInfo {
+    /// Organization domain ID
+    #[schema(example = "01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    pub id: String,
+    /// Organization domain name
+    #[schema(example = "Government")]
+    pub name: String,
+    /// Organization domain code
+    #[schema(example = "GOV")]
+    pub code: Option<String>,
 }
 
 /// Basic organization position information for relations
