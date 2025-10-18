@@ -433,11 +433,20 @@ impl crate::app::query_builder::Includable for Organization {
                 "scopedPermissions" => {
                     crate::app::query_builder::RolePermissionLoader::load_scoped_permissions("organizations", ids, _conn)?;
                 },
+                "domain" => {
+                    tracing::debug!("Loading domain for organizations: {:?}", ids);
+                },
+                "type" => {
+                    tracing::debug!("Loading type for organizations: {:?}", ids);
+                },
                 "parent" => {
                     tracing::debug!("Loading parent organization for organizations: {:?}", ids);
                 },
                 "children" => {
                     tracing::debug!("Loading child organizations for organizations: {:?}", ids);
+                },
+                "levels" => {
+                    tracing::debug!("Loading position levels for organizations: {:?}", ids);
                 },
                 "positions" => {
                     tracing::debug!("Loading positions for organizations: {:?}", ids);
@@ -451,6 +460,12 @@ impl crate::app::query_builder::Includable for Organization {
                 "users.roles" => {
                     tracing::debug!("Loading users.roles for organizations: {:?}", ids);
                 },
+                "createdBy" | "updatedBy" | "deletedBy" |
+                "createdBy.organizations" | "updatedBy.organizations" | "deletedBy.organizations" |
+                "createdBy.organizations.position" | "updatedBy.organizations.position" | "deletedBy.organizations.position" |
+                "createdBy.organizations.position.level" | "updatedBy.organizations.position.level" | "deletedBy.organizations.position.level" => {
+                    crate::app::query_builder::audit_loader::AuditRelationshipLoader::load_audit_relationships("organizations", ids, &[include.to_string()], _conn)?;
+                },
                 _ => {
                     tracing::warn!("Unknown relationship: {}", include);
                 }
@@ -461,17 +476,154 @@ impl crate::app::query_builder::Includable for Organization {
 
     fn get_foreign_key(relationship: &str) -> Option<String> {
         match relationship {
+            "domain" => Some("domain_id".to_string()),
+            "type" => Some("type_id".to_string()),
             "parent" => Some("parent_id".to_string()),
             "children" => Some("parent_id".to_string()),
+            "levels" => Some("organization_id".to_string()),
             "positions" => Some("organization_id".to_string()),
-            "users" => Some("organization_id".to_string()),
+            "users" => Some("user_organizations.organization_id".to_string()),
+            "createdBy" => Some("created_by_id".to_string()),
+            "updatedBy" => Some("updated_by_id".to_string()),
+            "deletedBy" => Some("deleted_by_id".to_string()),
+            _ => None
+        }
+    }
+
+    fn build_join_clause(relationship: &str, main_table: &str) -> Option<String> {
+        match relationship {
+            "domain" => {
+                Some(format!(
+                    "LEFT JOIN organization_domains ON {}.domain_id = organization_domains.id AND organization_domains.deleted_at IS NULL",
+                    main_table
+                ))
+            },
+            "type" => {
+                Some(format!(
+                    "LEFT JOIN organization_types ON {}.type_id = organization_types.id AND organization_types.deleted_at IS NULL",
+                    main_table
+                ))
+            },
+            "parent" => {
+                Some(format!(
+                    "LEFT JOIN organizations AS parent_org ON {}.parent_id = parent_org.id AND parent_org.deleted_at IS NULL",
+                    main_table
+                ))
+            },
+            "children" => {
+                Some(format!(
+                    "LEFT JOIN organizations AS child_orgs ON {}.id = child_orgs.parent_id AND child_orgs.deleted_at IS NULL",
+                    main_table
+                ))
+            },
+            "levels" => {
+                Some(format!(
+                    "LEFT JOIN organization_position_levels ON {}.id = organization_position_levels.organization_id AND organization_position_levels.deleted_at IS NULL",
+                    main_table
+                ))
+            },
+            "positions" => {
+                Some(format!(
+                    "LEFT JOIN organization_positions ON {}.id = organization_positions.organization_id AND organization_positions.deleted_at IS NULL",
+                    main_table
+                ))
+            },
+            "users" => {
+                Some(format!(
+                    "LEFT JOIN user_organizations ON {}.id = user_organizations.organization_id LEFT JOIN sys_users ON user_organizations.user_id = sys_users.id",
+                    main_table
+                ))
+            },
+            "positions.level" => {
+                Some(format!(
+                    "LEFT JOIN organization_positions ON {}.id = organization_positions.organization_id AND organization_positions.deleted_at IS NULL LEFT JOIN organization_position_levels ON organization_positions.organization_position_level_id = organization_position_levels.id AND organization_position_levels.deleted_at IS NULL",
+                    main_table
+                ))
+            },
+            "users.roles" => {
+                Some(format!(
+                    "LEFT JOIN user_organizations ON {}.id = user_organizations.organization_id LEFT JOIN sys_users ON user_organizations.user_id = sys_users.id LEFT JOIN sys_model_has_roles ON sys_users.id = sys_model_has_roles.model_id AND sys_model_has_roles.model_type = 'User' LEFT JOIN sys_roles ON sys_model_has_roles.role_id = sys_roles.id",
+                    main_table
+                ))
+            },
+            "createdBy" => {
+                Some(format!(
+                    "LEFT JOIN sys_users AS created_by ON {}.created_by_id = created_by.id",
+                    main_table
+                ))
+            },
+            "updatedBy" => {
+                Some(format!(
+                    "LEFT JOIN sys_users AS updated_by ON {}.updated_by_id = updated_by.id",
+                    main_table
+                ))
+            },
+            "deletedBy" => {
+                Some(format!(
+                    "LEFT JOIN sys_users AS deleted_by ON {}.deleted_by_id = deleted_by.id",
+                    main_table
+                ))
+            },
+            "createdBy.organizations" => {
+                Some(format!(
+                    "LEFT JOIN sys_users AS created_by ON {}.created_by_id = created_by.id LEFT JOIN user_organizations AS created_by_user_orgs ON created_by.id = created_by_user_orgs.user_id LEFT JOIN organizations AS created_by_orgs ON created_by_user_orgs.organization_id = created_by_orgs.id",
+                    main_table
+                ))
+            },
+            "updatedBy.organizations" => {
+                Some(format!(
+                    "LEFT JOIN sys_users AS updated_by ON {}.updated_by_id = updated_by.id LEFT JOIN user_organizations AS updated_by_user_orgs ON updated_by.id = updated_by_user_orgs.user_id LEFT JOIN organizations AS updated_by_orgs ON updated_by_user_orgs.organization_id = updated_by_orgs.id",
+                    main_table
+                ))
+            },
+            "deletedBy.organizations" => {
+                Some(format!(
+                    "LEFT JOIN sys_users AS deleted_by ON {}.deleted_by_id = deleted_by.id LEFT JOIN user_organizations AS deleted_by_user_orgs ON deleted_by.id = deleted_by_user_orgs.user_id LEFT JOIN organizations AS deleted_by_orgs ON deleted_by_user_orgs.organization_id = deleted_by_orgs.id",
+                    main_table
+                ))
+            },
+            "createdBy.organizations.position" => {
+                Some(format!(
+                    "LEFT JOIN sys_users AS created_by ON {}.created_by_id = created_by.id LEFT JOIN user_organizations AS created_by_user_orgs ON created_by.id = created_by_user_orgs.user_id LEFT JOIN organizations AS created_by_orgs ON created_by_user_orgs.organization_id = created_by_orgs.id LEFT JOIN organization_positions AS created_by_positions ON created_by_user_orgs.organization_position_id = created_by_positions.id",
+                    main_table
+                ))
+            },
+            "updatedBy.organizations.position" => {
+                Some(format!(
+                    "LEFT JOIN sys_users AS updated_by ON {}.updated_by_id = updated_by.id LEFT JOIN user_organizations AS updated_by_user_orgs ON updated_by.id = updated_by_user_orgs.user_id LEFT JOIN organizations AS updated_by_orgs ON updated_by_user_orgs.organization_id = updated_by_orgs.id LEFT JOIN organization_positions AS updated_by_positions ON updated_by_user_orgs.organization_position_id = updated_by_positions.id",
+                    main_table
+                ))
+            },
+            "deletedBy.organizations.position" => {
+                Some(format!(
+                    "LEFT JOIN sys_users AS deleted_by ON {}.deleted_by_id = deleted_by.id LEFT JOIN user_organizations AS deleted_by_user_orgs ON deleted_by.id = deleted_by_user_orgs.user_id LEFT JOIN organizations AS deleted_by_orgs ON deleted_by_user_orgs.organization_id = deleted_by_orgs.id LEFT JOIN organization_positions AS deleted_by_positions ON deleted_by_user_orgs.organization_position_id = deleted_by_positions.id",
+                    main_table
+                ))
+            },
+            "createdBy.organizations.position.level" => {
+                Some(format!(
+                    "LEFT JOIN sys_users AS created_by ON {}.created_by_id = created_by.id LEFT JOIN user_organizations AS created_by_user_orgs ON created_by.id = created_by_user_orgs.user_id LEFT JOIN organizations AS created_by_orgs ON created_by_user_orgs.organization_id = created_by_orgs.id LEFT JOIN organization_positions AS created_by_positions ON created_by_user_orgs.organization_position_id = created_by_positions.id LEFT JOIN organization_position_levels AS created_by_levels ON created_by_positions.organization_position_level_id = created_by_levels.id",
+                    main_table
+                ))
+            },
+            "updatedBy.organizations.position.level" => {
+                Some(format!(
+                    "LEFT JOIN sys_users AS updated_by ON {}.updated_by_id = updated_by.id LEFT JOIN user_organizations AS updated_by_user_orgs ON updated_by.id = updated_by_user_orgs.user_id LEFT JOIN organizations AS updated_by_orgs ON updated_by_user_orgs.organization_id = updated_by_orgs.id LEFT JOIN organization_positions AS updated_by_positions ON updated_by_user_orgs.organization_position_id = updated_by_positions.id LEFT JOIN organization_position_levels AS updated_by_levels ON updated_by_positions.organization_position_level_id = updated_by_levels.id",
+                    main_table
+                ))
+            },
+            "deletedBy.organizations.position.level" => {
+                Some(format!(
+                    "LEFT JOIN sys_users AS deleted_by ON {}.deleted_by_id = deleted_by.id LEFT JOIN user_organizations AS deleted_by_user_orgs ON deleted_by.id = deleted_by_user_orgs.user_id LEFT JOIN organizations AS deleted_by_orgs ON deleted_by_user_orgs.organization_id = deleted_by_orgs.id LEFT JOIN organization_positions AS deleted_by_positions ON deleted_by_user_orgs.organization_position_id = deleted_by_positions.id LEFT JOIN organization_position_levels AS deleted_by_levels ON deleted_by_positions.organization_position_level_id = deleted_by_levels.id",
+                    main_table
+                ))
+            },
             _ => None
         }
     }
 
     fn should_eager_load(relationship: &str) -> bool {
-        // Load positions and users eagerly for organizational hierarchy
-        matches!(relationship, "positions" | "users")
+        matches!(relationship, "domain" | "type" | "positions" | "users")
     }
 }
 

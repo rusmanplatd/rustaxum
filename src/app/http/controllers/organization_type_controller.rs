@@ -14,12 +14,39 @@ use crate::app::models::organization_type::OrganizationType;
 use crate::database::DbPool;
 
 /// List all organization types with query builder support
+///
+/// Supports advanced querying with filters, sorting, pagination, and field selection.
+/// Only returns non-deleted records (soft delete support).
+///
+/// # Query Parameters
+/// - `filter[field]=value` - Filter by field
+/// - `sort=field` or `sort=-field` - Sort ascending/descending
+/// - `page=1&per_page=15` - Pagination
+/// - `fields=id,name,code` - Field selection
+/// - `include=domain,organizations` - Eager load relationships
+///
+/// # Implementation
+/// - Uses QueryBuilderService trait for consistent API
+/// - Filters out soft-deleted records automatically
+/// - Returns paginated results with metadata
 #[utoipa::path(
     get,
     path = "/api/organization-types",
+    summary = "List all organization types",
+    description = "Get all organization types with advanced filtering, sorting, pagination, and field selection",
+    params(
+        ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
+        ("sort" = Option<String>, Query, description = "Multi-column sorting. Available fields: id, domain_id, code, name, level, created_at, updated_at. Syntax: 'field1,-field2,field3:desc'. Example: 'level,name,-created_at'"),
+        ("include" = Option<String>, Query, description = "Eager load relationships. Available: domain, organizations, createdBy, updatedBy, deletedBy. Supports nested relationships. Example: 'domain,organizations,createdBy'"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Advanced filtering with comprehensive operators. Available filters: id, domain_id, code, name, description, level, created_at, updated_at, deleted_at, created_by_id, updated_by_id, deleted_by_id. Operators: eq, ne, gt, gte, lt, lte, like, ilike, contains, starts_with, ends_with, in, not_in, is_null, is_not_null, between. Examples: filter[name][contains]=dept, filter[level][gte]=2, filter[domain_id][eq]=01ARZ3"),
+        ("fields" = Option<String>, Query, description = "Field selection for optimized responses. Available: id, domain_id, code, name, description, level, created_at, updated_at, deleted_at, created_by_id, updated_by_id, deleted_by_id. Example: fields[organization_types]=id,code,name,level"),
+        ("cursor" = Option<String>, Query, description = "Cursor for high-performance pagination. Base64-encoded JSON cursor from previous response"),
+        ("pagination_type" = Option<String>, Query, description = "Pagination strategy: 'offset' (traditional) or 'cursor' (high-performance, default)"),
+    ),
     responses(
-        (status = 200, description = "List of organization types"),
-        (status = 500, description = "Internal server error")
+        (status = 200, description = "List of organization types with pagination", body = serde_json::Value),
+        (status = 500, description = "Internal server error", body = serde_json::Value)
     ),
     tag = "Organization Types"
 )]
@@ -72,17 +99,7 @@ pub async fn store(
         }
     }
 
-    let user_ulid = match crate::app::models::DieselUlid::from_string(&auth_user.user_id) {
-        Ok(id) => id,
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"error": format!("Invalid user ID: {}", e)}))
-            ).into_response();
-        }
-    };
-
-    match OrganizationTypeService::create(&pool, data, user_ulid) {
+    match OrganizationTypeService::create(&pool, data, &auth_user.user_id).await {
         Ok(org_type) => (StatusCode::CREATED, Json(org_type.to_response())).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -109,21 +126,16 @@ pub async fn show(
     State(pool): State<DbPool>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    match OrganizationTypeService::find_by_id(&pool, &id) {
-        Ok(org_type) => (StatusCode::OK, Json(org_type.to_response())).into_response(),
-        Err(e) => {
-            if e.to_string().contains("NotFound") || e.to_string().contains("not found") {
-                (
-                    StatusCode::NOT_FOUND,
-                    Json(json!({"error": "Organization type not found"}))
-                ).into_response()
-            } else {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"error": e.to_string()}))
-                ).into_response()
-            }
-        }
+    match OrganizationTypeService::find_by_id(&pool, id) {
+        Ok(Some(org_type)) => (StatusCode::OK, Json(org_type.to_response())).into_response(),
+        Ok(None) => (
+            StatusCode::NOT_FOUND,
+            Json(json!({"error": "Organization type not found"}))
+        ).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": e.to_string()}))
+        ).into_response(),
     }
 }
 
@@ -145,24 +157,24 @@ pub async fn show(
 )]
 pub async fn update(
     State(pool): State<DbPool>,
+    Extension(auth_user): Extension<crate::app::http::middleware::auth_guard::AuthUser>,
     Path(id): Path<String>,
     Json(data): Json<UpdateOrganizationType>,
 ) -> impl IntoResponse {
     // Get the existing type to check domain
-    let existing_type = match OrganizationTypeService::find_by_id(&pool, &id) {
-        Ok(t) => t,
+    let existing_type = match OrganizationTypeService::find_by_id(&pool, id.clone()) {
+        Ok(Some(t)) => t,
+        Ok(None) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error": "Organization type not found"}))
+            ).into_response();
+        },
         Err(e) => {
-            if e.to_string().contains("NotFound") || e.to_string().contains("not found") {
-                return (
-                    StatusCode::NOT_FOUND,
-                    Json(json!({"error": "Organization type not found"}))
-                ).into_response();
-            } else {
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"error": e.to_string()}))
-                ).into_response();
-            }
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": e.to_string()}))
+            ).into_response();
         }
     };
 
@@ -186,7 +198,7 @@ pub async fn update(
         }
     }
 
-    match OrganizationTypeService::update(&pool, &id, data, None) {
+    match OrganizationTypeService::update(&pool, id, data, &auth_user.user_id).await {
         Ok(org_type) => (StatusCode::OK, Json(org_type.to_response())).into_response(),
         Err(e) => {
             if e.to_string().contains("NotFound") || e.to_string().contains("not found") {
@@ -220,9 +232,10 @@ pub async fn update(
 )]
 pub async fn destroy(
     State(pool): State<DbPool>,
+    Extension(auth_user): Extension<crate::app::http::middleware::auth_guard::AuthUser>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    match OrganizationTypeService::delete(&pool, &id, None) {
+    match OrganizationTypeService::delete(&pool, id, &auth_user.user_id).await {
         Ok(_) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => {
             if e.to_string().contains("NotFound") || e.to_string().contains("not found") {

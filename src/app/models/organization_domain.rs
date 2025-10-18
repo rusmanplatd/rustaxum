@@ -184,6 +184,8 @@ impl crate::app::query_builder::Sortable for OrganizationDomain {
 
 impl crate::app::query_builder::Includable for OrganizationDomain {
     fn load_relationships(ids: &[String], includes: &[String], _conn: &mut diesel::pg::PgConnection) -> anyhow::Result<()> {
+        use crate::app::query_builder::audit_loader::AuditRelationshipLoader;
+
         for include in includes {
             match include.as_str() {
                 "types" => {
@@ -191,6 +193,12 @@ impl crate::app::query_builder::Includable for OrganizationDomain {
                 },
                 "organizations" => {
                     tracing::debug!("Loading organizations for organization domains: {:?}", ids);
+                },
+                "createdBy" | "updatedBy" | "deletedBy" |
+                "createdBy.organizations" | "updatedBy.organizations" | "deletedBy.organizations" |
+                "createdBy.organizations.position" | "updatedBy.organizations.position" | "deletedBy.organizations.position" |
+                "createdBy.organizations.position.level" | "updatedBy.organizations.position.level" | "deletedBy.organizations.position.level" => {
+                    AuditRelationshipLoader::load_audit_relationships("organization_domains", ids, &[include.to_string()], _conn)?;
                 },
                 _ => {
                     tracing::warn!("Unknown relationship: {}", include);
@@ -204,12 +212,51 @@ impl crate::app::query_builder::Includable for OrganizationDomain {
         match relationship {
             "types" => Some("domain_id".to_string()),
             "organizations" => Some("domain_id".to_string()),
+            "createdBy" => Some("created_by_id".to_string()),
+            "updatedBy" => Some("updated_by_id".to_string()),
+            "deletedBy" => Some("deleted_by_id".to_string()),
+            _ => None
+        }
+    }
+
+    fn build_join_clause(relationship: &str, main_table: &str) -> Option<String> {
+        match relationship {
+            "types" => {
+                Some(format!(
+                    "LEFT JOIN organization_types ON {}.id = organization_types.domain_id AND organization_types.deleted_at IS NULL",
+                    main_table
+                ))
+            },
+            "organizations" => {
+                Some(format!(
+                    "LEFT JOIN organizations ON {}.id = organizations.domain_id AND organizations.deleted_at IS NULL",
+                    main_table
+                ))
+            },
+            "createdBy" => {
+                Some(format!(
+                    "LEFT JOIN sys_users AS created_by ON {}.created_by_id = created_by.id",
+                    main_table
+                ))
+            },
+            "updatedBy" => {
+                Some(format!(
+                    "LEFT JOIN sys_users AS updated_by ON {}.updated_by_id = updated_by.id",
+                    main_table
+                ))
+            },
+            "deletedBy" => {
+                Some(format!(
+                    "LEFT JOIN sys_users AS deleted_by ON {}.deleted_by_id = deleted_by.id",
+                    main_table
+                ))
+            },
             _ => None
         }
     }
 
     fn should_eager_load(relationship: &str) -> bool {
-        matches!(relationship, "types")
+        matches!(relationship, "types" | "organizations")
     }
 }
 

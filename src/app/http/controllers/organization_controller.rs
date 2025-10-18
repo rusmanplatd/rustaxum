@@ -2,6 +2,7 @@ use axum::{
     extract::{State, Path, Query},
     http::StatusCode,
     response::{IntoResponse, Json as ResponseJson},
+    Extension,
 };
 use serde::Serialize;
 use ulid::Ulid;
@@ -32,10 +33,10 @@ struct MessageResponse {
     params(
         ("page" = Option<u32>, Query, description = "Page number for pagination (default: 1)"),
         ("per_page" = Option<u32>, Query, description = "Number of items per page (default: 15, max: 100)"),
-        ("sort" = Option<String>, Query, description = "Multi-column sorting. Available fields: id, name, description, type, status, created_at, updated_at. Syntax: 'field1,-field2,field3:desc'. Example: 'type:asc,name,-created_at'"),
-        ("include" = Option<String>, Query, description = "Eager load relationships. Available: users, positions, positions.level, users.roles, createdBy, updatedBy, deletedBy, createdBy.organizations.position.level, updatedBy.organizations.position.level, deletedBy.organizations.position.level. Supports nested relationships. Example: 'users.roles,positions.level,createdBy.organizations.position.level'"),
-        ("filter" = Option<serde_json::Value>, Query, description = "Advanced filtering with comprehensive operators. Available filters: name, description, type, status, created_at, updated_at. Operators: eq, ne, gt, gte, lt, lte, like, ilike, contains, starts_with, ends_with, in, not_in, is_null, is_not_null, between. Examples: filter[name][contains]=tech, filter[type][in]=holding,subsidiary, filter[status][eq]=active"),
-        ("fields" = Option<String>, Query, description = "Field selection for optimized responses. Available: id, name, description, type, status, slug, created_at, updated_at. Example: fields[organizations]=id,name,type,status"),
+        ("sort" = Option<String>, Query, description = "Multi-column sorting. Available fields: id, domain_id, parent_id, type_id, code, name, address, email, phone, legal_status, registration_number, tax_number, website, is_active, created_at, updated_at, deleted_at, created_by_id, updated_by_id, deleted_by_id. Syntax: 'field1,-field2,field3:desc'. Example: 'type_id:asc,name,-created_at'"),
+        ("include" = Option<String>, Query, description = "Eager load relationships. Available: domain, type, parent, children, levels, positions, users, roles, permissions, authorizationContext, scopedRoles, scopedPermissions, positions.level, users.roles, roles.permissions, permissions.roles, createdBy, updatedBy, deletedBy, createdBy.organizations, updatedBy.organizations, deletedBy.organizations, createdBy.organizations.position, updatedBy.organizations.position, deletedBy.organizations.position, createdBy.organizations.position.level, updatedBy.organizations.position.level, deletedBy.organizations.position.level. Supports nested relationships. Example: 'domain,type,users.roles,positions.level,createdBy.organizations.position.level'"),
+        ("filter" = Option<serde_json::Value>, Query, description = "Advanced filtering with comprehensive operators. Available filters: id, domain_id, parent_id, type_id, code, name, address, email, phone, legal_status, registration_number, tax_number, website, is_active, created_at, updated_at, deleted_at, created_by_id, updated_by_id, deleted_by_id. Operators: eq, ne, gt, gte, lt, lte, like, ilike, contains, starts_with, ends_with, in, not_in, is_null, is_not_null, between. Examples: filter[name][contains]=tech, filter[type_id][eq]=01ARZ3, filter[is_active][eq]=true"),
+        ("fields" = Option<String>, Query, description = "Field selection for optimized responses. Available: id, domain_id, parent_id, type_id, code, name, address, authorized_capital, business_activities, contact_persons, description, email, establishment_date, governance_structure, legal_status, paid_capital, path, phone, registration_number, tax_number, website, is_active, created_at, updated_at, deleted_at, created_by_id, updated_by_id, deleted_by_id. Example: fields[organizations]=id,name,type_id,is_active"),
         ("cursor" = Option<String>, Query, description = "Cursor for high-performance pagination. Base64-encoded JSON cursor from previous response"),
         ("pagination_type" = Option<String>, Query, description = "Pagination strategy: 'offset' (traditional) or 'cursor' (high-performance, default)"),
     ),
@@ -118,7 +119,11 @@ pub async fn show(State(pool): State<DbPool>, Path(id): Path<String>) -> impl In
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn store(State(pool): State<DbPool>, request: CreateOrganizationRequest) -> impl IntoResponse {
+pub async fn store(
+    State(pool): State<DbPool>,
+    Extension(auth_user): Extension<crate::app::http::middleware::auth_guard::AuthUser>,
+    request: CreateOrganizationRequest,
+) -> impl IntoResponse {
     // Convert parent_id from String to DieselUlid if provided
     let parent_id = match request.parent_id {
         Some(id_str) => {
@@ -155,7 +160,7 @@ pub async fn store(State(pool): State<DbPool>, request: CreateOrganizationReques
         website: request.website,
     };
 
-    match OrganizationService::create(&pool, payload, None).await {
+    match OrganizationService::create(&pool, payload, &auth_user.user_id).await {
         Ok(organization) => (StatusCode::CREATED, ResponseJson(organization.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -185,6 +190,7 @@ pub async fn store(State(pool): State<DbPool>, request: CreateOrganizationReques
 )]
 pub async fn update(
     State(pool): State<DbPool>,
+    Extension(auth_user): Extension<crate::app::http::middleware::auth_guard::AuthUser>,
     Path(id): Path<String>,
     request: UpdateOrganizationRequest,
 ) -> impl IntoResponse {
@@ -235,7 +241,7 @@ pub async fn update(
         is_active: request.is_active,
     };
 
-    match OrganizationService::update(&pool, organization_id.to_string(), payload) {
+    match OrganizationService::update(&pool, organization_id.to_string(), payload, &auth_user.user_id).await {
         Ok(organization) => (StatusCode::OK, ResponseJson(organization.to_response())).into_response(),
         Err(e) => {
             let error = ErrorResponse {
@@ -262,8 +268,12 @@ pub async fn update(
         (status = 500, description = "Internal server error", body = crate::app::docs::ErrorResponse)
     )
 )]
-pub async fn destroy(State(pool): State<DbPool>, Path(id): Path<String>) -> impl IntoResponse {
-    match OrganizationService::delete(&pool, id) {
+pub async fn destroy(
+    State(pool): State<DbPool>,
+    Extension(auth_user): Extension<crate::app::http::middleware::auth_guard::AuthUser>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    match OrganizationService::delete(&pool, id, &auth_user.user_id).await {
         Ok(_) => {
             let message = MessageResponse {
                 message: "Organization deleted successfully".to_string(),

@@ -32,8 +32,10 @@ use crate::app::http::controllers::auth_controller::MfaLoginRequest;
 // use crate::app::models::role::{Role, CreateRole, UpdateRole, RoleResponse};
 // use crate::app::models::permission::{Permission, CreatePermission, UpdatePermission, PermissionResponse};
 
-// Adding organization model - should be safe as it has ToSchema implemented
+// Adding organization models - should be safe as they have ToSchema implemented
 use crate::app::models::organization::{Organization, CreateOrganization, UpdateOrganization, OrganizationResponse};
+use crate::app::models::organization_domain::{OrganizationDomain, CreateOrganizationDomain, UpdateOrganizationDomain, OrganizationDomainResponse};
+use crate::app::models::organization_type::{OrganizationType, CreateOrganizationType, UpdateOrganizationType, OrganizationTypeResponse};
 
 // More complex models with potential circular dependencies - kept commented for now
 // use crate::app::models::user_organization::{UserOrganization, CreateUserOrganization, UpdateUserOrganization, UserOrganizationResponse};
@@ -51,6 +53,8 @@ use crate::app::models::organization::{Organization, CreateOrganization, UpdateO
              (crate::app::http::controllers::village_controller => ./src/app/http/controllers/village_controller.rs);
              (crate::app::http::controllers::district_controller => ./src/app/http/controllers/district_controller.rs);
              (crate::app::http::controllers::organization_controller => ./src/app/http/controllers/organization_controller.rs);
+             (crate::app::http::controllers::organization_domain_controller => ./src/app/http/controllers/organization_domain_controller.rs);
+             (crate::app::http::controllers::organization_type_controller => ./src/app/http/controllers/organization_type_controller.rs);
              (crate::app::http::controllers::organization_position_level_controller => ./src/app/http/controllers/organization_position_level_controller.rs);
              (crate::app::http::controllers::organization_position_controller => ./src/app/http/controllers/organization_position_controller.rs);
              (crate::app::http::controllers::role_controller => ./src/app/http/controllers/role_controller.rs);
@@ -114,6 +118,8 @@ use crate::app::models::organization::{Organization, CreateOrganization, UpdateO
 
             // Organization models - safe to include with ToSchema implemented
             Organization, CreateOrganization, UpdateOrganization, OrganizationResponse,
+            OrganizationDomain, CreateOrganizationDomain, UpdateOrganizationDomain, OrganizationDomainResponse,
+            OrganizationType, CreateOrganizationType, UpdateOrganizationType, OrganizationTypeResponse,
 
             // User Organization models - commented out due to complex relationships
             // UserOrganization, CreateUserOrganization, UpdateUserOrganization, UserOrganizationResponse,
@@ -178,6 +184,8 @@ use crate::app::models::organization::{Organization, CreateOrganization, UpdateO
         (name = "Cities", description = "City management operations - linked to provinces"),
         (name = "User Organizations", description = "User-Organization relationship management with hierarchical access control, RBAC/ABAC authorization, and transfer operations"),
         (name = "Organizations", description = "Hierarchical organization structure management (holding, subsidiary, divisions, departments, branches, etc.)"),
+        (name = "Organization Domains", description = "Organization domain/sector management - high-level categorization for organizations (e.g., Government, Education, Private Sector)"),
+        (name = "Organization Types", description = "Organization type management - defines organizational structure types within domains (e.g., Ministry, Department, Division, Unit)"),
         (name = "Job Levels", description = "Job level hierarchy management for career progression"),
         (name = "Organization Positions", description = "Organization position management linked to organization position levels"),
         (name = "Roles", description = "Role-based access control operations"),
